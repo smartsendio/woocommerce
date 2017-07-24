@@ -213,7 +213,7 @@ class Smartsend_Logistics_Label{
 				foreach($trace_codes as $trace_code) {
 					//Add a note with a Track&Trace link
 					$order->add_order_note('TraceCode: <a href="https://smartsend-prod.apigee.net/trace/'.$smartsendorder->getShippingCarrier().'/'.$trace_code.'" target="_blank">'.$trace_code.'</a>');
-					$tracking_code_combined .= ($tracking_link != '' ? ',' : '').$trace_code;
+					$tracking_code_combined .= ($trace_code != '' ? ',' : '').$trace_code;
 				}
 				
 				if($tracking_code_combined != ',' && $tracking_code_combined != '') {

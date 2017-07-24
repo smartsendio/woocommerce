@@ -699,13 +699,10 @@ class Smartsend_Logistics_Order {
 	*/
 	public function setReceiver() {
 	
-		if($this->isSmartSend() == true) {
-			$this->_receiver = $this->getShippingAddress();
-		} elseif($this->isVconnect() == true) {
+		if($this->isPickupVconnect() == true) {
 			$this->_receiver = $this->getBillingAddress();
 		} else {
-			//Change this code for each CMS system
-			throw new Exception('Unable to set receiver');
+			$this->_receiver = $this->getShippingAddress();
 		}
 	
 	}
@@ -988,6 +985,37 @@ class Smartsend_Logistics_Order {
 		if($this->_cms == 'magento') {
 			return $this->_order->getOrderCurrencyCode();
 		} /* Magento end */
+ 	}
+ 	
+ 	/**
+	* 
+	* Get the comment that the user provided during checkout
+	* @return string
+	*/
+ 	private function getCustomerComment() {
+ 	
+		/* WooCommerce start */
+		if($this->_cms == 'woocommerce') {
+			$comment = $this->_order->customer_message;
+		} /* WooCommerce end */
+	
+		/* Magento start */
+		if($this->_cms == 'magento') {
+			//NOT IMPLEMENTED
+			$comment = null;
+		} /* Magento end */
+		
+		/* PrestaShop start */
+		if($this->_cms == 'prestashop') {
+			//NOT IMPLEMENTED
+			$comment = null;
+		} /* PrestaShop end */
+		
+		if(isset($comment) && $comment != '') {
+			return $comment;
+		} else {
+			return null;
+		}
  	}
  	
  	/**
@@ -1439,7 +1467,7 @@ class Smartsend_Logistics_Order {
 					'width'		=> null,
 					'length'	=> null,
 					'size'		=> null,
-					'freetext1'	=> null,
+					'freetext1'	=> $this->getCustomerComment(),
 					'freetext2'	=> null,
 					'freetext3'	=> null,
 					'items' 	=> array(),
@@ -1547,7 +1575,7 @@ class Smartsend_Logistics_Order {
 						'width'		=> null,
 						'length'	=> null,
 						'size'		=> null,
-						'freetext1'	=> null,
+						'freetext1'	=> $this->getCustomerComment(),
 						'freetext2'	=> null,
 						'freetext3'	=> null,
 						'items' 	=> $this->getUnshippedItems()

@@ -5,7 +5,7 @@ Plugin URI: http://smartsend.dk/integrationer/woocommerce
 Description: Table rate shipping methods with Post Danmark, GLS and Bring pickup points. Listed in a dropdown sorted by distance from shipping adress.
 Author: Smart Send ApS
 Author URI: http://www.smartsend.dk
-Version: 7.0.9
+Version: 7.0.10
 
 Copyright: (c) 2014 Smart Send ApS (email : kontakt@smartsend.dk)
 License: GNU General Public License v3.0
@@ -441,12 +441,12 @@ if ( in_array( 'woocommerce/woocommerce.php', apply_filters( 'active_plugins', g
 			?>
 				<script type="text/javascript">
 					jQuery(document).ready(function() {
-						jQuery('<option>').val('smartsend_label').text('<?php _e('Generate label')?>').appendTo("select[name='action']");
-						jQuery('<option>').val('smartsend_label').text('<?php _e('Generate label')?>').appendTo("select[name='action2']");
-						jQuery('<option>').val('smartsend_return_label').text('<?php _e('Generate return label')?>').appendTo("select[name='action']");
-						jQuery('<option>').val('smartsend_return_label').text('<?php _e('Generate return label')?>').appendTo("select[name='action2']");
-						jQuery('<option>').val('smartsend_normal_return_label').text('<?php _e('Generate normal and return label')?>').appendTo("select[name='action']");
-						jQuery('<option>').val('smartsend_normal_return_label').text('<?php _e('Generate normal and return label')?>').appendTo("select[name='action2']");
+						jQuery('<option>').val('smartsend_label').text('<?php _e('Generate label','smart-send-logistics')?>').appendTo("select[name='action']");
+						jQuery('<option>').val('smartsend_label').text('<?php _e('Generate label','smart-send-logistics')?>').appendTo("select[name='action2']");
+						jQuery('<option>').val('smartsend_return_label').text('<?php _e('Generate return label','smart-send-logistics')?>').appendTo("select[name='action']");
+						jQuery('<option>').val('smartsend_return_label').text('<?php _e('Generate return label','smart-send-logistics')?>').appendTo("select[name='action2']");
+						jQuery('<option>').val('smartsend_normal_return_label').text('<?php _e('Generate normal and return label','smart-send-logistics')?>').appendTo("select[name='action']");
+						jQuery('<option>').val('smartsend_normal_return_label').text('<?php _e('Generate normal and return label','smart-send-logistics')?>').appendTo("select[name='action2']");
 					});
 				</script>
 			<?php
