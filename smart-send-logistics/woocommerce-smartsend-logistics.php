@@ -5,7 +5,7 @@ Plugin URI: http://smartsend.dk/integrationer/woocommerce
 Description: Table rate shipping methods with Post Danmark, GLS, SwipBox and Bring pickup points. Listed in a dropdown sorted by distance from shipping adress.
 Author: Smart Send ApS
 Author URI: http://www.smartsend.dk
-Version: 7.0.4
+Version: 7.0.5
 
 Copyright: (c) 2014 Smart Send ApS (email : kontakt@smartsend.dk)
 License: GNU General Public License v3.0
@@ -613,7 +613,21 @@ function smartsend_logistics_admin_notice($message, $type='info') {
 							
 		}
                ?>
-               
+               <script>
+                   jQuery(document).ready(function(){
+                        var found = false;
+                            jQuery( ".shipping_method" ).each(function( index ) { 
+                            
+                            var a = jQuery( this ).val() ;
+                            if (a.indexOf('smartsend') > -1) { 
+                                found = true;
+                            }
+                          });
+                          if(!found){
+                              jQuery('.selectstore').remove();
+                          }
+                   });
+               </script>
 		<?php if($display_selectbox){ 
 		?>
 		<script>
@@ -652,25 +666,9 @@ function smartsend_logistics_admin_notice($message, $type='info') {
 
 	}
         
-        add_action('woocommerce_review_order_after_shipping','remove_pickup_dropdown_not_needed');
-        function remove_pickup_dropdown_not_needed(){
-            Smartsend_Logistics_custom_store_pickup_field( $fields='' );
-           ?><script>
-                   jQuery(document).ready(function(){
-                        var found = false;
-                            jQuery( ".shipping_method" ).each(function( index ) { 
-                            
-                            var a = jQuery( this ).val() ;
-                            if (a.indexOf('smartsend') > -1) { 
-                                found = true;
-                            }
-                          });
-                          if(!found){
-                              jQuery('.selectstore').remove();
-                          }
-                   });
-               </script><?php
-        }
+        //add_action('woocommerce_review_order_after_shipping','remove_pickup_dropdown_not_needed');
+       // function remove_pickup_dropdown_not_needed(){
+       // }
 	add_action('woocommerce_checkout_process', 'smartsend_pickup_select_process');
 	function smartsend_pickup_select_process() {
 		if (empty($_POST['store_pickup']) && isset($_POST['store_pickup'])) {

@@ -182,7 +182,8 @@ class Smartsend_Logistics_Order{
 				
     			return $pickupData;
 			} else {
-				throw new Exception(__("Unable to fetch pickup data") );
+				return false;
+				//throw new Exception(__("Unable to fetch pickup data") );
 			}
         } elseif( $this->isVconnect($order) ) {
         	
@@ -204,7 +205,8 @@ class Smartsend_Logistics_Order{
 				return $pickupData;
     			
 			} else {
-				throw new Exception(__("Missing vConnect agent->id") );
+				return false;
+				//throw new Exception(__("Missing vConnect agent->id") );
 			}		
 		} else {
 			throw new Exception(__("Not a pickup shipping method") );
