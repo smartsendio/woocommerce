@@ -10,6 +10,69 @@
  * Check if WooCommerce is active
  */
 if ( in_array( 'woocommerce/woocommerce.php', apply_filters( 'active_plugins', get_option( 'active_plugins' ) ) ) ) {
+
+	//Function used to show pickup information
+	function Smartsend_Logistics_display_store_order_details($order,$show_id=false,$show_carrier=false,$tag=false) {
+			   
+		$store_pickup = get_post_custom($order->id);
+		$store_pickup = @unserialize($store_pickup['store_pickup'][0]);
+		if(!is_array($store_pickup)) $store_pickup = unserialize($store_pickup);
+	
+		if(!empty($store_pickup)){
+			if($tag) {
+				echo '<'.$tag.'>';
+				echo __('Pickup point','smart-send-logistics');
+				echo '</'.$tag.'>';
+			} else {
+				echo __('Pickup point','smart-send-logistics').':<br/>';
+			}
+			if($show_id) {
+				echo ' ID: ' . $store_pickup['id'] .'<br/>';
+			}
+			echo 	$store_pickup['company'] .'<br/>'.
+					$store_pickup['street'] .'<br/>'.
+					$store_pickup['zip'] .' '.$store_pickup['city'];
+			if($show_carrier == true) {
+				echo '<br/>'.$store_pickup['carrier'];
+			}
+		}
+	}
+	
+	# Show selected pickup location in customer's myaccount section
+	add_action( 'woocommerce_order_details_after_order_table', 'Smartsend_Logistics_display_store_order_details' );
+	
+	# Show selected pickup location in order emails
+	add_action( 'woocommerce_email_after_order_table', 'smartsend_logistics_print_pickup_info', 10, 2 );
+	function smartsend_logistics_print_pickup_info( $order, $sent_to_admin ) {
+		Smartsend_Logistics_display_store_order_details($order,false,false,'h3');
+	}
+
+	/**
+	 * wc_shipment_tracking_add_custom_provider
+	 *
+	 * Adds custom provider to shipment tracking
+	 * Change the country name, the provider name, and the URL (it must include the %1$s)
+	 * Add one provider per line
+	*/
+	function smartsend_logistics_wc_shipment_tracking_add_custom_provider( $providers ) {
+
+		//Denmark
+		$providers['Denmark']['PostDanmark'] 	= 'https://smartsend-prod.apigee.net/trace/postdanmark/%1$s';
+		$providers['Denmark']['GLS'] 			= 'https://smartsend-prod.apigee.net/trace/gls/%1$s';
+		$providers['Denmark']['Bring'] 			= 'https://smartsend-prod.apigee.net/trace/bring/%1$s';
+		
+		//Sweden
+		$providers['Sweden']['Posten'] 			= 'https://smartsend-prod.apigee.net/trace/posten/%1$s';
+		
+		//Norway
+		$providers['Norway']['Bring'] 			= 'https://smartsend-prod.apigee.net/trace/bring/%1$s';
+		
+		//Sort by keys
+		ksort($providers);
+		
+		return $providers;
+	}
+	add_action( 'wc_shipment_tracking_get_providers' , 'smartsend_logistics_wc_shipment_tracking_add_custom_provider' );
     
 	add_action( 'woocommerce_checkout_update_order_meta', 'Smartsend_Logistics_store_pickup_field_update_order_meta' );
 	
@@ -29,46 +92,6 @@ if ( in_array( 'woocommerce/woocommerce.php', apply_filters( 'active_plugins', g
 			if (isset($_POST['store_pickup']) && $_POST['store_pickup']=='') 
 				$woocommerce->add_error( __(get_option('woocommerce_pickup_display_dropdown_error', 'Vælg venligst et udleveringssted på listen.'),'woocommerce') );
 	}           
-	
-	# Show selected pickup location in customer's myaccount section
-	add_action( 'woocommerce_order_details_after_order_table', 'Smartsend_Logistics_display_store_order_details' );
-	function Smartsend_Logistics_display_store_order_details($order  ) {
-			   
-		$store_pickup = get_post_custom($order->id);
-		$store_pickup = @unserialize($store_pickup['store_pickup'][0]);
-		if(!is_array($store_pickup)) $store_pickup = unserialize($store_pickup);
-	
-		if(!empty($store_pickup)){
-			echo '<br/>
-			<b>'.__('Selected store location','woocommerce').':</b>
-			<br/>';
-			echo ' ID: ' . $store_pickup['id'] .'<br/>'.
-			$store_pickup['company'] .'<br/>'.
-			$store_pickup['street'] .'<br/>';
-			if(isset($store_pickup['method_style'])){
-				switch ($store_pickup['method_style']){
-					case '2':
-					 	echo $store_pickup['zip'] ;
-						break;
-					case '3':
-					 	echo $store_pickup['city'] ;
-						break;
-					case '4':
-					 	echo $store_pickup['zip'] .' '. $store_pickup['city'] ;
-						break;
-					case '5':
-						echo $store_pickup['zip'] .' '. $store_pickup['city']. ' ('.$store_pickup['type'].')' ;
-						break;
-				}
-			} else {
-				 echo $store_pickup['zip'] .' '. $store_pickup['city'] ;
-			} 
-			echo "<br/><br/>";
-		}
-	}
-		
-	# add selected pickup location info with emails
-	add_action( 'woocommerce_email_after_order_table', 'Smartsend_Logistics_display_store_order_details' );
 
 	# hide custom field data in admin orders section
 	add_filter('is_protected_meta', 'Smartsend_Logistics_my_is_protected_meta_filter', 10, 2);
@@ -197,43 +220,30 @@ if ( in_array( 'woocommerce/woocommerce.php', apply_filters( 'active_plugins', g
 
 	}
 
-		function Smartsend_Logistics_order_shipping_custom_metabox( $post ){
+	function Smartsend_Logistics_order_shipping_custom_metabox( $post ){
+
+		$order = wc_get_order( $post->ID );
+
+		$line_items_shipping = $order->get_items( 'shipping' );
+		$shipMethod = '';
+		if(!empty($line_items_shipping)){
+			foreach ( $line_items_shipping as $item_id => $item ) {
+				$shipMethod_id = ! empty( $item['method_id'] ) ? esc_html( $item['method_id'] ) : __( 'Shipping', 'woocommerce' );
+				$shipMethod=  ! empty( $item['name'] ) ? esc_html( $item['name'] ) : __( 'Shipping', 'woocommerce' );
+			}
+		}
 	
-	  	 	$order = wc_get_order( $post->ID );
-   
-		 	$line_items_shipping = $order->get_items( 'shipping' );
-			$shipMethod = '';
-			if(!empty($line_items_shipping)){
-				foreach ( $line_items_shipping as $item_id => $item ) {
-                	$shipMethod_id = ! empty( $item['method_id'] ) ? esc_html( $item['method_id'] ) : __( 'Shipping', 'woocommerce' );
-				  	$shipMethod=  ! empty( $item['name'] ) ? esc_html( $item['name'] ) : __( 'Shipping', 'woocommerce' );
-				}
-			}
+		$store_pickup = get_post_custom($order->id);
 		
-			$store_pickup = get_post_custom($order->id);
-			
-            echo '<p>Shipping Method: '.$shipMethod.' ('.$shipMethod_id.')</p>';
-                       
-			if(!empty($store_pickup ['store_pickup'][0])){
-				$store_pickup = unserialize($store_pickup['store_pickup'][0]);
-                                
-				if(!is_array($store_pickup)) $store_pickup = unserialize($store_pickup);	
-                
-				echo 'Pickup ID: ' . $store_pickup['id'] .'<br/>'.
-				 		$store_pickup['company'] .'<br/>'.
-				 		$store_pickup['street'] .'<br/>'.
-				 		$store_pickup['zip'] .' '. $store_pickup['city'] .'<br/>'.
-				 		$store_pickup['country'];		
-				if(!empty($store_pickup['method_style']) && $store_pickup['method_style'] == 5 ) {
-					echo '<br/> ('.$store_pickup['carrier'].')';
-				}
-				echo '</p>';                   
-			} else {
-				echo '<p>Not a pickup point</p>';
-			}
-			echo '<br/>';
-			echo '<a href="post.php?post='.$post->ID.'&action=edit&type=create_label" class="button button-primary">Create label</a><br/><br/>';
-            echo '<a href="post.php?post='.$post->ID.'&action=edit&type=create_label_return" class="button">Create return label</a>'; 
+		echo '<p><h3>Shipping Method</h3>'.$shipMethod;
+		//echo ' ('.$shipMethod_id.')';
+		echo '</p>';
+				   
+		Smartsend_Logistics_display_store_order_details($order,true,false,'h3');
+		
+		echo '<br/><br/>';
+		echo '<a href="post.php?post='.$post->ID.'&action=edit&type=create_label" class="button button-primary">Create label</a><br/><br/>';
+		echo '<a href="post.php?post='.$post->ID.'&action=edit&type=create_label_return" class="button">Create return label</a>'; 
     }
                 
 	# Show selected pickup location on the order edit page(woocommerce_admin_order_data_after_order_details)
@@ -250,23 +260,11 @@ if ( in_array( 'woocommerce/woocommerce.php', apply_filters( 'active_plugins', g
 		$store_pickup = get_post_custom($order->id);
 				   
 		if(!empty($store_pickup ['store_pickup'][0])){
-			$store_pickup = unserialize($store_pickup['store_pickup'][0]);
-							
-			if(!is_array($store_pickup)) {
-				$store_pickup = unserialize($store_pickup);
-			}
+			$store_pickup = unserialize($store_pickup['store_pickup'][0]);				
 			
 			echo '<p><strong>'.__('Smart Send Logistics','woocommerce').'</strong><br/> 
-				Shipping Method: '.$shipMethod.'<br/>
-				Pickup ID: ' . $store_pickup['id'] .'<br/>'.
-			 	$store_pickup['company'] .'<br/>'.
-			 	$store_pickup['street'] .'<br/>'.
-				$store_pickup['zip'] .' '. $store_pickup['city'] .'<br/>'.
-				$store_pickup['country'];		
-			if(!empty($store_pickup['method_style']) && $store_pickup['method_style'] == 5 ) {
-				echo '<br/> ('.$store_pickup['carrier'].')';
-			}
-			echo '</p>'; 
+				Shipping Method: '.$shipMethod.'<p/>';
+			Smartsend_Logistics_display_store_order_details($order,true,true,'strong');
 		}
 	} 
             

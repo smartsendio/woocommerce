@@ -47,10 +47,21 @@ class Smartsend_Logistics_Label{
  	 * Function: Create an order request
  	 * both for single and mass generation
  	 */
- 	public function createOrder($order) {
+ 	public function createOrder($order,$return=false) {
+		
 		$smartsendorder = new Smartsend_Logistics_Order();
-		$smartsendorder->setOrder($order);
-		$this->request[] = $smartsendorder->getOrder();
+		$smartsendorder->setOrderObject($order);
+		$smartsendorder->setReturn($return);
+
+		$smartsendorder->setInfo();
+		$smartsendorder->setReceiver();
+		$smartsendorder->setSender();
+		$smartsendorder->setAgent();
+		$smartsendorder->setServices();
+		$smartsendorder->setParcels();
+
+		//All done. Add to request.
+		$this->request[] = $smartsendorder->getFinalOrder();
  	}
  	
  	/*
@@ -70,6 +81,15 @@ class Smartsend_Logistics_Label{
         	throw new Exception('Unknown post method: '.$single);
         }
         
+        if(get_option( 'smartsend_logistics_username', '' ) == '' && is_plugin_active( 'vc_pdk_allinone/vc_pdk_allinone.php')) {
+        	$settings = get_option('woocommerce_vc_pdk_allinone_settings');
+			$username = $settings['license_email'];
+			$licensekey = $settings['license_key'];
+        } else {
+        	$username = get_option( 'smartsend_logistics_username', '' );
+        	$licensekey = get_option( 'smartsend_logistics_licencekey', '' );
+        }
+        
         $rel_dir = str_replace("/api","",__DIR__);
 		$plugin_info = get_plugin_data($rel_dir . '/woocommerce-smartsend-logistics.php', $markup = true, $translate = true );
 
@@ -80,8 +100,8 @@ class Smartsend_Logistics_Label{
         //curl_setopt($ch, CURLOPT_HEADER, false);
         curl_setopt($ch, CURLOPT_HTTPHEADER, array(
         	'apikey:N5egWgckXdb4NhV3bTzCAKB26ou73nJm',
-			'smartsendmail:'.get_option( 'smartsend_logistics_username', 1 ),
-			'smartsendlicence:'.get_option( 'smartsend_logistics_licencekey', 1 ),
+        	'smartsendmail:'.$username,
+        	'smartsendlicence:'.$licensekey,
         	'cmssystem:WooCommerce',
         	'cmsversion:'.$this->wpbo_get_woo_version_number(),
         	'appversion:'.$plugin_info["Version"],
@@ -185,10 +205,24 @@ class Smartsend_Logistics_Label{
 			
 			if(!empty($trace_codes)) {
 				$order = new WC_Order( $json->orderno );
-				//$order->order_custom_fields['_tracecode'] = $trace_codes;
+				
 				$smartsendorder = new Smartsend_Logistics_Order();
+				$smartsendorder->setOrderObject($order);
+				
+				$tracking_code_combined = '';
 				foreach($trace_codes as $trace_code) {
-					$order->add_order_note('TraceCode: <a href="https://smartsend-prod.apigee.net/trace/'.$smartsendorder->getCarrier($order).'/'.$trace_code.'" target="_blank">'.$trace_code.'</a>');
+					//Add a note with a Track&Trace link
+					$order->add_order_note('TraceCode: <a href="https://smartsend-prod.apigee.net/trace/'.$smartsendorder->getShippingCarrier().'/'.$trace_code.'" target="_blank">'.$trace_code.'</a>');
+					$tracking_code_combined .= ($tracking_link != '' ? ',' : '').$trace_code;
+				}
+				
+				if($tracking_code_combined != ',' && $tracking_code_combined != '') {
+					//Add trace link to WooTheme extension 'Shipment Tracking'
+					update_post_meta( $order->id, '_tracking_provider', $smartsendorder->formatCarrier($smartsendorder->getShippingCarrier(),1) );
+					update_post_meta( $order->id, '_custom_tracking_provider', $smartsendorder->formatCarrier($smartsendorder->getShippingCarrier(),1) );
+					update_post_meta( $order->id, '_tracking_number', $tracking_code_combined );
+					//update_post_meta( $order->id, '_custom_tracking_link', null );
+					//update_post_meta( $order->id, '_date_shipped', null );
 				}
 			}
 		}

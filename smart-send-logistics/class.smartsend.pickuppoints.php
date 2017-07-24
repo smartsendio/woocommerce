@@ -131,7 +131,10 @@ if ( ! class_exists( 'Smartsend_Logistics_PickupPoints' ) ) {
 					'default'  			=> 'postdanmark',
 					'type'     			=> 'select',
 					'options'  			=> array(
-						'postdanmark'      	=> __( 'Post Danmark', 'woocommerce' ),
+						'smartsendpostdanmark_private'	=> __( 'Post Danmark', 'woocommerce' ),
+						'smartsendposten_private'      	=> __( 'Posten', 'woocommerce' ),
+						'smartsendgls_private'      	=> __( 'GLS', 'woocommerce' ),
+						'smartsendbring_private'      	=> __( 'Bring', 'woocommerce' ),
 					)
 				)
 			);			

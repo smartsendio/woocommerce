@@ -5,7 +5,7 @@ Plugin URI: http://smartsend.dk/integrationer/woocommerce
 Description: Table rate shipping methods with Post Danmark, GLS, SwipBox and Bring pickup points. Listed in a dropdown sorted by distance from shipping adress.
 Author: Smart Send ApS
 Author URI: http://www.smartsend.dk
-Version: 7.0.5
+Version: 7.0.6
 
 Copyright: (c) 2014 Smart Send ApS (email : kontakt@smartsend.dk)
 License: GNU General Public License v3.0
@@ -64,12 +64,12 @@ if ( in_array( 'woocommerce/woocommerce.php', apply_filters( 'active_plugins', g
 		include('api/class.label.php');
 		include('api/class.order.php');
 	
-		if(get_option( 'smartsend_logistics_username', '' ) == '' || get_option( 'smartsend_logistics_licencekey', '' ) == '') {
+		if((get_option( 'smartsend_logistics_username', '' ) == '' || get_option( 'smartsend_logistics_licencekey', '' ) == '') && !is_plugin_active( 'vc_pdk_allinone/vc_pdk_allinone.php')) {
 			smartsend_logistics_admin_notice(__("Username and licencekey must be entered in settings"), 'error');
 		} else {
 			$label = new Smartsend_Logistics_Label();
 			try{
-				$label->createOrder($order);
+				$label->createOrder($order,false);
 			}
 			//catch exception
 			catch(Exception $e) {
@@ -98,10 +98,38 @@ if ( in_array( 'woocommerce/woocommerce.php', apply_filters( 'active_plugins', g
 
 	function smartsend_logistics_process_return_order($order) {
 	
-		if(is_array($_SESSION['smartsend_errors'])) {
-			$_SESSION['smartsend_errors'][] = __('Return label not yet implemented');
+		include('api/class.label.php');
+		include('api/class.order.php');
+	
+		if((get_option( 'smartsend_logistics_username', '' ) == '' || get_option( 'smartsend_logistics_licencekey', '' ) == '') && !is_plugin_active( 'vc_pdk_allinone/vc_pdk_allinone.php')) {
+			smartsend_logistics_admin_notice(__("Username and licencekey must be entered in settings"), 'error');
 		} else {
-			$_SESSION['smartsend_errors'] = array(__('Return label not yet implemented'));
+			$label = new Smartsend_Logistics_Label();
+			try{
+				$label->createOrder($order,true);
+			}
+			//catch exception
+			catch(Exception $e) {
+				if(is_array($_SESSION['smartsend_errors'])) {
+					$_SESSION['smartsend_errors'][] = "Order #".$order->id.": ".$e->getMessage();
+				} else {
+					$_SESSION['smartsend_errors'] = array("Order #".$order->id.": ".$e->getMessage());
+				}
+			}
+
+			if($label->isRequest()) {
+				try{
+					$label->postRequest(true);
+					$label->handleRequest();
+				} catch(Exception $e) {
+					if(is_array($_SESSION['smartsend_errors'])) {
+						$_SESSION['smartsend_errors'][] = "Order #".$order->id.": ".$e->getMessage();
+					} else {
+						$_SESSION['smartsend_errors'] = array("Order #".$order->id.": ".$e->getMessage());
+					}
+				}
+			}
+		
 		}
 
 	}
@@ -114,7 +142,7 @@ if ( in_array( 'woocommerce/woocommerce.php', apply_filters( 'active_plugins', g
 		include('api/class.label.php');
 		include('api/class.order.php');
 	
-		if(get_option( 'smartsend_logistics_username', '' ) == '' || get_option( 'smartsend_logistics_licencekey', '' ) == '') {
+		if((get_option( 'smartsend_logistics_username', '' ) == '' || get_option( 'smartsend_logistics_licencekey', '' ) == '') && !is_plugin_active( 'vc_pdk_allinone/vc_pdk_allinone.php')) {
 			if(is_array($_SESSION['smartsend_errors'])) {
 					$_SESSION['smartsend_errors'][] = __("Username and licencekey must be entered in settings");
 				} else {
@@ -126,7 +154,7 @@ if ( in_array( 'woocommerce/woocommerce.php', apply_filters( 'active_plugins', g
 			foreach($order_ids as $order_id) {
 				$order = new WC_Order( $order_id );
 				try{
-					$label->createOrder($order);
+					$label->createOrder($order,false);
 				}
 				//catch exception
 				catch(Exception $e) {
@@ -157,12 +185,51 @@ if ( in_array( 'woocommerce/woocommerce.php', apply_filters( 'active_plugins', g
 		}
 	}
 
-	function smartsend_logistics_process_return_orders($order) {
+	function smartsend_logistics_process_return_orders($order_ids) {
 	
-		if(is_array($_SESSION['smartsend_errors'])) {
-			$_SESSION['smartsend_errors'][] = __('Return label not yet implemented');
+		include('api/class.label.php');
+		include('api/class.order.php');
+	
+		if((get_option( 'smartsend_logistics_username', '' ) == '' || get_option( 'smartsend_logistics_licencekey', '' ) == '') && !is_plugin_active( 'vc_pdk_allinone/vc_pdk_allinone.php')) {
+			if(is_array($_SESSION['smartsend_errors'])) {
+					$_SESSION['smartsend_errors'][] = __("Username and licencekey must be entered in settings");
+				} else {
+					$_SESSION['smartsend_errors'] = array(__("Username and licencekey must be entered in settings"));
+				}
 		} else {
-			$_SESSION['smartsend_errors'] = array(__('Return label not yet implemented'));
+			$label = new Smartsend_Logistics_Label();
+			
+			foreach($order_ids as $order_id) {
+				$order = new WC_Order( $order_id );
+				try{
+					$label->createOrder($order,true);
+				}
+				//catch exception
+				catch(Exception $e) {
+					if(is_array($_SESSION['smartsend_errors'])) {
+						$_SESSION['smartsend_errors'][] = "Order #".$order_id.": ".$e->getMessage();
+					} else {
+						$_SESSION['smartsend_errors'] = array("Order #".$order_id.": ".$e->getMessage());
+					}
+				}
+			}
+
+			if($label->isRequest()) {
+				try{
+					$label->postRequest(false);
+					$label->handleRequest();
+				} catch(Exception $e) {
+					if(is_array($_SESSION['smartsend_errors'])) {
+						$_SESSION['smartsend_errors'][] = $e->getMessage();
+					} else {
+						$_SESSION['smartsend_errors'] = array($e->getMessage());
+					}
+				}
+				
+			} else {		
+				//smartsend_logistics_admin_notice('crap!', 'error');
+			}
+
 		}
 
 	}
@@ -341,6 +408,7 @@ if ( in_array( 'woocommerce/woocommerce.php', apply_filters( 'active_plugins', g
 		}
 	}
 
+
 /*-----------------------------------------------------------------------------------------------------------------------
 * 					Display messages
 *----------------------------------------------------------------------------------------------------------------------*/	
@@ -516,7 +584,7 @@ function smartsend_logistics_admin_notice($message, $type='info') {
                             return false;
                     }
         }*/
-	$x = get_option( 'woocommerce_pickup_display_mode1', 1 );
+	$x = get_option( 'woocommerce_pickup_display_mode1', 0 );
 	if($x==1) {
 		add_filter( 'smartsend_logistics_dropdown_hook' , 'Smartsend_Logistics_custom_store_pickup_field');
 	} else {

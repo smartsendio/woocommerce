@@ -21,7 +21,7 @@ class Smartsend_Logistics_PrimaryClass {
                         
 			$shipping_rates = get_option( $x->table_rate_option );
 			if(empty($shipping_rates)) $shipping_rates = $x->table_rates;
-			
+		/*	
 			$totalPrice = $woocommerce->cart->cart_contents_total;
 
 			$totalPrice = (float) $totalPrice;
@@ -80,7 +80,18 @@ class Smartsend_Logistics_PrimaryClass {
 			}
 			$price = (float) $shipping_cost; //Sets the Price that we will calculate the shipping
 			$shipping_costs = -1;
-			$theFirst = 0;
+			$theFirst = 0; */
+			
+			$price 	= (float) $woocommerce->cart->cart_contents_total;
+			$weight = (float) $woocommerce->cart->cart_contents_weight;
+			$cheapestexpensive = $x->get_option( 'cheap_expensive' , 'cheapest');
+			
+			$sc = array('all');
+			foreach ( $woocommerce->cart->get_cart() as $item ) {
+				if($item['data']->get_shipping_class()){
+					$sc[] = $item['data']->get_shipping_class();
+				}
+			}
 
 			if(!empty($shipping_rates)){
                 

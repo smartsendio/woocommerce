@@ -136,7 +136,10 @@ if ( ! class_exists( 'Smartsend_Logistics_SwipBox' ) ) {
 					'default'  			=> 'postdanmark',
 					'type'     			=> 'select',
 					'options'  			=> array(
-						'postdanmark'      	=> __( 'Post Danmark', 'woocommerce' ),
+						'smartsendpostdanmark_private'	=> __( 'Post Danmark', 'woocommerce' ),
+						'smartsendposten_private'      	=> __( 'Posten', 'woocommerce' ),
+						'smartsendgls_private'      	=> __( 'GLS', 'woocommerce' ),
+						'smartsendbring_private'      	=> __( 'Bring', 'woocommerce' ),
 					)
 				)
 			);
@@ -221,9 +224,13 @@ if ( ! class_exists( 'Smartsend_Logistics_SwipBox' ) ) {
 		 * @return void
 		 */
 		function get_methods(){
-			return array(
-				'pickup'	=> 'pickup'
+			$shipping_methods = array(
 				);
+			if(function_exists('is_plugin_active') && !is_plugin_active( 'vc_pdk_allinone/vc_pdk_allinone.php')) {
+				$shipping_methods = array_merge(array('pickup' => 'pickup'),$shipping_methods);
+			}
+			
+			return $shipping_methods;
 		}
                 
         

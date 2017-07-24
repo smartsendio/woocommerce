@@ -66,7 +66,9 @@
 	}
 	
 	function Smartsend_Logistics_API_Find_Nearest($carrier,$address_1,$address_2,$city,$zip,$country) {
-	
+        if ( ! function_exists( 'get_plugin_data' ) ) {
+			require_once( ABSPATH . 'wp-admin/includes/plugin.php' );
+		}
 		$plugin_info = get_plugin_data(__DIR__ . '/woocommerce-smartsend-logistics.php', $markup = true, $translate = true );
 	
 		$url = "https://smartsend-prod.apigee.net/v7/pickup/";
