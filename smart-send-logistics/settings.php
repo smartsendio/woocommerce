@@ -104,12 +104,12 @@ if ( in_array( 'woocommerce/woocommerce.php', apply_filters( 'active_plugins', g
 	function smartsend_logistics_wc_shipment_tracking_add_custom_provider( $providers ) {
 
 		//Denmark
-		$providers['Denmark']['PostDanmark'] 	= 'http://www.postdanmark.dk/tracktrace/TrackTrace.do?i_stregkode=%1$s';
+		$providers['Denmark']['PostDanmark'] 	= 'https://pakkeboksen.dk/track-trace.html?searchId=%1$s';
 		$providers['Denmark']['GLS'] 			= 'http://www.gls-group.eu/276-I-PORTAL-WEB/content/GLS/DK01/DA/5004.htm?txtAction=71000&txtRefNo=%1$s';
 		$providers['Denmark']['Bring'] 			= 'http://sporing.bring.no/sporing.html?q=%1$s';
 		
 		//Sweden
-		$providers['Sweden']['Posten'] 			= 'http://www.postnord.se/en/tools/track/Pages/track-and-trace.aspx?search=%1$s';
+		$providers['Sweden']['Posten'] 			= 'http://www.postnord.se/en/tools/track/track-and-trace#dynamicloading=true&shipmentid=%1$s';
 		
 		//Norway
 		$providers['Norway']['Bring'] 			= 'http://sporing.bring.no/sporing.html?q=%1$s';
