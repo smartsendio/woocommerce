@@ -1,8 +1,8 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: Smart Send Logistics\n"
-"POT-Creation-Date: 2015-09-06 18:21+0100\n"
-"PO-Revision-Date: 2015-09-06 18:26+0100\n"
+"POT-Creation-Date: 2015-09-27 03:20+0100\n"
+"PO-Revision-Date: 2015-09-27 03:22+0100\n"
 "Last-Translator: Anders Bilfeldt <anders@smartsend.dk>\n"
 "Language-Team: Anders Bilfeldt <anders@smartsend.dk>\n"
 "Language: da_DK\n"
@@ -15,8 +15,8 @@ msgstr ""
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
 "X-Poedit-SourceCharset: UTF-8\n"
 "X-Poedit-KeywordsList: __;_e;_n:1,2;_x:1,2c;_ex:1,2c;_nx:4c,1,2;esc_attr__;"
-"esc_attr_e;esc_attr_x:1,2c;esc_html__;esc_html_e;esc_html_x:1,2c;"
-"_n_noop:1,2;_nx_noop:3c,1,2;__ngettext_noop:1,2\n"
+"esc_attr_e;esc_attr_x:1,2c;esc_html__;esc_html_e;esc_html_x:1,2c;_n_noop:1,2;"
+"_nx_noop:3c,1,2;__ngettext_noop:1,2\n"
 "X-Poedit-SearchPath-0: .\n"
 "X-Poedit-SearchPathExcluded-0: *.js\n"
 
@@ -54,8 +54,8 @@ msgstr "Dette er titlen som brugeren ser under checkout"
 #: class.smartsend.bring.php:70 class.smartsend.gls.php:71
 #: class.smartsend.pickuppoints.php:92 class.smartsend.postdanmark.php:71
 #: class.smartsend.posten.php:71
-msgid "Cheapest or most expensive?"
-msgstr "Billigste eller dyreste?"
+msgid "Cheapest or most expensive"
+msgstr "Cheapest or most expensive"
 
 #: class.smartsend.bring.php:71 class.smartsend.gls.php:72
 #: class.smartsend.pickuppoints.php:93 class.smartsend.postdanmark.php:72
@@ -340,7 +340,7 @@ msgstr "Vælg et afhentningssted"
 
 #: settings.php:110
 msgid "Smart Send Username"
-msgstr "Smart Send Username"
+msgstr "Smart Send Brugernavn"
 
 #: settings.php:111
 msgid "This is Smart Send username provided upon signup"
@@ -348,7 +348,7 @@ msgstr "Dette er Smart Send brugernavnet der får ved bruger oprettelsen"
 
 #: settings.php:120
 msgid "Smart Send Licensekey"
-msgstr "Smart Send Licencekey"
+msgstr "Smart Send Licenskode"
 
 #: settings.php:121
 msgid "This is the Smart Send licensekey provided upon signup"
@@ -377,8 +377,7 @@ msgstr "Stedet hvor dropdown med afhentningssteder vises"
 #: settings.php:144
 msgid ""
 "This controls display postion of store location dropdown on checkout page."
-msgstr ""
-"Dette styrer hvor der vises en dropdown over mulige afhentningssteder."
+msgstr "Dette styrer hvor der vises en dropdown over mulige afhentningssteder."
 
 #: settings.php:149
 msgid "Above the \"Your Order\" section on Checkout page"
@@ -445,53 +444,45 @@ msgstr "Smart Send Logistics"
 msgid "Shipping"
 msgstr "Forsendelse"
 
-#: settings.php:229
-msgid "Create label"
-msgstr "Opret etiket"
-
-#: settings.php:230
-msgid "Create return label"
-msgstr "Lav returlabel"
-
-#: settings.php:231
-msgid "Create normal and return label"
-msgstr "Lav returlabel"
-
-#: woocommerce-smartsend-logistics.php:78
-#: woocommerce-smartsend-logistics.php:115
-#: woocommerce-smartsend-logistics.php:153
-#: woocommerce-smartsend-logistics.php:196
-#: woocommerce-smartsend-logistics.php:198
-#: woocommerce-smartsend-logistics.php:244
-#: woocommerce-smartsend-logistics.php:246
-#: woocommerce-smartsend-logistics.php:293
-#: woocommerce-smartsend-logistics.php:295
-msgid "Username and licencekey must be entered in settings"
-msgstr "Brugernavn og licenskode skal indtastes i indstillingerne"
-
-#: woocommerce-smartsend-logistics.php:352
-#: woocommerce-smartsend-logistics.php:444
-#: woocommerce-smartsend-logistics.php:445
+#: settings.php:229 woocommerce-smartsend-logistics.php:354
+#: woocommerce-smartsend-logistics.php:446
+#: woocommerce-smartsend-logistics.php:447
 msgid "Generate label"
 msgstr "Lav label"
 
-#: woocommerce-smartsend-logistics.php:370
-#: woocommerce-smartsend-logistics.php:446
-#: woocommerce-smartsend-logistics.php:447
+#: settings.php:230 woocommerce-smartsend-logistics.php:372
+#: woocommerce-smartsend-logistics.php:448
+#: woocommerce-smartsend-logistics.php:449
 msgid "Generate return label"
 msgstr "Lav returlabel"
 
-#: woocommerce-smartsend-logistics.php:388
-#: woocommerce-smartsend-logistics.php:448
-#: woocommerce-smartsend-logistics.php:449
+#: settings.php:231 woocommerce-smartsend-logistics.php:390
+#: woocommerce-smartsend-logistics.php:450
+#: woocommerce-smartsend-logistics.php:451
 msgid "Generate normal and return label"
 msgstr "Lav normal og returlabel"
 
-#: woocommerce-smartsend-logistics.php:824
-#: woocommerce-smartsend-logistics.php:827
-#: woocommerce-smartsend-logistics.php:852
+#: woocommerce-smartsend-logistics.php:80
+#: woocommerce-smartsend-logistics.php:117
+#: woocommerce-smartsend-logistics.php:155
+#: woocommerce-smartsend-logistics.php:198
+#: woocommerce-smartsend-logistics.php:200
+#: woocommerce-smartsend-logistics.php:246
+#: woocommerce-smartsend-logistics.php:248
+#: woocommerce-smartsend-logistics.php:295
+#: woocommerce-smartsend-logistics.php:297
+msgid "Username and licencekey must be entered in settings"
+msgstr "Brugernavn og licenskode skal indtastes i indstillingerne"
+
+#: woocommerce-smartsend-logistics.php:826
+#: woocommerce-smartsend-logistics.php:829
+#: woocommerce-smartsend-logistics.php:856
 msgid "Select a pickup location"
 msgstr "Vælg et afhentningssted"
+
+#: woocommerce-smartsend-logistics.php:841
+msgid "Delivered to closest pickup point"
+msgstr "Leveres til nærmeste afhentningssted"
 
 #. Plugin URI of the plugin/theme
 msgid "http://smartsend.dk/integrationer/woocommerce"
@@ -510,3 +501,15 @@ msgstr ""
 #. Author URI of the plugin/theme
 msgid "http://www.smartsend.dk"
 msgstr ""
+
+#~ msgid "Cheapest or most expensive?"
+#~ msgstr "Billigste eller dyreste"
+
+#~ msgid "Create label"
+#~ msgstr "Opret etiket"
+
+#~ msgid "Create return label"
+#~ msgstr "Lav returlabel"
+
+#~ msgid "Create normal and return label"
+#~ msgstr "Lav returlabel"

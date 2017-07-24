@@ -5,7 +5,9 @@ Plugin URI: http://smartsend.dk/integrationer/woocommerce
 Description: Table rate shipping methods with Post Danmark, GLS and Bring pickup points. Listed in a dropdown sorted by distance from shipping adress.
 Author: Smart Send ApS
 Author URI: http://www.smartsend.dk
-Version: 7.0.10
+Text Domain: smart-send-logistics
+Domain Path: /lang
+Version: 7.0.12
 
 Copyright: (c) 2014 Smart Send ApS (email : kontakt@smartsend.dk)
 License: GNU General Public License v3.0
@@ -821,24 +823,26 @@ function smartsend_logistics_admin_notice($message, $type='info') {
 		</script>
 		<?php if(!empty($pickup_loc) && is_array($pickup_loc)):?>
                 
-		<div id='selectpickup' class="selectstore"> <?php echo __('Select a pickup location','smart-send-logistics'); echo ' ('.$shippingTitle.')'; ?>
-		<?php if(!empty($pickup_loc) && is_array($pickup_loc)):?>				
-		<select name="store_pickup" class="pk-drop">
-			<option value=""><?php echo __('Select a pickup location','smart-send-logistics'); ?></option>
-			<?php foreach($pickup_loc as $picIndex => $picValue) { ?>
-				<option value='<?php echo $picIndex?>'><?php echo $picValue?></option>
-			<?php }?>
-		</select>
+			<div id='selectpickup' class="selectstore"> <?php echo __('Select a pickup location','smart-send-logistics'); echo ' ('.$shippingTitle.')'; ?>
+			<?php if(!empty($pickup_loc) && is_array($pickup_loc)):?>				
+				<select name="store_pickup" class="pk-drop">
+					<option value=""><?php echo __('Select a pickup location','smart-send-logistics'); ?></option>
+					<?php foreach($pickup_loc as $picIndex => $picValue) { ?>
+					<option value='<?php echo $picIndex?>'><?php echo $picValue?></option>
+					<?php }?>
+				</select>
                     
+			<?php else:?>
+				<?php //echo ' : Delivered to closest pickup point.'?>
+			<?php endif;?>
+			</div>
 		<?php else:?>
-			<?php //echo ' : Delivered to closest pickup point.'?>
-		<?php endif;?>
-		</div>
-		<?php else:?>
-			<?php echo '<div id="selectpickup" class="selectstore">'; echo __(get_option('woocommerce_pickup_display_dropdown_nopoints', 'Delivered to closest pickup point'),'smart-send-logistics'); echo '</div>'; ?>
+			<div id="selectpickup" class="selectstore">
+				<?php echo __('Delivered to closest pickup point','smart-send-logistics'); ?>
+			</div>
 		<?php endif;?>
 	<?php
-                }
+    	}
 
 	}
         

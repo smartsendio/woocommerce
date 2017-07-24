@@ -89,7 +89,7 @@ if ( ! class_exists( 'Smartsend_Logistics_PickupPoints' ) ) {
 					'type'      			=> 'shipping_table'
 				),
 				'cheap_expensive' => array(
-					'title'    			=> __( 'Cheapest or most expensive?','smart-send-logistics'),
+					'title'    			=> __( 'Cheapest or most expensive','smart-send-logistics'),
 					'description'     	=> __( 'This controls cheapest or most expensive on the frontend','smart-send-logistics'),
 					'default'  			=> 'cheapest',
 					'type'     			=> 'select',
