@@ -52,6 +52,11 @@ if ( in_array( 'woocommerce/woocommerce.php', apply_filters( 'active_plugins', g
 			$zip 		= $request['billing_postcode'];
 			$country 	= $request['billing_country'];
 		}
+		
+		if(strpos($shipping_method_id, 'free_shipping') !== false) {
+			$shipping_method_id = get_option( 'smartsend_logistics_wc_shipping_free_shipping','free_shipping');
+		}
+		
 		$shipping_method_array = explode("_", $shipping_method_id);
 	
 		if(isset($shipping_method_array[0]) && $shipping_method_array[0] == 'smartsend') {

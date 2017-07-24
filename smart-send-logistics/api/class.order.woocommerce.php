@@ -30,7 +30,7 @@
  * @copyright	Copyright (c) Smart Send ApS (http://www.smartsend.dk)
  * @license		http://smartsend.dk/license
  * @since		Class available since Release 7.1.0
- * @version		Release: 7.1.3.0
+ * @version		Release: 7.1.3.1
  *
  *	// Order
  *	public function getShippingId()
@@ -114,7 +114,7 @@ class Smartsend_Logistics_Order_Woocommerce extends Smartsend_Logistics_Order {
 			}
 		}
 	
-		if(substr($shipping_method_id, 0, strlen('free_shipping')) === 'free_shipping') {
+		if(strpos($shipMethod_id, 'free_shipping') !== false) {
 			$shipMethod_id = get_option( 'smartsend_logistics_wc_shipping_free_shipping','free_shipping');
 		}
 		
