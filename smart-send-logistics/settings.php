@@ -14,8 +14,9 @@ if ( in_array( 'woocommerce/woocommerce.php', apply_filters( 'active_plugins', g
 	add_action( 'woocommerce_checkout_update_order_meta', 'Smartsend_Logistics_store_pickup_field_update_order_meta' );
 	
 	function Smartsend_Logistics_store_pickup_field_update_order_meta( $order_id ) {  
-		if ( $_POST[ 'store_pickup' ] ){
-			update_post_meta( $order_id, 'store_pickup',  $_POST[ 'store_pickup' ] );
+		if ( isset($_POST[ 'store_pickup' ]) &&  $_POST[ 'store_pickup' ] != ''){
+			$store_pickup = sanitize_text_field($_POST[ 'store_pickup' ]);
+			update_post_meta( $order_id, 'store_pickup', $store_pickup  );
 		}
 	}
 	
@@ -99,6 +100,20 @@ if ( in_array( 'woocommerce/woocommerce.php', apply_filters( 'active_plugins', g
 					'id'      	=> 'smartsend_logistics_licencekey',
 					'default' 	=> '', //Select pickup location
 					'type'    	=> 'text',
+					'desc_tip'        =>  true,
+					'show_if_checked' => 'option',
+				);
+				$updated_settings[] = array(
+					'title'    	=> __( 'Combine PDFs files', 'woocommerce' ),
+					'desc'     	=> __( 'Combine all PDF files (or links) into one PDF file (or link)', 'woocommerce' ),
+					'id'      	=> 'smartsend_logistics_combinepdf',
+					'default' 	=> 'yes',
+					'type'    	=> 'radio',
+					'options' 	=> array(
+						'yes'     	=> __( 'Combine all PDF files into one', 'woocommerce' ),
+						'no'      	=> __( 'Sperate PDF files per order', 'woocommerce' ),
+					),
+					'autoload'        => false,
 					'desc_tip'        =>  true,
 					'show_if_checked' => 'option',
 				);

@@ -132,6 +132,8 @@ class Smartsend_Logistics_Label{
 	 * @string tracecode
 	 */ 
  	private function addTraceToShipment($shipment_reference,$tracecode) {
+ 	// NOT DONE! STILL MAGENTO!
+ 	
  	
 	/*	$shipment_collection = Mage::getResourceModel('sales/order_shipment_collection');
 		$shipment_collection->addAttributeToFilter('order_id', $order_id);
@@ -217,25 +219,27 @@ class Smartsend_Logistics_Label{
  				}
  			}
  			
- 			if(isset($json->combine_pdf) && Mage::getStoreConfig('carriers/smartsend/combinepdf') == 1) {
+ 			if(isset($json->combine_pdf) && get_option('smartsend_logistics_combinepdf','yes') == 'yes') {
  				$_succeses[] = '<a href="'. $json->combine_pdf .'" target="_blank">Combined PDF labels</a>';
  			}
  			
- 			if(isset($json->combine_link) && Mage::getStoreConfig('carriers/smartsend/combinepdf') == 1) {
+ 			if(isset($json->combine_link) && get_option('smartsend_logistics_combinepdf','yes') == 'yes') {
  				$_succeses[] = '<a href="'. $json->combine_link .'" target="_blank">Combined label links</a>';
  			}
  			
 			if(isset($json->orders) && is_array($json->orders)) {
 				// An array of orders was returned
 				foreach($json->orders as $json_order) {
-					if(isset($json_order->pdflink) && !(isset($json->combine_pdf) && Mage::getStoreConfig('carriers/smartsend/combinepdf') == 1)) {
+					if(isset($json_order->pdflink) && !(isset($json->combine_pdf) && get_option('smartsend_logistics_combinepdf','yes') == "yes")) {
 						$_succeses[] = 'Order #'.$json_order->orderno.': <a href="'. $json_order->pdflink .'" target="_blank">PDF label</a>';
 						// Go through parcels and add trace to shipments
 						$this->verifyParcels($json_order);	
-					} elseif(isset($json_order->link) && !(isset($json->combine_link) && Mage::getStoreConfig('carriers/smartsend/combinepdf') == 1)) {
+					} elseif(isset($json_order->link) && !(isset($json->combine_link) && get_option('smartsend_logistics_combinepdf','yes') == "yes")) {
 						$_succeses[] = 'Order #'.$json_order->orderno.': <a href="'. $json_order->link .'" target="_blank">Label link</a>';
 						// Go through parcels and add trace to shipments
 						$this->verifyParcels($json_order);	
+					} elseif( (isset($json_order->pdflink) || isset($json_order->link) ) && get_option('smartsend_logistics_combinepdf','yes') == "yes") {
+						$_succeses[] = 'Order #'.$json_order->orderno.': '. $json_order->message; 
 					} else {
 						if(isset($json_order->status) && $json_order->status != '') {
 							$_errors[] = 'Order #'.$json_order->orderno.': '. $json_order->message; 
@@ -248,11 +252,11 @@ class Smartsend_Logistics_Label{
 			} else {
 				// An array of orders was not returned. Check if just a single order was returned
 			
-				if(isset($json->pdflink) && !(isset($json->combine_pdf) && Mage::getStoreConfig('carriers/smartsend/combinepdf') == 1)) {
+				if(isset($json->pdflink) && !(isset($json->combine_pdf) && get_option('smartsend_logistics_combinepdf','yes') == 1)) {
 					$_succeses[] = 'Order #'.$json->orderno.': <a href="'. $json->pdflink .'" target="_blank">PDF label</a>';
 					// Go through parcels and add trace to shipments
 					$this->verifyParcels($json);	
-				} elseif(isset($json->link) && !(isset($json->combine_link) && Mage::getStoreConfig('carriers/smartsend/combinepdf') == 1)) {
+				} elseif(isset($json->link) && !(isset($json->combine_link) && get_option('smartsend_logistics_combinepdf','yes') == 1)) {
 					$_succeses[] = 'Order #'.$json->orderno.': <a href="'. $json->link .'" target="_blank">Label link</a>';
 					// Go through parcels and add trace to shipments
 					$this->verifyParcels($json);	

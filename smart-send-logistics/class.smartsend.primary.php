@@ -24,16 +24,16 @@ class Smartsend_Logistics_PrimaryClass {
 
 			$virtualPrice = 0;
 			$shipping_cost = 0;
-        	$weight = 0 ;
+            $weight = 0 ;
 			$discount_total = 0.00;
-        	$sc = '';
+            $sc = array('all');
 			foreach ( $woocommerce->cart->get_cart() as $item ) {
                                
 				if ( ! $item['data']->is_virtual() ){
 					$shipping_cost += $item['data']->get_price() * $item['quantity'];
 					$weight += $item['data']->get_weight()*$item['quantity']; 
 					if($item['data']->get_shipping_class()){
-						 $sc = $item['data']->get_shipping_class();
+						 $sc[] = $item['data']->get_shipping_class();
 					}
 				} else {
 					$virtualPrice += $item['data']->get_price() * $item['quantity'];
@@ -86,12 +86,13 @@ class Smartsend_Logistics_PrimaryClass {
 				foreach ( $shipping_rates as $rates ) {
 					$countries = explode(',', $rates['country']);
                 	$countries = array_map("strtoupper", $countries);
-                        $countries = array_map("trim", $countries);
+                    $countries = array_map("trim", $countries);
                 	in_array(strtoupper($customerCountry), $countries);
-				
+                                        
 					if ( ( (float)$price >= (float)$rates['minO'] ) && ( (float)$price <= (float)$rates['maxO'] )
 						&& ( (float)$weight >= (float)$rates['minwO'] ) && ( (float)$weight <= (float)$rates['maxwO'] )
-						&& ($rates['class'] == 'all' || $rates['class'] == $sc)
+						//&& ($rates['class'] == 'all' || $rates['class'] == $sc)
+                        && in_array(strtolower($rates['class']), array_map('strtolower', $sc))
 						&& in_array(strtoupper($customerCountry), $countries)
 						) {
 						// The shipping rate is valid.

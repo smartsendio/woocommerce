@@ -9,12 +9,12 @@
 require_once( WP_PLUGIN_DIR . '/woocommerce/includes/abstracts/abstract-wc-order.php' );
 require_once( WP_PLUGIN_DIR . '/woocommerce/includes/class-wc-order.php' );
 
-require_once( WP_PLUGIN_DIR . '/smartsend_logistics/class.smartsend.bring.php' );
-require_once( WP_PLUGIN_DIR . '/smartsend_logistics/class.smartsend.gls.php' );
-require_once( WP_PLUGIN_DIR . '/smartsend_logistics/class.smartsend.pickuppoints.php' );
-require_once( WP_PLUGIN_DIR . '/smartsend_logistics/class.smartsend.postdanmark.php' );
-require_once( WP_PLUGIN_DIR . '/smartsend_logistics/class.smartsend.posten.php' );
-require_once( WP_PLUGIN_DIR . '/smartsend_logistics/class.smartsend.swipbox.php' );
+require_once( WP_PLUGIN_DIR . '/smart-send-logistics/class.smartsend.bring.php' );
+require_once( WP_PLUGIN_DIR . '/smart-send-logistics/class.smartsend.gls.php' );
+require_once( WP_PLUGIN_DIR . '/smart-send-logistics/class.smartsend.pickuppoints.php' );
+require_once( WP_PLUGIN_DIR . '/smart-send-logistics/class.smartsend.postdanmark.php' );
+require_once( WP_PLUGIN_DIR . '/smart-send-logistics/class.smartsend.posten.php' );
+require_once( WP_PLUGIN_DIR . '/smart-send-logistics/class.smartsend.swipbox.php' );
 
 
 class Smartsend_Logistics_Order{
@@ -654,7 +654,7 @@ class Smartsend_Logistics_Order{
 			$this->addParcel($order);
 		} else {
 			//Order has no shipments and cannot be shipped
-			throw new Exception(Mage::helper('logistics')->__("No items that could be shipped"));
+			throw new Exception(__("No items that could be shipped"));
 		}
  	}
  	

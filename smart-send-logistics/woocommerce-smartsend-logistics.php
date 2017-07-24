@@ -5,7 +5,7 @@ Plugin URI: http://smartsend.dk/integrationer/woocommerce
 Description: Table rate shipping methods with Post Danmark, GLS, SwipBox and Bring pickup points. Listed in a dropdown sorted by distance from shipping adress.
 Author: Smart Send ApS
 Author URI: http://www.smartsend.dk
-Version: 7.0.2
+Version: 7.0.3
 
 Copyright: (c) 2014 Smart Send ApS (email : kontakt@smartsend.dk)
 License: GNU General Public License v3.0
@@ -35,25 +35,25 @@ if ( in_array( 'woocommerce/woocommerce.php', apply_filters( 'active_plugins', g
 *----------------------------------------------------------------------------------------------------------------------*/	
 
 	// Register style sheet.
-	add_action( 'wp_enqueue_scripts', 'register_plugin_styles' );
+	add_action( 'wp_enqueue_scripts', 'smartsend_logistics_register_plugin_styles' );
 
 	/**
 	 * Register style sheet.
 	 */
-	function register_plugin_styles() {
-		wp_register_style( 'my-plugin', plugins_url( 'smartsend_logistics/css/smartsend_logsitics_pickup.css' ) );
-		wp_enqueue_style( 'my-plugin' );
+	function smartsend_logistics_register_plugin_styles() {
+		wp_register_style( 'smartsend_logistics_style_frontend', plugins_url( 'smartsend_logistics/css/smartsend_logsitics_pickup.css' ) );
+		wp_enqueue_style( 'smartsend_logistics_style_frontend' );
 }
 
 /*-----------------------------------------------------------------------------------------------------------------------
 * 					Functions that deals with orders
 *----------------------------------------------------------------------------------------------------------------------*/	
 
-	function register_session(){
+	function smartsend_logistics_register_session(){
         if( !session_id() )
             session_start();
     }
-    add_action('init','register_session');
+    add_action('init','smartsend_logistics_register_session');
 
 /*****************************************************
  * Process an order
@@ -656,7 +656,6 @@ function smartsend_logistics_admin_notice($message, $type='info') {
 	<?php
 			echo '<p style="color:red" class="pic_error">';
 			echo __(get_option('woocommerce_pickup_display_dropdown_error', 'Please select a pickup loaction'),'woocommerce');
-			echo 'Select store pickup location.</p>';
 			die;
 		}
 			   
