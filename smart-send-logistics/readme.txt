@@ -4,7 +4,7 @@ Donate link: http://www.SmartSend.dk/
 Tags: shipping, pickup, pakkeboks, pakkeshop, hente selv, døgnboks, post danmark, gls, swipbox, bring, carrier, pacsoft, yourgls, mybring, postage, shipping method, your-gls, my-bring, pacosft-online, pacsoftonline, denmark, sweeden, posten, norway, post 
 Requires at least: 3.0.1
 Tested up to: 4.4
-Stable tag: 7.0.13
+Stable tag: 7.0.14
 License: GNU General Public License v3.0
 License URI: http://www.gnu.org/licenses/gpl-3.0.html
 
@@ -120,3 +120,8 @@ Yes. You can try the module for free for 30 days.
 * Adding Post Danmark shipping method ‘Last mile’ for food delivery
 * Updating pickup point dropdown if zip code is changed during checkout
 * Changing the default shipping table rates installed when module is activated
+
+= 7.0.14 =
+* Add support for plugin WooCommerce Sequential Order Numbers
+* Adding Bring shipping methods 'express' and 'bulksplit'
+* Fixing PHP notification problem caused by missing classes for default shipping methods.

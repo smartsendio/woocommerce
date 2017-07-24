@@ -200,6 +200,7 @@ if ( ! class_exists( 'Smartsend_Logistics_PickupPoints' ) ) {
 		
 			return array(
 				array(
+					'class'			=> 'all',
 					'methods'		=> 'Pickup',
 					'minO' 			=> '0',
 					'maxO' 			=> '500',
@@ -210,6 +211,7 @@ if ( ! class_exists( 'Smartsend_Logistics_PickupPoints' ) ) {
 					'method_name' 	=> __('Pickuppoint','smart-send-logistics'),
 					),
 				array(
+					'class'			=> 'all',
 					'methods'		=> 'Pickup',
 					'minO' 			=> '500',
 					'maxO' 			=> '100000',

@@ -7,7 +7,7 @@
  * These are the CMS dependent functions that is used by the order class.
  *
  * @class 		Smartsend_Logistics_Order_Woocommerce
- * @version		7.0.1
+ * @version		7.0.2
  * @author 		Smart Send
  *
 
@@ -131,7 +131,7 @@ class Smartsend_Logistics_Order_Woocommerce extends Smartsend_Logistics_Order {
 	*/
  	public function getOrderReference() {
  	
- 		return $this->getOrderId();
+ 		return $this->_order->get_order_number();
  	
  	}
  	

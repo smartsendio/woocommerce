@@ -193,6 +193,7 @@ if ( ! class_exists( 'Smartsend_Logistics_GLS' ) ) {
 		
 			return array(
 				array(
+					'class'			=> 'all',
 					'methods'		=> 'Pickup',
 					'minO' 			=> '0',
 					'maxO' 			=> '500',
@@ -203,6 +204,7 @@ if ( ! class_exists( 'Smartsend_Logistics_GLS' ) ) {
 					'method_name' 	=> __('Pickuppoint','smart-send-logistics'),
 					),
 				array(
+					'class'			=> 'all',
 					'methods'		=> 'Pickup',
 					'minO' 			=> '500',
 					'maxO' 			=> '100000',
@@ -213,6 +215,7 @@ if ( ! class_exists( 'Smartsend_Logistics_GLS' ) ) {
 					'method_name' 	=> __('Pickuppoint','smart-send-logistics'),
 					),
 				array(
+					'class'			=> 'all',
 					'methods'		=> 'privatehome',
 					'minO' 			=> '0',
 					'maxO' 			=> '500',
@@ -223,6 +226,7 @@ if ( ! class_exists( 'Smartsend_Logistics_GLS' ) ) {
 					'method_name' 	=> __('Delivered to door','smart-send-logistics'),
 					),
 				array(
+					'class'			=> 'all',
 					'methods'		=> 'privatehome',
 					'minO' 			=> '500',
 					'maxO' 			=> '100000',

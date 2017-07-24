@@ -192,6 +192,7 @@ if ( ! class_exists( 'Smartsend_Logistics_Bring' ) ) {
 		
 			return array(
 				array(
+					'class'			=> 'all',
 					'methods'		=> 'Pickup',
 					'minO' 			=> '0',
 					'maxO' 			=> '500',
@@ -202,6 +203,7 @@ if ( ! class_exists( 'Smartsend_Logistics_Bring' ) ) {
 					'method_name' 	=> __('Pickuppoint','smart-send-logistics'),
 					),
 				array(
+					'class'			=> 'all',
 					'methods'		=> 'Pickup',
 					'minO' 			=> '500',
 					'maxO' 			=> '100000',
@@ -212,6 +214,7 @@ if ( ! class_exists( 'Smartsend_Logistics_Bring' ) ) {
 					'method_name' 	=> __('Pickuppoint','smart-send-logistics'),
 					),
 				array(
+					'class'			=> 'all',
 					'methods'		=> 'privatehome',
 					'minO' 			=> '0',
 					'maxO' 			=> '500',
@@ -222,6 +225,7 @@ if ( ! class_exists( 'Smartsend_Logistics_Bring' ) ) {
 					'method_name' 	=> __('Delivered to door','smart-send-logistics'),
 					),
 				array(
+					'class'			=> 'all',
 					'methods'		=> 'privatehome',
 					'minO' 			=> '500',
 					'maxO' 			=> '100000',
@@ -253,9 +257,14 @@ if ( ! class_exists( 'Smartsend_Logistics_Bring' ) ) {
 		 */
 		function get_methods(){
 			$shipping_methods = array(
-				'private'		=> 'Private',
-				'privatehome'	=> 'Private to home',
-				'commercial'	=> 'Commercial'
+				'private'				=> 'Private',
+				'privatehome'			=> 'Private to home',
+				'commercial'			=> 'Commercial',
+				'commercial_bulksplit'	=> 'Commercial Bulksplit',
+            	'private_bulksplit'		=> 'Private Bulksplit',
+            	'privatehome_bulksplit'	=> 'Privatehome Bulksplit',
+            	'express'				=> 'Express'
+				
 				);
 			if(function_exists('is_plugin_active') && !is_plugin_active( 'vc_pdk_allinone/vc_pdk_allinone.php')) {
 				$shipping_methods = array_merge(array('pickup' => 'Pickup'),$shipping_methods);
