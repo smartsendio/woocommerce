@@ -12,75 +12,15 @@ class Smartsend_Logistics_PrimaryClass {
 	public function calculate_shipping($package = array(),$x){
 		global $woocommerce;
         	if($woocommerce->customer->shipping_country){
-                        $customerCountry = $woocommerce->customer->shipping_country;       
-                    }else{
-                        $customerCountry = $woocommerce->customer->country;    
-                    }
+                $customerCountry = $woocommerce->customer->shipping_country;       
+            } else {
+                $customerCountry = $woocommerce->customer->country;    
+            }
                     
 			$x->rate = array();
                         
 			$shipping_rates = get_option( $x->table_rate_option );
 			if(empty($shipping_rates)) $shipping_rates = $x->table_rates;
-		/*	
-			$totalPrice = $woocommerce->cart->cart_contents_total;
-
-			$totalPrice = (float) $totalPrice;
-
-			$virtualPrice = 0;
-			$shipping_cost = 0;
-            $weight = 0 ;
-			$discount_total = 0.00;
-            $sc = array('all');
-			foreach ( $woocommerce->cart->get_cart() as $item ) {
-                               
-				if ( ! $item['data']->is_virtual() ){
-					$shipping_cost += $item['data']->get_price() * $item['quantity'];
-					$weight += $item['data']->get_weight()*$item['quantity']; 
-					if($item['data']->get_shipping_class()){
-						 $sc[] = $item['data']->get_shipping_class();
-					}
-				} else {
-					$virtualPrice += $item['data']->get_price() * $item['quantity'];
-				}
-			}
-
-			if ( ! empty( $woocommerce->cart->applied_coupons ) ) {
-				foreach ( $woocommerce->cart->applied_coupons as $key => $code ) {
-					$coupon = new WC_Coupon( $code );
-
-					$couponAmount = (float) $coupon->amount;
-
-					switch ( $coupon->type ) {
-						case "fixed_cart" :
-							if ( $couponAmount > $totalPrice ) {
-								$couponAmount = $totalPrice;
-							}
-							$discount_total = (float) $discount_total - $couponAmount;
-						break;
-
-						case "percent" :
-							$percent_discount = (float) round( ( $totalPrice * ( $couponAmount * 0.01 ) ) );
-							if ( $percent_discount > $totalPrice ) {
-								$percent_discount = $totalPrice;
-							}
-							$discount_total = (float) $discount_total - $percent_discount;
-						break;
-					}
-				}
-			}
-			$cheapestexpensive = '';
-			if( $x->get_option( 'apply_when' ) == "after"  && !empty($discount_total) ) {
-				$shipping_cost = $totalPrice + $discount_total;
-			}
-			if($x->get_option( 'cheap_expensive' )== 'cheapest'){
-				 $cheapestexpensive = 'cheapest';
-			}
-			if($x->get_option( 'cheap_expensive' )== 'expensive'){
-				 $cheapestexpensive = 'expensive';
-			}
-			$price = (float) $shipping_cost; //Sets the Price that we will calculate the shipping
-			$shipping_costs = -1;
-			$theFirst = 0; */
 			
 			$price 	= (float) $woocommerce->cart->cart_contents_total;
 			$weight = (float) $woocommerce->cart->cart_contents_weight;
@@ -102,15 +42,14 @@ class Smartsend_Logistics_PrimaryClass {
 					$countries = explode(',', $rates['country']);
                 	$countries = array_map("strtoupper", $countries);
                     $countries = array_map("trim", $countries);
-                	in_array(strtoupper($customerCountry), $countries);
                                         
 					if ( (float)$price >= (float)$rates['minO']
 						&& ( (float)$price <= (float)$rates['maxO'] || (float)$rates['maxO'] == 0)
 						&& (float)$weight >= (float)$rates['minwO']
 						&& ( (float)$weight <= (float)$rates['maxwO'] || (float)$rates['maxwO'] == 0)
 						//&& ($rates['class'] == 'all' || $rates['class'] == $sc)
-                        && in_array(strtolower($rates['class']), array_map('strtolower', $sc))
-						&& in_array(strtoupper($customerCountry), $countries)
+                        && (!isset($rates['class']) || in_array(strtolower($rates['class']), array_map('strtolower', $sc)))
+						&& ( in_array(strtoupper($customerCountry), $countries) || in_array('*', $countries) )
 						) {
 						// The shipping rate is valid.
 						
@@ -165,53 +104,53 @@ class Smartsend_Logistics_PrimaryClass {
 	
 	function process_table_rates($x) {
 			
-			// Array that will contain all the shipping methods
-			$table_rates = array();
-			
-			// Load the posted tablerates
-			if(isset( $_POST[ $x->id . '_tablerate'] ) ) {
-				$rates = $_POST[ $x->id . '_tablerate'];
-			} else {
-				$rates = null;
-			}	
-			
-			// Go through each rate
-			if(is_array($rates)) {
-				foreach($rates as $rate) {
-					// Add to table rates array
-						$table_rates[] = array(
-							'class'    		=> (string) $rate[ 'class' ],
-							'methods'  		=> (string) $rate[ 'methods' ],
-							'minO'    		=> (float) $rate[ 'minO' ],
-							'maxO'    		=> (float) $rate[ 'maxO' ],
-							'minwO'    		=> (float) $rate[ 'minwO' ],
-							'maxwO'    		=> (float) $rate[ 'maxwO' ],
-							'shippingO' 	=> (float) $rate[ 'shippingO' ],
-							'country' 		=> (string) $rate[ 'country' ],
-							'method_name' 	=> (string) $rate[ 'method_name' ]
-						);
-				}
+		// Array that will contain all the shipping methods
+		$table_rates = array();
+		
+		// Load the posted tablerates
+		if(isset( $_POST[ $x->id . '_tablerate'] ) ) {
+			$rates = $_POST[ $x->id . '_tablerate'];
+		} else {
+			$rates = null;
+		}	
+		
+		// Go through each rate
+		if(is_array($rates)) {
+			foreach($rates as $rate) {
+				// Add to table rates array
+				$table_rates[] = array(
+					'class'    		=> (string) $rate[ 'class' ],
+					'methods'  		=> (string) $rate[ 'methods' ],
+					'minO'    		=> (float) $rate[ 'minO' ],
+					'maxO'    		=> (float) $rate[ 'maxO' ],
+					'minwO'    		=> (float) $rate[ 'minwO' ],
+					'maxwO'    		=> (float) $rate[ 'maxwO' ],
+					'shippingO' 	=> (float) $rate[ 'shippingO' ],
+					'country' 		=> (string) $rate[ 'country' ],
+					'method_name' 	=> (string) $rate[ 'method_name' ]
+				);
 			}
-			
-			// Save rates if any
-			update_option( $x->table_rate_option, $table_rates );
-			$x->load_table_rates();
-			
 		}
+		
+		// Save rates if any
+		update_option( $x->table_rate_option, $table_rates );
+		$x->load_table_rates();
+		
+	}
 
 		
-		function save_default_costs( $fields ) {
-                   
-			$default_minO = woocommerce_clean( $_POST['default_minO'] );
-			$default_maxO  = woocommerce_clean( $_POST['default_maxO'] );
-			$default_shippingO  = woocommerce_clean( $_POST['default_shippingO'] );
+	function save_default_costs( $fields ) {
+			   
+		$default_minO = woocommerce_clean( $_POST['default_minO'] );
+		$default_maxO  = woocommerce_clean( $_POST['default_maxO'] );
+		$default_shippingO  = woocommerce_clean( $_POST['default_shippingO'] );
 
-			$fields['minO'] = $default_minO;
-			$fields['maxO']  = $default_maxO;
-			$fields['shippingO']  = $default_shippingO;
+		$fields['minO'] = $default_minO;
+		$fields['maxO']  = $default_maxO;
+		$fields['shippingO']  = $default_shippingO;
 
-			return $fields;
-		}
+		return $fields;
+	}
 		
 		
 					

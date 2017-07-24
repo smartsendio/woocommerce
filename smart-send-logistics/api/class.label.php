@@ -26,8 +26,24 @@ class Smartsend_Logistics_Label {
 	
 	private $_test = false;
 	
-	public function _construct() {
-        
+	protected $_notifications;
+	
+	
+	public function __construct() {
+    	$this->_notifications = array(
+		//Notifications
+		2101	=> __('Response','smart-send-logistics'),
+		2102	=> __('Unknown status','smart-send-logistics'),
+		2103	=> __('Combined PDF labels','smart-send-logistics'),
+		2104	=> __('Combined label links','smart-send-logistics'),
+		2105	=> __('PDF label','smart-send-logistics'),
+		2106	=> __('Label link','smart-send-logistics'),
+		//Errors
+		2201	=> __('Trying to send empty order array','smart-send-logistics'),
+		2202	=> __('Unknown API method','smart-send-logistics'),
+		2203	=> __('An error occurred while sending order','smart-send-logistics'),
+		2204	=> __('Failed to insert tracecode','smart-send-logistics')
+		);
     }
 
  	/*
@@ -49,7 +65,7 @@ class Smartsend_Logistics_Label {
  	 */
  	protected function getJsonRequest() {
  		if(empty($this->request)) {
- 			throw new Exception("Trying to send empty order array");
+ 			throw new Exception( $this->_notifications[2201] );
  		} else {
  			return json_encode($this->request);
  		}
@@ -90,7 +106,7 @@ class Smartsend_Logistics_Label {
         } elseif($single == false) {
         	$url = 'https://smartsend-prod.apigee.net/v7/booking/orders';
         } else {
-        	throw new Exception('Unknown post method: '.$single);
+        	throw new Exception( $this->_notifications[2202] . ': ' . $single);
         }
         
         if(get_option( 'smartsend_logistics_username', '' ) == '' && is_plugin_active( 'vc_pdk_allinone/vc_pdk_allinone.php')) {
@@ -131,11 +147,11 @@ class Smartsend_Logistics_Label {
         curl_close($ch);                          //closing the curl
 
         if ($curl_error) {
-            throw new Exception('An error occurred while sending order: ' . $curl_error);
+            throw new Exception( $this->_notifications[2203] . ': ' . $curl_error);
         }
         
         if(!($this->response->code >= '200') || !($this->response->code <= '210')) {
-        	throw new Exception('Response: ('.$this->response->code.') '.$this->response->body);
+        	throw new Exception( $this->_notifications[2101] . ': ('.$this->response->code.') '.$this->response->body);
         }
  	
  	}
@@ -199,7 +215,7 @@ class Smartsend_Logistics_Label {
 				->setData('order_id', $shipment->getData('order_id'))
 				->save();
 		} else {
-			throw new Exception('Failed to insert tracecode');
+			throw new Exception( $this->_notifications[2204] );
 		}
 		
  	}
@@ -222,7 +238,6 @@ class Smartsend_Logistics_Label {
 				$smartsendorder = new Smartsend_Logistics_Order_Woocommerce();
 				$smartsendorder->setOrderObject($order);
 				
-				$tracking_code_combined = '';
 				foreach($trace_codes as $trace_code) {
 					//Add a note with a Track&Trace link
 					if($smartsendorder->getShippingCarrier() == 'postdanmark') {
@@ -237,16 +252,14 @@ class Smartsend_Logistics_Label {
 						$link = null;
 					}
 					$order->add_order_note('TraceCode: '.($link ? $link : $trace_code));
-					$tracking_code_combined .= ($trace_code != '' ? ',' : '').$trace_code;
-				}
-				
-				if($tracking_code_combined != ',' && $tracking_code_combined != '') {
+					
 					//Add trace link to WooTheme extension 'Shipment Tracking'
-					update_post_meta( $order->id, '_tracking_provider', $smartsendorder->getShippingCarrier() );
-					update_post_meta( $order->id, '_custom_tracking_provider', $smartsendorder->getShippingCarrier() );
-					update_post_meta( $order->id, '_tracking_number', $tracking_code_combined );
+					update_post_meta( $order->id, '_tracking_provider', $smartsendorder->getShippingCarrier($format=0) );
+					//update_post_meta( $order->id, '_custom_tracking_provider', $smartsendorder->getShippingCarrier($format=0) );
+					update_post_meta( $order->id, '_tracking_number', $trace_code );
 					//update_post_meta( $order->id, '_custom_tracking_link', null );
-					//update_post_meta( $order->id, '_date_shipped', null );
+					update_post_meta( $order->id, '_date_shipped', time() );
+					
 				}
 			}
 		}
@@ -278,31 +291,32 @@ class Smartsend_Logistics_Label {
  			}
  			
  			if(isset($json->combine_pdf) && get_option('smartsend_logistics_combinepdf','yes') == 'yes') {
- 				$_succeses[] = '<a href="'. $json->combine_pdf .'" target="_blank">Combined PDF labels</a>';
+ 				$_succeses[] = '<a href="'. $json->combine_pdf .'" target="_blank">' . $this->_notifications[2103] .'</a>';
  			}
  			
  			if(isset($json->combine_link) && get_option('smartsend_logistics_combinepdf','yes') == 'yes') {
- 				$_succeses[] = '<a href="'. $json->combine_link .'" target="_blank">Combined label links</a>';
+ 				$_succeses[] = '<a href="'. $json->combine_link .'" target="_blank">' . $this->_notifications[2104] .'</a>';
  			}
  			
 			if(isset($json->orders) && is_array($json->orders)) {
 				// An array of orders was returned
 				foreach($json->orders as $json_order) {
 					if(isset($json_order->pdflink) && !(isset($json->combine_pdf) && get_option('smartsend_logistics_combinepdf','yes') == "yes")) {
-						$_succeses[] = 'Order #'.$json_order->orderno.': <a href="'. $json_order->pdflink .'" target="_blank">PDF label</a>';
+						$_succeses[] = 'Order #'.$json_order->orderno.': <a href="'. $json_order->pdflink .'" target="_blank">' . $this->_notifications[2105] .'</a>';
 						// Go through parcels and add trace to shipments
 						$this->verifyParcels($json_order);	
 					} elseif(isset($json_order->link) && !(isset($json->combine_link) && get_option('smartsend_logistics_combinepdf','yes') == "yes")) {
-						$_succeses[] = 'Order #'.$json_order->orderno.': <a href="'. $json_order->link .'" target="_blank">Label link</a>';
+						$_succeses[] = 'Order #'.$json_order->orderno.': <a href="'. $json_order->link .'" target="_blank">' . $this->_notifications[2106] .'</a>';
 						// Go through parcels and add trace to shipments
 						$this->verifyParcels($json_order);	
 					} elseif( (isset($json_order->pdflink) || isset($json_order->link) ) && get_option('smartsend_logistics_combinepdf','yes') == "yes") {
-						$_succeses[] = 'Order #'.$json_order->orderno.': '. $json_order->message; 
+						$_succeses[] = 'Order #'.$json_order->orderno.': '. $json_order->message;
+						$this->verifyParcels($json_order);
 					} else {
 						if(isset($json_order->status) && $json_order->status != '') {
 							$_errors[] = 'Order #'.$json_order->orderno.': '. $json_order->message; 
 						} else {
-							$_errors[] = 'Unknown status: '. $json_order->message;
+							$_errors[] = $this->_notifications[2102] . ': '. $json_order->message;
 						}
 					}
 				}
@@ -311,18 +325,18 @@ class Smartsend_Logistics_Label {
 				// An array of orders was not returned. Check if just a single order was returned
 			
 				if(isset($json->pdflink) && !(isset($json->combine_pdf) && get_option('smartsend_logistics_combinepdf','yes') == 1)) {
-					$_succeses[] = 'Order #'.$json->orderno.': <a href="'. $json->pdflink .'" target="_blank">PDF label</a>';
+					$_succeses[] = 'Order #'.$json->orderno.': <a href="'. $json->pdflink .'" target="_blank">' . $this->_notifications[2105] .'</a>';
 					// Go through parcels and add trace to shipments
 					$this->verifyParcels($json);	
 				} elseif(isset($json->link) && !(isset($json->combine_link) && get_option('smartsend_logistics_combinepdf','yes') == 1)) {
-					$_succeses[] = 'Order #'.$json->orderno.': <a href="'. $json->link .'" target="_blank">Label link</a>';
+					$_succeses[] = 'Order #'.$json->orderno.': <a href="'. $json->link .'" target="_blank">' . $this->_notifications[2106] .'</a>';
 					// Go through parcels and add trace to shipments
 					$this->verifyParcels($json);	
 				} else {
 					if(isset($json->status) && $json->status != '') {
 						$_errors[] = 'Order #'.$json->orderno.': '. $json->message;
 					} else {
-						$_errors[] = 'Unknown status: '. $json->message;
+						$_errors[] = $this->_notifications[2102] . ': '. $json->message;
 					}
 				}
 			}

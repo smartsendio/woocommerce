@@ -9,37 +9,39 @@
 if ( ! class_exists( 'Smartsend_Logistics_GLS' ) ) {
 	class Smartsend_Logistics_GLS extends WC_Shipping_Method {
 
-		public $PrimaryClass ;
+		public $PrimaryClass;
 		
+		/**
+	 	* Constructor.
+	 	*/
 		public function __construct() {
 			$this->id                 	= 'smartsend_gls'; 
-			$this->method_title       	= __( 'GLS','smart-send-logistics');  
+			$this->method_title       	= __( 'GLS','smart-send-logistics');
+			
 			$this->method_description 	= __( 'GLS','smart-send-logistics'); 				
 			$this->table_rate_option    = 'GLS_table_rate';
 			$this->PrimaryClass 		= new Smartsend_Logistics_PrimaryClass();
+			
 			$this->init();
 		}
-
 		
-		function init() {
+		/**
+		 * init function.
+		 */
+		public function init() {
+		
+			// Load the settings.
 			$this->init_form_fields();
 			$this->init_settings();
 
 			// Define user set variables
-	
-			$this->shipping_description		= $this->get_option( 'shipping_description' );
 			$this->enabled					= $this->get_option( 'enabled' );
 			$this->title 					= $this->get_option( 'title' );
-			$this->availability 			= 'specific';
-			$this->countries 				= $this->getCountries();
-			$this->requires					= $this->get_option( 'requires' );
-			$this->apply_when 				= $this->get_option( 'apply_when' );
-			$this->greatMax 				= $this->get_option( 'greatMax' );
-			$this->type       				= $this->get_option( 'type' );
+			$this->cheap_expensive 			= $this->get_option( 'cheap_expensive' );
 			$this->tax_status   			= $this->get_option( 'tax_status' );
-			$this->min_order    			= $this->get_option( 'min_order' );
-			$this->max_order    			= $this->get_option( 'max_order' );
-			$this->shipping_rate 		 	= $this->get_option( 'shipping_rate' );
+			$this->notemail    				= $this->get_option( 'notemail' );
+			$this->notesms    				= $this->get_option( 'notesms' );
+			$this->return  					= $this->get_option( 'return' );
 	
 			// Actions
 			add_action( 'woocommerce_update_options_shipping_' . $this->id, array( $this, 'process_admin_options' ) );
@@ -48,8 +50,26 @@ if ( ! class_exists( 'Smartsend_Logistics_GLS' ) ) {
 			// Load Table rates
 			$this->load_table_rates();
 		}
+		
+		/**
+		* is_available function.
+	 	* @param array $package
+	 	* @return bool
+	 	*/
+		public function is_available( $package ){
+			$option = $this->enabled;
+			if($option == "yes") {
+				$is_available = TRUE;
+			} else {
+				$is_available = FALSE;
+			}
+			return apply_filters( 'smartsend_logistics_' . $this->id . '_is_available', $is_available, $package );
+		}
 
-		function init_form_fields() {
+		/**
+	 	* Initialise Gateway Settings Form Fields.
+	 	*/
+		public function init_form_fields() {
 			$this->form_fields = array(
 				'enabled' => array(
 					'title' 		=> __( 'Enable/Disable','smart-send-logistics'),
@@ -72,20 +92,22 @@ if ( ! class_exists( 'Smartsend_Logistics_GLS' ) ) {
 					'description'   => __( 'This controls cheapest or most expensive on the frontend','smart-send-logistics'),
 					'default'  		=> 'cheapest',
 					'type'    	 	=> 'select',
+					'class'         => 'wc-enhanced-select',
 					'options'  		=> array(
 						'cheapest'      => __( 'Cheapest','smart-send-logistics'),
 						'expensive' 	=> __( 'Most expensive','smart-send-logistics'),
 					)
 				),
-				'tax_status' 	=> array(
-					'title'     	=> __( 'Tax status','smart-send-logistics'),
-					'type'      	=> 'select',
-					'default'   	=> 'taxable',
-					'options'   	=> array(
-						'taxable' 		=> __( 'Taxable','smart-send-logistics'),
-						'none'    		=> __( 'None','smart-send-logistics'),
-						),
+				'tax_status' 		=> array(
+					'title' 			=> __( 'Tax Status', 'woocommerce' ),
+					'type'      		=> 'select',
+					'class'         	=> 'wc-enhanced-select',
+					'default'   		=> 'taxable',
+					'options'   		=> array(
+						'taxable' 			=> __( 'Taxable','woocommerce'),
+						'none' 				=> _x( 'None', 'Tax status', 'woocommerce' )
 					),
+				),
 				'notemail' 	=> array(
 					'title'    			=> __( 'Email notification','smart-send-logistics'),
 					'description'     	=> __( 'Send an email with info about delivery','smart-send-logistics'),
@@ -105,6 +127,7 @@ if ( ! class_exists( 'Smartsend_Logistics_GLS' ) ) {
 					'description'     	=> __( 'Method used for return labels','smart-send-logistics'),
 					'default'  			=> 'postdanmark',
 					'type'     			=> 'select',
+					'class'         	=> 'wc-enhanced-select',
 					'options'  			=> array(
 						'smartsendpostdanmark_private'	=> __( 'Post Danmark','smart-send-logistics'),
 						'smartsendposten_private'      	=> __( 'Posten','smart-send-logistics'),
@@ -268,26 +291,6 @@ if ( ! class_exists( 'Smartsend_Logistics_GLS' ) ) {
 			
 			return $shipping_methods;
 		}
-		
-                function getCountries(){
-                    $datas = array_filter( (array) get_option( $this->table_rate_option ) );
-
-                    $countries = array();
-                    if($datas){
-                        foreach($datas as $data){
-                                $countriesArray = explode(',',$data['country']);
-                                if(is_array($countriesArray)){
-                                    foreach($countriesArray as $c){
-                                        $countries[] = trim(strtoupper($c)); 
-                                    }
-                                }else{
-                                    $countries[] =trim(strtoupper($data['country'])); 
-                                }
-                        }
-                    }
-
-                    return $countries;
-                }
 
 	}
 }

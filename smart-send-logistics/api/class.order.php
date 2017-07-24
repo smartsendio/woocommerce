@@ -15,7 +15,7 @@ require_once( WP_PLUGIN_DIR . '/smart-send-logistics/class.smartsend.posten.php'
  * Create order objects that is included in the final Smart Send label API callout.
  *
  * @class 		Smartsend_Logistics_Order
- * @version		7.1.1
+ * @version		7.1.2
  * @author 		Smart Send
  *
  *
@@ -94,8 +94,6 @@ class Smartsend_Logistics_Order {
 /*****************************************************************************************
  * Overall functions
  ****************************************************************************************/
-
-	public function _construct() {}
 	
 	/**
 	* 
@@ -408,10 +406,12 @@ class Smartsend_Logistics_Order {
 			$method = 'valuemaileconomy';
 		} elseif(substr($shipping_string, -strlen('maximail')) === 'maximail') {
 			$method = 'maximail';
-		} elseif(substr($shipping_string, -strlen('public_bulksplit')) === 'public_bulksplit') {
-			$method = 'public_bulksplit';
-		} elseif(substr($shipping_string, -strlen('publichome_bulksplit')) === 'publichome_bulksplit') {
-			$method = 'publichome_bulksplit';
+		} elseif(substr($shipping_string, -strlen('miniparcel')) === 'miniparcel') {
+			$method = 'miniparcel';
+		} elseif(substr($shipping_string, -strlen('private_bulksplit')) === 'private_bulksplit') {
+			$method = 'private_bulksplit';
+		} elseif(substr($shipping_string, -strlen('privatehome_bulksplit')) === 'privatehome_bulksplit') {
+			$method = 'privatehome_bulksplit';
 		} elseif(substr($shipping_string, -strlen('commercial_bulksplit')) === 'commercial_bulksplit') {
 			$method = 'commercial_bulksplit';
 		} elseif(substr($shipping_string, -strlen('bestway')) === 'bestway') {

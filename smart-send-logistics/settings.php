@@ -173,54 +173,23 @@ if ( in_array( 'woocommerce/woocommerce.php', apply_filters( 'active_plugins', g
 						'4' 		=> __( 'Carrier-(Method)' )
 						)
 					);
+				
+				$WC_Shipping_Free_Shipping = new WC_Shipping_Free_Shipping();
+				$updated_settings[] = array(
+					'title'    	=> __( 'Shipping method used for','smart-send-logistics') . ' ' . $WC_Shipping_Free_Shipping->method_title,
+					'id'       	=> 'smartsend_wc_shipping_free_shipping',
+					'default'  	=> '0',
+					'type'     	=> 'select',
+					'class'    	=> 'wc-enhanced-select',
+					'desc_tip' 	=> false,
+					'options'  	=> Smartsend_Logistics_get_all_shipping_methods()
+					);
 			}
 			$updated_settings[] = $section;
 	  	}
 
 		return $updated_settings;
 	}
-                
-	add_action( 'add_meta_boxes', 'Smartsend_Logistics_add_meta_boxes' );
-
-	function Smartsend_Logistics_add_meta_boxes(){
-
-		add_meta_box(
-			'woocommerce-order-shipping-my-custom',
-			__( 'Smart Send Logistics' ),
-			'Smartsend_Logistics_order_shipping_custom_metabox',
-			'shop_order',
-			'side',
-			'default'
-		);
-
-	}
-
-	function Smartsend_Logistics_order_shipping_custom_metabox( $post ){
-
-		$order = wc_get_order( $post->ID );
-
-		$line_items_shipping = $order->get_items( 'shipping' );
-		$shipMethod = '';
-		if(!empty($line_items_shipping)){
-			foreach ( $line_items_shipping as $item_id => $item ) {
-				$shipMethod_id = ! empty( $item['method_id'] ) ? esc_html( $item['method_id'] ) : __( 'Shipping','smart-send-logistics');
-				$shipMethod=  ! empty( $item['name'] ) ? esc_html( $item['name'] ) : __( 'Shipping','smart-send-logistics');
-			}
-		}
-	
-		$store_pickup = get_post_custom($order->id);
-		
-		echo '<p><h3>Shipping Method</h3>'.$shipMethod;
-		//echo ' ('.$shipMethod_id.')';
-		echo '</p>';
-				   
-		Smartsend_Logistics_display_store_order_details($order,true,false,'h3');
-		
-		echo '<br/>';
-		echo '<a href="post.php?post='.$post->ID.'&action=edit&type=create_label" class="button button-primary">'.__( 'Generate label','smart-send-logistics').'</a><br/><br/>';
-		echo '<a href="post.php?post='.$post->ID.'&action=edit&type=create_label_return" class="button">'.__( 'Generate return label','smart-send-logistics').'</a><br/><br/>';
-		echo '<a href="post.php?post='.$post->ID.'&action=edit&type=create_label_normal_return" class="button">'.__( 'Generate normal and return label','smart-send-logistics').'</a>'; 
-    }
                 
 	# Show selected pickup location on the order edit page(woocommerce_admin_order_data_after_order_details)
 	add_action( 'woocommerce_admin_order_data_after_billing_address', 'Smartsend_Logistics_my_custom_checkout_field_display_admin_order_meta', 10, 1 );
@@ -242,6 +211,41 @@ if ( in_array( 'woocommerce/woocommerce.php', apply_filters( 'active_plugins', g
 				Shipping Method: '.$shipMethod.'<p/>';
 			Smartsend_Logistics_display_store_order_details($order,true,true,'strong');
 		}
-	} 
+	}
+	
+	function Smartsend_Logistics_get_all_shipping_methods() {
+	
+		$shipping_methods = array();
+	
+		//Load the Post Danmark class
+		$carrier_controller = new Smartsend_Logistics_PostDanmark();
+		foreach($carrier_controller->get_methods() as $name => $description) {
+			$shipping_methods['smartsend_postdanmark_'.$name] = 'Post Danmark '.$description; 
+		}
+
+		//Load the Posten class
+		$carrier_controller = new Smartsend_Logistics_Posten();
+		foreach($carrier_controller->get_methods() as $name => $description) {
+			$shipping_methods['smartsend_posten_'.$name] = 'Posten '.$description; 
+		}
+
+		//Load the GLS class
+		$carrier_controller = new Smartsend_Logistics_GLS();
+		foreach($carrier_controller->get_methods() as $name => $description) {
+			$shipping_methods['smartsend_gls_'.$name] = 'GLS '.$description; 
+		}
+
+		//Load the Bring class
+		$carrier_controller = new Smartsend_Logistics_Bring();
+		foreach($carrier_controller->get_methods() as $name => $description) {
+			$shipping_methods['smartsend_bring_'.$name] = 'Bring '.$description; 
+		}
+
+		//Load the Pickup class
+		$carrier_controller = new Smartsend_Logistics_PickupPoints();
+
+	
+		return $shipping_methods;
+	}
             
 }

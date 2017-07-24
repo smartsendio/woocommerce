@@ -4,7 +4,7 @@ Donate link: http://www.SmartSend.dk/
 Tags: shipping, pickup, pakkeboks, pakkeshop, hente selv, døgnboks, post danmark, gls, swipbox, bring, carrier, pacsoft, yourgls, mybring, postage, shipping method, your-gls, my-bring, pacosft-online, pacsoftonline, denmark, sweeden, posten, norway, post 
 Requires at least: 3.0.1
 Tested up to: 4.4
-Stable tag: 7.0.14
+Stable tag: 7.0.15
 License: GNU General Public License v3.0
 License URI: http://www.gnu.org/licenses/gpl-3.0.html
 
@@ -125,3 +125,14 @@ Yes. You can try the module for free for 30 days.
 * Add support for plugin WooCommerce Sequential Order Numbers
 * Adding Bring shipping methods 'express' and 'bulksplit'
 * Fixing PHP notification problem caused by missing classes for default shipping methods.
+
+= 7.0.15 =
+* Fixing problem with missing arrow on dropdown menu
+* Add Bring shipping method ‘Miniparcel’
+* Add Post Danmark shipping method ‘Business Priority’
+* Adding ‘Date shipped’ and removing unintended comma in tracking number when using Shipment Tracking plugin
+* Formatting dropdown menu in settings
+* Adding support for WooCommerce shipping method ‘Free shipping’
+* Track and Trace codes are now added correctly to the order if multiple labels are create with one action
+* Fixing problem with entering ‘*’ as all countries in the table settings
+* Fixing incorrect weight if gram is used for product weight

@@ -45,24 +45,28 @@
 
 class Smartsend_Logistics_Order_Woocommerce extends Smartsend_Logistics_Order {
 
-	protected $_errors = array(
-		// Shipping
-		2301	=>	'Unable to determine the shipping method used for return parcels',
-		2302	=>	'Unable to determine the shipping carrier',
-		2303	=>	'Unable to determine the shipping method',
-		2304	=>	'Unable to determine carrier for pickup shipping method',
-		2305	=>	'Unsupported carrier',
-		2306	=>	'Uanble to determine shipping method for carrier',
-		2307	=>	'Unable to determine shipping carrier',
-		2308	=>	'Unknown shipping carrier',
-		2309	=>	'Unable to determine shipping method',
-		// Order set
-		2401	=>	'No parcels without trace code',
-		2402	=>	'No unshipped items',
-		2403	=>	'No parcels to ship',
-		// Order get
-		2501	=>	'Trying to access pickup data for an order that is not a pickup point order',
+	protected $_errors;
+		
+	public function __construct() {
+		$this->_errors = array(
+			// Shipping
+			2301	=>	__('Unable to determine the shipping method used for return parcels','smart-send-logistics'),
+			2302	=>	__('Unable to determine the shipping carrier','smart-send-logistics'),
+			2303	=>	__('Unable to determine the shipping method','smart-send-logistics'),
+			2304	=>	__('Unable to determine carrier for pickup shipping method','smart-send-logistics'),
+			2305	=>	__('Unsupported carrier','smart-send-logistics'),
+			2306	=>	__('Unable to determine shipping method for carrier','smart-send-logistics'),
+			2307	=>	__('Unable to determine shipping carrier','smart-send-logistics'),
+			2308	=>	__('Unknown shipping carrier','smart-send-logistics'),
+			2309	=>	__('Unable to determine shipping method','smart-send-logistics'),
+			// Order set
+			2401	=>	__('No parcels without trace code','smart-send-logistics'),
+			2402	=>	__('No unshipped items','smart-send-logistics'),
+			2403	=>	__('No parcels to ship','smart-send-logistics'),
+			// Order get
+			2501	=>	__('Trying to access pickup data for an order that is not a pickup point order','smart-send-logistics')
 		);
+	}
 		
 
 /*****************************************************************************************
@@ -87,6 +91,10 @@ class Smartsend_Logistics_Order_Woocommerce extends Smartsend_Logistics_Order {
 					$shipMethod_id = esc_html( $item['method_id'] );
 				}
 			}
+		}
+	
+		if($shipMethod_id == 'free_shipping') {
+			$shipMethod_id = get_option( 'smartsend_wc_shipping_free_shipping','free_shipping');
 		}
 	
 		return $shipMethod_id; //return unique id of shipping method
@@ -410,7 +418,13 @@ class Smartsend_Logistics_Order_Woocommerce extends Smartsend_Logistics_Order {
 		
 		/* All */
 		if($weight > 0) {
-			return $weight;
+		
+			if( get_option('woocommerce_weight_unit') == 'g') {
+				return round($weight/1000,3);
+			} else {
+				return $weight;
+			}
+			
 		} else {
 			return null;
 		}
@@ -428,6 +442,9 @@ class Smartsend_Logistics_Order_Woocommerce extends Smartsend_Logistics_Order {
 			$_product = $this->_order->get_product_from_item( $item );
 			if ( ! $_product->is_virtual() ) {
 				$weight = $_product->get_weight();
+				if( get_option('woocommerce_weight_unit') == 'g') {
+					$weight = round($weight/1000,3);
+				}
 			} else {
 				$weight = null;
 			}
