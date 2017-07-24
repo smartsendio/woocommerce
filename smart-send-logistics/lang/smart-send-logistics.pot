@@ -3,8 +3,8 @@ msgid ""
 msgstr ""
 "Plural-Forms: nplurals=INTEGER; plural=EXPRESSION;\n"
 "Project-Id-Version: Smart Send Logistics\n"
-"POT-Creation-Date: 2016-01-03 22:46+0100\n"
-"PO-Revision-Date: 2016-01-03 22:45+0100\n"
+"POT-Creation-Date: 2016-02-10 20:17+0100\n"
+"PO-Revision-Date: 2016-02-10 20:10+0100\n"
 "Last-Translator: Anders Bilfeldt <anders@smartsend.dk>\n"
 "Language-Team: Anders Bilfeldt <anders@smartsend.dk>\n"
 "MIME-Version: 1.0\n"
@@ -15,8 +15,8 @@ msgstr ""
 "X-Poedit-WPHeader: woocommerce-smartsend-logistics.php\n"
 "X-Poedit-SourceCharset: UTF-8\n"
 "X-Poedit-KeywordsList: __;_e;_n:1,2;_x:1,2c;_ex:1,2c;_nx:4c,1,2;esc_attr__;"
-"esc_attr_e;esc_attr_x:1,2c;esc_html__;esc_html_e;esc_html_x:1,2c;_n_noop:1,2;"
-"_nx_noop:3c,1,2;__ngettext_noop:1,2\n"
+"esc_attr_e;esc_attr_x:1,2c;esc_html__;esc_html_e;esc_html_x:1,2c;"
+"_n_noop:1,2;_nx_noop:3c,1,2;__ngettext_noop:1,2\n"
 "X-Poedit-SearchPath-0: .\n"
 "X-Poedit-SearchPathExcluded-0: *.js\n"
 
@@ -58,6 +58,18 @@ msgstr ""
 
 #: api/class.label.php:45
 msgid "Failed to insert tracecode"
+msgstr ""
+
+#: api/class.label.php:241
+msgid "Label generated with Smart Send Logistics"
+msgstr ""
+
+#: api/class.label.php:257
+msgid "Tracecode"
+msgstr ""
+
+#: api/class.label.php:270
+msgid "Link to PDF label"
 msgstr ""
 
 #: api/class.order.woocommerce.php:53
@@ -113,250 +125,250 @@ msgid ""
 "Trying to access pickup data for an order that is not a pickup point order"
 msgstr ""
 
-#: class.smartsend.bring.php:16 class.smartsend.bring.php:17
-#: class.smartsend.bring.php:67 class.smartsend.bring.php:118
-#: class.smartsend.gls.php:118 class.smartsend.pickuppoints.php:126
-#: class.smartsend.postdanmark.php:171 class.smartsend.posten.php:171
+#: class.smartsend.bring.php:19 class.smartsend.bring.php:21
+#: class.smartsend.bring.php:84 class.smartsend.bring.php:135
+#: class.smartsend.gls.php:135 class.smartsend.pickuppoints.php:141
+#: class.smartsend.postdanmark.php:194 class.smartsend.posten.php:193
 msgid "Bring"
 msgstr ""
 
-#: class.smartsend.bring.php:58 class.smartsend.gls.php:58
-#: class.smartsend.pickuppoints.php:61 class.smartsend.postdanmark.php:59
-#: class.smartsend.posten.php:59
+#: class.smartsend.bring.php:75 class.smartsend.gls.php:75
+#: class.smartsend.pickuppoints.php:76 class.smartsend.postdanmark.php:82
+#: class.smartsend.posten.php:81
 msgid "Enable/Disable"
 msgstr ""
 
-#: class.smartsend.bring.php:60 class.smartsend.gls.php:60
-#: class.smartsend.pickuppoints.php:63 class.smartsend.postdanmark.php:61
-#: class.smartsend.posten.php:61
+#: class.smartsend.bring.php:77 class.smartsend.gls.php:77
+#: class.smartsend.pickuppoints.php:78 class.smartsend.postdanmark.php:84
+#: class.smartsend.posten.php:83
 msgid "Enable this shipping method"
 msgstr ""
 
-#: class.smartsend.bring.php:64 class.smartsend.gls.php:64
-#: class.smartsend.pickuppoints.php:86 class.smartsend.postdanmark.php:65
-#: class.smartsend.posten.php:65
+#: class.smartsend.bring.php:81 class.smartsend.gls.php:81
+#: class.smartsend.pickuppoints.php:82 class.smartsend.postdanmark.php:88
+#: class.smartsend.posten.php:87
 msgid "Carrier title"
 msgstr ""
 
-#: class.smartsend.bring.php:66 class.smartsend.gls.php:66
-#: class.smartsend.pickuppoints.php:88 class.smartsend.postdanmark.php:67
-#: class.smartsend.posten.php:67
+#: class.smartsend.bring.php:83 class.smartsend.gls.php:83
+#: class.smartsend.pickuppoints.php:84 class.smartsend.postdanmark.php:90
+#: class.smartsend.posten.php:89
 msgid "This controls the title which the user sees during checkout"
 msgstr ""
 
-#: class.smartsend.bring.php:74 class.smartsend.gls.php:74
-#: class.smartsend.pickuppoints.php:96 class.smartsend.postdanmark.php:75
-#: class.smartsend.posten.php:75
+#: class.smartsend.bring.php:91 class.smartsend.gls.php:91
+#: class.smartsend.pickuppoints.php:111 class.smartsend.postdanmark.php:98
+#: class.smartsend.posten.php:97
 msgid "Cheapest or most expensive"
 msgstr ""
 
-#: class.smartsend.bring.php:75 class.smartsend.gls.php:75
-#: class.smartsend.pickuppoints.php:97 class.smartsend.postdanmark.php:76
-#: class.smartsend.posten.php:76
+#: class.smartsend.bring.php:92 class.smartsend.gls.php:92
+#: class.smartsend.pickuppoints.php:112 class.smartsend.postdanmark.php:99
+#: class.smartsend.posten.php:98
 msgid "This controls cheapest or most expensive on the frontend"
 msgstr ""
 
-#: class.smartsend.bring.php:80 class.smartsend.gls.php:80
-#: class.smartsend.pickuppoints.php:102 class.smartsend.postdanmark.php:81
-#: class.smartsend.posten.php:81
+#: class.smartsend.bring.php:97 class.smartsend.gls.php:97
+#: class.smartsend.pickuppoints.php:117 class.smartsend.postdanmark.php:104
+#: class.smartsend.posten.php:103
 msgid "Cheapest"
 msgstr ""
 
-#: class.smartsend.bring.php:81 class.smartsend.gls.php:81
-#: class.smartsend.pickuppoints.php:103 class.smartsend.postdanmark.php:82
-#: class.smartsend.posten.php:82
+#: class.smartsend.bring.php:98 class.smartsend.gls.php:98
+#: class.smartsend.pickuppoints.php:118 class.smartsend.postdanmark.php:105
+#: class.smartsend.posten.php:104
 msgid "Most expensive"
 msgstr ""
 
-#: class.smartsend.bring.php:85 class.smartsend.gls.php:85
-#: class.smartsend.pickuppoints.php:107 class.smartsend.postdanmark.php:86
-#: class.smartsend.posten.php:86
+#: class.smartsend.bring.php:102 class.smartsend.gls.php:102
+#: class.smartsend.pickuppoints.php:122 class.smartsend.postdanmark.php:109
+#: class.smartsend.posten.php:108
 msgid "Tax Status"
 msgstr ""
 
-#: class.smartsend.bring.php:90 class.smartsend.gls.php:90
-#: class.smartsend.pickuppoints.php:112 class.smartsend.postdanmark.php:91
-#: class.smartsend.posten.php:91
+#: class.smartsend.bring.php:107 class.smartsend.gls.php:107
+#: class.smartsend.pickuppoints.php:127 class.smartsend.postdanmark.php:114
+#: class.smartsend.posten.php:113
 msgid "Taxable"
 msgstr ""
 
-#: class.smartsend.bring.php:91 class.smartsend.gls.php:91
-#: class.smartsend.pickuppoints.php:113 class.smartsend.postdanmark.php:92
-#: class.smartsend.posten.php:92
+#: class.smartsend.bring.php:108 class.smartsend.gls.php:108
+#: class.smartsend.pickuppoints.php:128 class.smartsend.postdanmark.php:115
+#: class.smartsend.posten.php:114
 msgctxt "Tax status"
 msgid "None"
 msgstr ""
 
-#: class.smartsend.bring.php:95 class.smartsend.gls.php:95
-#: class.smartsend.postdanmark.php:120 class.smartsend.posten.php:120
+#: class.smartsend.bring.php:112 class.smartsend.gls.php:112
+#: class.smartsend.postdanmark.php:143 class.smartsend.posten.php:142
 msgid "Email notification"
 msgstr ""
 
-#: class.smartsend.bring.php:96 class.smartsend.gls.php:96
-#: class.smartsend.postdanmark.php:121 class.smartsend.posten.php:121
+#: class.smartsend.bring.php:113 class.smartsend.gls.php:113
+#: class.smartsend.postdanmark.php:144 class.smartsend.posten.php:143
 msgid "Send an email with info about delivery"
 msgstr ""
 
-#: class.smartsend.bring.php:98 class.smartsend.bring.php:105
-#: class.smartsend.gls.php:98 class.smartsend.gls.php:105
-#: class.smartsend.postdanmark.php:123 class.smartsend.postdanmark.php:130
-#: class.smartsend.postdanmark.php:137 class.smartsend.posten.php:123
-#: class.smartsend.posten.php:130 class.smartsend.posten.php:137
+#: class.smartsend.bring.php:115 class.smartsend.bring.php:122
+#: class.smartsend.gls.php:115 class.smartsend.gls.php:122
+#: class.smartsend.postdanmark.php:146 class.smartsend.postdanmark.php:153
+#: class.smartsend.postdanmark.php:160 class.smartsend.posten.php:145
+#: class.smartsend.posten.php:152 class.smartsend.posten.php:159
 msgid "Enable"
 msgstr ""
 
-#: class.smartsend.bring.php:102 class.smartsend.gls.php:102
-#: class.smartsend.postdanmark.php:127 class.smartsend.posten.php:127
+#: class.smartsend.bring.php:119 class.smartsend.gls.php:119
+#: class.smartsend.postdanmark.php:150 class.smartsend.posten.php:149
 msgid "SMS notification"
 msgstr ""
 
-#: class.smartsend.bring.php:103 class.smartsend.gls.php:103
-#: class.smartsend.postdanmark.php:128 class.smartsend.posten.php:128
+#: class.smartsend.bring.php:120 class.smartsend.gls.php:120
+#: class.smartsend.postdanmark.php:151 class.smartsend.posten.php:150
 msgid "Send an SMS with info about delivery"
 msgstr ""
 
-#: class.smartsend.bring.php:109 class.smartsend.gls.php:109
-#: class.smartsend.pickuppoints.php:117 class.smartsend.postdanmark.php:162
-#: class.smartsend.posten.php:162
+#: class.smartsend.bring.php:126 class.smartsend.gls.php:126
+#: class.smartsend.pickuppoints.php:132 class.smartsend.postdanmark.php:185
+#: class.smartsend.posten.php:184
 msgid "Return shipping method"
 msgstr ""
 
-#: class.smartsend.bring.php:110 class.smartsend.gls.php:110
-#: class.smartsend.pickuppoints.php:118 class.smartsend.postdanmark.php:163
-#: class.smartsend.posten.php:163
+#: class.smartsend.bring.php:127 class.smartsend.gls.php:127
+#: class.smartsend.pickuppoints.php:133 class.smartsend.postdanmark.php:186
+#: class.smartsend.posten.php:185
 msgid "Method used for return labels"
 msgstr ""
 
-#: class.smartsend.bring.php:115 class.smartsend.gls.php:115
-#: class.smartsend.pickuppoints.php:123 class.smartsend.postdanmark.php:168
-#: class.smartsend.posten.php:168
+#: class.smartsend.bring.php:132 class.smartsend.gls.php:132
+#: class.smartsend.pickuppoints.php:138 class.smartsend.postdanmark.php:191
+#: class.smartsend.posten.php:190
 msgid "Post Danmark"
 msgstr ""
 
-#: class.smartsend.bring.php:116 class.smartsend.gls.php:116
-#: class.smartsend.pickuppoints.php:124 class.smartsend.postdanmark.php:169
-#: class.smartsend.posten.php:16 class.smartsend.posten.php:17
-#: class.smartsend.posten.php:68 class.smartsend.posten.php:169
+#: class.smartsend.bring.php:133 class.smartsend.gls.php:133
+#: class.smartsend.pickuppoints.php:139 class.smartsend.postdanmark.php:192
+#: class.smartsend.posten.php:19 class.smartsend.posten.php:21
+#: class.smartsend.posten.php:90 class.smartsend.posten.php:191
 msgid "Posten"
 msgstr ""
 
-#: class.smartsend.bring.php:117 class.smartsend.gls.php:16
-#: class.smartsend.gls.php:17 class.smartsend.gls.php:67
-#: class.smartsend.gls.php:117 class.smartsend.pickuppoints.php:125
-#: class.smartsend.postdanmark.php:170 class.smartsend.posten.php:170
+#: class.smartsend.bring.php:134 class.smartsend.gls.php:19
+#: class.smartsend.gls.php:21 class.smartsend.gls.php:84
+#: class.smartsend.gls.php:134 class.smartsend.pickuppoints.php:140
+#: class.smartsend.postdanmark.php:193 class.smartsend.posten.php:192
 msgid "GLS"
 msgstr ""
 
-#: class.smartsend.bring.php:210 class.smartsend.bring.php:221
-#: class.smartsend.gls.php:210 class.smartsend.gls.php:221
-#: class.smartsend.pickuppoints.php:218 class.smartsend.pickuppoints.php:229
-#: class.smartsend.postdanmark.php:263 class.smartsend.postdanmark.php:274
-#: class.smartsend.posten.php:263 class.smartsend.posten.php:274
+#: class.smartsend.bring.php:227 class.smartsend.bring.php:238
+#: class.smartsend.gls.php:227 class.smartsend.gls.php:238
+#: class.smartsend.pickuppoints.php:233 class.smartsend.pickuppoints.php:244
+#: class.smartsend.postdanmark.php:286 class.smartsend.postdanmark.php:297
+#: class.smartsend.posten.php:285 class.smartsend.posten.php:296
 msgid "Pickuppoint"
 msgstr ""
 
-#: class.smartsend.bring.php:232 class.smartsend.bring.php:243
-#: class.smartsend.gls.php:232 class.smartsend.gls.php:243
-#: class.smartsend.postdanmark.php:285 class.smartsend.postdanmark.php:296
-#: class.smartsend.postdanmark.php:307 class.smartsend.postdanmark.php:318
-#: class.smartsend.postdanmark.php:329 class.smartsend.postdanmark.php:340
-#: class.smartsend.postdanmark.php:351 class.smartsend.posten.php:285
-#: class.smartsend.posten.php:296
+#: class.smartsend.bring.php:249 class.smartsend.bring.php:260
+#: class.smartsend.gls.php:249 class.smartsend.gls.php:260
+#: class.smartsend.postdanmark.php:308 class.smartsend.postdanmark.php:319
+#: class.smartsend.postdanmark.php:330 class.smartsend.postdanmark.php:341
+#: class.smartsend.postdanmark.php:352 class.smartsend.postdanmark.php:363
+#: class.smartsend.postdanmark.php:374 class.smartsend.posten.php:307
+#: class.smartsend.posten.php:318
 msgid "Delivered to door"
 msgstr ""
 
-#: class.smartsend.pickuppoints.php:16
+#: class.smartsend.pickuppoints.php:19
 msgid "PickupPoints"
 msgstr ""
 
-#: class.smartsend.pickuppoints.php:17
+#: class.smartsend.pickuppoints.php:21
 msgid "Closest pickup point"
 msgstr ""
 
-#: class.smartsend.pickuppoints.php:67
-msgid "Activate/Deactivate"
-msgstr ""
-
-#: class.smartsend.pickuppoints.php:68
-msgid "Add Post Danmark pickup points"
-msgstr ""
-
-#: class.smartsend.pickuppoints.php:74
-msgid "Add Bring pickup points"
-msgstr ""
-
-#: class.smartsend.pickuppoints.php:80
-msgid "Add GLS pickup points"
-msgstr ""
-
-#: class.smartsend.pickuppoints.php:89
+#: class.smartsend.pickuppoints.php:85
 msgid "Pickup"
 msgstr ""
 
-#: class.smartsend.postdanmark.php:16 class.smartsend.postdanmark.php:17
-#: class.smartsend.postdanmark.php:68
+#: class.smartsend.pickuppoints.php:89
+msgid "Activate/Deactivate"
+msgstr ""
+
+#: class.smartsend.pickuppoints.php:90
+msgid "Add Post Danmark pickup points"
+msgstr ""
+
+#: class.smartsend.pickuppoints.php:96
+msgid "Add Bring pickup points"
+msgstr ""
+
+#: class.smartsend.pickuppoints.php:102
+msgid "Add GLS pickup points"
+msgstr ""
+
+#: class.smartsend.postdanmark.php:19 class.smartsend.postdanmark.php:21
+#: class.smartsend.postdanmark.php:91
 msgid "PostDanmark"
 msgstr ""
 
-#: class.smartsend.postdanmark.php:96 class.smartsend.posten.php:96
+#: class.smartsend.postdanmark.php:119 class.smartsend.posten.php:118
 msgid "Format"
 msgstr ""
 
-#: class.smartsend.postdanmark.php:97 class.smartsend.posten.php:97
+#: class.smartsend.postdanmark.php:120 class.smartsend.posten.php:119
 msgid "Create a Pacsoft link or a pdf file"
 msgstr ""
 
-#: class.smartsend.postdanmark.php:102 class.smartsend.posten.php:102
+#: class.smartsend.postdanmark.php:125 class.smartsend.posten.php:124
 msgid "PDF file"
 msgstr ""
 
-#: class.smartsend.postdanmark.php:103 class.smartsend.posten.php:103
+#: class.smartsend.postdanmark.php:126 class.smartsend.posten.php:125
 msgid "Pacosft Online link"
 msgstr ""
 
-#: class.smartsend.postdanmark.php:107 class.smartsend.posten.php:107
+#: class.smartsend.postdanmark.php:130 class.smartsend.posten.php:129
 msgid "Pacsoft QuickID"
 msgstr ""
 
-#: class.smartsend.postdanmark.php:113 class.smartsend.posten.php:113
+#: class.smartsend.postdanmark.php:136 class.smartsend.posten.php:135
 msgid "Waybill ID"
 msgstr ""
 
-#: class.smartsend.postdanmark.php:114 class.smartsend.posten.php:114
+#: class.smartsend.postdanmark.php:137 class.smartsend.posten.php:136
 msgid ""
 "Either just an id or a semicolon separated list of \"country,id\" (* is all "
 "countries). Eg: SE,123;NO,321;*,44"
 msgstr ""
 
-#: class.smartsend.postdanmark.php:134 class.smartsend.posten.php:134
+#: class.smartsend.postdanmark.php:157 class.smartsend.posten.php:156
 msgid "Pre notification"
 msgstr ""
 
-#: class.smartsend.postdanmark.php:135 class.smartsend.posten.php:135
+#: class.smartsend.postdanmark.php:158 class.smartsend.posten.php:157
 msgid "Send an email with info about delivery as soon as the label is created"
 msgstr ""
 
-#: class.smartsend.postdanmark.php:141 class.smartsend.posten.php:141
+#: class.smartsend.postdanmark.php:164 class.smartsend.posten.php:163
 msgid "Pre notification receiver"
 msgstr ""
 
-#: class.smartsend.postdanmark.php:142 class.smartsend.posten.php:142
+#: class.smartsend.postdanmark.php:165 class.smartsend.posten.php:164
 msgid "Receivers email address. Leave blank if receiver should be the user."
 msgstr ""
 
-#: class.smartsend.postdanmark.php:148 class.smartsend.posten.php:148
+#: class.smartsend.postdanmark.php:171 class.smartsend.posten.php:170
 msgid "Pre notification sender"
 msgstr ""
 
-#: class.smartsend.postdanmark.php:149 class.smartsend.posten.php:149
+#: class.smartsend.postdanmark.php:172 class.smartsend.posten.php:171
 msgid "Senders email address"
 msgstr ""
 
-#: class.smartsend.postdanmark.php:155 class.smartsend.posten.php:155
+#: class.smartsend.postdanmark.php:178 class.smartsend.posten.php:177
 msgid "Pre notification message"
 msgstr ""
 
-#: class.smartsend.postdanmark.php:156 class.smartsend.posten.php:156
+#: class.smartsend.postdanmark.php:179 class.smartsend.posten.php:178
 msgid "Email message"
 msgstr ""
 
@@ -554,58 +566,62 @@ msgid "Carrier-(Method)"
 msgstr ""
 
 #: settings.php:179
-msgid "Shipping method used for"
+msgid "Shipping method used for WooCommerce method"
 msgstr ""
 
-#. Plugin Name of the plugin/theme
-#: settings.php:200 settings.php:252
-msgid "Smart Send Logistics"
-msgstr ""
-
-#: settings.php:217 settings.php:218 settings.php:243
+#: settings.php:201 woocommerce-smartsend-logistics.php:482
+#: woocommerce-smartsend-logistics.php:483
 msgid "Shipping"
 msgstr ""
 
-#: settings.php:231 woocommerce-smartsend-logistics.php:410
-#: woocommerce-smartsend-logistics.php:502
-#: woocommerce-smartsend-logistics.php:503
-msgid "Generate label"
+#. Plugin Name of the plugin/theme
+#: settings.php:210 woocommerce-smartsend-logistics.php:463
+msgid "Smart Send Logistics"
 msgstr ""
 
-#: settings.php:232 woocommerce-smartsend-logistics.php:428
-#: woocommerce-smartsend-logistics.php:504
-#: woocommerce-smartsend-logistics.php:505
-msgid "Generate return label"
-msgstr ""
-
-#: settings.php:233 woocommerce-smartsend-logistics.php:446
-#: woocommerce-smartsend-logistics.php:506
-#: woocommerce-smartsend-logistics.php:507
-msgid "Generate normal and return label"
-msgstr ""
-
-#: woocommerce-smartsend-logistics.php:131
-#: woocommerce-smartsend-logistics.php:169
-#: woocommerce-smartsend-logistics.php:208
-#: woocommerce-smartsend-logistics.php:252
-#: woocommerce-smartsend-logistics.php:254
-#: woocommerce-smartsend-logistics.php:301
-#: woocommerce-smartsend-logistics.php:303
-#: woocommerce-smartsend-logistics.php:351
-#: woocommerce-smartsend-logistics.php:353
+#: woocommerce-smartsend-logistics.php:132
+#: woocommerce-smartsend-logistics.php:170
+#: woocommerce-smartsend-logistics.php:209
+#: woocommerce-smartsend-logistics.php:253
+#: woocommerce-smartsend-logistics.php:255
+#: woocommerce-smartsend-logistics.php:302
+#: woocommerce-smartsend-logistics.php:304
+#: woocommerce-smartsend-logistics.php:352
+#: woocommerce-smartsend-logistics.php:354
 msgid "Username and licencekey must be entered in settings"
 msgstr ""
 
-#: woocommerce-smartsend-logistics.php:893
-#: woocommerce-smartsend-logistics.php:896
+#: woocommerce-smartsend-logistics.php:406
+#: woocommerce-smartsend-logistics.php:496
+#: woocommerce-smartsend-logistics.php:551
+#: woocommerce-smartsend-logistics.php:552
+msgid "Generate label"
+msgstr ""
+
+#: woocommerce-smartsend-logistics.php:407
+#: woocommerce-smartsend-logistics.php:497
+#: woocommerce-smartsend-logistics.php:553
+#: woocommerce-smartsend-logistics.php:554
+msgid "Generate return label"
+msgstr ""
+
+#: woocommerce-smartsend-logistics.php:408
+#: woocommerce-smartsend-logistics.php:498
+#: woocommerce-smartsend-logistics.php:555
+#: woocommerce-smartsend-logistics.php:556
+msgid "Generate normal and return label"
+msgstr ""
+
+#: woocommerce-smartsend-logistics.php:886
+#: woocommerce-smartsend-logistics.php:889
 msgid "Select a pickup location"
 msgstr ""
 
-#: woocommerce-smartsend-logistics.php:908
+#: woocommerce-smartsend-logistics.php:901
 msgid "Delivered to closest pickup point"
 msgstr ""
 
-#: woocommerce-smartsend-logistics.php:922
+#: woocommerce-smartsend-logistics.php:915
 msgid "Select pickup location"
 msgstr ""
 

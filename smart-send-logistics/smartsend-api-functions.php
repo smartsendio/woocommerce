@@ -101,7 +101,8 @@
 		curl_close($ch);               //close curl
 
 		if ($curl_error) {
-			throw new Exception('An error occurred while connecting to Smartsend Api: ' . $curl_error);
+			//throw new Exception('An error occurred while connecting to Smartsend Api: ' . $curl_error);
+			return false;
 		}
 		
 		if($result->code == 200) {

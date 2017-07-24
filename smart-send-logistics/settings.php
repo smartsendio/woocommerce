@@ -176,7 +176,7 @@ if ( in_array( 'woocommerce/woocommerce.php', apply_filters( 'active_plugins', g
 				
 				$WC_Shipping_Free_Shipping = new WC_Shipping_Free_Shipping();
 				$updated_settings[] = array(
-					'title'    	=> __( 'Shipping method used for','smart-send-logistics') . ' ' . $WC_Shipping_Free_Shipping->method_title,
+					'title'    	=> __( 'Shipping method used for WooCommerce method','smart-send-logistics') . " '" . $WC_Shipping_Free_Shipping->method_title ."'",
 					'id'       	=> 'smartsend_wc_shipping_free_shipping',
 					'default'  	=> '0',
 					'type'     	=> 'select',
@@ -215,6 +215,10 @@ if ( in_array( 'woocommerce/woocommerce.php', apply_filters( 'active_plugins', g
 	
 	function Smartsend_Logistics_get_all_shipping_methods() {
 	
+		//Load carrier classes
+		smartsend_logistics_shipping_method_init();
+	
+		//Array that will contain all the shipping methods
 		$shipping_methods = array();
 	
 		//Load the Post Danmark class

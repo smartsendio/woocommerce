@@ -4,7 +4,7 @@ Donate link: http://www.SmartSend.dk/
 Tags: shipping, pickup, pakkeboks, pakkeshop, hente selv, døgnboks, post danmark, gls, swipbox, bring, carrier, pacsoft, yourgls, mybring, postage, shipping method, your-gls, my-bring, pacosft-online, pacsoftonline, denmark, sweeden, posten, norway, post 
 Requires at least: 3.0.1
 Tested up to: 4.4
-Stable tag: 7.0.15
+Stable tag: 7.0.16
 License: GNU General Public License v3.0
 License URI: http://www.gnu.org/licenses/gpl-3.0.html
 
@@ -136,3 +136,8 @@ Yes. You can try the module for free for 30 days.
 * Track and Trace codes are now added correctly to the order if multiple labels are create with one action
 * Fixing problem with entering ‘*’ as all countries in the table settings
 * Fixing incorrect weight if gram is used for product weight
+
+= 7.0.16 =
+* Change layout of pickup point dropdown menu. Now works with SSL.
+* Fixing PHP error when updating WooCommerce plugin
+* Add order comment when creating label

@@ -197,7 +197,7 @@ class Smartsend_Logistics_Order_Woocommerce extends Smartsend_Logistics_Order {
  	public function getShippingAddress() {
  	
 		return array(
-			'receiverid'=> $this->_order->user_id,
+			'receiverid'=> ($this->_order->user_id != '' ? $this->_order->user_id : 'guest-'.rand(100000,999999)),
 			'company'	=> $this->_order->shipping_company,
 			'name1' 	=> $this->_order->shipping_first_name .' '. $this->_order->shipping_last_name,
 			'name2'		=> null,
@@ -218,9 +218,9 @@ class Smartsend_Logistics_Order_Woocommerce extends Smartsend_Logistics_Order {
 	* @return array
 	*/
  	public function getBillingAddress() {
- 	
+
 		return array(
-			'receiverid'=> $this->_order->user_id,
+			'receiverid'=> ($this->_order->user_id != '' ? $this->_order->user_id : 'guest-'.rand(100000,999999)),
 			'company'	=> $this->_order->billing_company,
 			'name1' 	=> $this->_order->billing_first_name .' '. $this->_order->billing_last_name,
 			'name2'		=> null,

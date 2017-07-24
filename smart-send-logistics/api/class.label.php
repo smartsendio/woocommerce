@@ -238,6 +238,8 @@ class Smartsend_Logistics_Label {
 				$smartsendorder = new Smartsend_Logistics_Order_Woocommerce();
 				$smartsendorder->setOrderObject($order);
 				
+				$order_history_comment = __('Label generated with Smart Send Logistics');
+				
 				foreach($trace_codes as $trace_code) {
 					//Add a note with a Track&Trace link
 					if($smartsendorder->getShippingCarrier() == 'postdanmark') {
@@ -251,7 +253,8 @@ class Smartsend_Logistics_Label {
 					} else {
 						$link = null;
 					}
-					$order->add_order_note('TraceCode: '.($link ? $link : $trace_code));
+					
+					$order_history_comment .= '<br>' . __('Tracecode').': '.($link ? $link : $trace_code);
 					
 					//Add trace link to WooTheme extension 'Shipment Tracking'
 					update_post_meta( $order->id, '_tracking_provider', $smartsendorder->getShippingCarrier($format=0) );
@@ -261,6 +264,14 @@ class Smartsend_Logistics_Label {
 					update_post_meta( $order->id, '_date_shipped', time() );
 					
 				}
+				
+				//Add pdf link to order comment if there is a pdf link
+				if(isset($json->pdflink)) {
+					$order_history_comment .= '<br><a href="' . $json->pdflink .'" target="_blank">' . __('Link to PDF label') .'</a>';
+				}
+				
+				//Add order comment
+				$order->add_order_note($order_history_comment);
 			}
 		}
 	}	
