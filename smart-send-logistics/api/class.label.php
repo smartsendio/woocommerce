@@ -13,6 +13,7 @@ class Smartsend_Logistics_Label{
 
 	protected $request=array();
 	protected $response;
+	private $_test = false;
 	
 	public function _construct() {
         
@@ -105,6 +106,7 @@ class Smartsend_Logistics_Label{
         	'cmssystem:WooCommerce',
         	'cmsversion:'.$this->wpbo_get_woo_version_number(),
         	'appversion:'.$plugin_info["Version"],
+        	'test:'.($this->_test ? 'true' : 'false'),
         	'Content-Type:application/json; charset=UTF-8'
         	));    //curl request header
         curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
@@ -212,7 +214,18 @@ class Smartsend_Logistics_Label{
 				$tracking_code_combined = '';
 				foreach($trace_codes as $trace_code) {
 					//Add a note with a Track&Trace link
-					$order->add_order_note('TraceCode: <a href="https://smartsend-prod.apigee.net/trace/'.$smartsendorder->getShippingCarrier().'/'.$trace_code.'" target="_blank">'.$trace_code.'</a>');
+					if($smartsendorder->getShippingCarrier() == 'postdanmark') {
+						$link = '<a href="http://www.postdanmark.dk/tracktrace/TrackTrace.do?i_stregkode='.$trace_code.'" target="_blank">'.$trace_code.'</a>';
+					} elseif($smartsendorder->getShippingCarrier() == 'posten') {
+						$link = '<a href="http://www.postnord.se/en/tools/track/Pages/track-and-trace.aspx?search='.$trace_code.'" target="_blank">'.$trace_code.'</a>';
+					} elseif($smartsendorder->getShippingCarrier() == 'gls') {
+						$link = '<a href="http://www.gls-group.eu/276-I-PORTAL-WEB/content/GLS/DK01/DA/5004.htm?txtAction=71000&txtRefNo='.$trace_code.'" target="_blank">'.$trace_code.'</a>';
+					} elseif($smartsendorder->getShippingCarrier() == 'bring') {
+						$link = '<a href="http://sporing.bring.no/sporing.html?q='.$trace_code.'" target="_blank">'.$trace_code.'</a>';
+					} else {
+						$link = null;
+					}
+					$order->add_order_note('TraceCode: '.($link ? $link : $trace_code));
 					$tracking_code_combined .= ($trace_code != '' ? ',' : '').$trace_code;
 				}
 				
