@@ -530,10 +530,9 @@ class Smartsend_Logistics_Order_Woocommerce extends Smartsend_Logistics_Order {
 	* @return float
 	*/
 	public function getShipmentWeight($shipment) {
-	
 		$weight = 0;
 		foreach($shipment as $eachShipmentItem) {
-			$itemWeight = (float) $eachShipmentItem['unitweight'];
+			$itemWeight = (float) $eachShipmentItem['unitweight']; //Always returned in kg
 			$itemQty    = (float) $eachShipmentItem['quantity'];
 			$rowWeight  = $itemWeight*$itemQty;
 
@@ -542,13 +541,7 @@ class Smartsend_Logistics_Order_Woocommerce extends Smartsend_Logistics_Order {
 		
 		/* All */
 		if($weight > 0) {
-		
-			if( get_option('woocommerce_weight_unit') == 'g') {
-				return round($weight/1000,3);
-			} else {
-				return $weight;
-			}
-			
+			return $weight;
 		} else {
 			return null;
 		}
@@ -561,13 +554,24 @@ class Smartsend_Logistics_Order_Woocommerce extends Smartsend_Logistics_Order {
 	*/
 	protected function getUnshippedItems() {
 
+		$weight_unit = get_option('woocommerce_weight_unit');
+
 		$ordered_items = $this->_order->get_items();
 		foreach($ordered_items as $item) {
 			$_product = $this->_order->get_product_from_item( $item );
 			if ( ! $_product->is_virtual() ) {
 				$weight = $_product->get_weight();
-				if( get_option('woocommerce_weight_unit') == 'g') {
-					$weight = round($weight/1000,3);
+
+				switch ($weight_unit) {
+					case 'g':
+						$weight = round($weight/1000,3);
+						break;
+					case 'lbs':
+						$weight = round($weight*0.45359237,3);
+						break;
+					case 'oz':
+						$weight = round($weight*0.0283495231,3);
+						break;
 				}
 			} else {
 				$weight = null;

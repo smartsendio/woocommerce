@@ -4,7 +4,7 @@ Donate link: http://www.SmartSend.dk/
 Tags: shipping, pickup, pakkeboks, pakkeshop, hente selv, døgnboks, post danmark, gls, swipbox, bring, carrier, pacsoft, yourgls, mybring, postage, shipping method, your-gls, my-bring, pacosft-online, pacsoftonline, denmark, sweeden, posten, norway, post 
 Requires at least: 3.0.1
 Tested up to: 4.6
-Stable tag: 7.1.4
+Stable tag: 7.1.5
 License: GNU General Public License v3.0
 License URI: http://www.gnu.org/licenses/gpl-3.0.html
 
@@ -113,6 +113,9 @@ To install a plugin manually, follow the process:
 5. Services for each carrier is easily setup in WooCommerce backend.
 
 == Changelog ==
+
+= 7.1.5 =
+* Fixing problem with shipment weight when unit was gram.
 
 = 7.1.4 =
 * Fix problem with shipping method Free Shipping for WooCommerce 2.6
