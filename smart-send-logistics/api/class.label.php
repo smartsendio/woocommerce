@@ -30,7 +30,7 @@
  * @copyright	Copyright (c) Smart Send ApS (http://www.smartsend.dk)
  * @license		http://smartsend.dk/license
  * @since		Class available since Release 7.1.0
- * @version		Release: 7.1.1
+ * @version		Release: 7.1.2
 */
 
 /*
@@ -474,7 +474,7 @@ class Smartsend_Logistics_Label {
  			if(isset($order_response['pdflink'])) {
  				$order_comment .= '<br><a href="' . $order_response['pdflink'] . '" target="_blank">' . $this->getMessageString(2103) . '</a>';
  			}
-			if(is_array($order_response['parcels'])) {
+			if(isset($order_response['parcels']) && is_array($order_response['parcels'])) {
 				// This array will be used to send shipment emails
 				$parcels_succes_array = array();
 				

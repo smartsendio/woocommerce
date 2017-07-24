@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Plural-Forms: nplurals=INTEGER; plural=EXPRESSION;\n"
 "Project-Id-Version: Smart Send Logistics\n"
-"POT-Creation-Date: 2016-07-16 13:33+0200\n"
+"POT-Creation-Date: 2016-07-27 23:17+0200\n"
 "PO-Revision-Date: 2016-06-09 18:30+0200\n"
 "Last-Translator: Anders Bilfeldt <anders@smartsend.dk>\n"
 "Language-Team: Anders Bilfeldt <anders@smartsend.dk>\n"
@@ -511,7 +511,7 @@ msgstr ""
 msgid "Shipping method"
 msgstr ""
 
-#: class.smartsend.primary.php:195 class.smartsend.primary.php:328
+#: class.smartsend.primary.php:195 class.smartsend.primary.php:329
 msgid "Min. price"
 msgstr ""
 
@@ -527,7 +527,7 @@ msgstr ""
 msgid "Maximum total order price for this shipping rate"
 msgstr ""
 
-#: class.smartsend.primary.php:197
+#: class.smartsend.primary.php:197 class.smartsend.primary.php:328
 msgid "Min. weight"
 msgstr ""
 
@@ -535,7 +535,7 @@ msgstr ""
 msgid "Minimum total order weight for this shipping rate"
 msgstr ""
 
-#: class.smartsend.primary.php:198
+#: class.smartsend.primary.php:198 class.smartsend.primary.php:328
 msgid "Max. weight"
 msgstr ""
 
@@ -590,10 +590,18 @@ msgid "Unknown carrier"
 msgstr ""
 
 #: class.smartsend.primary.php:328 class.smartsend.primary.php:329
+msgid "and"
+msgstr ""
+
+#: class.smartsend.primary.php:328
+msgid "Input the order weight in"
+msgstr ""
+
+#: class.smartsend.primary.php:329
 msgid "Input the order price"
 msgstr ""
 
-#: class.smartsend.primary.php:328 class.smartsend.primary.php:329
+#: class.smartsend.primary.php:329
 msgid "including tax"
 msgstr ""
 

@@ -225,7 +225,7 @@ if ( in_array( 'woocommerce/woocommerce.php', apply_filters( 'active_plugins', g
 				'default'  	=> '0',
 				'type'     	=> 'select',
 				'class'    	=> 'wc-enhanced-select',
-				'options'   => array_merge(array('0'=>__( "Don't change order status")),wc_get_order_statuses())
+				'options'   => array_merge(array('0'=>__("Don't change order status",'smart-send-logistics')),wc_get_order_statuses())
 			),
 			'shipping_method_display_format' => array(
 				'title'    	=> __( 'Shipping method display format','smart-send-logistics'),

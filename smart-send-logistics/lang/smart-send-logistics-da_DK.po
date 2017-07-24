@@ -1,8 +1,8 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: Smart Send Logistics\n"
-"POT-Creation-Date: 2016-07-16 13:33+0200\n"
-"PO-Revision-Date: 2016-07-16 13:34+0200\n"
+"POT-Creation-Date: 2016-07-27 23:17+0200\n"
+"PO-Revision-Date: 2016-07-27 23:18+0200\n"
 "Last-Translator: Anders Bilfeldt <anders@smartsend.dk>\n"
 "Language-Team: Anders Bilfeldt <anders@smartsend.dk>\n"
 "Language: da_DK\n"
@@ -526,7 +526,7 @@ msgstr "Produkterne må tilhøre denne forsendelsesklasse"
 msgid "Shipping method"
 msgstr "Fragtmetode"
 
-#: class.smartsend.primary.php:195 class.smartsend.primary.php:328
+#: class.smartsend.primary.php:195 class.smartsend.primary.php:329
 msgid "Min. price"
 msgstr "Min. pris"
 
@@ -542,7 +542,7 @@ msgstr "Maks pris"
 msgid "Maximum total order price for this shipping rate"
 msgstr "Maksimal order total pris for denne forsendelsesmetode"
 
-#: class.smartsend.primary.php:197
+#: class.smartsend.primary.php:197 class.smartsend.primary.php:328
 msgid "Min. weight"
 msgstr "Min. vægt"
 
@@ -550,7 +550,7 @@ msgstr "Min. vægt"
 msgid "Minimum total order weight for this shipping rate"
 msgstr "Minimum order total vægt for denne forsendelsesmetode"
 
-#: class.smartsend.primary.php:198
+#: class.smartsend.primary.php:198 class.smartsend.primary.php:328
 msgid "Max. weight"
 msgstr "Maks vægt"
 
@@ -607,10 +607,18 @@ msgid "Unknown carrier"
 msgstr "Ukendt fragtfirma"
 
 #: class.smartsend.primary.php:328 class.smartsend.primary.php:329
+msgid "and"
+msgstr "og"
+
+#: class.smartsend.primary.php:328
+msgid "Input the order weight in"
+msgstr "Indtast ordrens samlede vægt som"
+
+#: class.smartsend.primary.php:329
 msgid "Input the order price"
 msgstr "Indtast ordrens samlede pris"
 
-#: class.smartsend.primary.php:328 class.smartsend.primary.php:329
+#: class.smartsend.primary.php:329
 msgid "including tax"
 msgstr "inklusiv moms"
 

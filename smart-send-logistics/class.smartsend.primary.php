@@ -325,9 +325,9 @@ class Smartsend_Logistics_PrimaryClass {
                     }
                     </style>
 
-                <p class="description"><i><?php _e('Min. price', 'smart-send-logistics'); ?></i>: <?php _e('Input the order price', 'smart-send-logistics'); ?> <?php _e('including tax', 'smart-send-logistics'); ?>.</p>
-                <p class="description"><i><?php _e('Max. price', 'smart-send-logistics'); ?></i>: <?php _e('Input the order price', 'smart-send-logistics'); ?> <?php _e('including tax', 'smart-send-logistics'); ?>.</p>
-                <p class="description"><i><?php _e('Shipping fee', 'smart-send-logistics'); ?></i>: <?php _e('Input the shipping fee', 'smart-send-logistics'); ?> <?php _e('excluding tax', 'smart-send-logistics'); ?>.</p>
+                <p class="description"><?php _e('Min. weight', 'smart-send-logistics'); ?> <?php _e('and', 'smart-send-logistics'); ?> <?php _e('Max. weight', 'smart-send-logistics'); ?>: <?php _e('Input the order weight in', 'smart-send-logistics'); echo ' ('.get_option('woocommerce_weight_unit').')'; ?>.</p>
+                <p class="description"><?php _e('Min. price', 'smart-send-logistics'); ?> <?php _e('and', 'smart-send-logistics'); ?> <?php _e('Max. price', 'smart-send-logistics'); ?>: <?php _e('Input the order price', 'smart-send-logistics'); ?> <?php _e('including tax', 'smart-send-logistics'); ?>.</p>
+                <p class="description"><?php _e('Shipping fee', 'smart-send-logistics'); ?>: <?php _e('Input the shipping fee', 'smart-send-logistics'); ?> <?php _e('excluding tax', 'smart-send-logistics'); ?>.</p>
 
                 <script type="text/javascript">
                     jQuery(function() {

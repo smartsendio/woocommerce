@@ -30,11 +30,10 @@
  * @copyright	Copyright (c) Smart Send ApS (http://www.smartsend.dk)
  * @license		http://smartsend.dk/license
  * @since		Class available since Release 7.1.0
- * @version		Release: 7.1.0
+ * @version		Release: 7.1.2.0
  *
  *	// Order
  *	public function getShippingId()
- *	public function getPickupCarrier()
  *	public function getOrderId()
  *	public function getOrderReference()
  *	public function getOrderPriceTotal()
@@ -118,30 +117,16 @@ class Smartsend_Logistics_Order_Woocommerce extends Smartsend_Logistics_Order {
 		if(substr($shipping_method_id, 0, strlen('free_shipping')) === 'free_shipping') {
 			$shipMethod_id = get_option( 'smartsend_logistics_wc_shipping_free_shipping','free_shipping');
 		}
-	
+		
+		//If id is of the instance type like: smartsend_postdanmark_pickup:7
+		//Then move the id to after smartsend like: 7_smartsend_postdanmark_pickup
+		$shipping_method_splitted = explode(':',$shipMethod_id);
+		if(isset($shipping_method_splitted[1]) && $shipping_method_splitted[1] != '') {
+			$shipMethod_id = $shipping_method_splitted[1] . '_' . $shipping_method_splitted[0];
+		}
+		
 		return $shipMethod_id; //return unique id of shipping method
 
-	}
-
-	/**
-	* 
-	* Get carrier name based on the pickup information.
-	* Used if the shipping method is 'closest pickup point'
-	* @return string
-	* ## Depricted function ##
-	*/
-	public function getPickupCarrier() {
-	/*
-		$store_pickup = get_post_custom($order->id);
-		$store_pickup = @unserialize($store_pickup['store_pickup'][0]);
-		if(!is_array($store_pickup)) $store_pickup = unserialize($store_pickup);
-
-		if(!empty($store_pickup) && isset($store_pickup['carrier'])){				
-			return $store_pickup['carrier'];
-		} else {
-			return null;
-		}
-	*/
 	}
  
  	/**
