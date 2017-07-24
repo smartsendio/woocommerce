@@ -2,10 +2,10 @@
 /*
 Plugin Name: Smart Send Logistics
 Plugin URI: http://smartsend.dk/integrationer/woocommerce
-Description: Table rate shipping methods with Post Danmark, GLS, SwipBox and Bring pickup points. Listed in a dropdown sorted by distance from shipping adress.
+Description: Table rate shipping methods with Post Danmark, GLS and Bring pickup points. Listed in a dropdown sorted by distance from shipping adress.
 Author: Smart Send ApS
 Author URI: http://www.smartsend.dk
-Version: 7.0.7
+Version: 7.0.8
 
 Copyright: (c) 2014 Smart Send ApS (email : kontakt@smartsend.dk)
 License: GNU General Public License v3.0
@@ -46,6 +46,15 @@ if ( in_array( 'woocommerce/woocommerce.php', apply_filters( 'active_plugins', g
 }
 
 /*-----------------------------------------------------------------------------------------------------------------------
+* 					Language folder for translations
+*----------------------------------------------------------------------------------------------------------------------*/	
+
+	add_action('plugins_loaded', 'smartsend_logistics_load_textdomain');
+	function smartsend_logistics_load_textdomain() {
+		load_plugin_textdomain( 'smart-send-logistics', false, dirname( plugin_basename(__FILE__) ) . '/lang/' );
+	}
+
+/*-----------------------------------------------------------------------------------------------------------------------
 * 					Functions that deals with orders
 *----------------------------------------------------------------------------------------------------------------------*/	
 
@@ -65,7 +74,7 @@ if ( in_array( 'woocommerce/woocommerce.php', apply_filters( 'active_plugins', g
 		include('api/class.order.php');
 	
 		if((get_option( 'smartsend_logistics_username', '' ) == '' || get_option( 'smartsend_logistics_licencekey', '' ) == '') && !is_plugin_active( 'vc_pdk_allinone/vc_pdk_allinone.php')) {
-			smartsend_logistics_admin_notice(__("Username and licencekey must be entered in settings"), 'error');
+			smartsend_logistics_admin_notice(__("Username and licencekey must be entered in settings",'smart-send-logistics'), 'error');
 		} else {
 			$label = new Smartsend_Logistics_Label();
 			try{
@@ -102,7 +111,7 @@ if ( in_array( 'woocommerce/woocommerce.php', apply_filters( 'active_plugins', g
 		include('api/class.order.php');
 	
 		if((get_option( 'smartsend_logistics_username', '' ) == '' || get_option( 'smartsend_logistics_licencekey', '' ) == '') && !is_plugin_active( 'vc_pdk_allinone/vc_pdk_allinone.php')) {
-			smartsend_logistics_admin_notice(__("Username and licencekey must be entered in settings"), 'error');
+			smartsend_logistics_admin_notice(__("Username and licencekey must be entered in settings",'smart-send-logistics'), 'error');
 		} else {
 			$label = new Smartsend_Logistics_Label();
 			try{
@@ -144,9 +153,9 @@ if ( in_array( 'woocommerce/woocommerce.php', apply_filters( 'active_plugins', g
 	
 		if((get_option( 'smartsend_logistics_username', '' ) == '' || get_option( 'smartsend_logistics_licencekey', '' ) == '') && !is_plugin_active( 'vc_pdk_allinone/vc_pdk_allinone.php')) {
 			if(is_array($_SESSION['smartsend_errors'])) {
-					$_SESSION['smartsend_errors'][] = __("Username and licencekey must be entered in settings");
+					$_SESSION['smartsend_errors'][] = __("Username and licencekey must be entered in settings",'smart-send-logistics');
 				} else {
-					$_SESSION['smartsend_errors'] = array(__("Username and licencekey must be entered in settings"));
+					$_SESSION['smartsend_errors'] = array(__("Username and licencekey must be entered in settings",'smart-send-logistics'));
 				}
 		} else {
 			$label = new Smartsend_Logistics_Label();
@@ -192,9 +201,9 @@ if ( in_array( 'woocommerce/woocommerce.php', apply_filters( 'active_plugins', g
 	
 		if((get_option( 'smartsend_logistics_username', '' ) == '' || get_option( 'smartsend_logistics_licencekey', '' ) == '') && !is_plugin_active( 'vc_pdk_allinone/vc_pdk_allinone.php')) {
 			if(is_array($_SESSION['smartsend_errors'])) {
-					$_SESSION['smartsend_errors'][] = __("Username and licencekey must be entered in settings");
+					$_SESSION['smartsend_errors'][] = __("Username and licencekey must be entered in settings",'smart-send-logistics');
 				} else {
-					$_SESSION['smartsend_errors'] = array(__("Username and licencekey must be entered in settings"));
+					$_SESSION['smartsend_errors'] = array(__("Username and licencekey must be entered in settings",'smart-send-logistics'));
 				}
 		} else {
 			$label = new Smartsend_Logistics_Label();
@@ -250,7 +259,7 @@ if ( in_array( 'woocommerce/woocommerce.php', apply_filters( 'active_plugins', g
 
 	// define the item in the meta box by adding an item to the $actions array
 	function smartsend_logistics_add_order_meta_box_action_create_label( $actions ) {
-		$actions['smartsend_logistics_single_order_action_label'] = __( 'Generate label', 'text_domain' );
+		$actions['smartsend_logistics_single_order_action_label'] = __( 'Generate label','smart-send-logistics');
 		return $actions;
 	}
 
@@ -268,7 +277,7 @@ if ( in_array( 'woocommerce/woocommerce.php', apply_filters( 'active_plugins', g
 
 	// define the item in the meta box by adding an item to the $actions array
 	function smartsend_logistics_add_order_meta_box_action_create_return_label( $actions ) {
-		$actions['smartsend_logistics_single_order_action_return_label'] = __( 'Generate return label', 'text_domain' );
+		$actions['smartsend_logistics_single_order_action_return_label'] = __( 'Generate return label','smart-send-logistics');
 		return $actions;
 	}
 
@@ -371,7 +380,7 @@ if ( in_array( 'woocommerce/woocommerce.php', apply_filters( 'active_plugins', g
 				
 					// if we set up user permissions/capabilities, the code might look like:
 					//if ( !current_user_can($post_type_object->cap->export_post, $post_id) )
-					//	wp_die( __('You are not allowed to export this post.') );
+					//	wp_die( __('You are not allowed to export this post.','smart-send-logistics') );
 				
 				/*	$smartsend = 0;
 					$json = new smartsend_label;
@@ -379,7 +388,7 @@ if ( in_array( 'woocommerce/woocommerce.php', apply_filters( 'active_plugins', g
 					
 						//if ( !$this->process_order_list_actions($post_id) )
 						if ( !process_order_list_actions($post_id) )
-							wp_die( __('Error exporting post.') );
+							wp_die( __('Error exporting post.','smart-send-logistics') );
 	
 						$smartsend++;
 					} */
@@ -477,22 +486,6 @@ function smartsend_logistics_admin_notice($message, $type='info') {
 /*-----------------------------------------------------------------------------------------------------------------------
 * 					Hooks and function for carriers
 *----------------------------------------------------------------------------------------------------------------------*/		
-
-            
-/************ Start SwipBox method ***************************************/
-	function Smartsend_Logistics_SwipBox() {
-		include('class.smartsend.swipbox.php');
-	}
-	add_action( 'woocommerce_shipping_init', 'Smartsend_Logistics_SwipBox' );
- 
-	function Smartsend_Logistics_add_SwipBox( $methods ) {
-		$methods[] = 'Smartsend_Logistics_SwipBox';
-		return $methods;
-	}
- 
-	add_filter( 'woocommerce_shipping_methods', 'Smartsend_Logistics_add_SwipBox' );
-/************ end SwipBox method ******************************************/
-
 
 /************ Start GLS method ******************************************/
 	function Smartsend_Logistics_GLS() {
@@ -623,13 +616,6 @@ function smartsend_logistics_admin_notice($message, $type='info') {
 			 
 			switch( $shipping_method ){
 			
-				case 'smartsend_swipbox': 
-					if ($pos !== false) {
-						$display_selectbox = true;
-					}
-					$shippingTitle = 'SwipBox';
-					$pickup_loc = Smartsend_Logistics_API_Call('swipbox',$address_1,$address_2,$city,$zip,$country);
-					break;
 				case 'smartsend_posten': 
 					if ($pos !== false) {
 						$display_selectbox = true;
@@ -667,8 +653,6 @@ function smartsend_logistics_admin_notice($message, $type='info') {
 					$carriers = array();
 					if(get_option( 'woocommerce_smartsend_pickuppoints_active_pickup_PostDanmark', 1 ) == 1)
 						$carriers[] = 'postdanmark';
-					if(get_option( 'woocommerce_smartsend_pickuppoints_active_pickup_SwipBox', 1 ) == 1)
-						$carriers[] = 'swipbox';
 					if(get_option( 'woocommerce_smartsend_pickuppoints_active_pickup_Bring', 1 ) == 1)
 						$carriers[] = 'bring';
 					if(get_option( 'woocommerce_smartsend_pickuppoints_active_pickup_GLS', 1 ) == 1)
@@ -713,10 +697,10 @@ function smartsend_logistics_admin_notice($message, $type='info') {
 		</script>
 		<?php if(!empty($pickup_loc) && is_array($pickup_loc)):?>
                 
-		<div id='selectpickup' class="selectstore"> <?php echo __(get_option('woocommerce_pickup_display_dropdown_legend', 'Choose Store Location'),'woocommerce'); echo ' ('.$shippingTitle.')'; ?>
+		<div id='selectpickup' class="selectstore"> <?php echo __('Select a pickup location','smart-send-logistics'); echo ' ('.$shippingTitle.')'; ?>
 		<?php if(!empty($pickup_loc) && is_array($pickup_loc)):?>				
 		<select name="store_pickup" class="pk-drop">
-			<option value=""><?php echo __(get_option('woocommerce_pickup_display_dropdown_text', 'Select pickup location'),'woocommerce'); ?></option>
+			<option value=""><?php echo __('Select a pickup location','smart-send-logistics'); ?></option>
 			<?php foreach($pickup_loc as $picIndex => $picValue) { ?>
 				<option value='<?php echo $picIndex?>'><?php echo $picValue?></option>
 			<?php }?>
@@ -727,7 +711,7 @@ function smartsend_logistics_admin_notice($message, $type='info') {
 		<?php endif;?>
 		</div>
 		<?php else:?>
-			<?php echo '<div id="selectpickup" class="selectstore">'; echo __(get_option('woocommerce_pickup_display_dropdown_nopoints', 'Delivered to closest pickup point'),'woocommerce'); echo '</div>'; ?>
+			<?php echo '<div id="selectpickup" class="selectstore">'; echo __(get_option('woocommerce_pickup_display_dropdown_nopoints', 'Delivered to closest pickup point'),'smart-send-logistics'); echo '</div>'; ?>
 		<?php endif;?>
 	<?php
                 }
@@ -740,22 +724,12 @@ function smartsend_logistics_admin_notice($message, $type='info') {
 	add_action('woocommerce_checkout_process', 'smartsend_pickup_select_process');
 	function smartsend_pickup_select_process() {
 		if (empty($_POST['store_pickup']) && isset($_POST['store_pickup'])) {
-         ?>
-		<div class="pic_script">
-			<script>
-				jQuery(document).ready(function(){
-					jQuery('#place_order').click(function(){
-						jQuery('.pic_error, .pic_script').remove();
-					});
-				});
-			</script>
-		</div>
-	<?php
-			echo '<p style="color:red" class="pic_error">';
-			echo __(get_option('woocommerce_pickup_display_dropdown_error', 'Please select a pickup loaction'),'woocommerce');
-			die;
+                 $respone['result'] = 'failure';
+                 $response['messages'] = '<ul class="woocommerce-error"><li>'. __('Select a pickup location','smart-send-logistics') .'</li></ul>';
+                 $response['refresh'] = "false";
+                 $response['reload'] = "false";
+                echo json_encode($response);
 		}
-			   
 	}		
 			
 	 include('smartsend-api-functions.php');

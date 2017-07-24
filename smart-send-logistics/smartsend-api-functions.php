@@ -9,9 +9,6 @@
 /******************************** API FUNCTIONS *********************************************/
 	function Smartsend_Logistics_API_Call($carrier,$address_1,$address_2,$city,$zip,$country){
 		switch ($carrier) {
-			case 'swipbox':
-				$WS_carrier = new Smartsend_Logistics_SwipBox();
-				break;
 			case 'posten':
 				$WS_carrier = new Smartsend_Logistics_Posten();
 				break;
@@ -31,7 +28,7 @@
 		
 		$pickup_points = json_decode(Smartsend_Logistics_API_Find_Nearest($carrier,$address_1,$address_2,$city,$zip,$country),true);
 					
-		$method_style = $WS_carrier->get_option('pickup_style');
+		$method_style = get_option( 'woocommerce_pickup_display_format', 4 );
 		
 		$pickup_loc = array();
 		if( isset($pickup_points) && is_array($pickup_points) ){

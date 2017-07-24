@@ -14,7 +14,6 @@ require_once( WP_PLUGIN_DIR . '/smart-send-logistics/class.smartsend.gls.php' );
 require_once( WP_PLUGIN_DIR . '/smart-send-logistics/class.smartsend.pickuppoints.php' );
 require_once( WP_PLUGIN_DIR . '/smart-send-logistics/class.smartsend.postdanmark.php' );
 require_once( WP_PLUGIN_DIR . '/smart-send-logistics/class.smartsend.posten.php' );
-require_once( WP_PLUGIN_DIR . '/smart-send-logistics/class.smartsend.swipbox.php' );
 
 /* This class is called by using the code:
 
@@ -1084,28 +1083,33 @@ class Smartsend_Logistics_Order {
 	
 		/* WooCommerce start */
 		if($this->_cms == 'woocommerce') {
-			$store_pickup = get_post_custom($order->id);
-			$store_pickup = @unserialize($store_pickup['store_pickup'][0]);
-			if(!is_array($store_pickup)) $store_pickup = unserialize($store_pickup);
-	
-			if(!empty($store_pickup)){
+			$store_pickup = get_post_custom($this->_order->id);
 			
-				return array(
-					'id' 		=> (isset($store_pickup['id']) ? $store_pickup['id'] : 0)."-".time()."-".rand(9999,10000),
-					'agentno'	=> (isset($store_pickup['id']) ? $store_pickup['id'] : null),
-					'agenttype'	=> ($this->getShippingCarrier() == 'postdanmark' ? 'PDK' : null),
-					'company' 	=> (isset($store_pickup['company']) ? $store_pickup['company'] : null),
-					'name1' 	=> null,
-					'name2' 	=> null,
-					'address1'	=> (isset($store_pickup['street']) ? $store_pickup['street'] : null),
-					'address2' 	=> null,
-					'city'		=> (isset($store_pickup['city']) ? $store_pickup['city'] : null),
-					'zip'		=> (isset($store_pickup['zip']) ? $store_pickup['zip'] : null),
-					'country'	=> (isset($store_pickup['country']) ? $store_pickup['country'] : null),
-					'sms' 		=> null,
-					'mail' 		=> null,
-					);
+			if(isset($store_pickup['store_pickup'][0])) {
+				$store_pickup = @unserialize($store_pickup['store_pickup'][0]);
+				if(!is_array($store_pickup)) $store_pickup = unserialize($store_pickup);
+	
+				if(!empty($store_pickup)){
+			
+					return array(
+						'id' 		=> (isset($store_pickup['id']) ? $store_pickup['id'] : 0)."-".time()."-".rand(9999,10000),
+						'agentno'	=> (isset($store_pickup['id']) ? $store_pickup['id'] : null),
+						'agenttype'	=> ($this->getShippingCarrier() == 'postdanmark' ? 'PDK' : null),
+						'company' 	=> (isset($store_pickup['company']) ? $store_pickup['company'] : null),
+						'name1' 	=> null,
+						'name2' 	=> null,
+						'address1'	=> (isset($store_pickup['street']) ? $store_pickup['street'] : null),
+						'address2' 	=> null,
+						'city'		=> (isset($store_pickup['city']) ? $store_pickup['city'] : null),
+						'zip'		=> (isset($store_pickup['zip']) ? $store_pickup['zip'] : null),
+						'country'	=> (isset($store_pickup['country']) ? $store_pickup['country'] : null),
+						'sms' 		=> null,
+						'mail' 		=> null,
+						);
 
+				} else {
+					return null;
+				}
 			} else {
 				return null;
 			}
@@ -1550,7 +1554,7 @@ class Smartsend_Logistics_Order {
 						);
 				} else {
 					//Order has no shipments and cannot be shipped
-					throw new Exception(__("No items that could be shipped"));
+					throw new Exception("No items that could be shipped");
 				}
 			} /* WooCommerce end */
 
@@ -1595,7 +1599,7 @@ class Smartsend_Logistics_Order {
  						
 						//var_dump($qty); exit();
 					} catch (Mage_Core_Exception $e) {
-						throw new Exception(Mage::helper('logistics')->__("Error while creating parcel: ".$e));
+						throw new Exception("Error while creating parcel: ".$e);
 					}
 				}
 			}

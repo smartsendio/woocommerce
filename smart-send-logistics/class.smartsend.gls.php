@@ -13,8 +13,8 @@ if ( ! class_exists( 'Smartsend_Logistics_GLS' ) ) {
 		
 		public function __construct() {
 			$this->id                 	= 'smartsend_gls'; 
-			$this->method_title       	= __( 'GLS' );  
-			$this->method_description 	= __( 'GLS PakkeStation' ); 				
+			$this->method_title       	= __( 'GLS','smart-send-logistics');  
+			$this->method_description 	= __( 'GLS','smart-send-logistics'); 				
 			$this->table_rate_option    = 'GLS_table_rate';
 			$this->PrimaryClass 		= new Smartsend_Logistics_PrimaryClass();
 			$this->init();
@@ -52,75 +52,64 @@ if ( ! class_exists( 'Smartsend_Logistics_GLS' ) ) {
 		function init_form_fields() {
 			$this->form_fields = array(
 				'enabled' => array(
-					'title' 		=> __( 'Enable/Disable', 'woocommerce' ),
+					'title' 		=> __( 'Enable/Disable','smart-send-logistics'),
 					'type' 			=> 'checkbox',
-					'label' 		=> __( 'Enable this shipping method', 'woocommerce' ),
+					'label' 		=> __( 'Enable this shipping method','smart-send-logistics'),
 					'default' 		=> 'no'
 				),
 				'title' => array(
-					'title' 		=> __( 'Carrier Title', 'woocommerce' ),
+					'title' 		=> __( 'Carrier title','smart-send-logistics'),
 					'type' 			=> 'text',
-					'description' 	=> __( 'This controls the title which the user sees during checkout.', 'woocommerce' ),
-					'default'		=> __( 'GLS', 'woocommerce' ),
+					'description' 	=> __( 'This controls the title which the user sees during checkout','smart-send-logistics'),
+					'default'		=> __( 'GLS','smart-send-logistics'),
 					'desc_tip'		=> true,
 				),
 				'domestic_shipping_table' => array(
 					'type'      	=> 'shipping_table'
 				),
 				'cheap_expensive' => array(
-					'title'    		=> __( 'Cheapest or most expensive?', 'woocommerce' ),
-					'description'   => __( 'This controls Cheapest or most expensive on the frontend.', 'woocommerce' ),
+					'title'    		=> __( 'Cheapest or most expensive?','smart-send-logistics'),
+					'description'   => __( 'This controls cheapest or most expensive on the frontend','smart-send-logistics'),
 					'default'  		=> 'cheapest',
 					'type'    	 	=> 'select',
 					'options'  		=> array(
-						'cheapest'      => __( 'Cheapest', 'woocommerce' ),
-						'expensive' 	=> __( 'Most Expensive', 'woocommerce' ),
+						'cheapest'      => __( 'Cheapest','smart-send-logistics'),
+						'expensive' 	=> __( 'Most expensive','smart-send-logistics'),
 					)
 				),
 				'tax_status' 	=> array(
-					'title'     	=> __( 'Tax Status', 'woocommerce'  ),
+					'title'     	=> __( 'Tax status','smart-send-logistics'),
 					'type'      	=> 'select',
 					'default'   	=> 'taxable',
 					'options'   	=> array(
-						'taxable' 		=> __( 'Taxable', 'woocommerce'  ),
-						'none'    		=> __( 'None', 'woocommerce'  ),
+						'taxable' 		=> __( 'Taxable','smart-send-logistics'),
+						'none'    		=> __( 'None','smart-send-logistics'),
 						),
 					),
-				'pickup_style' => array(
-					'title'     => __( 'Dropdown format', 'woocommerce' ),
-					'type'      => 'select',
-					'default'   => '4',
-					'options'   => array(
-						'1' => __( '#NAME, #STREET', 'woocommerce' ),
-						'2'    => __( '#NAME, #STREET, #ZIP', 'woocommerce' ),
-						'3'    => __( '#NAME, #STREET, #CITY', 'woocommerce' ),
-						'4'    => __( '#NAME, #STREET, #ZIP #CITY', 'woocommerce' ),
-					),
-				),
 				'notemail' 	=> array(
-					'title'    			=> __( 'Email notification', 'woocommerce' ),
-					'description'     	=> __( 'Send an email with info about delivery', 'woocommerce' ),
+					'title'    			=> __( 'Email notification','smart-send-logistics'),
+					'description'     	=> __( 'Send an email with info about delivery','smart-send-logistics'),
 					'type' 				=> 'checkbox',
-					'label' 			=> __( 'Enable', 'woocommerce' ),
+					'label' 			=> __( 'Enable','smart-send-logistics'),
 					'default' 			=> 'yes'
 				),
 				'notesms' 	=> array(
-					'title'    			=> __( 'SMS notification', 'woocommerce' ),
-					'description'     	=> __( 'Send an SMS with info about delivery', 'woocommerce' ),
+					'title'    			=> __( 'SMS notification','smart-send-logistics'),
+					'description'     	=> __( 'Send an SMS with info about delivery','smart-send-logistics'),
 					'type' 				=> 'checkbox',
-					'label' 			=> __( 'Enable', 'woocommerce' ),
+					'label' 			=> __( 'Enable','smart-send-logistics'),
 					'default' 			=> 'yes'
 				),
 				'return' 	=> array(
-					'title'    			=> __( 'Return shipping method', 'woocommerce' ),
-					'description'     	=> __( 'Method used for return labels', 'woocommerce' ),
+					'title'    			=> __( 'Return shipping method','smart-send-logistics'),
+					'description'     	=> __( 'Method used for return labels','smart-send-logistics'),
 					'default'  			=> 'postdanmark',
 					'type'     			=> 'select',
 					'options'  			=> array(
-						'smartsendpostdanmark_private'	=> __( 'Post Danmark', 'woocommerce' ),
-						'smartsendposten_private'      	=> __( 'Posten', 'woocommerce' ),
-						'smartsendgls_private'      	=> __( 'GLS', 'woocommerce' ),
-						'smartsendbring_private'      	=> __( 'Bring', 'woocommerce' ),
+						'smartsendpostdanmark_private'	=> __( 'Post Danmark','smart-send-logistics'),
+						'smartsendposten_private'      	=> __( 'Posten','smart-send-logistics'),
+						'smartsendgls_private'      	=> __( 'GLS','smart-send-logistics'),
+						'smartsendbring_private'      	=> __( 'Bring','smart-send-logistics'),
 					)
 				)
 			);
@@ -184,17 +173,19 @@ if ( ! class_exists( 'Smartsend_Logistics_GLS' ) ) {
 			$this->table_rates = array_filter( (array) get_option( $this->table_rate_option ) );
 			if(empty($this->table_rates)){
 				$methods = $this->get_methods();
-				foreach($methods as $method){
-					$this->table_rates[] = Array (
-						'methods'		=> $method,
-						'minO' 			=> '1',
-						'maxO' 			=> '100000',
-						'minwO' 		=> '0',
-						'maxwO' 		=> '100000',
-						'shippingO' 	=> 7.00,
-						'country' 		=> 'DK',
-						'method_name' 	=> $method
-						);
+				foreach($methods as $method => $method_name){
+					if(in_array($method,array('pickup','private'))) {
+						$this->table_rates[] = Array (
+							'methods'		=> $method,
+							'minO' 			=> '0',
+							'maxO' 			=> '100000',
+							'minwO' 		=> '0',
+							'maxwO' 		=> '100000',
+							'shippingO' 	=> 49.00,
+							'country' 		=> 'DK',
+							'method_name' 	=> $method_name
+							);
+					}
 				}
 			}
 		}				

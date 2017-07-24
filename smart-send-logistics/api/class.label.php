@@ -37,7 +37,7 @@ class Smartsend_Logistics_Label{
  	 */
  	private function getJsonRequest() {
  		if(empty($this->request)) {
- 			throw new Exception(__("Trying to send empty order array"));
+ 			throw new Exception("Trying to send empty order array");
  		} else {
  			return json_encode($this->request);
  		}
@@ -118,11 +118,11 @@ class Smartsend_Logistics_Label{
         curl_close($ch);                          //closing the curl
 
         if ($curl_error) {
-            throw new Exception(__('An error occurred while sending order').': ' . $curl_error);
+            throw new Exception('An error occurred while sending order: ' . $curl_error);
         }
         
         if(!($this->response->code >= '200') || !($this->response->code <= '210')) {
-        	throw new Exception(__('Response').': ('.$this->response->code.') '.$this->response->body);
+        	throw new Exception('Response: ('.$this->response->code.') '.$this->response->body);
         }
  	
  	}
@@ -186,7 +186,7 @@ class Smartsend_Logistics_Label{
 				->setData('order_id', $shipment->getData('order_id'))
 				->save();
 		} else {
-			throw new Exception($this->__('Failed to insert tracecode'));
+			throw new Exception('Failed to insert tracecode');
 		}
 		
  	}
@@ -278,7 +278,7 @@ class Smartsend_Logistics_Label{
 						if(isset($json_order->status) && $json_order->status != '') {
 							$_errors[] = 'Order #'.$json_order->orderno.': '. $json_order->message; 
 						} else {
-							$_errors[] = __('Unknown status').': '. $json_order->message;
+							$_errors[] = 'Unknown status: '. $json_order->message;
 						}
 					}
 				}
@@ -298,20 +298,36 @@ class Smartsend_Logistics_Label{
 					if(isset($json->status) && $json->status != '') {
 						$_errors[] = 'Order #'.$json->orderno.': '. $json->message;
 					} else {
-						$_errors[] = __('Unknown status').': '. $json->message;
+						$_errors[] = 'Unknown status: '. $json->message;
 					}
 				}
 			}
  			
-
- 			$_SESSION['smartsend_errors'] 			= array_merge((is_array($_SESSION['smartsend_errors']) ? $_SESSION['smartsend_errors'] : array()),$_errors);
- 			$_SESSION['smartsend_notification'] 	= array_merge((is_array($_SESSION['smartsend_notification']) ? $_SESSION['smartsend_notification'] : array()),$_notification);
- 			$_SESSION['smartsend_succeses'] 		= array_merge((is_array($_SESSION['smartsend_succeses']) ? $_SESSION['smartsend_succeses'] : array()),$_succeses);
+ 			// Errors
+			if(isset($_SESSION['smartsend_errors']) && is_array($_SESSION['smartsend_errors'])) {
+ 				$_SESSION['smartsend_errors'] 		= array_merge($_SESSION['smartsend_errors'],$_errors);
+ 			} else {
+ 				$_SESSION['smartsend_errors']		= $_errors;
+ 			}
+ 			
+ 			// Notifications
+ 			if(isset($_SESSION['smartsend_notification']) && is_array($_SESSION['smartsend_notification'])) {
+ 				$_SESSION['smartsend_notification'] 		= array_merge($_SESSION['smartsend_notification'],$_notification);
+ 			} else {
+ 				$_SESSION['smartsend_notification']		= $_notification;
+ 			}
+ 			
+ 			// Successes
+ 			if(isset($_SESSION['smartsend_succeses']) && is_array($_SESSION['smartsend_succeses'])) {
+ 				$_SESSION['smartsend_succeses'] 		= array_merge($_SESSION['smartsend_succeses'],$_succeses);
+ 			} else {
+ 				$_SESSION['smartsend_succeses']		= $_succeses;
+ 			}
  			
  			global $smartsend_errors;
  			$smartsend_errors = $GLOBALS['smartsend_errors'];
  		} else {
- 			throw new Exception(__('Unknown content type').': '.$this->response->meta['content_type']);
+ 			throw new Exception('Unknown content type: '.$this->response->meta['content_type']);
  		}
  		
  	}

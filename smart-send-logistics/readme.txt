@@ -3,8 +3,8 @@ Contributors: SmartSend
 Donate link: http://www.SmartSend.dk/
 Tags: shipping, pickup, pakkeboks, pakkeshop, hente selv, døgnboks, post danmark, gls, swipbox, bring, carrier, pacsoft, yourgls, mybring, postage, shipping method, your-gls, my-bring, pacosft-online, pacsoftonline, denmark, sweeden, posten, norway, post 
 Requires at least: 3.0.1
-Tested up to: 4.2
-Stable tag: 7.0.7
+Tested up to: 4.3
+Stable tag: 7.0.8
 License: GNU General Public License v3.0
 License URI: http://www.gnu.org/licenses/gpl-3.0.html
 
@@ -19,10 +19,11 @@ The delivery points are listed by distance from the shipping information provide
 It's free to try for 30 days. Sign up on: [SmartSend.dk](http://smartsend.dk)
 
 You can use delivery points provided from multiple carriers, like
-*   Post Danmark - Pacsoft Online
-*   GLS - YourGLS
-*   SwipBox
-*   Bring - MyBring
+
+* Post Danmark - Pacsoft Online
+* GLS - YourGLS
+* SwipBox
+* Bring - MyBring
 
 The list of delivery points are provided online from the carriers API. Your customers will therefore always see the newest list of delivery points on the checkout page.
 
@@ -33,7 +34,7 @@ This plugin replaces the two previous modules “Smart Send Labelgenerator” an
 == Installation ==
 
 1. Download and install the module/plugin.
-2. Go to WooCommerce->settings->shipping and enter the table rates
+1. Go to WooCommerce->settings->shipping and enter the table rates
 
 You can now let your customers choose delivery points.
 
@@ -42,10 +43,6 @@ You can now let your customers choose delivery points.
 = Does it require a Smart Send subscription? =
 
 Yes and no. You can try the module for free for 30 days but must have a valid Smart Send subscription to continue after that. Please see [SmartSend.dk](http://smartsend.dk)
-
-= Can I use the module with the Smart Send label generator module? =
-
-Yes.
 
 = Can I try the module without subscribing at Smart Send =
 
@@ -86,3 +83,13 @@ Yes. You can try the module for free for 30 days.
 * Fixing error when using vConnect checkout module
 * Adding Post Danmark shipping methods; Post Danmark Privatpakker Norden Samsending, Post Danmark Parcel Economy and Post Danmark Private Priority
 * Renaming shipping methods in table rate dropdown
+
+= 7.0.8 =
+* Cleaning up settings
+* Fixing problem with country when adding a new table rate
+* Fixing problem with pickup dropdown only visible for shipping country Denmark
+* Fixing problem with label generation for pickup shipping methods, when using order grid actions
+* If maximum weight or price is empty in table rate table then take it as infinity
+* Only install shipping methods ‘Pickup’ and ‘Private’ when installing the plugin
+* Remove carrier SwipBox
+* Adding Danish translation

@@ -104,8 +104,10 @@ class Smartsend_Logistics_PrimaryClass {
                     $countries = array_map("trim", $countries);
                 	in_array(strtoupper($customerCountry), $countries);
                                         
-					if ( ( (float)$price >= (float)$rates['minO'] ) && ( (float)$price <= (float)$rates['maxO'] )
-						&& ( (float)$weight >= (float)$rates['minwO'] ) && ( (float)$weight <= (float)$rates['maxwO'] )
+					if ( (float)$price >= (float)$rates['minO']
+						&& ( (float)$price <= (float)$rates['maxO'] || (float)$rates['maxO'] == 0)
+						&& (float)$weight >= (float)$rates['minwO']
+						&& ( (float)$weight <= (float)$rates['maxwO'] || (float)$rates['maxwO'] == 0)
 						//&& ($rates['class'] == 'all' || $rates['class'] == $sc)
                         && in_array(strtolower($rates['class']), array_map('strtolower', $sc))
 						&& in_array(strtoupper($customerCountry), $countries)
@@ -127,7 +129,7 @@ class Smartsend_Logistics_PrimaryClass {
 					}
 				}
 				
-				$dformat = get_option( 'woocommerce_pickup_display_dropdown_format', 1 );
+				$dformat = get_option( 'woocommerce_carrier_display_format', 1 );
 				foreach ( $shp as $rates ) {		
 					if($rates['method_name']){
 						switch ($dformat ) {
@@ -212,26 +214,26 @@ class Smartsend_Logistics_PrimaryClass {
 			ob_start();
 			?>
 			<tr valign="top">
-				<th scope="row" class="titledesc"><?php _e( 'Price', 'RPTR_CORE_TEXT_DOMAIN' ); ?>:</th>
+				<th scope="row" class="titledesc"><?php _e( 'Price', 'smart-send-logistics' ); ?>:</th>
 				<td class="forminp" id="<?php echo $x->id; ?>_table_rates">
 					<table class="shippingrows widefat" cellspacing="0">
 						<thead>
 							<tr>
 								<th class="check-column"><input type="checkbox"></th>
-                                <th><?php _e( 'Shipping Class', 'RPTR_CORE_TEXT_DOMAIN' ); ?> <a class="tips" data-tip="<?php _e( 'Shipping Class.', 'RPTR_CORE_TEXT_DOMAIN' ); ?>">[?]</a></th>
-                                <th><?php _e( 'Methods', 'RPTR_CORE_TEXT_DOMAIN' ); ?> <a class="tips" data-tip="<?php _e( 'Method name to show on frontend.', 'RPTR_CORE_TEXT_DOMAIN' ); ?>">[?]</a></th>
-								<th><?php _e( 'Min Price', 'RPTR_CORE_TEXT_DOMAIN' ); ?> <a class="tips" data-tip="<?php _e( 'Min price for this shipping rate.', 'RPTR_CORE_TEXT_DOMAIN' ); ?>">[?]</a></th>
-								<th><?php _e( 'Max Price', 'RPTR_CORE_TEXT_DOMAIN' ); ?> <a class="tips" data-tip="<?php _e( 'Max price for this shipping rate.', 'RPTR_CORE_TEXT_DOMAIN' ); ?>">[?]</a></th>
-								<th><?php _e( 'Min Weight', 'RPTR_CORE_TEXT_DOMAIN' ); ?> <a class="tips" data-tip="<?php _e( 'Min weight for this shipping rate.', 'RPTR_CORE_TEXT_DOMAIN' ); ?>">[?]</a></th>
-								<th><?php _e( 'Max Weight', 'RPTR_CORE_TEXT_DOMAIN' ); ?> <a class="tips" data-tip="<?php _e( 'Max weight for this shipping rate.', 'RPTR_CORE_TEXT_DOMAIN' ); ?>">[?]</a></th>
-								<th><?php _e( 'Shipping Fee', 'RPTR_CORE_TEXT_DOMAIN' ); ?> <a class="tips" data-tip="<?php _e( 'Shipping price for this price range.', 'RPTR_CORE_TEXT_DOMAIN' ); ?>">[?]</a></th>
-                                <th><?php _e( 'Country', 'RPTR_CORE_TEXT_DOMAIN' ); ?></th>
-								<th><?php _e( 'Method Name', 'RPTR_CORE_TEXT_DOMAIN' ); ?></th>
+                                <th><?php _e( 'Shipping class', 'smart-send-logistics' ); ?> <a class="tips" data-tip="<?php _e( 'Shipping class', 'smart-send-logistics' ); ?>">[?]</a></th>
+                                <th><?php _e( 'Methods', 'smart-send-logistics' ); ?> <a class="tips" data-tip="<?php _e( 'Method name to show on frontend', 'smart-send-logistics' ); ?>">[?]</a></th>
+								<th><?php _e( 'Min price', 'smart-send-logistics' ); ?> <a class="tips" data-tip="<?php _e( 'Min price for this shipping rate', 'smart-send-logistics' ); ?>">[?]</a></th>
+								<th><?php _e( 'Max price', 'smart-send-logistics' ); ?> <a class="tips" data-tip="<?php _e( 'Max price for this shipping rate', 'smart-send-logistics' ); ?>">[?]</a></th>
+								<th><?php _e( 'Min weight', 'smart-send-logistics' ); ?> <a class="tips" data-tip="<?php _e( 'Min weight for this shipping rate', 'smart-send-logistics' ); ?>">[?]</a></th>
+								<th><?php _e( 'Max weight', 'smart-send-logistics' ); ?> <a class="tips" data-tip="<?php _e( 'Max weight for this shipping rate', 'smart-send-logistics' ); ?>">[?]</a></th>
+								<th><?php _e( 'Shipping fee', 'smart-send-logistics' ); ?> <a class="tips" data-tip="<?php _e( 'Shipping price for this price range', 'smart-send-logistics' ); ?>">[?]</a></th>
+                                <th><?php _e( 'Country', 'smart-send-logistics' ); ?></th>
+								<th><?php _e( 'Method name', 'smart-send-logistics' ); ?></th>
 							</tr>
 						</thead>
 						<tfoot>
 							<tr>
-								<th colspan="4"><a href="#" class="add button" style="margin-left: 24px"><?php _e( '+ Add Rate', 'RPTR_CORE_TEXT_DOMAIN' ); ?></a> <a href="#" class="remove button"><?php _e( 'Delete selected rates', 'RPTR_CORE_TEXT_DOMAIN' ); ?></a></th>
+								<th colspan="4"><a href="#" class="add button" style="margin-left: 24px"><?php _e( '+ Add rate', 'smart-send-logistics' ); ?></a> <a href="#" class="remove button"><?php _e( 'Delete selected rates', 'smart-send-logistics' ); ?></a></th>
 							</tr>
 						</tfoot>
 						<tbody class="table_rates">
@@ -246,10 +248,6 @@ class Smartsend_Logistics_PrimaryClass {
                 	$methodsData = array();
                     $options = '';
 					$i++;
-					if($x->id == 'smartsend_swipbox'){
-						$methods = new Smartsend_Logistics_SwipBox();
-						$methodsData = $methods->get_methods();
-					}
 					if($x->id == 'smartsend_gls'){
 						$methods = new Smartsend_Logistics_GLS();
 						$methodsData = $methods->get_methods();
@@ -294,13 +292,13 @@ class Smartsend_Logistics_PrimaryClass {
 										<th class="check-column"><input type="checkbox" name="select" /></th>
                                         <td><select name="' . esc_attr($x->id .'_tablerate[' . $i . '][class]') . '">'.$shipClass.'</select></td>
                                         <td><select name="' . esc_attr($x->id .'_tablerate[' . $i . '][methods]' ). '">'.$options.'</select></td>
-										<td><input type="number" step="any" min="0" value="' . esc_attr( $rate['minO'] ) . '" name="' . esc_attr( $x->id .'_tablerate[' . $i . '][minO]' ) . '" style="width: 90%; min-width:75px" class="' . esc_attr( $x->id .'field[' . $i . ']' ) . '" placeholder="'.__( '0.00', 'RPTR_CORE_TEXT_DOMAIN' ).'" size="4" /></td>
-										<td><input type="number" step="any" min="0" value="' . esc_attr( $rate['maxO'] ) . '" name="' . esc_attr( $x->id .'_tablerate[' . $i . '][maxO]' ) . '" style="width: 90%; min-width:75px" class="' . esc_attr( $x->id .'field[' . $i . ']' ) . '" placeholder="'.__( '0.00', 'RPTR_CORE_TEXT_DOMAIN' ).'" size="4" /></td>
-                                        <td><input type="number" step="any" min="0" value="' . esc_attr( $rate['minwO'] ) . '" name="' . esc_attr( $x->id .'_tablerate[' . $i . '][minwO]' ) . '" style="width: 90%; min-width:75px" class="' . esc_attr( $x->id .'field[' . $i . ']' ) . '" placeholder="'.__( '0.00', 'RPTR_CORE_TEXT_DOMAIN' ).'" size="4" /></td>
-										<td><input type="number" step="any" min="0" value="' . esc_attr( $rate['maxwO'] ) . '" name="' . esc_attr( $x->id .'_tablerate[' . $i . '][maxwO]' ) . '" style="width: 90%; min-width:75px" class="' . esc_attr( $x->id .'field[' . $i . ']' ) . '" placeholder="'.__( '0.00', 'RPTR_CORE_TEXT_DOMAIN' ).'" size="4" /></td>
-										<td><input type="number" step="any" min="0" value="' . esc_attr( $rate['shippingO'] ) . '" name="' . esc_attr( $x->id .'_tablerate[' . $i . '][shippingO]' ) . '" style="width: 90%; min-width:75px" class="' . esc_attr( $x->id .'field[' . $i . ']' ) . '" placeholder="'.__( '0.00', 'RPTR_CORE_TEXT_DOMAIN' ).'" size="4" /></td>
-                                        <td><input type="text" step="any" min="0" value="' . esc_attr( $rate['country'] ) . '" name="' . esc_attr( $x->id .'_tablerate[' . $i . '][country]' ) . '" style="width: 90%; min-width:75px" class="' . esc_attr( $x->id .'field[' . $i . ']' ) . '" placeholder="'.__( '', 'RPTR_CORE_TEXT_DOMAIN' ).'" size="4" /></td>
-                                        <td><input type="text" step="any" min="0" value="' . esc_attr( $rate['method_name'] ) . '" name="' . esc_attr( $x->id .'_tablerate[' . $i . '][method_name]' ) . '" style="width: 90%; min-width:100px" class="' . esc_attr( $x->id .'field[' . $i . ']' ) . '" placeholder="'.__( '', 'RPTR_CORE_TEXT_DOMAIN' ).'" size="4" /></td>
+										<td><input type="number" step="any" min="0" value="' . esc_attr( $rate['minO'] ) . '" name="' . esc_attr( $x->id .'_tablerate[' . $i . '][minO]' ) . '" style="width: 90%; min-width:75px" class="' . esc_attr( $x->id .'field[' . $i . ']' ) . '" placeholder="0.00" size="4" /></td>
+										<td><input type="number" step="any" min="0" value="' . esc_attr( $rate['maxO'] ) . '" name="' . esc_attr( $x->id .'_tablerate[' . $i . '][maxO]' ) . '" style="width: 90%; min-width:75px" class="' . esc_attr( $x->id .'field[' . $i . ']' ) . '" placeholder="0.00" size="4" /></td>
+                                        <td><input type="number" step="any" min="0" value="' . esc_attr( $rate['minwO'] ) . '" name="' . esc_attr( $x->id .'_tablerate[' . $i . '][minwO]' ) . '" style="width: 90%; min-width:75px" class="' . esc_attr( $x->id .'field[' . $i . ']' ) . '" placeholder="0.00" size="4" /></td>
+										<td><input type="number" step="any" min="0" value="' . esc_attr( $rate['maxwO'] ) . '" name="' . esc_attr( $x->id .'_tablerate[' . $i . '][maxwO]' ) . '" style="width: 90%; min-width:75px" class="' . esc_attr( $x->id .'field[' . $i . ']' ) . '" placeholder="0.00" size="4" /></td>
+										<td><input type="number" step="any" min="0" value="' . esc_attr( $rate['shippingO'] ) . '" name="' . esc_attr( $x->id .'_tablerate[' . $i . '][shippingO]' ) . '" style="width: 90%; min-width:75px" class="' . esc_attr( $x->id .'field[' . $i . ']' ) . '" placeholder="0.00" size="4" /></td>
+                                        <td><input type="text" value="' . esc_attr( $rate['country'] ) . '" name="' . esc_attr( $x->id .'_tablerate[' . $i . '][country]' ) . '" style="width: 90%; min-width:75px" class="' . esc_attr( $x->id .'field[' . $i . ']' ) . '" placeholder="" size="4" /></td>
+                                        <td><input type="text" value="' . esc_attr( $rate['method_name'] ) . '" name="' . esc_attr( $x->id .'_tablerate[' . $i . '][method_name]' ) . '" style="width: 90%; min-width:100px" class="' . esc_attr( $x->id .'field[' . $i . ']' ) . '" placeholder="" size="4" /></td>
 									</tr>';
 				}
 			}
@@ -322,8 +320,9 @@ class Smartsend_Logistics_PrimaryClass {
 									<td><input type="number" step="any" min="0" name="<?php echo $x->id; ?>_tablerate[' + size + '][maxO]" style="width: 90%; min-width:75px" class="<?php echo $x->id; ?>field[' + size + ']" placeholder="0.00" size="4" /></td>\
 									<td><input type="number" step="any" min="0" name="<?php echo $x->id; ?>_tablerate[' + size + '][minwO]" style="width: 90%; min-width:75px" class="<?php echo $x->id; ?>field[' + size + ']" placeholder="0.00" size="4" /></td>\
 									<td><input type="number" step="any" min="0" name="<?php echo $x->id; ?>_tablerate[' + size + '][maxwO]" style="width: 90%; min-width:75px" class="<?php echo $x->id; ?>field[' + size + ']" placeholder="0.00" size="4" /></td>\
-									<td><input type="number" step="any" min="0" name="<?php echo $x->id; ?>_tablerate[' + size + '][shippingO]" style="width: 90%; min-width:75px" class="<?php echo $x->id; ?>field[' + size + ']" placeholder="0.00" size="4" /></td>\<td><input type="text" step="any" min="0" name="<?php echo $x->id; ?>_country[' + size + ']" style="width: 90%" class="<?php echo $x->id; ?>field[' + size + ']" placeholder="" size="4" /></td>\
-									<td><input type="text" step="any" min="0" name="<?php echo $x->id; ?>_tablerate[' + size + '][method_name]" style="width: 90%; min-width:100px" class="<?php echo $x->id; ?>field[' + size + ']" placeholder="" size="4" /></td>\
+									<td><input type="number" step="any" min="0" name="<?php echo $x->id; ?>_tablerate[' + size + '][shippingO]" style="width: 90%; min-width:75px" class="<?php echo $x->id; ?>field[' + size + ']" placeholder="0.00" size="4" /></td>\
+									<td><input type="text" name="<?php echo $x->id; ?>_tablerate[' + size + '][country]" style="width: 90%" class="<?php echo $x->id; ?>field[' + size + ']" placeholder="" size="4" /></td>\
+									<td><input type="text" name="<?php echo $x->id; ?>_tablerate[' + size + '][method_name]" style="width: 90%; min-width:100px" class="<?php echo $x->id; ?>field[' + size + ']" placeholder="" size="4" /></td>\
 								</tr>').appendTo('#<?php echo $x->id; ?>_table_rates table tbody');
 
 								return false;

@@ -32,7 +32,7 @@ if ( in_array( 'woocommerce/woocommerce.php', apply_filters( 'active_plugins', g
 			echo 	$store_pickup['company'] .'<br/>'.
 					$store_pickup['street'] .'<br/>'.
 					$store_pickup['zip'] .' '.$store_pickup['city'];
-			if($show_carrier == true) {
+			if($show_carrier == true && isset($store_pickup['carrier'])) {
 				echo '<br/>'.$store_pickup['carrier'];
 			}
 		}
@@ -88,9 +88,8 @@ if ( in_array( 'woocommerce/woocommerce.php', apply_filters( 'active_plugins', g
 	function Smartsend_Logistics_pickup_checkout_field_process() {
 		global $woocommerce;
 		// Check if set, if its not set add an error. This one is only requite for companies
-		if ( $_POST['billing_country'] == "DK" || $_POST['shipping_country'] == "DK" )
-			if (isset($_POST['store_pickup']) && $_POST['store_pickup']=='') 
-				$woocommerce->add_error( __(get_option('woocommerce_pickup_display_dropdown_error', 'Vælg venligst et udleveringssted på listen.'),'woocommerce') );
+		if (isset($_POST['store_pickup']) && $_POST['store_pickup']=='') 
+			$woocommerce->add_error( __('Select pickup location','smart-send-logistics') );
 	}           
 
 	# hide custom field data in admin orders section
@@ -108,8 +107,8 @@ if ( in_array( 'woocommerce/woocommerce.php', apply_filters( 'active_plugins', g
 				  
 			if ( isset( $section['id'] ) && 'woocommerce_ship_to_countries' == $section['id'] && isset( $section['type'] ) && 'select' == $section['type'] ) {
 				$updated_settings[] = array(
-					'title'   	=> __( 'Smartsend Username', 'woocommerce' ),
-					'desc'    	=> __( 'This is the legend of username for smartsend settings.', 'woocommerce' ),
+					'title'   	=> __( 'Smart Send Username','smart-send-logistics'),
+					'desc'    	=> __( 'This is Smart Send username provided upon signup','smart-send-logistics'),
 					'id'      	=> 'smartsend_logistics_username',
 					'default' 	=> '', //Choose Store Location
 					'type'    	=> 'text',
@@ -118,8 +117,8 @@ if ( in_array( 'woocommerce/woocommerce.php', apply_filters( 'active_plugins', g
 				);
 				
 				$updated_settings[] = array(
-					'title'   	=> __( 'Smartsend Licensekey', 'woocommerce' ),
-					'desc'    	=> __( 'This is the legend of username for Licensekey settings', 'woocommerce' ),
+					'title'   	=> __( 'Smart Send Licensekey','smart-send-logistics'),
+					'desc'    	=> __( 'This is the Smart Send licensekey provided upon signup','smart-send-logistics'),
 					'id'      	=> 'smartsend_logistics_licencekey',
 					'default' 	=> '', //Select pickup location
 					'type'    	=> 'text',
@@ -127,65 +126,50 @@ if ( in_array( 'woocommerce/woocommerce.php', apply_filters( 'active_plugins', g
 					'show_if_checked' => 'option',
 				);
 				$updated_settings[] = array(
-					'title'    	=> __( 'Combine PDFs files', 'woocommerce' ),
-					'desc'     	=> __( 'Combine all PDF files (or links) into one PDF file (or link)', 'woocommerce' ),
+					'title'    	=> __( 'Combine PDF files','smart-send-logistics'),
+					'desc'     	=> __( 'Combine all PDF files (or links) into one PDF file (or link)','smart-send-logistics'),
 					'id'      	=> 'smartsend_logistics_combinepdf',
 					'default' 	=> 'yes',
 					'type'    	=> 'radio',
 					'options' 	=> array(
-						'yes'     	=> __( 'Combine all PDF files into one', 'woocommerce' ),
-						'no'      	=> __( 'Sperate PDF files per order', 'woocommerce' ),
+						'yes'     	=> __( 'Combine all PDF files into one','smart-send-logistics'),
+						'no'      	=> __( 'Sperate PDF files per order','smart-send-logistics'),
 					),
 					'autoload'        => false,
 					'desc_tip'        =>  true,
 					'show_if_checked' => 'option',
 				);
 				$updated_settings[] = array(
-					'title'   	=> __( 'Store Location Display Mode', 'woocommerce' ),
-					'desc'    	=> __( 'This controls display postion of store location dropdown on checkout page.', 'woocommerce' ),
+					'title'   	=> __( 'Pickup dropdown display place','smart-send-logistics'),
+					'desc'    	=> __( 'This controls display postion of store location dropdown on checkout page.','smart-send-logistics'),
 					'id'      	=> 'woocommerce_pickup_display_mode1',
 					'default' 	=> '0',
 					'type'    	=> 'radio',
 					'options' 	=> array(
-						'0'     	=> __( 'Above the "Your Order" section on Checkout page', 'woocommerce' ),
-						'1'      	=> __( "Add to specific location on Checkout page by using custom hook in your theme.(do_action( 'smartsend_logistics_dropdown_hook' ))", 'woocommerce' ),
+						'0'     	=> __( 'Above the "Your Order" section on Checkout page','smart-send-logistics'),
+						'1'      	=> __( "Add to specific location on Checkout page by using custom hook in your theme: do_action('smartsend_logistics_dropdown_hook')",'smart-send-logistics'),
 					),
 					'autoload'        => false,
 					'desc_tip'        =>  true,
 					'show_if_checked' => 'option',
+				);				
+				$updated_settings[] = array(
+					'title'    	=> __( 'Pickup dropdown display format','smart-send-logistics'),
+					'id'       	=> 'woocommerce_pickup_display_format',
+					'default'  	=> '4',
+					'type'     	=> 'select',
+					'class'    	=> 'wc-enhanced-select',
+					'desc_tip' 	=> false,
+					'options'   => array(
+						'1' 		=> __( '#NAME, #STREET','smart-send-logistics'),
+						'2'    		=> __( '#NAME, #STREET, #ZIP','smart-send-logistics'),
+						'3'    		=> __( '#NAME, #STREET, #CITY','smart-send-logistics'),
+						'4'    		=> __( '#NAME, #STREET, #ZIP #CITY','smart-send-logistics'),
+					)
 				);
 				$updated_settings[] = array(
-					'title'   	=> __( 'Dropdown legend', 'woocommerce' ),
-					'desc'    	=> __( 'This is the legend of the dropdown containing the pickup points.', 'woocommerce' ),
-					'id'      	=> 'woocommerce_pickup_display_dropdown_legend',
-					'default' 	=> 'Vælg udleveringssted', //Choose Store Location
-					'type'    	=> 'text',
-					'desc_tip'        =>  true,
-					'show_if_checked' => 'option',
-				);
-				
-				$updated_settings[] = array(
-					'title'   	=> __( 'Dropdown text', 'woocommerce' ),
-					'desc'    	=> __( 'This is what will be shown in the first row of the dropdown containing the pickup points.', 'woocommerce' ),
-					'id'      	=> 'woocommerce_pickup_display_dropdown_text',
-					'default' 	=> 'Klik og vælg udleveringssted', //Select pickup location
-					'type'    	=> 'text',
-					'desc_tip'        =>  true,
-					'show_if_checked' => 'option',
-				);
-				$updated_settings[] = array(
-					'title'   	=> __( 'Dropdown text', 'woocommerce' ),
-					'desc'    	=> __( 'This is the error message shown if no pickup point is selected.', 'woocommerce' ),
-					'id'      	=> 'woocommerce_pickup_display_dropdown_error',
-					'default' 	=> 'Vælg venligst et udleveringssted på listen.', //Please select the store pickup loaction!
-					'type'    	=> 'text',
-					'desc_tip'        =>  true,
-					'show_if_checked' => 'option',
-				);
-				$updated_settings[] = array(
-					'title'    	=> __( 'Dropdown Format', 'woocommerce' ),
-					'desc'     	=> sprintf( __( 'Choose carrier method format on frontend', 'woocommerce' ), admin_url( 'admin.php?page=wc-settings&tab=general' ) ),
-					'id'       	=> 'woocommerce_pickup_display_dropdown_format',
+					'title'    	=> __( 'Shipping method display format','smart-send-logistics'),
+					'id'       	=> 'woocommerce_carrier_display_format',
 					'default'  	=> '0',
 					'type'     	=> 'select',
 					'class'    	=> 'wc-enhanced-select',
@@ -228,8 +212,8 @@ if ( in_array( 'woocommerce/woocommerce.php', apply_filters( 'active_plugins', g
 		$shipMethod = '';
 		if(!empty($line_items_shipping)){
 			foreach ( $line_items_shipping as $item_id => $item ) {
-				$shipMethod_id = ! empty( $item['method_id'] ) ? esc_html( $item['method_id'] ) : __( 'Shipping', 'woocommerce' );
-				$shipMethod=  ! empty( $item['name'] ) ? esc_html( $item['name'] ) : __( 'Shipping', 'woocommerce' );
+				$shipMethod_id = ! empty( $item['method_id'] ) ? esc_html( $item['method_id'] ) : __( 'Shipping','smart-send-logistics');
+				$shipMethod=  ! empty( $item['name'] ) ? esc_html( $item['name'] ) : __( 'Shipping','smart-send-logistics');
 			}
 		}
 	
@@ -253,7 +237,7 @@ if ( in_array( 'woocommerce/woocommerce.php', apply_filters( 'active_plugins', g
 		$shipMethod = '';
 		if(!empty($line_items_shipping)){
 			foreach ( $line_items_shipping as $item_id => $item ) {
-				$shipMethod=  ! empty( $item['name'] ) ? esc_html( $item['name'] ) : __( 'Shipping', 'woocommerce' );
+				$shipMethod=  ! empty( $item['name'] ) ? esc_html( $item['name'] ) : __( 'Shipping','smart-send-logistics');
 			}
 		}
 					
@@ -262,7 +246,7 @@ if ( in_array( 'woocommerce/woocommerce.php', apply_filters( 'active_plugins', g
 		if(!empty($store_pickup ['store_pickup'][0])){
 			$store_pickup = unserialize($store_pickup['store_pickup'][0]);				
 			
-			echo '<p><strong>'.__('Smart Send Logistics','woocommerce').'</strong><br/> 
+			echo '<p><strong>'.__('Smart Send Logistics','smart-send-logistics').'</strong><br/> 
 				Shipping Method: '.$shipMethod.'<p/>';
 			Smartsend_Logistics_display_store_order_details($order,true,true,'strong');
 		}
