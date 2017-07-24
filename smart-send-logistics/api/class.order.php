@@ -386,13 +386,13 @@ class Smartsend_Logistics_Order {
 			} elseif(substr($shipping_id, 0, strlen('smartsendposten')) === 'smartsendposten' || substr($shipping_id, 0, strlen('smartsend_posten')) === 'smartsend_posten') {
 				$carrier = 'posten';
 				$carrier_raw = 'smartsendposten';
-			} elseif(substr($shipping_id, 0, strlen('vconnect_postnord')) === 'vconnect_postnord' || substr($shipping_id, 0, strlen('vc_postnord')) === 'vc_postnord') {
+			} elseif(substr($shipping_id, 0, strlen('vconnect_postnord')) === 'vconnect_postnord' || substr($shipping_id, 0, strlen('vc_postnord')) === 'vc_postnord' || substr($shipping_id, 0, strlen('vc_allinone_vconnectpostnord')) === 'vc_allinone_vconnectpostnord') {
 				$carrier = 'postdanmark';
 				$carrier_raw = 'vconnectpostdanmark';
-			} elseif(substr($shipping_id, 0, strlen('vconnect_postdanmark')) === 'vconnect_postdanmark' || substr($shipping_id, 0, strlen('vc_postdanmark')) === 'vc_postdanmark') {
+			} elseif(substr($shipping_id, 0, strlen('vconnect_postdanmark')) === 'vconnect_postdanmark' || substr($shipping_id, 0, strlen('vc_postdanmark')) === 'vc_postdanmark' || substr($shipping_id, 0, strlen('vc_allinone_vconnectpostdanmark')) === 'vc_allinone_vconnectpostdanmark') {
 				$carrier = 'postdanmark';
 				$carrier_raw = 'vconnectpostdanmark';
-			} elseif(substr($shipping_id, 0, strlen('vconnect_posten')) === 'vconnect_posten' || substr($shipping_id, 0, strlen('vc_posten')) === 'vc_posten') {
+			} elseif(substr($shipping_id, 0, strlen('vconnect_posten')) === 'vconnect_posten' || substr($shipping_id, 0, strlen('vc_posten')) === 'vc_posten' || substr($shipping_id, 0, strlen('vc_allinone_vconnectposten')) === 'vc_allinone_vconnectposten') {
 				$carrier = 'posten';
 				$carrier_raw = 'vconnectposten';
 			} elseif(substr($shipping_id, 0, strlen('vconnect_gls')) === 'vconnect_gls' || substr($shipping_id, 0, strlen('vc_gls')) === 'vc_gls') {

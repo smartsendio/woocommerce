@@ -4,7 +4,7 @@ Donate link: http://www.SmartSend.dk/
 Tags: shipping, pickup, pakkeboks, pakkeshop, hente selv, døgnboks, post danmark, gls, swipbox, bring, carrier, pacsoft, yourgls, mybring, postage, shipping method, your-gls, my-bring, pacosft-online, pacsoftonline, denmark, sweeden, posten, norway, post 
 Requires at least: 3.0.1
 Tested up to: 4.3
-Stable tag: 7.0.8
+Stable tag: 7.0.9
 License: GNU General Public License v3.0
 License URI: http://www.gnu.org/licenses/gpl-3.0.html
 
@@ -93,3 +93,8 @@ Yes. You can try the module for free for 30 days.
 * Only install shipping methods ‘Pickup’ and ‘Private’ when installing the plugin
 * Remove carrier SwipBox
 * Adding Danish translation
+
+= 7.0.9 =
+* Adding method to create a normal and a return label at the same time
+* Adding support for vConnect All-in-one module
+* A few PHP fixes

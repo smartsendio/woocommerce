@@ -225,9 +225,10 @@ if ( in_array( 'woocommerce/woocommerce.php', apply_filters( 'active_plugins', g
 				   
 		Smartsend_Logistics_display_store_order_details($order,true,false,'h3');
 		
-		echo '<br/><br/>';
-		echo '<a href="post.php?post='.$post->ID.'&action=edit&type=create_label" class="button button-primary">Create label</a><br/><br/>';
-		echo '<a href="post.php?post='.$post->ID.'&action=edit&type=create_label_return" class="button">Create return label</a>'; 
+		echo '<br/>';
+		echo '<a href="post.php?post='.$post->ID.'&action=edit&type=create_label" class="button button-primary">'.__( 'Generate label','smart-send-logistics').'</a><br/><br/>';
+		echo '<a href="post.php?post='.$post->ID.'&action=edit&type=create_label_return" class="button">'.__( 'Generate return label','smart-send-logistics').'</a><br/><br/>';
+		echo '<a href="post.php?post='.$post->ID.'&action=edit&type=create_label_normal_return" class="button">'.__( 'Generate normal and return label','smart-send-logistics').'</a>'; 
     }
                 
 	# Show selected pickup location on the order edit page(woocommerce_admin_order_data_after_order_details)

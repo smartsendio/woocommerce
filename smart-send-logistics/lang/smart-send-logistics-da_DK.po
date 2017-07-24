@@ -1,10 +1,10 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: Smart Send Logistics\n"
-"POT-Creation-Date: 2015-08-31 15:06+0100\n"
-"PO-Revision-Date: 2015-08-31 15:59+0100\n"
+"POT-Creation-Date: 2015-09-06 18:21+0100\n"
+"PO-Revision-Date: 2015-09-06 18:26+0100\n"
 "Last-Translator: Anders Bilfeldt <anders@smartsend.dk>\n"
-"Language-Team: \n"
+"Language-Team: Anders Bilfeldt <anders@smartsend.dk>\n"
 "Language: da_DK\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
@@ -43,7 +43,7 @@ msgstr "Aktiver forsendelsemetode"
 #: class.smartsend.pickuppoints.php:82 class.smartsend.postdanmark.php:61
 #: class.smartsend.posten.php:61
 msgid "Carrier title"
-msgstr "Fragtfirma titel"
+msgstr "Titel på fragtfirma"
 
 #: class.smartsend.bring.php:62 class.smartsend.gls.php:63
 #: class.smartsend.pickuppoints.php:84 class.smartsend.postdanmark.php:63
@@ -328,7 +328,7 @@ msgstr "Slet vælgte forsendelsesmetoder"
 
 #: class.smartsend.primary.php:333
 msgid "Delete the selected rates?"
-msgstr "Slet de valgte forsendelsesmetoder?"
+msgstr "Slet vælgte forsendelsesmetoder"
 
 #: settings.php:24 settings.php:27
 msgid "Pickup point"
@@ -437,38 +437,59 @@ msgid "Carrier-(Method)"
 msgstr "Fragtfirma-(Metode)"
 
 #. Plugin Name of the plugin/theme
-#: settings.php:198 settings.php:249
+#: settings.php:198 settings.php:250
 msgid "Smart Send Logistics"
 msgstr "Smart Send Logistics"
 
-#: settings.php:215 settings.php:216 settings.php:240
+#: settings.php:215 settings.php:216 settings.php:241
 msgid "Shipping"
 msgstr "Forsendelse"
 
-#: woocommerce-smartsend-logistics.php:77
-#: woocommerce-smartsend-logistics.php:114
-#: woocommerce-smartsend-logistics.php:156
-#: woocommerce-smartsend-logistics.php:158
-#: woocommerce-smartsend-logistics.php:204
-#: woocommerce-smartsend-logistics.php:206
+#: settings.php:229
+msgid "Create label"
+msgstr "Opret etiket"
+
+#: settings.php:230
+msgid "Create return label"
+msgstr "Lav returlabel"
+
+#: settings.php:231
+msgid "Create normal and return label"
+msgstr "Lav returlabel"
+
+#: woocommerce-smartsend-logistics.php:78
+#: woocommerce-smartsend-logistics.php:115
+#: woocommerce-smartsend-logistics.php:153
+#: woocommerce-smartsend-logistics.php:196
+#: woocommerce-smartsend-logistics.php:198
+#: woocommerce-smartsend-logistics.php:244
+#: woocommerce-smartsend-logistics.php:246
+#: woocommerce-smartsend-logistics.php:293
+#: woocommerce-smartsend-logistics.php:295
 msgid "Username and licencekey must be entered in settings"
 msgstr "Brugernavn og licenskode skal indtastes i indstillingerne"
 
-#: woocommerce-smartsend-logistics.php:262
-#: woocommerce-smartsend-logistics.php:331
-#: woocommerce-smartsend-logistics.php:332
+#: woocommerce-smartsend-logistics.php:352
+#: woocommerce-smartsend-logistics.php:444
+#: woocommerce-smartsend-logistics.php:445
 msgid "Generate label"
 msgstr "Lav label"
 
-#: woocommerce-smartsend-logistics.php:280
-#: woocommerce-smartsend-logistics.php:333
-#: woocommerce-smartsend-logistics.php:334
+#: woocommerce-smartsend-logistics.php:370
+#: woocommerce-smartsend-logistics.php:446
+#: woocommerce-smartsend-logistics.php:447
 msgid "Generate return label"
 msgstr "Lav returlabel"
 
-#: woocommerce-smartsend-logistics.php:700
-#: woocommerce-smartsend-logistics.php:703
-#: woocommerce-smartsend-logistics.php:728
+#: woocommerce-smartsend-logistics.php:388
+#: woocommerce-smartsend-logistics.php:448
+#: woocommerce-smartsend-logistics.php:449
+msgid "Generate normal and return label"
+msgstr "Lav normal og returlabel"
+
+#: woocommerce-smartsend-logistics.php:824
+#: woocommerce-smartsend-logistics.php:827
+#: woocommerce-smartsend-logistics.php:852
 msgid "Select a pickup location"
 msgstr "Vælg et afhentningssted"
 

@@ -283,7 +283,7 @@ class Smartsend_Logistics_PrimaryClass {
 					} 
 					foreach($shipclassArr as $key => $m){
 						$selected = '';
-						if(esc_attr( $rate['class'] ) == $key) {
+						if(isset($rate['class']) && esc_attr( $rate['class'] ) == $key) {
 							$selected = 'selected="selected"';
 						}
 						$shipClass .= '<option '.$selected.' value="'.$key.'">'.$m.'</option>';
