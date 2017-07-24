@@ -48,7 +48,7 @@ if ( ! class_exists( 'Smartsend_Logistics_PickupPoints' ) ) {
 			add_action( 'woocommerce_update_options_shipping_' . $this->id, array( $this, 'process_table_rates' ) );
 
 			// Load Table rates
-			$this->get_table_rates();
+			$this->load_table_rates();
 		}
 	
 		function init_form_fields() {
@@ -176,25 +176,61 @@ if ( ! class_exists( 'Smartsend_Logistics_PickupPoints' ) ) {
 		 * @access public
 		 * @return void
 		 */
+		function load_table_rates() {
+			$this->table_rates = $this->get_table_rates();
+		}
+		
+		/**
+		 * get_table_rates function.
+		 *
+		 * @access public
+		 * @return void
+		 */
 		function get_table_rates() {
-			$this->table_rates = array_filter( (array) get_option( $this->table_rate_option ) );
-			if(empty($this->table_rates)){
-				$methods = $this->get_methods();
-				foreach($methods as $method => $method_name){
-					if(in_array($method,array('pickup'))) {
-						$this->table_rates[] = Array (
-							'methods'		=> $method,
-							'minO' 			=> '0',
-							'maxO' 			=> '100000',
-							'minwO' 		=> '0',
-							'maxwO' 		=> '100000',
-							'shippingO' 	=> 49.00,
-							'country' 		=> 'DK',
-							'method_name' 	=> $method_name
-							);
-					}
-				}
-			}
+			return array_filter( (array) get_option( $this->table_rate_option ) );
+		}
+		
+		/**
+		 * get_default_table_rates function.
+		 *
+		 * @access public
+		 * @return void
+		 */
+		function get_default_table_rates() {
+		
+			return array(
+				array(
+					'methods'		=> 'Pickup',
+					'minO' 			=> '0',
+					'maxO' 			=> '500',
+					'minwO' 		=> '0',
+					'maxwO' 		=> '100000',
+					'shippingO' 	=> 40.00,
+					'country' 		=> 'DK',
+					'method_name' 	=> __('Pickuppoint','smart-send-logistics'),
+					),
+				array(
+					'methods'		=> 'Pickup',
+					'minO' 			=> '500',
+					'maxO' 			=> '100000',
+					'minwO' 		=> '0',
+					'maxwO' 		=> '100000',
+					'shippingO' 	=> 0,
+					'country' 		=> 'DK',
+					'method_name' 	=> __('Pickuppoint','smart-send-logistics'),
+					)
+				);	
+		}
+		
+		/**
+		 * save_default_table_rates function.
+		 *
+		 * @access public
+		 * @return void
+		 */
+		function save_default_table_rates() {
+			$table_rates = $this->get_default_table_rates();
+			update_option( $this->table_rate_option, $table_rates );
 		}
 							
 							

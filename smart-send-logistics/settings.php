@@ -81,16 +81,7 @@ if ( in_array( 'woocommerce/woocommerce.php', apply_filters( 'active_plugins', g
 			$store_pickup = sanitize_text_field($_POST[ 'store_pickup' ]);
 			update_post_meta( $order_id, 'store_pickup', $store_pickup  );
 		}
-	}
-	
-	#Process the checkout and validate store location
-	add_action('woocommerce_checkout_process', 'Smartsend_Logistics_pickup_checkout_field_process');
-	function Smartsend_Logistics_pickup_checkout_field_process() {
-		global $woocommerce;
-		// Check if set, if its not set add an error. This one is only requite for companies
-		if (isset($_POST['store_pickup']) && $_POST['store_pickup']=='') 
-			$woocommerce->add_error( __('Select pickup location','smart-send-logistics') );
-	}           
+	}          
 
 	# hide custom field data in admin orders section
 	add_filter('is_protected_meta', 'Smartsend_Logistics_my_is_protected_meta_filter', 10, 2);

@@ -9,10 +9,21 @@
 require_once( WP_PLUGIN_DIR . '/woocommerce/includes/abstracts/abstract-wc-order.php' );
 require_once( WP_PLUGIN_DIR . '/woocommerce/includes/class-wc-order.php' );
 
-class Smartsend_Logistics_Label{
+/**
+ * Label class
+ *
+ * Create label API calls and send these to Smart Send
+ *
+ * @class 		Smartsend_Logistics_Order
+ * @version		7.1.0
+ * @author 		Smart Send
+ */
 
-	protected $request=array();
+class Smartsend_Logistics_Label {
+
+	protected $request = array();
 	protected $response;
+	
 	private $_test = false;
 	
 	public function _construct() {
@@ -36,7 +47,7 @@ class Smartsend_Logistics_Label{
  	 * Function: Get JSON request
  	 * both for single and mass generation
  	 */
- 	private function getJsonRequest() {
+ 	protected function getJsonRequest() {
  		if(empty($this->request)) {
  			throw new Exception("Trying to send empty order array");
  		} else {
@@ -50,7 +61,7 @@ class Smartsend_Logistics_Label{
  	 */
  	public function createOrder($order,$return=false) {
 		
-		$smartsendorder = new Smartsend_Logistics_Order();
+		$smartsendorder = new Smartsend_Logistics_Order_Woocommerce();
 		$smartsendorder->setOrderObject($order);
 		$smartsendorder->setReturn($return);
 
@@ -129,7 +140,7 @@ class Smartsend_Logistics_Label{
  	
  	}
  	
- 	private function wpbo_get_woo_version_number() {
+ 	public function wpbo_get_woo_version_number() {
 			// If get_plugins() isn't available, require it
 		if ( ! function_exists( 'get_plugins' ) )
 			require_once( ABSPATH . 'wp-admin/includes/plugin.php' );
@@ -153,7 +164,7 @@ class Smartsend_Logistics_Label{
 	 * @string shipment_reference: unique if of shipment
 	 * @string tracecode
 	 */ 
- 	private function addTraceToShipment($shipment_reference,$tracecode) {
+ 	protected function addTraceToShipment($shipment_reference,$tracecode) {
  	// NOT DONE! STILL MAGENTO!
  	
  	
@@ -196,7 +207,7 @@ class Smartsend_Logistics_Label{
  	/*
  	 * Function: go through parcels and add trace code
  	 */
- 	private function verifyParcels($json) {
+ 	protected function verifyParcels($json) {
  		if(isset($json->parcels) && is_array($json->parcels)) {
  			$trace_codes = array();
 			foreach($json->parcels as $parcel) {
@@ -208,7 +219,7 @@ class Smartsend_Logistics_Label{
 			if(!empty($trace_codes)) {
 				$order = new WC_Order( $json->orderno );
 				
-				$smartsendorder = new Smartsend_Logistics_Order();
+				$smartsendorder = new Smartsend_Logistics_Order_Woocommerce();
 				$smartsendorder->setOrderObject($order);
 				
 				$tracking_code_combined = '';
@@ -231,8 +242,8 @@ class Smartsend_Logistics_Label{
 				
 				if($tracking_code_combined != ',' && $tracking_code_combined != '') {
 					//Add trace link to WooTheme extension 'Shipment Tracking'
-					update_post_meta( $order->id, '_tracking_provider', $smartsendorder->formatCarrier($smartsendorder->getShippingCarrier(),1) );
-					update_post_meta( $order->id, '_custom_tracking_provider', $smartsendorder->formatCarrier($smartsendorder->getShippingCarrier(),1) );
+					update_post_meta( $order->id, '_tracking_provider', $smartsendorder->getShippingCarrier() );
+					update_post_meta( $order->id, '_custom_tracking_provider', $smartsendorder->getShippingCarrier() );
 					update_post_meta( $order->id, '_tracking_number', $tracking_code_combined );
 					//update_post_meta( $order->id, '_custom_tracking_link', null );
 					//update_post_meta( $order->id, '_date_shipped', null );

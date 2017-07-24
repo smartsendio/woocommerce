@@ -169,27 +169,33 @@ class Smartsend_Logistics_PrimaryClass {
 			$table_rates = array();
 			
 			// Load the posted tablerates
-			$rates = $_POST[ $x->id . '_tablerate'];
+			if(isset( $_POST[ $x->id . '_tablerate'] ) ) {
+				$rates = $_POST[ $x->id . '_tablerate'];
+			} else {
+				$rates = null;
+			}	
 			
 			// Go through each rate
-			foreach($rates as $rate) {
-				// Add to table rates array
-					$table_rates[] = array(
-                        'class'    		=> (string) $rate[ 'class' ],
-                        'methods'  		=> (string) $rate[ 'methods' ],
-						'minO'    		=> (float) $rate[ 'minO' ],
-						'maxO'    		=> (float) $rate[ 'maxO' ],
-                        'minwO'    		=> (float) $rate[ 'minwO' ],
-						'maxwO'    		=> (float) $rate[ 'maxwO' ],
-						'shippingO' 	=> (float) $rate[ 'shippingO' ],
-                        'country' 		=> (string) $rate[ 'country' ],
-                        'method_name' 	=> (string) $rate[ 'method_name' ]
-					);
+			if(is_array($rates)) {
+				foreach($rates as $rate) {
+					// Add to table rates array
+						$table_rates[] = array(
+							'class'    		=> (string) $rate[ 'class' ],
+							'methods'  		=> (string) $rate[ 'methods' ],
+							'minO'    		=> (float) $rate[ 'minO' ],
+							'maxO'    		=> (float) $rate[ 'maxO' ],
+							'minwO'    		=> (float) $rate[ 'minwO' ],
+							'maxwO'    		=> (float) $rate[ 'maxwO' ],
+							'shippingO' 	=> (float) $rate[ 'shippingO' ],
+							'country' 		=> (string) $rate[ 'country' ],
+							'method_name' 	=> (string) $rate[ 'method_name' ]
+						);
+				}
 			}
 			
 			// Save rates if any
 			update_option( $x->table_rate_option, $table_rates );
-			$x->get_table_rates();
+			$x->load_table_rates();
 			
 		}
 
@@ -220,15 +226,15 @@ class Smartsend_Logistics_PrimaryClass {
 						<thead>
 							<tr>
 								<th class="check-column"><input type="checkbox"></th>
-                                <th><?php _e( 'Shipping class', 'smart-send-logistics' ); ?> <a class="tips" data-tip="<?php _e( 'Shipping class', 'smart-send-logistics' ); ?>">[?]</a></th>
-                                <th><?php _e( 'Methods', 'smart-send-logistics' ); ?> <a class="tips" data-tip="<?php _e( 'Method name to show on frontend', 'smart-send-logistics' ); ?>">[?]</a></th>
-								<th><?php _e( 'Min price', 'smart-send-logistics' ); ?> <a class="tips" data-tip="<?php _e( 'Min price for this shipping rate', 'smart-send-logistics' ); ?>">[?]</a></th>
-								<th><?php _e( 'Max price', 'smart-send-logistics' ); ?> <a class="tips" data-tip="<?php _e( 'Max price for this shipping rate', 'smart-send-logistics' ); ?>">[?]</a></th>
-								<th><?php _e( 'Min weight', 'smart-send-logistics' ); ?> <a class="tips" data-tip="<?php _e( 'Min weight for this shipping rate', 'smart-send-logistics' ); ?>">[?]</a></th>
-								<th><?php _e( 'Max weight', 'smart-send-logistics' ); ?> <a class="tips" data-tip="<?php _e( 'Max weight for this shipping rate', 'smart-send-logistics' ); ?>">[?]</a></th>
-								<th><?php _e( 'Shipping fee', 'smart-send-logistics' ); ?> <a class="tips" data-tip="<?php _e( 'Shipping price for this price range', 'smart-send-logistics' ); ?>">[?]</a></th>
-                                <th><?php _e( 'Country', 'smart-send-logistics' ); ?></th>
-								<th><?php _e( 'Method name', 'smart-send-logistics' ); ?></th>
+                                <th><?php _e( 'Shipping class', 'smart-send-logistics' ); ?> <a class="tips" data-tip="<?php _e( 'Products must belong to this shipping class', 'smart-send-logistics' ); ?>">[?]</a></th>
+                                <th><?php _e( 'Methods', 'smart-send-logistics' ); ?> <a class="tips" data-tip="<?php _e( 'Shipping method', 'smart-send-logistics' ); ?>">[?]</a></th>
+								<th><?php _e( 'Min price', 'smart-send-logistics' ); ?> <a class="tips" data-tip="<?php _e( 'Minimum total order price for this shipping rate', 'smart-send-logistics' ); ?>">[?]</a></th>
+								<th><?php _e( 'Max price', 'smart-send-logistics' ); ?> <a class="tips" data-tip="<?php _e( 'Maximum total order price for this shipping rate', 'smart-send-logistics' ); ?>">[?]</a></th>
+								<th><?php _e( 'Min weight', 'smart-send-logistics' ); ?> <a class="tips" data-tip="<?php _e( 'Minimum total order weight for this shipping rate', 'smart-send-logistics' ); ?>">[?]</a></th>
+								<th><?php _e( 'Max weight', 'smart-send-logistics' ); ?> <a class="tips" data-tip="<?php _e( 'Maximum total order weight for this shipping rate', 'smart-send-logistics' ); ?>">[?]</a></th>
+								<th><?php _e( 'Shipping fee', 'smart-send-logistics' ); ?> <a class="tips" data-tip="<?php _e( 'Shipping price for this shipping method', 'smart-send-logistics' ); ?>">[?]</a></th>
+                                <th><?php _e( 'Country', 'smart-send-logistics' ); ?> <a class="tips" data-tip="<?php _e( 'Comma-separated list of valid countries in ISO 3166-1 alpha-2 format. Use * for all countries.', 'smart-send-logistics' ); ?>">[?]</a></th>
+								<th><?php _e( 'Method name', 'smart-send-logistics' ); ?> <a class="tips" data-tip="<?php _e( 'Method name to show on frontend', 'smart-send-logistics' ); ?>">[?]</a></th>
 							</tr>
 						</thead>
 						<tfoot>
@@ -302,6 +308,50 @@ class Smartsend_Logistics_PrimaryClass {
 									</tr>';
 				}
 			}
+			
+			// Create 'shipping class' and 'methods' dropdowns that is inserted when a new row is added
+			switch ($x->id) {
+				case 'smartsend_gls':
+					$methods = new Smartsend_Logistics_GLS();
+					$methodsData = $methods->get_methods();
+					break;
+				case 'smartsend_postdanmark':
+					$methods = new Smartsend_Logistics_PostDanmark();
+					$methodsData = $methods->get_methods();
+					break;
+				case 'smartsend_bring':
+					$methods = new Smartsend_Logistics_Bring();
+					$methodsData = $methods->get_methods();
+					break;
+				case 'smartsend_posten':
+					$methods = new Smartsend_Logistics_Posten();
+					$methodsData = $methods->get_methods();
+					break;
+				case 'smartsend_pickuppoints':
+					$methods = new Smartsend_Logistics_PickupPoints();
+					$methodsData = $methods->get_methods();
+					break;
+				default:
+					throw new Exception( __( 'Unknown carrier','smart-send-logistics') );
+			}
+			// Shipping method dropdown
+			$options = '';
+			foreach($methodsData as $key => $m){
+				$options .= '<option value="'.$key.'">'.$m.'</option>';
+			}
+			// Shipping class dropdown
+			$shipClass = '';
+			$shipclassArr = array();
+			$shipclassArr['all'] = 'All Shipping classes';
+			if ( WC()->shipping->get_shipping_classes() ) {
+				foreach ( WC()->shipping->get_shipping_classes() as $shipping_class ) {
+					$shipclassArr[$shipping_class->name] = $shipping_class->name;
+				}
+			}
+			$shipClass = '';
+			foreach($shipclassArr as $key => $m){
+				$shipClass .= '<option value="'.$key.'">'.$m.'</option>';
+			}		
 			?>
 						</tbody>
 					</table>
@@ -330,7 +380,7 @@ class Smartsend_Logistics_PrimaryClass {
 
 							// Remove row
 							jQuery('#<?php echo $x->id; ?>_table_rates').on( 'click', 'a.remove', function(){
-								var answer = confirm("<?php _e( 'Delete the selected rates?', RPTR_CORE_TEXT_DOMAIN ); ?>")
+								var answer = confirm("<?php _e( 'Delete the selected rates?', 'smart-send-logistics' ); ?>")
 									if (answer) {
 										jQuery('#<?php echo $x->id; ?>_table_rates table tbody tr th.check-column input:checked').each(function(i, el){
 										jQuery(el).closest('tr').remove();
