@@ -5,7 +5,7 @@ Plugin URI: http://smartsend.dk/integrationer/woocommerce
 Description: Table rate shipping methods with Post Danmark, GLS, SwipBox and Bring pickup points. Listed in a dropdown sorted by distance from shipping adress.
 Author: Smart Send ApS
 Author URI: http://www.smartsend.dk
-Version: 7.0.6
+Version: 7.0.7
 
 Copyright: (c) 2014 Smart Send ApS (email : kontakt@smartsend.dk)
 License: GNU General Public License v3.0

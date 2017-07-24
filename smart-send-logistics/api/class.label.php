@@ -57,7 +57,7 @@ class Smartsend_Logistics_Label{
 		$smartsendorder->setReceiver();
 		$smartsendorder->setSender();
 		$smartsendorder->setAgent();
-		$smartsendorder->setServices();
+		$smartsendorder->setService();
 		$smartsendorder->setParcels();
 
 		//All done. Add to request.

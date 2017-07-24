@@ -258,16 +258,16 @@ if ( ! class_exists( 'Smartsend_Logistics_Posten' ) ) {
 		 */
 		function get_methods(){
 			$shipping_methods = array(
-				'private'				=> 'private',
-				'privatehome'			=> 'privatehome',
-				'commercial'			=> 'commercial',
-                'valuemail'				=> 'valuemail',
-				'valuemailfirstclass'	=> 'valuemailfirstclass',
-				'valuemaileconomy'		=> 'valuemaileconomy',
-				'maximail'				=> 'maximail'
+				'private'				=> 'Private',
+				'privatehome'			=> 'Private to home',
+				'commercial'			=> 'Commercial',
+                'valuemail'				=> 'Valuemail',
+				'valuemailfirstclass'	=> 'Valuemail first class',
+				'valuemaileconomy'		=> 'Valuemail economy',
+				'maximail'				=> 'Maximail'
 				);
 			if(function_exists('is_plugin_active') && !is_plugin_active( 'vc_pdk_allinone/vc_pdk_allinone.php')) {
-				$shipping_methods = array_merge(array('pickup' => 'pickup'),$shipping_methods);
+				$shipping_methods = array_merge(array('pickup' => 'Pickup'),$shipping_methods);
 			}
 			
 			return $shipping_methods;

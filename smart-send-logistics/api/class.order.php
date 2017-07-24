@@ -26,7 +26,7 @@ try{
 	$order->setReceiver();
 	$order->setSender();
 	$order->setAgent();
-	$order->setServices();
+	$order->setService();
 	$order->setParcels();
 	
 	//All done. Add to request.
@@ -44,7 +44,7 @@ class Smartsend_Logistics_Order {
 	private $_receiver;
 	private $_sender;
 	private $_agent;
-	private $_services;
+	private $_service;
 	private $_parcels = array();
 	private $_return = false;
 	private $_test = false;
@@ -142,7 +142,7 @@ class Smartsend_Logistics_Order {
 	*/
 	private function isSmartsend() {
 	
-		$method = strtolower($this->getShippingName());
+		$method = strtolower($this->getShippingCarrierId());
 	
 		//Check if shipping methode starts with 'smartsend'
 		if(substr($method, 0, strlen('smartsend')) === 'smartsend') {
@@ -160,7 +160,7 @@ class Smartsend_Logistics_Order {
 	*/
 	private function isVconnect() {
 	
-		$method = strtolower($this->getShippingName());
+		$method = strtolower($this->getShippingCarrierId());
 	
 		//Check if shipping methode starts with 'vconnect' or 'vc'
 		if(substr($method, 0, strlen('vconnect')) === 'vconnect') {
@@ -181,7 +181,7 @@ class Smartsend_Logistics_Order {
 	private function isPickupSmartsend() {
 	
 		if($this->isSmartsend() == true) {
-			$method = strtolower($this->getShippingName());
+			$method = $this->getShippingMethod();
 	
 			//Check if shipping methode ends with 'pickup'
 			if(substr($method, -strlen('pickup')) === 'pickup') {
@@ -203,12 +203,10 @@ class Smartsend_Logistics_Order {
 	private function isPickupVconnect() {
 	
 		if($this->isVconnect() == true) {
-			$method = strtolower($this->getShippingName());
+			$method = $this->getShippingMethod();
 	
 			//Check if shipping methode ends with 'pickup'
 			if(substr($method, -strlen('pickup')) === 'pickup') {
-				return true;
-			}elseif(substr($method, -strlen('bestway')) === 'bestway') {
 				return true;
 			} else {
 				return false;
@@ -254,7 +252,7 @@ class Smartsend_Logistics_Order {
 		*/	
 		private function getPickupDataVconnect() {
 		
-			$billing_address = $this->getBillingAddress();
+			$billing_address = $this->getShippingAddress();
 	
 			$pacsoftServicePoint 		= str_replace(' ', '', $billing_address['address2']); 	//remove spaces
 			$pacsoftServicePointArray 	= explode(":",$pacsoftServicePoint); 			//devide into a array by :
@@ -367,6 +365,7 @@ class Smartsend_Logistics_Order {
 	*/
 	private function renameShipping($shipping_id) {
 		
+		$shipping_id = strtolower($shipping_id);
 		$carrier_raw = null;
 	
 		// Carrier
@@ -388,23 +387,23 @@ class Smartsend_Logistics_Order {
 			} elseif(substr($shipping_id, 0, strlen('smartsendposten')) === 'smartsendposten' || substr($shipping_id, 0, strlen('smartsend_posten')) === 'smartsend_posten') {
 				$carrier = 'posten';
 				$carrier_raw = 'smartsendposten';
-			} elseif(substr($shipping_id, 0, strlen('vconnect_postnord')) === 'vconnect_postnord') {
+			} elseif(substr($shipping_id, 0, strlen('vconnect_postnord')) === 'vconnect_postnord' || substr($shipping_id, 0, strlen('vc_postnord')) === 'vc_postnord') {
 				$carrier = 'postdanmark';
-				$carrier_raw = 'smartsendpostdanmark';
-			} elseif(substr($shipping_id, 0, strlen('vconnect_postdanmark')) === 'vconnect_postdanmark') {
+				$carrier_raw = 'vconnectpostdanmark';
+			} elseif(substr($shipping_id, 0, strlen('vconnect_postdanmark')) === 'vconnect_postdanmark' || substr($shipping_id, 0, strlen('vc_postdanmark')) === 'vc_postdanmark') {
 				$carrier = 'postdanmark';
-				$carrier_raw = 'smartsendpostdanmark';
-			} elseif(substr($shipping_id, 0, strlen('vconnect_posten')) === 'vconnect_posten') {
+				$carrier_raw = 'vconnectpostdanmark';
+			} elseif(substr($shipping_id, 0, strlen('vconnect_posten')) === 'vconnect_posten' || substr($shipping_id, 0, strlen('vc_posten')) === 'vc_posten') {
 				$carrier = 'posten';
-				$carrier_raw = 'smartsendposten';
-			} elseif(substr($shipping_id, 0, strlen('vconnect_gls')) === 'vconnect_gls') {
+				$carrier_raw = 'vconnectposten';
+			} elseif(substr($shipping_id, 0, strlen('vconnect_gls')) === 'vconnect_gls' || substr($shipping_id, 0, strlen('vc_gls')) === 'vc_gls') {
 				$carrier = 'gls';
-				$carrier_raw = 'smartsendgls';
-			} elseif(substr($shipping_id, 0, strlen('vconnect_bring')) === 'vconnect_bring') {
+				$carrier_raw = 'vconnectgls';
+			} elseif(substr($shipping_id, 0, strlen('vconnect_bring')) === 'vconnect_bring' || substr($shipping_id, 0, strlen('vc_bring')) === 'vc_bring') {
 				$carrier = 'bring';
-				$carrier_raw = 'smartsendbring';
+				$carrier_raw = 'vconnectbring';
 			} else {
-				throw new Exception( "Unsupported carrier <" .$shipping_id. ">" );
+				throw new Exception( "Unsupported carrier: " .$shipping_id );
 			}
 	
 		// Method
@@ -418,6 +417,12 @@ class Smartsend_Logistics_Order {
 				$method = 'commercial';
 			} elseif(substr($shipping_id, -strlen('express')) === 'express') {
 				$method = 'express';
+			} elseif(substr($shipping_id, -strlen('privatesamsending')) === 'privatesamsending') {
+				$method = 'privatesamsending';
+			} elseif(substr($shipping_id, -strlen('privatepriority')) === 'privatepriority') {
+				$method = 'privatepriority';
+			} elseif(substr($shipping_id, -strlen('privateeconomy')) === 'privateeconomy') {
+				$method = 'privateeconomy';
 			} elseif(substr($shipping_id, -strlen('dpdclassic')) === 'dpdclassic') {
 				$method = 'dpdclassic';
 			} elseif(substr($shipping_id, -strlen('dpdguarantee')) === 'dpdguarantee') {
@@ -438,6 +443,16 @@ class Smartsend_Logistics_Order {
 				$method = 'commercial_bulksplit';
 			} elseif(substr($shipping_id, -strlen('bestway')) === 'bestway') {
 				$method = 'pickup';
+			} elseif(substr($shipping_id, -strlen('postdanmark')) === 'postdanmark') {
+				$method = 'pickup';
+			} elseif(substr($shipping_id, -strlen('posten')) === 'posten') {
+				$method = 'pickup';
+			} elseif(substr($shipping_id, -strlen('postnord')) === 'postnord') {
+				$method = 'pickup';
+			} elseif(substr($shipping_id, -strlen('bring')) === 'bring') {
+				$method = 'pickup';
+			} elseif(substr($shipping_id, -strlen('gls')) === 'gls') {
+				$method = 'pickup';
 			} else {
 				throw new Exception('Uanble to determine shipping method.' );
 			}
@@ -448,6 +463,7 @@ class Smartsend_Logistics_Order {
 	/**
 	* 
 	* Get shipping carrier
+	* Example: 'postdanmark'
 	* @return string
 	*/
 	public function getShippingCarrier() {
@@ -465,6 +481,7 @@ class Smartsend_Logistics_Order {
 	/**
 	* 
 	* Get shipping method
+	* Example: 'pickup'
 	* @return string
 	*/
 	public function getShippingMethod() {
@@ -481,6 +498,7 @@ class Smartsend_Logistics_Order {
 	/**
 	* 
 	* Get shipping name/id
+	* Example: 'smartsendpostdanmark_pickup'
 	* @return string
 	*/
 	public function getShippingName() {
@@ -498,6 +516,7 @@ class Smartsend_Logistics_Order {
 	/**
 	* 
 	* Get raw carrier name/id
+	* Example: 'smartsendpostdanmark' or 'vconnectpostdanmark'
 	* @return string
 	*/
 	public function getShippingCarrierId() {
@@ -514,7 +533,9 @@ class Smartsend_Logistics_Order {
 	
 	/**
 	* 
-	* Get data about 0: shipping carrier, 1: shipping method, 2: shipping name/id
+	* Get data about 0: shipping carrier, 1: shipping method, 2: shipping name/id, 3: Carrier raw
+	* Magento example
+	*	0: gls, 1: pickup, 2: smartsendpostdanmark_pickup, 3: smartsendpostdanmark
 	* @return array
 	*/
 	private function getShippingInfo() {
@@ -681,11 +702,11 @@ class Smartsend_Logistics_Order {
 	
 		if($this->isSmartSend() == true) {
 			$this->_receiver = $this->getShippingAddress();
-		} elseif($this->isVconnect == true) {
+		} elseif($this->isVconnect() == true) {
 			$this->_receiver = $this->getBillingAddress();
 		} else {
 			//Change this code for each CMS system
-			throw new Exception('Unable to set receiver.');
+			throw new Exception('Unable to set receiver');
 		}
 	
 	}
@@ -769,7 +790,7 @@ class Smartsend_Logistics_Order {
 	* 
 	* Set the services that is used for the order
 	*/
-	public function setServices() {
+	public function setService() {
 	
 		$settings = $this->getSettingsCarrier();
 		

@@ -259,15 +259,18 @@ if ( ! class_exists( 'Smartsend_Logistics_PostDanmark' ) ) {
 		 */
 		function get_methods(){
 			$shipping_methods = array(
-				'private'		=> 'private',
-				'privatehome'	=> 'privatehome',
-				'commercial'	=> 'commercial',
-				'dpdclassic'	=> 'dpdclassic',
-                'dpdguarantee'	=> 'dpdguarantee',
-				'valuemail'		=> 'valuemail'
+				'private'				=> 'Private',
+				'privatehome'			=> 'Private to home',
+				'commercial'			=> 'Commercial',
+				'dpdclassic'			=> 'DPD classic',
+                'dpdguarantee'			=> 'DPD guarantee',
+				'valuemail'				=> 'Valuemail',
+				'privatesamsending' 	=> 'Private samsending',
+            	'privatepriority'		=> 'Private priority',
+            	'privateeconomy'		=> 'Private economy'
 				);
 			if(function_exists('is_plugin_active') && !is_plugin_active( 'vc_pdk_allinone/vc_pdk_allinone.php')) {
-				$shipping_methods = array_merge(array('pickup' => 'pickup'),$shipping_methods);
+				$shipping_methods = array_merge(array('pickup' => 'Pickup'),$shipping_methods);
 			}
 			
 			return $shipping_methods;
