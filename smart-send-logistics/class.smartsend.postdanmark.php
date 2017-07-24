@@ -6,8 +6,8 @@
  * and open the template in the editor.
  */
 
-if ( ! class_exists( 'Smartsend_Logistics_PostDanmark' ) ) {
-	class Smartsend_Logistics_PostDanmark extends WC_Shipping_Method {
+if ( ! class_exists( 'Smartsend_Logistics_Postdanmark' ) ) {
+	class Smartsend_Logistics_Postdanmark extends WC_Shipping_Method {
 	
 		public $PrimaryClass ;
 		
@@ -16,9 +16,9 @@ if ( ! class_exists( 'Smartsend_Logistics_PostDanmark' ) ) {
 	 	*/
 		public function __construct() {
 			$this->id                 	= 'smartsend_postdanmark'; 
-			$this->method_title       	= __( 'PostDanmark','smart-send-logistics');  
+			$this->method_title       	= __( 'Post Danmark','smart-send-logistics');  
 			
-			$this->method_description 	= __( 'PostDanmark','smart-send-logistics');
+			$this->method_description 	= __( 'This shipping method may only be used if a valid Smart Send license is purchased. Please see <a href="http://www.smartsend.dk" target="_blank">Smart Send</a> for further information.','smart-send-logistics');
 			$this->table_rate_option    = 'PostDanmark_table_rate';
 			$this->PrimaryClass 		= new Smartsend_Logistics_PrimaryClass();
 			
@@ -38,7 +38,7 @@ if ( ! class_exists( 'Smartsend_Logistics_PostDanmark' ) ) {
 			$this->enabled					= $this->get_option( 'enabled' );
 	  		$this->title 					= $this->get_option( 'title' );
 			$this->cheap_expensive 			= $this->get_option( 'cheap_expensive' );
-			$this->tax_status   			= $this->get_option( 'tax_status' );
+			$this->tax_status   			= 'taxable';
 			$this->format   				= $this->get_option( 'format' );
 			$this->quickid   				= $this->get_option( 'quickid' );
 			$this->waybillid   				= $this->get_option( 'waybillid' );
@@ -79,24 +79,24 @@ if ( ! class_exists( 'Smartsend_Logistics_PostDanmark' ) ) {
 		public function init_form_fields() {
 			$this->form_fields = array(
 				'enabled' 			=> array(
-					'title' 			=> __( 'Enable/Disable','smart-send-logistics'),
+					'title' 			=> __( 'Enabled','smart-send-logistics'),
 					'type' 				=> 'checkbox',
-					'label' 			=> __( 'Enable this shipping method','smart-send-logistics'),
+					'label' 			=> __( 'Enable the shipping methods from the table','smart-send-logistics'),
 					'default' 			=> 'no'
 				),
 				'title' 			=> array(
 					'title' 			=> __( 'Carrier title','smart-send-logistics'),
 					'type' 				=> 'text',
-					'description' 		=> __( 'This controls the title which the user sees during checkout','smart-send-logistics'),
-					'default'			=> __( 'PostDanmark','smart-send-logistics'),
+					'description' 		=> __( 'Carrier title shown in frontend at customer checkout','smart-send-logistics'),
+					'default'			=> __( 'Post Danmark','smart-send-logistics'),
 					'desc_tip'			=> true,
 				),
 				'domestic_shipping_table' => array(
 					'type'      	=> 'shipping_table'
 				),
 				'cheap_expensive' 	=> array(
-					'title'    			=> __( 'Cheapest or most expensive','smart-send-logistics'),
-					'description'     	=> __( 'This controls cheapest or most expensive on the frontend','smart-send-logistics'),
+					'title'    			=> __( 'Handle multiple rates for same shipping method','smart-send-logistics'),
+					'description'     	=> __( 'If multiple rates are valid for the same method, use either the cheapest or the most expensive rate','smart-send-logistics'),
 					'default'  			=> 'cheapest',
 					'type'     			=> 'select',
 					'class'         	=> 'wc-enhanced-select',
@@ -105,85 +105,88 @@ if ( ! class_exists( 'Smartsend_Logistics_PostDanmark' ) ) {
 						'expensive' 		=> __( 'Most expensive','smart-send-logistics'),
 					)
 				),
-				'tax_status' 		=> array(
-					'title' 			=> __( 'Tax Status', 'woocommerce' ),
-					'type'      		=> 'select',
-					'class'         	=> 'wc-enhanced-select',
-					'default'   		=> 'taxable',
-					'options'   		=> array(
-						'taxable' 			=> __( 'Taxable','woocommerce'),
-						'none' 				=> _x( 'None', 'Tax status', 'woocommerce' )
-					),
+				'exclude_tax' 		=> array(
+					'title' 			=> __( 'Exclude from TAX', 'woocommerce' ),
+					'description'		=> __('Excluded private shipping methods to Denmark from TAX','smart-send-logistics'),
+					'type'      		=> 'checkbox',
+					'default'   		=> 'yes',
+					'desc_tip'			=> true,
 				),
 				'format' 	=> array(
-					'title'    			=> __( 'Format','smart-send-logistics'),
-					'description'     	=> __( 'Create a Pacsoft link or a pdf file','smart-send-logistics'),
+					'title'    			=> __( 'Label format','smart-send-logistics'),
 					'default'  			=> 'pdf',
 					'type'     			=> 'select',
 					'class'         	=> 'wc-enhanced-select',
 					'options'  			=> array(
 						'pdf'      			=> __( 'PDF file','smart-send-logistics'),
-						'link'      		=> __( 'Pacosft Online link','smart-send-logistics'),
+						'link'      		=> __( 'Pacsoft link','smart-send-logistics'),
 					)
 				),
 				'quickid' 			=> array(
 					'title' 			=> __( 'Pacsoft QuickID','smart-send-logistics'),
+					'description'		=> __('ID of the Pacsoft sender appearing on the label','smart-send-logistics'),
 					'type' 				=> 'text',
 					'default'			=> '1',
 					'desc_tip'			=> true,
 				),
 				'waybillid' 			=> array(
 					'title' 			=> __( 'Waybill ID','smart-send-logistics'),
-					'description'     	=> __( 'Either just an id or a semicolon separated list of "country,id" (* is all countries). Eg: SE,123;NO,321;*,44','smart-send-logistics'),
+					'description'     	=> __( "Either just an id or a semicolon separated list of 'country,id' (* is all countries). Eg: SE,123;NO,321;*,44",'smart-send-logistics'),
 					'type' 				=> 'text',
 					'default'			=> '',
 					'desc_tip'			=> true,
 				),
 				'notemail' 	=> array(
 					'title'    			=> __( 'Email notification','smart-send-logistics'),
-					'description'     	=> __( 'Send an email with info about delivery','smart-send-logistics'),
+					'description'     	=> __( 'Send an email to the customer with info about delivery','smart-send-logistics'),
 					'type' 				=> 'checkbox',
 					'label' 			=> __( 'Enable','smart-send-logistics'),
 					'default' 			=> 'yes'
 				),
 				'notesms' 	=> array(
 					'title'    			=> __( 'SMS notification','smart-send-logistics'),
-					'description'     	=> __( 'Send an SMS with info about delivery','smart-send-logistics'),
+					'description'     	=> __( 'Send a SMS to the customer with info about delivery','smart-send-logistics'),
 					'type' 				=> 'checkbox',
 					'label' 			=> __( 'Enable','smart-send-logistics'),
 					'default' 			=> 'yes'
 				),
 				'prenote' 	=> array(
-					'title'    			=> __( 'Pre notification','smart-send-logistics'),
-					'description'     	=> __( 'Send an email with info about delivery as soon as the label is created','smart-send-logistics'),
+					'title'    			=> __( 'Pre-notification','smart-send-logistics'),
+					'description'     	=> __( 'Send and email with info about delivery at soon as a label is created','smart-send-logistics'),
 					'type' 				=> 'checkbox',
 					'label' 			=> __( 'Enable','smart-send-logistics'),
 					'default' 			=> 'no'
 				),
 				'prenote_receiver' 	=> array(
-					'title'    			=> __( 'Pre notification receiver','smart-send-logistics'),
-					'description'     	=> __( 'Receivers email address. Leave blank if receiver should be the user.','smart-send-logistics'),
+					'title'    			=> __( 'Pre-notification receiver','smart-send-logistics'),
+					'description'     	=> __( 'Leave blank if receiver should be the user','smart-send-logistics'),
 					'type' 				=> 'text',
 					'default'			=> '',
 					'desc_tip'			=> true,
 				),
 				'prenote_sender' 	=> array(
 					'title'    			=> __( 'Pre notification sender','smart-send-logistics'),
-					'description'     	=> __( 'Senders email address','smart-send-logistics'),
 					'type' 				=> 'text',
 					'default'			=> '',
 					'desc_tip'			=> true,
 				),
 				'prenote_message' 	=> array(
-					'title'    			=> __( 'Pre notification message','smart-send-logistics'),
-					'description'     	=> __( 'Email message','smart-send-logistics'),
-					'type' 				=> 'text',
+					'title'    			=> __( 'Pre-notification message','smart-send-logistics'),
+					'type' 				=> 'textarea',
 					'default'			=> '',
 					'desc_tip'			=> true,
 				),
+				'flexdelivery' 	=> array(
+					'title'    			=> __( 'Flex delivery','smart-send-logistics'),
+					'description'     	=> __( 'Enable flex delivery for the selected shipping methods','smart-send-logistics'),
+					'default'  			=> $this->get_default_shipping_methods_flexdelivery(),
+					'type'     			=> 'multiselect',
+					'class'         	=> 'wc-enhanced-select',
+					'options'  			=> $this->get_methods(),
+				),
 				'return' 	=> array(
-					'title'    			=> __( 'Return shipping method','smart-send-logistics'),
-					'description'     	=> __( 'Method used for return labels','smart-send-logistics'),
+					'title'    			=> __( 'Return method','smart-send-logistics'),
+					'description'     	=> __( 'Determines what carrier handles return packages','smart-send-logistics'),
 					'default'  			=> 'postdanmark',
 					'type'     			=> 'select',
 					'class'         	=> 'wc-enhanced-select',
@@ -305,7 +308,7 @@ if ( ! class_exists( 'Smartsend_Logistics_PostDanmark' ) ) {
 					'maxwO' 		=> '100000',
 					'shippingO' 	=> 50.00,
 					'country' 		=> 'DK',
-					'method_name' 	=> __('Delivered to door','smart-send-logistics'),
+					'method_name' 	=> __('Private to home','smart-send-logistics'),
 					),
 				array(
 					'class'			=> 'all',
@@ -316,7 +319,7 @@ if ( ! class_exists( 'Smartsend_Logistics_PostDanmark' ) ) {
 					'maxwO' 		=> '100000',
 					'shippingO' 	=> 10.00,
 					'country' 		=> 'DK',
-					'method_name' 	=> __('Delivered to door','smart-send-logistics'),
+					'method_name' 	=> __('Private to home','smart-send-logistics'),
 					),
 				array(
 					'class'			=> 'all',
@@ -327,7 +330,7 @@ if ( ! class_exists( 'Smartsend_Logistics_PostDanmark' ) ) {
 					'maxwO' 		=> '100000',
 					'shippingO' 	=> 90.00,
 					'country' 		=> 'SE,NO,FI',
-					'method_name' 	=> __('Delivered to door','smart-send-logistics'),
+					'method_name' 	=> __('Private to home','smart-send-logistics'),
 					),
 				array(
 					'class'			=> 'all',
@@ -338,7 +341,7 @@ if ( ! class_exists( 'Smartsend_Logistics_PostDanmark' ) ) {
 					'maxwO' 		=> '100000',
 					'shippingO' 	=> 50.00,
 					'country' 		=> 'SE,NO,FI',
-					'method_name' 	=> __('Delivered to door','smart-send-logistics'),
+					'method_name' 	=> __('Private to home','smart-send-logistics'),
 					),
 				array(
 					'class'			=> 'all',
@@ -349,7 +352,7 @@ if ( ! class_exists( 'Smartsend_Logistics_PostDanmark' ) ) {
 					'maxwO' 		=> '3',
 					'shippingO' 	=> 300.00,
 					'country' 		=> 'FO,GL',
-					'method_name' 	=> __('Delivered to door','smart-send-logistics'),
+					'method_name' 	=> __('Private to home','smart-send-logistics'),
 					),
 				array(
 					'class'			=> 'all',
@@ -360,7 +363,7 @@ if ( ! class_exists( 'Smartsend_Logistics_PostDanmark' ) ) {
 					'maxwO' 		=> '10',
 					'shippingO' 	=> 400.00,
 					'country' 		=> 'FO,GL',
-					'method_name' 	=> __('Delivered to door','smart-send-logistics'),
+					'method_name' 	=> __('Private to home','smart-send-logistics'),
 					),
 				array(
 					'class'			=> 'all',
@@ -371,7 +374,7 @@ if ( ! class_exists( 'Smartsend_Logistics_PostDanmark' ) ) {
 					'maxwO' 		=> '20',
 					'shippingO' 	=> 500.00,
 					'country' 		=> 'FO,GL',
-					'method_name' 	=> __('Delivered to door','smart-send-logistics'),
+					'method_name' 	=> __('Private to home','smart-send-logistics'),
 					)
 				);	
 		}
@@ -391,27 +394,55 @@ if ( ! class_exists( 'Smartsend_Logistics_PostDanmark' ) ) {
 		 * get_methods function.
 		 *
 		 * @access public
-		 * @return void
+		 * @return array
 		 */
 		function get_methods(){
 			$shipping_methods = array(
-				'private'				=> 'Private',
-				'privatehome'			=> 'Private to home',
-				'commercial'			=> 'Commercial',
-				'dpdclassic'			=> 'DPD classic',
-                'dpdguarantee'			=> 'DPD guarantee',
-				'valuemail'				=> 'Valuemail',
-				'privatesamsending' 	=> 'Private samsending',
-            	'privatepriority'		=> 'Private priority',
-            	'privateeconomy'		=> 'Private economy',
-            	'lastmile'				=> 'Last mile',
-            	'businesspriority'		=> 'Business priority'
+				'pickup'				=> __( 'Pickuppoint', 'smart-send-logistics'),
+				'private'				=> __( 'Private', 'smart-send-logistics'),
+				'privatehome'			=> __( 'Private to home', 'smart-send-logistics'),
+				'commercial'			=> __( 'Commercial', 'smart-send-logistics'),
+				'dpdclassic'			=> __( 'DPD Classic', 'smart-send-logistics'),
+                'dpdguarantee'			=> __( 'DPD Guarantee', 'smart-send-logistics'),
+				'valuemail'				=> __( 'Value mail', 'smart-send-logistics'),
+				'privatesamsending' 	=> __( 'Private collective', 'smart-send-logistics'),
+            	'privatepriority'		=> __( 'Private priority', 'smart-send-logistics'),
+            	'privateeconomy'		=> __( 'Private economy', 'smart-send-logistics'),
+            	'lastmile'				=> __( 'Service Logistics', 'smart-send-logistics'),
+            	'businesspriority'		=> __( 'Commercial priority', 'smart-send-logistics'),
 				);
-			if(function_exists('is_plugin_active') && !is_plugin_active( 'vc_pdk_allinone/vc_pdk_allinone.php')) {
-				$shipping_methods = array_merge(array('pickup' => 'Pickup'),$shipping_methods);
+			if(function_exists('is_plugin_active') && is_plugin_active( 'vc_pdk_allinone/vc_pdk_allinone.php')) {
+				unset($shipping_methods['pickup']);
 			}
 			
 			return $shipping_methods;
+		}
+		
+		/**
+		 * get_default_shipping_methods_flexdelivery function.
+		 *
+		 * @access public
+		 * @return array
+		 */
+		function get_default_shipping_methods_flexdelivery(){
+			$shipping_methods = array('lastmile');
+			
+			return $shipping_methods;
+		}
+		
+		/**
+		 * get_shipping_methods_excluded_from_tax function.
+		 *
+		 * @access public
+		 * @return array
+		 */
+		function get_shipping_methods_excluded_from_tax() {
+			return array(
+				'pickup',
+				'private',
+				'privatehome',
+				'privatepriority',
+				'valuemail');
 		}
 
 	}

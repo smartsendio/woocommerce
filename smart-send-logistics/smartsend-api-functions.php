@@ -8,23 +8,6 @@
 
 /******************************** API FUNCTIONS *********************************************/
 	function Smartsend_Logistics_API_Call($carrier,$address_1,$address_2,$city,$zip,$country){
-		switch ($carrier) {
-			case 'posten':
-				$WS_carrier = new Smartsend_Logistics_Posten();
-				break;
-			case 'gls':
-				$WS_carrier = new Smartsend_Logistics_GLS();
-				break;
-			case 'postdanmark':
-				$WS_carrier = new Smartsend_Logistics_PostDanmark();
-				break;
-			case 'bring':
-				$WS_carrier = new Smartsend_Logistics_Bring();
-				break;
-			default:
-				$WS_carrier = new Smartsend_Logistics_PickupPoints();
-				break;
-		}
 		
 		$pickup_points = json_decode(Smartsend_Logistics_API_Find_Nearest($carrier,$address_1,$address_2,$city,$zip,$country),true);
 					
@@ -43,7 +26,7 @@
 	
 	}
 	
-	function wpbo_get_woo_version_number() {
+	function Smartsend_Logistics_wpbo_get_woo_version_number() {
 			// If get_plugins() isn't available, require it
 		if ( ! function_exists( 'get_plugins' ) )
 			require_once( ABSPATH . 'wp-admin/includes/plugin.php' );
@@ -62,13 +45,19 @@
 		}
 	}
 	
-	function Smartsend_Logistics_API_Find_Nearest($carrier,$address_1,$address_2,$city,$zip,$country) {
-        if ( ! function_exists( 'get_plugin_data' ) ) {
+	function Smartsend_Logistics_get_app_version_number() {
+		if ( ! function_exists( 'get_plugin_data' ) ) {
 			require_once( ABSPATH . 'wp-admin/includes/plugin.php' );
 		}
 		$plugin_info = get_plugin_data(__DIR__ . '/woocommerce-smartsend-logistics.php', $markup = true, $translate = true );
+		
+		return $plugin_info["Version"];
+	}
 	
-		$url = "https://smartsend-prod.apigee.net/v7/pickup/";
+	function Smartsend_Logistics_API_Find_Nearest($carrier,$address_1,$address_2,$city,$zip,$country) {
+        
+	
+		$url = "http://smartsend-prod.apigee.net/v7/pickup/";
 		$url .= $carrier.'?'.http_build_query(array(
 			'street' 		=> $address_1.($address_2 =! '' ? ' ' : '').$address_2,
 			'city' 			=> $city,
@@ -82,12 +71,16 @@
 		curl_setopt($ch, CURLOPT_URL, $url);             //curl url
 		curl_setopt($ch, CURLOPT_HTTPGET, true);            //curl request method
 		curl_setopt($ch, CURLOPT_HTTPHEADER, array(
-			'apikey:N5egWgckXdb4NhV3bTzCAKB26ou73nJm',
-			'smartsendmail:'.get_option( 'smartsend_logistics_username', 1 ),
-			'smartsendlicence:'.get_option( 'smartsend_logistics_licencekey', 1 ),
+        	'apikey:N5egWgckXdb4NhV3bTzCAKB26ou73nJm',
+        	'smartsendmail:'.get_option( 'smartsend_logistics_username', '' ),
+        	'smartsendlicence:'.get_option( 'smartsend_logistics_licencekey', '' ),
         	'cmssystem:WooCommerce',
-        	'cmsversion:'.wpbo_get_woo_version_number(),
-        	'appversion:'.$plugin_info["Version"]
+        	'cmsversion:'.Smartsend_Logistics_wpbo_get_woo_version_number(),
+        	'appversion:'.Smartsend_Logistics_get_app_version_number(),
+        	'test:false',
+        	//'Content-Type:application/json; charset=UTF-8', //THIS LINE CAUSES AN ERROR
+        	"Accept: text/xml",
+        	'Accept-Language:'.str_replace("_","-",get_locale()),
 			)); 
 
 		curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
@@ -153,6 +146,38 @@
 		$ser = serialize($data);
 		$data['servicePointId'] = $ser;
 		return $data;
+	}
+	
+    function Smartsend_User_Validation($username,$licensekey) {
+		$ch = curl_init();
+
+        /* Script URL */
+        $url = 'http://smartsend-prod.apigee.net/v7/verify_user';
+
+        curl_setopt($ch, CURLOPT_URL, $url);               //curl url
+        curl_setopt($ch, CURLOPT_HTTPGET, true);               //curl request method
+        //curl_setopt($ch, CURLOPT_HEADER, false);
+        curl_setopt($ch, CURLOPT_HTTPHEADER, array(
+        	'apikey:yL18TETUVQ7E9pgVb6JeV1erIYHAMcwe',
+        	'smartsendmail:'.$username,
+        	'smartsendlicence:'.$licensekey,
+        	'cmssystem:WooCommerce',
+        	'cmsversion:'.Smartsend_Logistics_wpbo_get_woo_version_number(),
+        	'appversion:'.Smartsend_Logistics_get_app_version_number(),
+        	));    //curl request header
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+
+        $result = new StdClass();
+        $result->response = curl_exec($ch);                  //executing curl
+        $result->code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        $result->meta = curl_getinfo($ch);
+        curl_close($ch);               //curl closing
+        
+        if($result->code == 200) {
+			return true;
+        } else {
+            return false;
+        }         
 	}
 	
 /********************************END OF API FUNCTIONS *********************************************/

@@ -1,48 +1,69 @@
 <?php
 
 /**
- * Order class
+ * Smartsend_Logistics Order class
  *
  * Create order objects that is included in the final Smart Send label API callout.
  * These are the CMS dependent functions that is used by the order class.
  *
- * @class 		Smartsend_Logistics_Order_Woocommerce
- * @version		7.1.0
- * @author 		Smart Send
+ * LICENSE
  *
-
- 	// Order
-	public function getShippingId()
-	public function getPickupCarrier()
-	public function getOrderId()
-	public function getOrderReference()
-	public function getOrderPriceTotal()
-	public function getOrderPriceShipping()
-	public function getOrderPriceCurrency()
-	public function getCustomerComment()
-	public function getShippingAddress()
-	public function getBillingAddress()
-	public function getPickupDataSmartsend()
-	
-	// Settings
-	public function getSettingsPostdanmark()
-	public function getSettingsPosten()
-	public function getSettingsGls()
-	public function getSettingsBring()
- 
- 	// Shipments
- 	public function getShipments()
- 	public function getShipmentTrace($shipment)
-	public function getShipmentWeight($shipment)
-	protected function getUnshippedItems()
- 	protected function createShipment()
-	protected function addShipment($shipment)
- 	protected function addItem($item)
-	
+ * This source file is subject to the GNU General Public License v3.0
+ * that is bundled with this package in the file license.txt.
+ * It is also available through the world-wide-web at this URL:
+ * http://www.gnu.org/licenses/gpl-3.0.html
+ * If you did not receive a copy of the license and are unable to
+ * obtain it through the world-wide-web, please send an email
+ * to license@smartsend.dk so we can send you a copy immediately.
+ *
+ * DISCLAIMER
+ *
+ * Do not edit or add to this file if you wish to upgrade the plugin to newer
+ * versions in the future. If you wish to customize the plugin for your
+ * needs please refer to http://www.smartsend.dk
+ *
+ *
+ * @class		Smartsend_Logistics_Order_Woocommerce
+ * @folder		/api/class.order.woocommerce.php
+ * @category	Smartsend
+ * @package		Smartsend_Logistics
+ * @author		Smart Send
+ * @url			www.smartsend.dk
+ * @version		7.1.0
+ *
+ *	// Order
+ *	public function getShippingId()
+ *	public function getPickupCarrier()
+ *	public function getOrderId()
+ *	public function getOrderReference()
+ *	public function getOrderPriceTotal()
+ *	public function getOrderPriceShipping()
+ *	public function getOrderPriceCurrency()
+ *	public function getCustomerComment()
+ *	public function getShippingAddress()
+ *	public function getBillingAddress()
+ *	public function getPickupDataSmartsend()
+ *	public function getPickupDataVconnect()
+ *	public function getFlexDeliveryNote()
+ *	
+ *	// Settings
+ *	public function getSettingsPostdanmark()
+ *	public function getSettingsPosten()
+ *	public function getSettingsGls()
+ *	public function getSettingsBring()
+ *	protected function getSettingIncludeOrderComment
+ *
+ *	// Shipments
+ *	public function getShipments()
+ *	public function getShipmentTrace($shipment)
+ *	public function getShipmentWeight($shipment)
+ *	protected function getUnshippedItems()
+ *	protected function createShipment()
+ *	protected function addShipment($shipment)
+ *	protected function addItem($item)
+ *	
  */
  
- 
-
 class Smartsend_Logistics_Order_Woocommerce extends Smartsend_Logistics_Order {
 
 	protected $_errors;
@@ -60,14 +81,13 @@ class Smartsend_Logistics_Order_Woocommerce extends Smartsend_Logistics_Order {
 			2308	=>	__('Unknown shipping carrier','smart-send-logistics'),
 			2309	=>	__('Unable to determine shipping method','smart-send-logistics'),
 			// Order set
-			2401	=>	__('No parcels without trace code','smart-send-logistics'),
-			2402	=>	__('No unshipped items','smart-send-logistics'),
+			2401	=>	__('All packages has been shipped. No parcels without trace code exists. Remove existing tracecodes to re-generate labels.','smart-send-logistics'),
+			2402	=>	__('No items to ship','smart-send-logistics'),
 			2403	=>	__('No parcels to ship','smart-send-logistics'),
 			// Order get
 			2501	=>	__('Trying to access pickup data for an order that is not a pickup point order','smart-send-logistics')
 		);
 	}
-		
 
 /*****************************************************************************************
  * Order
@@ -94,7 +114,7 @@ class Smartsend_Logistics_Order_Woocommerce extends Smartsend_Logistics_Order {
 		}
 	
 		if($shipMethod_id == 'free_shipping') {
-			$shipMethod_id = get_option( 'smartsend_wc_shipping_free_shipping','free_shipping');
+			$shipMethod_id = get_option( 'smartsend_logistics_wc_shipping_free_shipping','free_shipping');
 		}
 	
 		return $shipMethod_id; //return unique id of shipping method
@@ -106,9 +126,10 @@ class Smartsend_Logistics_Order_Woocommerce extends Smartsend_Logistics_Order {
 	* Get carrier name based on the pickup information.
 	* Used if the shipping method is 'closest pickup point'
 	* @return string
+	* ## Depricted function ##
 	*/
 	public function getPickupCarrier() {
-	
+	/*
 		$store_pickup = get_post_custom($order->id);
 		$store_pickup = @unserialize($store_pickup['store_pickup'][0]);
 		if(!is_array($store_pickup)) $store_pickup = unserialize($store_pickup);
@@ -118,7 +139,7 @@ class Smartsend_Logistics_Order_Woocommerce extends Smartsend_Logistics_Order {
 		} else {
 			return null;
 		}
-	
+	*/
 	}
  
  	/**
@@ -139,7 +160,7 @@ class Smartsend_Logistics_Order_Woocommerce extends Smartsend_Logistics_Order {
 	*/
  	public function getOrderReference() {
  	
- 		return $this->_order->get_order_number();
+ 		return ltrim($this->_order->get_order_number(), '#');
  	
  	}
  	
@@ -151,6 +172,7 @@ class Smartsend_Logistics_Order_Woocommerce extends Smartsend_Logistics_Order {
  	public function getOrderPriceTotal() {
  	
 		return $this->_order->get_total();
+		
  	}
  	
  	/**
@@ -161,6 +183,7 @@ class Smartsend_Logistics_Order_Woocommerce extends Smartsend_Logistics_Order {
  	public function getOrderPriceShipping() {
  	
 		return $this->_order->get_total_shipping();
+		
 	}
  	
  	/**
@@ -171,6 +194,7 @@ class Smartsend_Logistics_Order_Woocommerce extends Smartsend_Logistics_Order {
  	public function getOrderPriceCurrency() {
  	
 		return $this->_order->get_order_currency();
+		
  	}
  	
  	/**
@@ -209,7 +233,7 @@ class Smartsend_Logistics_Order_Woocommerce extends Smartsend_Logistics_Order {
 			'sms'		=> $this->_order->billing_phone, // Billing used
 			'mail'		=> $this->_order->billing_email // Billing used
 			);
-				
+			
  	}
  	
  	/**
@@ -218,7 +242,7 @@ class Smartsend_Logistics_Order_Woocommerce extends Smartsend_Logistics_Order {
 	* @return array
 	*/
  	public function getBillingAddress() {
-
+ 	
 		return array(
 			'receiverid'=> ($this->_order->user_id != '' ? $this->_order->user_id : 'guest-'.rand(100000,999999)),
 			'company'	=> $this->_order->billing_company,
@@ -272,7 +296,111 @@ class Smartsend_Logistics_Order_Woocommerce extends Smartsend_Logistics_Order {
 		} else {
 			return null;
 		}
+		
+	}
+	
+	/**
+	* 
+	* Get pickup data for a vConnect delivery point
+	* @return array
+	*/	
+	public function getPickupDataVconnect() {
+		
+		$store_pickup = get_post_custom($this->_order->id);
+		
+		if(isset($store_pickup['_service_point_id'][0]) && $store_pickup['_service_point_id'][0] != '') {
+		
+			return array(
+				'id' 		=> (isset($store_pickup['_service_point_id'][0]) ? $store_pickup['_service_point_id'][0] : 0)."-".time()."-".rand(9999,10000),
+				'agentno'	=> (isset($store_pickup['_service_point_id'][0]) ? $store_pickup['_service_point_id'][0] : null),
+				'agenttype'	=> ($this->getShippingCarrier() == 'postdanmark' ? 'PDK' : null),
+				'company' 	=> (isset($store_pickup['_service_point_id_name'][0]) ? $store_pickup['_service_point_id_name'][0] : null),
+				'name1' 	=> null,
+				'name2' 	=> null,
+				'address1'	=> (isset($store_pickup['_service_point_id_address'][0]) ? $store_pickup['_service_point_id_address'][0] : null),
+				'address2' 	=> null,
+				'city'		=> (isset($store_pickup['_service_point_id_city'][0]) ? $store_pickup['_service_point_id_city'][0] : null),
+				'zip'		=> (isset($store_pickup['_service_point_id_postcode'][0]) ? $store_pickup['_service_point_id_postcode'][0] : null),
+				'country'	=> (isset($store_pickup['_service_point_id_country'][0]) ? $store_pickup['_service_point_id_country'][0] : null),
+				'sms' 		=> null,
+				'mail' 		=> null,
+				);
 
+		} else {
+			$billing_address = $this->getShippingAddress();
+
+			$pacsoftServicePoint 		= str_replace(' ', '', $billing_address['address2']); 	//remove spaces
+			$pacsoftServicePointArray 	= explode(":",$pacsoftServicePoint); 			//devide into a array by :
+
+			if ( isset($pacsoftServicePointArray) && ( strtolower($pacsoftServicePointArray[0]) == strtolower('ServicePointID') ) ||  strtolower($pacsoftServicePointArray[0]) == strtolower('Pakkeshop') ){
+				$pickupData = array(
+					'id' 		=> $pacsoftServicePointArray[1]."-".time()."-".rand(9999,10000),
+					'agentno'	=> $pacsoftServicePointArray[1],
+					'agenttype'	=> ($this->getShippingCarrier() == 'postdanmark' ? 'PDK' : null),
+					'company' 	=> $billing_address['company'],
+					'name1' 	=> $billing_address['name1'],
+					'name2' 	=> $billing_address['name2'],
+					'address1'	=> $billing_address['address1'],
+					'address2' 	=> null,
+					'city'		=> $billing_address['city'],
+					'zip'		=> $billing_address['zip'],
+					'country'	=> $billing_address['country'],
+					'sms' 		=> null,
+					'mail' 		=> null,
+					);
+		
+				return $pickupData;
+		
+			} else {
+				return null;
+			}
+		}
+		
+	}
+	
+	/**
+	* 
+	* Get the Flex delivery comment (where to place the parcel) from Mysql
+	* @return string / null
+	*/
+	public function getFlexDeliveryNote() {
+		if( $this->isSmartsend() ) {
+			//This is a Smart Send order
+			$post_custom = get_post_custom( $this->_order->id );
+			if( isset($post_custom['flexdelivery'][0]) && !empty($post_custom['flexdelivery'][0]) ){
+				return $post_custom['flexdelivery'][0];
+			} else {
+				return null;
+			}
+		} elseif( $this->isVconnect() ) {
+			//This is a vConnect order
+			$post_custom = get_post_custom( $this->_order->id );
+			if( isset($post_custom['_vc_aino_delivery_type'][0]) && !empty($post_custom['_vc_aino_delivery_type'][0]) ){
+				return $post_custom['_vc_aino_delivery_type'][0];
+			} else {
+				return null;
+			}
+		} else {
+			return null;
+		}
+	}
+	
+	/**
+	* 
+	* Get the start time for Smart Delivery from MySQL
+	* @return string / null
+	*/
+	public function getSmartDeliveryTimeStart() {
+		return null;
+	}
+	
+	/**
+	* 
+	* Get the end time for Smart Delivery from MySQL
+	* @return string / null
+	*/
+	public function getSmartDeliveryTimeEnd() {
+		return null;
 	}
 	
 /*****************************************************************************************
@@ -286,7 +414,7 @@ class Smartsend_Logistics_Order_Woocommerce extends Smartsend_Logistics_Order {
 	*/
 	public function getSettingsPostdanmark() {
 		
-		$postdanmark = new Smartsend_Logistics_PostDanmark();
+		$postdanmark = new Smartsend_Logistics_Postdanmark();
 		return array(
 			'notemail'			=> ($postdanmark->get_option( 'notemail','yes') == 'yes' ? true : null),
 			'notesms'			=> ($postdanmark->get_option( 'notesms','yes') == 'yes' ? true : null),
@@ -300,7 +428,7 @@ class Smartsend_Logistics_Order_Woocommerce extends Smartsend_Logistics_Order {
 			'waybillid'			=> $postdanmark->get_option( 'waybillid',''),
 			'return'			=> $postdanmark->get_option( 'return',''),
 			);
-
+			
 	}
 	
 	/**
@@ -324,7 +452,7 @@ class Smartsend_Logistics_Order_Woocommerce extends Smartsend_Logistics_Order {
 			'waybillid'			=> $posten->get_option( 'waybillid',''),
 			'return'			=> $posten->get_option( 'return',''),
 			);
-
+			
 	}
 	
 	/**
@@ -334,7 +462,7 @@ class Smartsend_Logistics_Order_Woocommerce extends Smartsend_Logistics_Order {
 	*/
 	public function getSettingsGls() {
 	
-		$gls = new Smartsend_Logistics_GLS();
+		$gls = new Smartsend_Logistics_Gls();
 		return array(
 			'notemail'			=> ($gls->get_option( 'notemail','yes') == 'yes' ? true : null),
 			'notesms'			=> ($gls->get_option( 'notesms','yes') == 'yes' ? true : null),
@@ -348,7 +476,7 @@ class Smartsend_Logistics_Order_Woocommerce extends Smartsend_Logistics_Order {
 			'waybillid'			=> null,
 			'return'			=> $gls->get_option( 'return',''),
 			);
-
+			
 	}
 	
 	/**
@@ -366,15 +494,24 @@ class Smartsend_Logistics_Order_Woocommerce extends Smartsend_Logistics_Order {
 			'prenote_from'		=> null,
 			'prenote_receiver'	=> null,
 			'prenote_message'	=> null,
-			'format'			=> null,
 			'flex'				=> null,
+			'format'			=> null,
 			'quickid'			=> null,
 			'waybillid'			=> null,
 			'return'			=> $bring->get_option( 'return',''),
 			);
-
+			
 	}
 	
+	/**
+	* 
+	* Should the order comment be included as freetext on label
+	*
+	* @return boolean
+	*/
+ 	protected function getSettingIncludeOrderComment() {
+ 		return get_option('smartsend_logistics_includeordercomment','1');
+ 	}
 	
 /*****************************************************************************************
  * Shipments
@@ -429,13 +566,13 @@ class Smartsend_Logistics_Order_Woocommerce extends Smartsend_Logistics_Order {
 			return null;
 		}
 	}
-
+	
 	/**
 	* 
 	* Get the unshipped items of the order
 	* @return array
 	*/
-	public function getUnshippedItems() {
+	protected function getUnshippedItems() {
 
 		$ordered_items = $this->_order->get_items();
 		foreach($ordered_items as $item) {
@@ -467,13 +604,13 @@ class Smartsend_Logistics_Order_Woocommerce extends Smartsend_Logistics_Order {
 		}
 
 	}
-
+	
 	/**
 	* 
 	* Create a parcel containing all unshipped items.
 	* Add the parcel to the request.
 	*/
-	public function createShipment() {
+	protected function createShipment() {
 
 		//create and object, $shipment, with all items
 		if ( sizeof( $this->_order->get_items() ) > 0 ) {
@@ -485,14 +622,14 @@ class Smartsend_Logistics_Order_Woocommerce extends Smartsend_Logistics_Order {
 				'width'		=> null,
 				'length'	=> null,
 				'size'		=> null,
-				'freetext1'	=> ($this->getCustomerCommentStringPositionsFlex() !== false ? $this->getFlexDeliverComment() : $this->getCustomerCommentTrimmed()),
+				'freetext1'	=> $this->getFreetext(),
 				'freetext2'	=> null,
 				'freetext3'	=> null,
 				'items' 	=> $this->getUnshippedItems()
 				);
 		} else {
 			//Order has no shipments and cannot be shipped
-			throw new Exception("No items that could be shipped");
+			throw new Exception($this->_errors[2402]);
 		}
 
 		/* All */
@@ -507,7 +644,7 @@ class Smartsend_Logistics_Order_Woocommerce extends Smartsend_Logistics_Order {
 	* 
 	* Add a shipment to the request
 	*/
-	public function addShipment($shipment) {
+	protected function addShipment($shipment) {
 	
 		$this->_parcels[] = $shipment;
 
@@ -518,7 +655,7 @@ class Smartsend_Logistics_Order_Woocommerce extends Smartsend_Logistics_Order {
 	* Format an item to be added to a parcel
 	* @return array
 	*/
-	public function addItem($item) {
+	protected function addItem($item) {
 
 		return array(
 			'sku'		=> $item->getSku(),

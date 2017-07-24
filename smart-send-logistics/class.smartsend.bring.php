@@ -18,7 +18,7 @@ if ( ! class_exists( 'Smartsend_Logistics_Bring' ) ) {
 			$this->id                 	= 'smartsend_bring'; 
 			$this->method_title       	= __( 'Bring','smart-send-logistics');
 			
-			$this->method_description 	= __( 'Bring','smart-send-logistics'); 				
+			$this->method_description 	= __( 'This shipping method may only be used if a valid Smart Send license is purchased. Please see <a href="http://www.smartsend.dk" target="_blank">Smart Send</a> for further information.','smart-send-logistics');
 			$this->table_rate_option  	= 'Bring_table_rate';
 			$this->PrimaryClass 		= new Smartsend_Logistics_PrimaryClass(); 
 			
@@ -38,7 +38,7 @@ if ( ! class_exists( 'Smartsend_Logistics_Bring' ) ) {
 	  		$this->enabled					= $this->get_option( 'enabled' );
 	  		$this->title 					= $this->get_option( 'title' );
 			$this->cheap_expensive 			= $this->get_option( 'cheap_expensive' );
-			$this->tax_status   			= $this->get_option( 'tax_status' );
+			$this->tax_status   			= 'taxable';
 			$this->notemail    				= $this->get_option( 'notemail' );
 			$this->notesms    				= $this->get_option( 'notesms' );
 			$this->return  					= $this->get_option( 'return' );
@@ -72,15 +72,15 @@ if ( ! class_exists( 'Smartsend_Logistics_Bring' ) ) {
 		public function init_form_fields() {
 			$this->form_fields = array(
 				'enabled' 		=> array(
-					'title' 		=> __( 'Enable/Disable','smart-send-logistics'),
+					'title' 			=> __( 'Enabled','smart-send-logistics'),
 					'type' 			=> 'checkbox',
-					'label' 		=> __( 'Enable this shipping method','smart-send-logistics'),
+					'label' 			=> __( 'Enable the shipping methods from the table','smart-send-logistics'),
 					'default' 		=> 'no'
 				),
 				'title' 		=> array(
 					'title' 		=> __( 'Carrier title','smart-send-logistics'),
 					'type' 			=> 'text',
-					'description' 	=> __( 'This controls the title which the user sees during checkout','smart-send-logistics'),
+					'description' 		=> __( 'Carrier title shown in frontend at customer checkout','smart-send-logistics'),
 					'default'		=> __( 'Bring','smart-send-logistics'),
 					'desc_tip'		=> true,
 				),
@@ -88,8 +88,8 @@ if ( ! class_exists( 'Smartsend_Logistics_Bring' ) ) {
 					'type'     		=> 'shipping_table'
 				),
 				'cheap_expensive' 	=> array(
-					'title'    			=> __( 'Cheapest or most expensive','smart-send-logistics'),
-					'description'     	=> __( 'This controls cheapest or most expensive on the frontend','smart-send-logistics'),
+					'title'    			=> __( 'Handle multiple rates for same shipping method','smart-send-logistics'),
+					'description'     	=> __( 'If multiple rates are valid for the same method, use either the cheapest or the most expensive rate','smart-send-logistics'),
 					'default' 			=> 'cheapest',
 					'type'     			=> 'select',
 					'class'         	=> 'wc-enhanced-select',
@@ -98,33 +98,23 @@ if ( ! class_exists( 'Smartsend_Logistics_Bring' ) ) {
 						'expensive' 		=> __( 'Most expensive','smart-send-logistics'),
 					)
 				),
-				'tax_status' 		=> array(
-					'title' 			=> __( 'Tax Status', 'woocommerce' ),
-					'type'      		=> 'select',
-					'class'         	=> 'wc-enhanced-select',
-					'default'   		=> 'taxable',
-					'options'   		=> array(
-						'taxable' 			=> __( 'Taxable','woocommerce'),
-						'none' 				=> _x( 'None', 'Tax status', 'woocommerce' )
-					),
-				),
 				'notemail' 	=> array(
 					'title'    			=> __( 'Email notification','smart-send-logistics'),
-					'description'     	=> __( 'Send an email with info about delivery','smart-send-logistics'),
+					'description'     	=> __( 'Send an email to the customer with info about delivery','smart-send-logistics'),
 					'type' 				=> 'checkbox',
 					'label' 			=> __( 'Enable','smart-send-logistics'),
 					'default' 			=> 'yes'
 				),
 				'notesms' 	=> array(
 					'title'    			=> __( 'SMS notification','smart-send-logistics'),
-					'description'     	=> __( 'Send an SMS with info about delivery','smart-send-logistics'),
+					'description'     	=> __( 'Send a SMS to the customer with info about delivery','smart-send-logistics'),
 					'type' 				=> 'checkbox',
 					'label' 			=> __( 'Enable','smart-send-logistics'),
 					'default' 			=> 'yes'
 				),
 				'return' 	=> array(
-					'title'    			=> __( 'Return shipping method','smart-send-logistics'),
-					'description'     	=> __( 'Method used for return labels','smart-send-logistics'),
+					'title'    			=> __( 'Return method','smart-send-logistics'),
+					'description'     	=> __( 'Determines what carrier handles return packages','smart-send-logistics'),
 					'default'  			=> 'postdanmark',
 					'type'     			=> 'select',
 					'class'         	=> 'wc-enhanced-select',
@@ -246,7 +236,7 @@ if ( ! class_exists( 'Smartsend_Logistics_Bring' ) ) {
 					'maxwO' 		=> '100000',
 					'shippingO' 	=> 50.00,
 					'country' 		=> 'DK',
-					'method_name' 	=> __('Delivered to door','smart-send-logistics'),
+					'method_name' 	=> __('Private to home','smart-send-logistics'),
 					),
 				array(
 					'class'			=> 'all',
@@ -257,7 +247,7 @@ if ( ! class_exists( 'Smartsend_Logistics_Bring' ) ) {
 					'maxwO' 		=> '100000',
 					'shippingO' 	=> 10.00,
 					'country' 		=> 'DK',
-					'method_name' 	=> __('Delivered to door','smart-send-logistics'),
+					'method_name' 	=> __('Private to home','smart-send-logistics'),
 					)
 				);	
 		}
@@ -281,19 +271,16 @@ if ( ! class_exists( 'Smartsend_Logistics_Bring' ) ) {
 		 */
 		function get_methods(){
 			$shipping_methods = array(
-				'private'				=> 'Private',
-				'privatehome'			=> 'Private to home',
-				'commercial'			=> 'Commercial',
-				'commercial_bulksplit'	=> 'Commercial Bulksplit',
-            	'private_bulksplit'		=> 'Private Bulksplit',
-            	'privatehome_bulksplit'	=> 'Privatehome Bulksplit',
-            	'express'				=> 'Express',
-            	'miniparcel'			=> 'Miniparcel'
-				
+				'pickup'				=> __( 'Pickuppoint', 'smart-send-logistics'),
+				'private'				=> __( 'Private', 'smart-send-logistics'),
+				'privatehome'			=> __( 'Private to home', 'smart-send-logistics'),
+				'commercial'			=> __( 'Commercial', 'smart-send-logistics'),
+				'commercial_bulksplit'	=> __( 'Commercial Bulksplit', 'smart-send-logistics'),
+            	'private_bulksplit'		=> __( 'Private Bulksplit', 'smart-send-logistics'),
+            	'privatehome_bulksplit'	=> __( 'Private to home Bulksplit', 'smart-send-logistics'),
+            	'express'				=> __( 'Express', 'smart-send-logistics'),
+            	'miniparcel'			=> __( 'Mini parcel', 'smart-send-logistics'),
 				);
-			if(function_exists('is_plugin_active') && !is_plugin_active( 'vc_pdk_allinone/vc_pdk_allinone.php')) {
-				$shipping_methods = array_merge(array('pickup' => 'Pickup'),$shipping_methods);
-			}
 			
 			return $shipping_methods;
 		}

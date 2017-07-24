@@ -1,23 +1,33 @@
 <?php
 
-require_once( WP_PLUGIN_DIR . '/woocommerce/includes/abstracts/abstract-wc-order.php' );
-require_once( WP_PLUGIN_DIR . '/woocommerce/includes/class-wc-order.php' );
-
-require_once( WP_PLUGIN_DIR . '/smart-send-logistics/class.smartsend.bring.php' );
-require_once( WP_PLUGIN_DIR . '/smart-send-logistics/class.smartsend.gls.php' );
-require_once( WP_PLUGIN_DIR . '/smart-send-logistics/class.smartsend.pickuppoints.php' );
-require_once( WP_PLUGIN_DIR . '/smart-send-logistics/class.smartsend.postdanmark.php' );
-require_once( WP_PLUGIN_DIR . '/smart-send-logistics/class.smartsend.posten.php' );
-
 /**
- * Order class
+ * Smartsend_Logistics Order class
  *
  * Create order objects that is included in the final Smart Send label API callout.
  *
- * @class 		Smartsend_Logistics_Order
- * @version		7.1.0
- * @author 		Smart Send
+ * LICENSE
  *
+ * This source file is subject to the GNU General Public License v3.0
+ * that is bundled with this package in the file license.txt.
+ * It is also available through the world-wide-web at this URL:
+ * http://www.gnu.org/licenses/gpl-3.0.html
+ * If you did not receive a copy of the license and are unable to
+ * obtain it through the world-wide-web, please send an email
+ * to license@smartsend.dk so we can send you a copy immediately.
+ *
+ * DISCLAIMER
+ *
+ * Do not edit or add to this file if you wish to upgrade the plugin to newer
+ * versions in the future. If you wish to customize the plugin for your
+ * needs please refer to http://www.smartsend.dk
+ *
+ * @class		Smartsend_Logistics_Order
+ * @folder		/api/class.order.php
+ * @category	Smartsend
+ * @package		Smartsend_Logistics
+ * @author		Smart Send
+ * @url			www.smartsend.dk
+ * @version		7.1.0
  *
  *	// Overall functions
  *	public function _construct()
@@ -53,15 +63,9 @@ require_once( WP_PLUGIN_DIR . '/smart-send-logistics/class.smartsend.posten.php'
  *	// Order get functions
  *	public function getPickupId()
  *	public function getPickupData()
- *	public function getPickupDataVconnect()
  *	public function getSettingsCarrier()
  *	public function getWaybill($string,$country)
- *	protected function getCustomerCommentStringPositions()
- *	protected function getCustomerCommentStringPositionsFlex()
- *	protected function getCustomerCommentStringPositionsSmartDelivery()
- *	public function getCustomerCommentTrimmed()
- *	public function getFlexDeliverComment()
- *	public function getSmartDeliveryTimeInterval($time)
+ *	protected function getFreetext()
  *
  *
  *	// This class is called by using the code:
@@ -84,6 +88,13 @@ require_once( WP_PLUGIN_DIR . '/smart-send-logistics/class.smartsend.posten.php'
  *
 */
 
+require_once( WP_PLUGIN_DIR . '/woocommerce/includes/abstracts/abstract-wc-order.php' );
+require_once( WP_PLUGIN_DIR . '/woocommerce/includes/class-wc-order.php' );
+
+require_once( WP_PLUGIN_DIR . '/smart-send-logistics/class.smartsend.bring.php' );
+require_once( WP_PLUGIN_DIR . '/smart-send-logistics/class.smartsend.gls.php' );
+require_once( WP_PLUGIN_DIR . '/smart-send-logistics/class.smartsend.postdanmark.php' );
+require_once( WP_PLUGIN_DIR . '/smart-send-logistics/class.smartsend.posten.php' );
 
 class Smartsend_Logistics_Order {
 
@@ -270,11 +281,7 @@ class Smartsend_Logistics_Order {
 	*/	
 	public function isSmartDelivery() {
 	
-		if($this->getCustomerCommentStringPositionsSmartDelivery() !== false) {
-			return true;
-		} else {
-			return false;
-		}
+		false;
 		
 	}
 	
@@ -358,6 +365,7 @@ class Smartsend_Logistics_Order {
 		
 		$shipping_string = strtolower($shipping_string);
 	
+	// Smart Send shipping methods
 		if(substr($shipping_string, 0, strlen('smartsendpickup')) === 'smartsendpickup' || substr($shipping_string, 0, strlen('smartsend_pickup')) === 'smartsend_pickup') {
 			$carrier = $this->getPickupCarrier();
 			if(!isset($carrier) || $carrier == '') {
@@ -371,16 +379,32 @@ class Smartsend_Logistics_Order {
 			$carrier = 'postdanmark';
 		} elseif(substr($shipping_string, 0, strlen('smartsendposten')) === 'smartsendposten' || substr($shipping_string, 0, strlen('smartsend_posten')) === 'smartsend_posten') {
 			$carrier = 'posten';
-		} elseif(substr($shipping_string, 0, strlen('vconnect_postnord')) === 'vconnect_postnord' || substr($shipping_string, 0, strlen('vc_postnord')) === 'vc_postnord' || substr($shipping_string, 0, strlen('vc_allinone_vconnectpostnord')) === 'vc_allinone_vconnectpostnord') {
+			
+	// vConnect All-in-1 module shipping methods
+		} elseif(substr($shipping_string, 0, strlen('vconnect_postnord_dk')) === 'vconnect_postnord_dk') {
 			$carrier = 'postdanmark';
+		} elseif(substr($shipping_string, 0, strlen('vconnect_postnord_se')) === 'vconnect_postnord_se') {
+			$carrier = 'posten';
+		} elseif(substr($shipping_string, 0, strlen('vconnect_postnord_no')) === 'vconnect_postnord_no') {
+			$carrier = 'postnordnorway';
+		} elseif(substr($shipping_string, 0, strlen('vconnect_postnord_fi')) === 'vconnect_postnord_fi') {
+			$carrier = 'postnordfinland';
+			
+	// Old vConnect shipping methods
 		} elseif(substr($shipping_string, 0, strlen('vconnect_postdanmark')) === 'vconnect_postdanmark' || substr($shipping_string, 0, strlen('vc_postdanmark')) === 'vc_postdanmark' || substr($shipping_string, 0, strlen('vc_allinone_vconnectpostdanmark')) === 'vc_allinone_vconnectpostdanmark') {
 			$carrier = 'postdanmark';
 		} elseif(substr($shipping_string, 0, strlen('vconnect_posten')) === 'vconnect_posten' || substr($shipping_string, 0, strlen('vc_posten')) === 'vc_posten' || substr($shipping_string, 0, strlen('vc_allinone_vconnectposten')) === 'vc_allinone_vconnectposten') {
 			$carrier = 'posten';
+		} elseif(substr($shipping_string, 0, strlen('vconnect_postnord')) === 'vconnect_postnord' || substr($shipping_string, 0, strlen('vc_postnord')) === 'vc_postnord' || substr($shipping_string, 0, strlen('vc_allinone_vconnectpostnord')) === 'vc_allinone_vconnectpostnord') {
+			$carrier = 'postdanmark';
 		} elseif(substr($shipping_string, 0, strlen('vconnect_gls')) === 'vconnect_gls' || substr($shipping_string, 0, strlen('vc_gls')) === 'vc_gls') {
 			$carrier = 'gls';
 		} elseif(substr($shipping_string, 0, strlen('vconnect_bring')) === 'vconnect_bring' || substr($shipping_string, 0, strlen('vc_bring')) === 'vc_bring') {
 			$carrier = 'bring';
+		} elseif(substr($shipping_string, 0, strlen('vconnect_pdkalpha')) === 'vconnect_pdkalpha') {
+			$carrier = 'postdanmark';
+			
+	// If the shipping method is unknown throw an error
 		} else {
 			throw new Exception( $this->_errors[2305] .': '. $shipping_string );
 		}
@@ -416,6 +440,8 @@ class Smartsend_Logistics_Order {
 			$method = 'privateeconomy';
 		} elseif(substr($shipping_string, -strlen('lastmile')) === 'lastmile') {
 			$method = 'lastmile';
+		} elseif(substr($shipping_string, -strlen('businesspriority')) === 'businesspriority') {
+			$method = 'businesspriority';
 		} elseif(substr($shipping_string, -strlen('dpdclassic')) === 'dpdclassic') {
 			$method = 'dpdclassic';
 		} elseif(substr($shipping_string, -strlen('dpdguarantee')) === 'dpdguarantee') {
@@ -448,7 +474,11 @@ class Smartsend_Logistics_Order {
 			$method = 'pickup';
 		} elseif(substr($shipping_string, -strlen('gls')) === 'gls') {
 			$method = 'pickup';
+	// Support for vConnect shipping method 'pdkalpha'
+		} elseif(substr($shipping_string, 0, strlen('vconnect_pdkalpha')) === 'vconnect_pdkalpha') {
+			$method = 'lastmile';
 		} else {
+	// If the shipping method is unknown throw an error
 			throw new Exception( $this->_errors[2306] .': '. $shipping_string );
 		}
 	
@@ -563,7 +593,14 @@ class Smartsend_Logistics_Order {
 	public function setReceiver() {
 	
 		if($this->isPickupVconnect() == true) {
-			$this->_receiver = $this->getBillingAddress();
+			$shipping_address = $this->getShippingAddress();
+			$service_point = str_replace(' ', '', $shipping_address['address2']); 	//remove spaces
+			$service_point = strtolower($service_point); //Make lowercase
+			if( strpos($service_point, strtolower('ServicePointID')) !== false || strpos($service_point, strtolower('Pakkeshop')) !== false ) {
+				$this->_receiver = $this->getBillingAddress();
+			} else {
+				$this->_receiver = $this->getShippingAddress();
+			}
 		} else {
 			$this->_receiver = $this->getShippingAddress();
 		}
@@ -660,11 +697,11 @@ class Smartsend_Logistics_Order {
 			'prenote_from'			=> $settings['prenote_from'],
 			'prenote_receiver'		=> ($settings['prenote_receiver'] == '' ? $this->_receiver['mail'] : $settings['prenote_receiver']),
 			'prenote_message'		=> ($settings['prenote_message'] != '' ? $settings['prenote_message'] : null),
-			'flex'					=> ($this->getCustomerCommentStringPositionsFlex() !== false ? true : null),
+			'flex'					=> ($this->getFlexDeliveryNote() ? true : null),
 			'waybillid'				=> $this->getWaybill($settings['waybillid'],$this->_receiver['country']),
 			'smartdelivery'			=> $this->isSmartDelivery(),
-			'smartdelivery_start'	=> $this->getSmartDeliveryTimeInterval('start'),
-			'smartdelivery_end'		=> $this->getSmartDeliveryTimeInterval('end'),
+			'smartdelivery_start'	=> $this->getSmartDeliveryTimeStart(),
+			'smartdelivery_end'		=> $this->getSmartDeliveryTimeEnd(),
 			);
 	
 	}
@@ -741,43 +778,6 @@ class Smartsend_Logistics_Order {
 		}
 
 	}
-	
-	/**
-	* 
-	* Get pickup data for a vConnect delivery point
-	* @return array
-	*/	
-	public function getPickupDataVconnect() {
-	
-		$billing_address = $this->getShippingAddress();
-
-		$pacsoftServicePoint 		= str_replace(' ', '', $billing_address['address2']); 	//remove spaces
-		$pacsoftServicePointArray 	= explode(":",$pacsoftServicePoint); 			//devide into a array by :
-
-		if ( isset($pacsoftServicePointArray) && ( strtolower($pacsoftServicePointArray[0]) == strtolower('ServicePointID') ) ||  strtolower($pacsoftServicePointArray[0]) == strtolower('Pakkeshop') ){
-			$pickupData = array(
-				'id' 		=> $pacsoftServicePointArray[1]."-".time()."-".rand(9999,10000),
-				'agentno'	=> $pacsoftServicePointArray[1],
-				'agenttype'	=> ($this->getShippingCarrier() == 'postdanmark' ? 'PDK' : null),
-				'company' 	=> $billing_address['company'],
-				'name1' 	=> $billing_address['name1'],
-				'name2' 	=> $billing_address['name2'],
-				'address1'	=> $billing_address['address1'],
-				'address2' 	=> null,
-				'city'		=> $billing_address['city'],
-				'zip'		=> $billing_address['zip'],
-				'country'	=> $billing_address['country'],
-				'sms' 		=> null,
-				'mail' 		=> null,
-				);
-		
-			return $pickupData;
-		
-		} else {
-			return null;
-		}
-	
-	}
  	
  	/**
 	* 
@@ -852,133 +852,23 @@ class Smartsend_Logistics_Order {
 	}
 	
 	/**
-	* 
-	* Get array with string posistion of custom information
-	* @return array / false
-	*/
-	protected function getCustomerCommentStringPositions() {
-		//søg efter 'Flex:' og 'SmartDeliver' (case-insensitive). Sorter acending
-		$strpos_array = array();
-		
-		//Search for 'Flex:' in order customer comment
-		if($this->getCustomerCommentStringPositionsFlex() !== false) {
-			$strpos_array[] = $this->getCustomerCommentStringPositionsFlex();
-		}
-		
-		//Search for 'SmartDeliver:' in order customer comment
-		if($this->getCustomerCommentStringPositionsSmartDelivery() !== false) {
-			$strpos_array[] = $this->getCustomerCommentStringPositionsSmartDelivery();
-		}
-
-		if(!empty($strpos_array)) {
-			sort($strpos_array);
-			return $strpos_array;
-		} else {
-			return false;
-		}
-
-	}
-	
-	/**
-	* 
-	* Get array with string posistion of custom information
-	* @return int / false
-	*/
-	protected function getCustomerCommentStringPositionsFlex() {
-		return stripos($this->getCustomerComment(),"Flex:");
-	}
-	
-	/**
-	* 
-	* Get array with string posistion of custom information
-	* @return int / false
-	*/
-	protected function getCustomerCommentStringPositionsSmartDelivery() {
-		return stripos($this->getCustomerComment(),"SmartDelivery:");
-	}
-
-	/**
-	* 
-	* Get trimmed order comment only with the text entered by the customer
-	* @return string / null
-	*/
-	public function getCustomerCommentTrimmed() {
-		if( $this->getCustomerCommentStringPositions() ) {
-			if(min( $this->getCustomerCommentStringPositions() ) > 0) {
-				return substr($this->getCustomerComment(),0,min( $this->getCustomerCommentStringPositions() ));
-			} else {
-				return null;
-			}
-		} else {
-			return $this->getCustomerComment();
-		}
-	}
-
-	/**
-	* 
-	* Get the Flex delivery comment (where to place the parcel)
-	* @return string / null
-	*/
-	public function getFlexDeliverComment() {
-		$strpost_flexdeliver = false;
-		
-		//Search for 'Flex:' in order customer comment
-		if(stripos($this->getCustomerComment(),"Flex:") !== false) {
-			$strpost_flexdeliver = stripos($this->getCustomerComment(),"Flex:");
-		}
-		
-		if($strpost_flexdeliver !== false) {
-			// Check if there is any more information in the OrderComment and cut from there
-			$strpost_flexdeliver_end = 0;
-			foreach ($this->getCustomerCommentStringPositions() as $position) {
-				if ($position > $strpost_flexdeliver) {
-					$strpost_flexdeliver_end = $position;
-					break;
-				}
-			}
-			$strpost_flexdeliver = $strpost_flexdeliver + strlen("Flex:");
-			if($strpost_flexdeliver_end) {
-				return substr($this->getCustomerComment(),$strpost_flexdeliver,$strpost_flexdeliver_end-$strpost_flexdeliver);
-			} else {
-				return substr($this->getCustomerComment(),$strpost_flexdeliver);
-			}
-		} else {
-			return null;
-		}
-	
-	}
-	
-	/**
 	 *
-	 * Function to return Smart Deliver time interval
+	 * Function to return freetext that is displayed on the label
 	 * @return string
 	 */
-	protected function getSmartDeliveryTimeInterval($time) {
-		
-		if($this->getCustomerCommentStringPositionsSmartDelivery() !== false) {
-			$comment = $this->getCustomerComment();
-			$position = $this->getCustomerCommentStringPositionsSmartDelivery();
-		
-			if($position !== false) {
-				$string_array = explode(":", substr($comment,$position));
-				if(is_array($string_array) && isset($string_array[0]) && $string_array[1] && $string_array[2]) {
-					if($time == 'start') {
-						return str_replace(".", ":", trim($string_array[1]));
-					} elseif($time == 'end') {
-						return str_replace(".", ":", trim($string_array[2]));
-					} else {
-						return null;
-					}
-				} else {
-					return null;
-				}
-			} else {
-				return null;
-			}
-		} else {
+	protected function getFreetext() {
+		// If there is a flexdelivery note, return this
+		if( $this->getFlexDeliveryNote() ) {
+			return $this->getFlexDeliveryNote();
+		}
+		// If the setting is to include the order comment, include a trimmed comment
+		elseif( $this->getSettingIncludeOrderComment() ) {
+			return $this->getCustomerComment();
+		}
+		// Otherwise return an empty string
+		else {
 			return null;
 		}
-		
 	}
 
 }

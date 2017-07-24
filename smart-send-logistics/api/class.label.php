@@ -1,384 +1,586 @@
 <?php
+ 
+/**
+* Label class
+*
+* The label class is used to handle requests and responses from the Smart Send Logistics API
+*
+* @folder		/app/code/community/Smartsend/Logistics/Model/Label.php
+* @category		Smart Send
+* @package		Smartsend_Logistics
+* @class 		Smartsend_Logistics_Label
+* @copyright	Copyright (c) Smart Send ApS (http://www.smartsend.dk)
+* @license		http://smartsend.dk/license
+* @version		Release: 7.1.0
+* @author 		Smart Send ApS
+* @link			http://smartsend.dk/download/generec
+* @since		Class available since Release 7.1.0
+*/
 
-/* 
- * To change this license header, choose License Headers in Project Properties.
- * To change this template file, choose Tools | Templates
- * and open the template in the editor.
- */
+/*
+
+	$label = new Smartsend_Logistics_Label($single=false);
+	$label->setRequestType('bulk');
+	foreach($orders as $order) {
+		try{
+			$label->addOrderToRequest($order);
+		}
+		//catch exception
+		catch(Exception $e) {
+			$this->addErrorMessage( $e->getMessage() );
+		}
+	}
+	
+	if( $label->hasRequestOrders() ) {
+		$label->sendRequest();
+		
+		if( $label->getResponseError() ) {
+			$label->addErrorMessage( $label->getResponseError() );
+		} else {
+			$label->handleApiReponse();
+		}
+	}
+	
+	$label->showResult();
+
+*/
 
 require_once( WP_PLUGIN_DIR . '/woocommerce/includes/abstracts/abstract-wc-order.php' );
 require_once( WP_PLUGIN_DIR . '/woocommerce/includes/class-wc-order.php' );
 
-/**
- * Label class
- *
- * Create label API calls and send these to Smart Send
- *
- * @class 		Smartsend_Logistics_Order
- * @version		7.1.0
- * @author 		Smart Send
- */
-
 class Smartsend_Logistics_Label {
 
-	protected $request = array();
-	protected $response;
-	
 	private $_test = false;
 	
-	protected $_notifications;
+	protected $request=array();
+	protected $request_type;
+	protected $response;
+	protected $response_type;
+	protected $response_code;
 	
+	protected $message_string_array;
+	
+	protected $messages=array();
+	
+	protected $show_order_succes = true;
 	
 	public function __construct() {
-    	$this->_notifications = array(
-		//Notifications
-		2101	=> __('Response','smart-send-logistics'),
-		2102	=> __('Unknown status','smart-send-logistics'),
-		2103	=> __('Combined PDF labels','smart-send-logistics'),
-		2104	=> __('Combined label links','smart-send-logistics'),
-		2105	=> __('PDF label','smart-send-logistics'),
-		2106	=> __('Label link','smart-send-logistics'),
-		//Errors
-		2201	=> __('Trying to send empty order array','smart-send-logistics'),
-		2202	=> __('Unknown API method','smart-send-logistics'),
-		2203	=> __('An error occurred while sending order','smart-send-logistics'),
-		2204	=> __('Failed to insert tracecode','smart-send-logistics')
-		);
-    }
+	}
+	
+	/**
+     * This method returns the message string based on message number
+     *
+	 * @return string
+	 */
+	protected function getMessageString($message_number) {
+		if(isset($this->message_string_array[$message_number])) {
+			return $this->message_string_array[$message_number];
+		} else {
+			return '';
+		}
+	}
 
- 	/*
- 	 * Function: is there a requerst?
- 	 * both for single and mass generation
- 	 */
- 	public function isRequest() {
- 		if(empty($this->request)) {
- 			return false;
- 		} else {
- 			return true;
+	/**
+     * This method returns the request to be used in the API call
+     *
+	 * @return string
+	 */
+	private function getTest() {
+		return $this->_test;
+	}
+	
+	/**
+     * This method returns the messages that has been created
+     *
+	 * @return array
+	 */
+	protected function getMessages() {
+		return $this->messages;
+	}
+	
+	/**
+     * This method returns the request to be used in the API call
+     *
+	 * @return array
+	 */
+	protected function getRequest() {
+		return $this->request;
+	}
+	
+	/**
+     * This method returns the JSON encoded request to be used in the API call
+     *
+	 * @return string
+	 */
+	protected function getRequestJsonEncoded() {
+		return json_encode($this->request);
+	}
+	
+	/**
+     * This method returns the request type to be used in the API call
+     *
+	 * @return array
+	 */
+	protected function getRequestType() {
+		return $this->request_type;
+	}
+	
+	/**
+     * This method returns the response from the API call decoded from JSON/XML
+     *
+	 * @return string
+	 */
+	protected function getResponse() {
+		return $this->response;
+	}
+	
+	/**
+     * This method returns the JSON decoded response from the API call
+     *
+	 * @return string
+	 */
+	protected function getResponseJsonDecoded() {
+		if(strpos($this->response_type,'json') !== false) {
+ 			return $json = json_decode( $this->getResponse(),true );
  		}
- 	}
- 
- 
- 	/*
- 	 * Function: Get JSON request
- 	 * both for single and mass generation
- 	 */
- 	protected function getJsonRequest() {
- 		if(empty($this->request)) {
- 			throw new Exception( $this->_notifications[2201] );
- 		} else {
- 			return json_encode($this->request);
- 		}
- 	}
- 
- 	/*
- 	 * Function: Create an order request
- 	 * both for single and mass generation
- 	 */
- 	public function createOrder($order,$return=false) {
+	}
+	
+	/**
+     * This method returns whether or not to show the individual order succes
+     *
+	 * @return boolean
+	 */
+	protected function getShowOrderSucces() {
+		return $this->show_order_succes;
+	}
+	
+	
+	/**
+     * This method returns the Apikey used for API calls
+     *
+	 * @return string
+	 */
+	protected function getApikey() {
+		return $this->apikey;
+	}
+	
+	/**
+     * This method returns the Smart Send licensekey entered in the modules settings
+     *
+	 * @return string
+	 */
+	protected function getSmartsendLicensekey() {
+		return $this->smartsend_licensekey;
+	}
+	
+	/**
+     * This method returns the Smart Send username entered in the modules settings
+     *
+	 * @return string
+	 */
+	protected function getSmartsendUsername() {
+		return $this->smartsend_username;
+	}
+	
+	/**
+     * This method returns the version number of the CMS
+     *
+	 * @return string
+	 */
+	public function getCmsSystem() {
+		return $this->cms_system;
+	}
+	
+	/**
+     * This method returns the version number of the CMS
+     *
+	 * @return string
+	 */
+	public function getCmsVersion() {
+		return $this->cms_version;
+	}
+	
+	/**
+     * This method returns the version number of the Smart Send Logistics module
+     *
+	 * @return string
+	 */
+	public function getModuleVersion() {
+		return $this->module_version;
+	}
+	
+	/**
+     * This method returns the language used my the active admin user
+     *
+	 * @return string
+	 */
+	public function getCmsLanguage() {
+		return str_replace("_","-",$this->cms_language);
+	}
+	
+	/**
+     * This method returns the module settings
+     *
+	 * @return array
+	 */
+	public function getSettings() {
+		return $this->settings;
+	}
+	
+	/**
+	 * This method is used to check if any orders has been added to the request
+	 *
+	 * @return bolean
+	 */
+	 public function hasRequestOrders() {
+	 	$request = $this->getRequest();
+	 	if( is_array($request) && !empty($request) ) {
+	 		return true;
+	 	} else {
+	 		return false;
+	 	}
+	 }
+	 
+	 /**
+     * This method sets the request type to be used for the API call
+     *
+	 * @return void
+	 */
+	public function setRequestType($request_type) {
+		$this->request_type = $request_type;
+	}
+	
+	/**
+     * This method sets the response from the API call
+     *
+	 * @return void
+	 */
+	private function setResponse($response) {
+		$this->response = $response;
+	}
+	
+	/**
+     * This method sets the response type from the API call
+     *
+	 * @return void
+	 */
+	private function setResponseType($response_type) {
+		$this->response_type = $response_type;
+	}
+	
+	/**
+     * This method sets the response code from the API call
+     *
+	 * @return void
+	 */
+	private function setResponseCode($response_code) {
+		$this->response_code = $response_code;
+	}
+	
+	public function setShowOrderSucces($boolean) {
+		$this->show_order_succes = $boolean;
+	}
+	
+	/**
+     * This method performs the API request
+     *
+	 * @return void
+	 */
+	public function sendRequest() {
 		
-		$smartsendorder = new Smartsend_Logistics_Order_Woocommerce();
-		$smartsendorder->setOrderObject($order);
-		$smartsendorder->setReturn($return);
+		//intitiate curl
+		$ch = curl_init();
 
-		$smartsendorder->setInfo();
-		$smartsendorder->setReceiver();
-		$smartsendorder->setSender();
-		$smartsendorder->setAgent();
-		$smartsendorder->setService();
-		$smartsendorder->setParcels();
-
-		//All done. Add to request.
-		$this->request[] = $smartsendorder->getFinalOrder();
- 	}
- 	
- 	/*
- 	 * Function: POST final cURL request
- 	 * both for single and mass generation
- 	 */
- 	public function postRequest($single=false) {
- 	
- 		$ch = curl_init();               //intitiate curl
-
-        /* Script URL */
-        if($single == true) {
-        	$url = 'https://smartsend-prod.apigee.net/v7/booking/order';
-        } elseif($single == false) {
-        	$url = 'https://smartsend-prod.apigee.net/v7/booking/orders';
-        } else {
-        	throw new Exception( $this->_notifications[2202] . ': ' . $single);
+        /* API URL */
+        switch ($this->getRequestType()) {
+			case 'bulk':
+				//Label was created from order list
+				$url = 'http://smartsend-prod.apigee.net/v7/booking/orders';
+				break;
+			case 'single':
+				//Label was created from order info page
+				$url = 'http://smartsend-prod.apigee.net/v7/booking/order';
+				break;
+			default:
+				throw new Exception( $this->getMessageString(2201) );
+		}
+        
+        // Check if reqest is empty
+        if( !$this->hasRequestOrders() ) {
+        	throw new Exception( $this->getMessageString(2202) );
         }
         
-        if(get_option( 'smartsend_logistics_username', '' ) == '' && is_plugin_active( 'vc_pdk_allinone/vc_pdk_allinone.php')) {
-        	$settings = get_option('woocommerce_vc_pdk_allinone_settings');
-			$username = $settings['license_email'];
-			$licensekey = $settings['license_key'];
-        } else {
-        	$username = get_option( 'smartsend_logistics_username', '' );
-        	$licensekey = get_option( 'smartsend_logistics_licencekey', '' );
+        // Check if there is missing settings:
+        if($this->getSmartsendUsername() == '') {
+        	throw new Exception( $this->getMessageString(2212) );
+        } elseif($this->getSmartsendLicensekey() == '') {
+        	throw new Exception( $this->getMessageString(2213) );
         }
-        
-        $rel_dir = str_replace("/api","",__DIR__);
-		$plugin_info = get_plugin_data($rel_dir . '/woocommerce-smartsend-logistics.php', $markup = true, $translate = true );
 
         curl_setopt($ch, CURLOPT_URL, $url);       //curl url
         curl_setopt($ch, CURLOPT_POST, true);
-        curl_setopt($ch, CURLOPT_POSTFIELDS, $this->getJsonRequest());
-        //curl_setopt($ch, CURLOPT_HTTPGET, true);   //curl request method
-        //curl_setopt($ch, CURLOPT_HEADER, false);
-        curl_setopt($ch, CURLOPT_HTTPHEADER, array(
-        	'apikey:N5egWgckXdb4NhV3bTzCAKB26ou73nJm',
-        	'smartsendmail:'.$username,
-        	'smartsendlicence:'.$licensekey,
-        	'cmssystem:WooCommerce',
-        	'cmsversion:'.$this->wpbo_get_woo_version_number(),
-        	'appversion:'.$plugin_info["Version"],
-        	'test:'.($this->_test ? 'true' : 'false'),
-        	'Content-Type:application/json; charset=UTF-8'
-        	));    //curl request header
+        curl_setopt($ch, CURLOPT_POSTFIELDS, $this->getRequestJsonEncoded());
         curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-
-        $this->response = new StdClass();                       //creating new class
-        $this->response->body = curl_exec($ch);             //executing the curl
-        $this->response->code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-        $this->response->meta = curl_getinfo($ch);
-        $curl_error = ($this->response->code > 0 ? null : curl_error($ch) . ' (' . curl_errno($ch) . ')');      //getting error from curl if any
-
-        curl_close($ch);                          //closing the curl
-
-        if ($curl_error) {
-            throw new Exception( $this->_notifications[2203] . ': ' . $curl_error);
+        curl_setopt($ch, CURLOPT_HTTPHEADER, array(
+        	'apikey:'.$this->getApikey(),
+        	'smartsendmail:'.$this->getSmartsendUsername(),
+        	'smartsendlicence:'.$this->getSmartsendLicensekey(),
+        	'cmssystem:'.$this->getCmsSystem(),
+        	'cmsversion:'.$this->getCmsVersion(),
+        	'appversion:'.$this->getModuleVersion(),
+        	'test:'.($this->getTest() ? 'true' : 'false'),
+        	'Content-Type:application/json; charset=UTF-8',
+        	"Accept: text/xml",
+        	'Accept-Language:'.$this->getCmsLanguage(),
+        	));    //curl request header
+        
+        $response = curl_exec($ch); //executes the request
+        $response_type = curl_getinfo($ch, CURLINFO_CONTENT_TYPE);
+        $response_code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        $response_error = curl_error($ch);
+        // cURL error code: curl_errno($ch)
+    
+        // Set the respinse
+        $this->setResponse( $response );
+        $this->setResponseType( $response_type );
+        $this->setResponseCode( $response_error );
+        //meta data: curl_getinfo($ch);
+    
+        // If there were any 
+        if( !($response_code >= 200 &&  $response_code < 300) ) {
+            throw new Exception( $this->getMessageString(2203) . ': (' . $response_code . ') '. $response );
         }
         
-        if(!($this->response->code >= '200') || !($this->response->code <= '210')) {
-        	throw new Exception( $this->_notifications[2101] . ': ('.$this->response->code.') '.$this->response->body);
-        }
- 	
- 	}
- 	
- 	public function wpbo_get_woo_version_number() {
-			// If get_plugins() isn't available, require it
-		if ( ! function_exists( 'get_plugins' ) )
-			require_once( ABSPATH . 'wp-admin/includes/plugin.php' );
-	
-			// Create the plugins folder and file variables
-		$plugin_folder = get_plugins( '/' . 'woocommerce' );
-		$plugin_file = 'woocommerce.php';
-	
-		// If the plugin version number is set, return it 
-		if ( isset( $plugin_folder[$plugin_file]['Version'] ) ) {
-			return $plugin_folder[$plugin_file]['Version'];
+        curl_close($ch); // Close the curl. Only AFTER the errro has been checked
 
+	}
+	
+	/**
+     * This method handles the response from the API request
+     *
+	 * @return void
+	 */
+	public function handleApiReponse() {
+	
+		$response = $this->getResponseJsonDecoded();
+		
+		$settings = $this->getSettings();
+		
+		// Add notification if the info-field is set in the response
+		if( isset($response['info']) && $response['info'] != '') {
+			if(is_array($response['info'])) {
+				// Add an array of info messages
+				foreach($response['info'] as $info_message) {
+					$this->addWarningMessage( $info_message );
+				}
+			} else {
+				// Add an info message
+				$this->addWarningMessage( $response['info'] );
+			}
+		}
+		
+		if( !(isset($response['combine_pdf']) && $response['combine_pdf'] != '') && !(isset($order_response['combine_link']) && $order_response['combine_link'] != '') ){
+			$this->setShowOrderSucces(true);
 		} else {
-		// Otherwise return null
-			return NULL;
+			$this->setShowOrderSucces(!$settings['combine_pdf_labels']);
+		}
+		
+		if(isset($response['orders']) && is_array($response['orders'])) {
+			// An array of orders is returned from the API
+			foreach($response['orders'] as $order) {
+				try {
+					$this->handleOrderResponse($order);
+				}
+				//catch exception
+				catch(Exception $e) {
+					$this->addErrorMessage( $this->getMessageString(2000) . ' ' . $order['reference'] . ': ' . $e->getMessage() );
+				}
+			}
+			
+			if( $settings['combine_pdf_labels'] ) {
+				// Show the combined link or PDF link
+				if(isset($response['combine_pdf']) && $response['combine_pdf'] != '') {
+					// Add link to PDF label
+					$this->addSuccessMessage('<a href="' . $response['combine_pdf'] . '" target="_blank">' . $this->getMessageString(2101) . '</a>' );
+				} elseif(isset($order_response['combine_link']) && $order_response['combine_link'] != '') {
+					// Add link to label
+					$this->addSuccessMessage('<a href="' . $response['combine_link'] . '" target="_blank">' . $this->getMessageString(2102) . '</a>' );
+				}
+			}
+		} elseif(isset($response['orderno'])) {
+			$this->handleOrderResponse($response);
+		} else {
+			// No orders was returned from the API
+			if(isset($response['message']) && $response['message'] != '') {
+				$this->addWarningMessage( $response['message'] );
+			} else {
+				$this->addWarningMessage( $this->getMessageString(2204) );
+			}
 		}
 	}
 	
-	/*
-	 * Add Track and Trace number to parcels
-	 * @string shipment_reference: unique if of shipment
-	 * @string tracecode
-	 */ 
- 	protected function addTraceToShipment($shipment_reference,$tracecode) {
- 	// NOT DONE! STILL MAGENTO!
- 	
- 	
-	/*	$shipment_collection = Mage::getResourceModel('sales/order_shipment_collection');
-		$shipment_collection->addAttributeToFilter('order_id', $order_id);
-		
-		foreach($shipment_collection as $sc) {
-			$shipment = Mage::getModel('sales/order_shipment');
-			$shipment->load($sc->getId());
-			if($shipment->getId() != '') { 
-				$track = Mage::getModel('sales/order_shipment_track')
-						 ->setShipment($shipment)
-						 ->setData('title', 'ShippingMethodName')
-						 ->setData('number', $track_no)
-						 ->setData('carrier_code', 'ShippingCarrierCode')
-						 ->setData('order_id', $shipment->getData('order_id'))
-						 ->save();
-			}
-		} */
-		
-		$shipment = Mage::getModel('sales/order_shipment');
-		$shipment->load($shipment_reference);
-		if($shipment->getId() != '') {
-			$order = Mage::getModel('sales/order')->load($shipment->getData('order_id'));
-			$smartsendorder = Mage::getModel('logistics/order');
-		
-			$track = Mage::getModel('sales/order_shipment_track')
-				->setShipment($shipment)
-				->setData('title', $smartsendorder->getMethod($order))
-				->setData('number', $tracecode)
-				->setData('carrier_code', $smartsendorder->getSmartSendCarrier($order))
-				->setData('order_id', $shipment->getData('order_id'))
-				->save();
-		} else {
-			throw new Exception( $this->_notifications[2204] );
-		}
-		
- 	}
- 	
- 	/*
- 	 * Function: go through parcels and add trace code
- 	 */
- 	protected function verifyParcels($json) {
- 		if(isset($json->parcels) && is_array($json->parcels)) {
- 			$trace_codes = array();
-			foreach($json->parcels as $parcel) {
-				if(isset($parcel->reference) && $parcel->reference != '' && isset($parcel->tracecode) && $parcel->tracecode != '') {
-					$trace_codes[] = $parcel->tracecode;
-				}	
-			}
-			
-			if(!empty($trace_codes)) {
-				$order = new WC_Order( $json->orderno );
-				
-				$smartsendorder = new Smartsend_Logistics_Order_Woocommerce();
-				$smartsendorder->setOrderObject($order);
-				
-				$order_history_comment = __('Label generated with Smart Send Logistics');
-				
-				foreach($trace_codes as $trace_code) {
-					//Add a note with a Track&Trace link
-					if($smartsendorder->getShippingCarrier() == 'postdanmark') {
-						$link = '<a href="http://www.postdanmark.dk/tracktrace/TrackTrace.do?i_stregkode='.$trace_code.'" target="_blank">'.$trace_code.'</a>';
-					} elseif($smartsendorder->getShippingCarrier() == 'posten') {
-						$link = '<a href="http://www.postnord.se/en/tools/track/Pages/track-and-trace.aspx?search='.$trace_code.'" target="_blank">'.$trace_code.'</a>';
-					} elseif($smartsendorder->getShippingCarrier() == 'gls') {
-						$link = '<a href="http://www.gls-group.eu/276-I-PORTAL-WEB/content/GLS/DK01/DA/5004.htm?txtAction=71000&txtRefNo='.$trace_code.'" target="_blank">'.$trace_code.'</a>';
-					} elseif($smartsendorder->getShippingCarrier() == 'bring') {
-						$link = '<a href="http://sporing.bring.no/sporing.html?q='.$trace_code.'" target="_blank">'.$trace_code.'</a>';
-					} else {
-						$link = null;
-					}
-					
-					$order_history_comment .= '<br>' . __('Tracecode').': '.($link ? $link : $trace_code);
-					
-					//Add trace link to WooTheme extension 'Shipment Tracking'
-					update_post_meta( $order->id, '_tracking_provider', $smartsendorder->getShippingCarrier($format=0) );
-					//update_post_meta( $order->id, '_custom_tracking_provider', $smartsendorder->getShippingCarrier($format=0) );
-					update_post_meta( $order->id, '_tracking_number', $trace_code );
-					//update_post_meta( $order->id, '_custom_tracking_link', null );
-					update_post_meta( $order->id, '_date_shipped', time() );
-					
-				}
-				
-				//Add pdf link to order comment if there is a pdf link
-				if(isset($json->pdflink)) {
-					$order_history_comment .= '<br><a href="' . $json->pdflink .'" target="_blank">' . __('Link to PDF label') .'</a>';
-				}
-				
-				//Add order comment
-				$order->add_order_note($order_history_comment);
-			}
-		}
-	}	
+	/**
+     * This method handles each order response from the API request
+     *
+     * @param array $order_response contains the API response, JSON devoced to an array
+     *
+	 * @return void
+	 */
+	public function handleOrderResponse($order_response) {
 	
- 	/*
- 	 * Function: Handle cURL response
- 	 * both for single and mass generation
- 	 */
- 	public function handleRequest() {
- 		if(strpos($this->response->meta['content_type'],'json') !== false) {
- 			$_errors = array();
- 			$_notification = array();
- 			$_succeses = array();
+		$order = $this->loadOrderModel($order_response['orderno']);
+		$smartsendorder = $this->loadSmartsendOrderModel();
+ 		$smartsendorder->setOrderObject($order);
  		
- 			$json = json_decode($this->response->body);
- 		/*	$this->_getSession()->addNotice($this->getJsonRequest());
- 			$this->_getSession()->addNotice($this->response->body); */
- 			
- 			//Show a notice if info is given
- 			if(isset($json->info)) {
- 				if(is_array($json->info)) {
- 					foreach($json->info as $info) {
- 						$_notification[] = $info;
- 					}
- 				} else {
- 					$_notification[] = $json->info;
- 				}
+ 		if( $smartsendorder->getOrderId() ) {
+ 		
+ 			$order_comment = $this->getMessageString(2105);
+ 			if(isset($order_response['pdflink'])) {
+ 				$order_comment .= '<br><a href="' . $order_response['pdflink'] . '" target="_blank">' . $this->getMessageString(2103) . '</a>';
  			}
- 			
- 			if(isset($json->combine_pdf) && get_option('smartsend_logistics_combinepdf','yes') == 'yes') {
- 				$_succeses[] = '<a href="'. $json->combine_pdf .'" target="_blank">' . $this->_notifications[2103] .'</a>';
- 			}
- 			
- 			if(isset($json->combine_link) && get_option('smartsend_logistics_combinepdf','yes') == 'yes') {
- 				$_succeses[] = '<a href="'. $json->combine_link .'" target="_blank">' . $this->_notifications[2104] .'</a>';
- 			}
- 			
-			if(isset($json->orders) && is_array($json->orders)) {
-				// An array of orders was returned
-				foreach($json->orders as $json_order) {
-					if(isset($json_order->pdflink) && !(isset($json->combine_pdf) && get_option('smartsend_logistics_combinepdf','yes') == "yes")) {
-						$_succeses[] = 'Order #'.$json_order->reference.': <a href="'. $json_order->pdflink .'" target="_blank">' . $this->_notifications[2105] .'</a>';
-						// Go through parcels and add trace to shipments
-						$this->verifyParcels($json_order);	
-					} elseif(isset($json_order->link) && !(isset($json->combine_link) && get_option('smartsend_logistics_combinepdf','yes') == "yes")) {
-						$_succeses[] = 'Order #'.$json_order->reference.': <a href="'. $json_order->link .'" target="_blank">' . $this->_notifications[2106] .'</a>';
-						// Go through parcels and add trace to shipments
-						$this->verifyParcels($json_order);	
-					} elseif( (isset($json_order->pdflink) || isset($json_order->link) ) && get_option('smartsend_logistics_combinepdf','yes') == "yes") {
-						$_succeses[] = 'Order #'.$json_order->reference.': '. $json_order->message;
-						$this->verifyParcels($json_order);
-					} else {
-						if(isset($json_order->status) && $json_order->status != '') {
-							$_errors[] = 'Order #'.$json_order->reference.': '. $json_order->message; 
-						} else {
-							$_errors[] = $this->_notifications[2102] . ': '. $json_order->message;
+			if(is_array($order_response['parcels'])) {
+				// This array will be used to send shipment emails
+				$parcels_succes_array = array();
+				
+				// An array of orders is returned from the API
+				foreach($order_response['parcels'] as $parcel) {
+					try {
+						$order_comment_array = $this->handleParcelResponse($order_response,$parcel);
+						$parcels_succes_array[] = $order_comment_array;
+						if(isset($order_comment_array['tracecode']) && isset($order_comment_array['tracelink'])) {
+							$order_comment .= '<br>' . $this->getMessageString(2106) . ': <a href="' . $order_comment_array['tracelink'] . '" target="_blank">' . $order_comment_array['tracecode'] . '</a>';
 						}
 					}
-				}
-			
-			} else {
-				// An array of orders was not returned. Check if just a single order was returned
-			
-				if(isset($json->pdflink) && !(isset($json->combine_pdf) && get_option('smartsend_logistics_combinepdf','yes') == 1)) {
-					$_succeses[] = 'Order #'.$json->reference.': <a href="'. $json->pdflink .'" target="_blank">' . $this->_notifications[2105] .'</a>';
-					// Go through parcels and add trace to shipments
-					$this->verifyParcels($json);	
-				} elseif(isset($json->link) && !(isset($json->combine_link) && get_option('smartsend_logistics_combinepdf','yes') == 1)) {
-					$_succeses[] = 'Order #'.$json->reference.': <a href="'. $json->link .'" target="_blank">' . $this->_notifications[2106] .'</a>';
-					// Go through parcels and add trace to shipments
-					$this->verifyParcels($json);	
-				} else {
-					if(isset($json->status) && $json->status != '') {
-						$_errors[] = 'Order #'.$json->reference.': '. $json->message;
-					} else {
-						$_errors[] = $this->_notifications[2102] . ': '. $json->message;
+					//catch exception
+					catch(Exception $e) {
+						$this->addErrorMessage( $this->getMessageString(2000) . ' ' . $order_response['reference'] . ': ' . $e->getMessage() );
 					}
 				}
+				
+				$settings = $this->getSettings();
+				
+				try {
+					// Add comment to order
+					$this->addCommentToOrder($order_response['orderno'],$order_comment);
+				
+					// Send email with shipping information
+					if($settings['send_shipment_mail']) {
+						$this->sendShipmentEmail($order_response['orderno'],$parcels_succes_array,$customer_email_comments=null);
+					}
+				
+					// Change order status
+					if($settings['change_order_status']) {
+						$this->setOrderStatus($order_response['orderno'],$settings['change_order_status']);
+					}
+				//catch exception
+				} catch(Exception $e) {
+					$this->addErrorMessage( $this->getMessageString(2000) . ' ' . $order_response['reference'] . ': ' . $e->getMessage() );
+				}
+				
+				// Show succes message with label link or pdf link
+				if($this->getShowOrderSucces()) {
+					if(isset($order_response['pdflink']) && $order_response['pdflink'] != '') {
+						// Add link to PDF label
+						$this->addSuccessMessage( $this->getMessageString(2000) . ' '. $smartsendorder->getOrderReference() .': <a href="' . $order_response['pdflink'] . '" target="_blank">' . $this->getMessageString(2103) . '</a>' );
+					} elseif(isset($order_response['link']) && $order_response['link'] != '') {
+						// Add link to label
+						$this->addSuccessMessage( $this->getMessageString(2000) . ' '. $smartsendorder->getOrderReference() .': <a href="' . $order_response['link'] . '" target="_blank">' . $this->getMessageString(2104) . '</a>' );
+					} else {
+						 throw new Exception( $this->getMessageString(2207) );
+					}
+				}
+				
+			} else {
+				// No parcels was returned from the API
+				if(isset($order_response['message']) && $order_response['message'] != '') {
+					$this->addErrorMessage( $this->getMessageString(2000) . ' ' . $order_response['reference'] . ': ' . $order_response['message'] );
+				} else {
+					$this->addErrorMessage( $this->getMessageString(2000) . ' ' . $order_response['reference'] . ': ' . $this->getMessageString(2205) );
+				}
 			}
- 			
- 			// Errors
-			if(isset($_SESSION['smartsend_errors']) && is_array($_SESSION['smartsend_errors'])) {
- 				$_SESSION['smartsend_errors'] 		= array_merge($_SESSION['smartsend_errors'],$_errors);
- 			} else {
- 				$_SESSION['smartsend_errors']		= $_errors;
- 			}
- 			
- 			// Notifications
- 			if(isset($_SESSION['smartsend_notification']) && is_array($_SESSION['smartsend_notification'])) {
- 				$_SESSION['smartsend_notification'] 		= array_merge($_SESSION['smartsend_notification'],$_notification);
- 			} else {
- 				$_SESSION['smartsend_notification']		= $_notification;
- 			}
- 			
- 			// Successes
- 			if(isset($_SESSION['smartsend_succeses']) && is_array($_SESSION['smartsend_succeses'])) {
- 				$_SESSION['smartsend_succeses'] 		= array_merge($_SESSION['smartsend_succeses'],$_succeses);
- 			} else {
- 				$_SESSION['smartsend_succeses']		= $_succeses;
- 			}
- 			
- 			global $smartsend_errors;
- 			$smartsend_errors = $GLOBALS['smartsend_errors'];
- 		} else {
- 			throw new Exception('Unknown content type: '.$this->response->meta['content_type']);
- 		}
- 		
- 	}
- 	
+			
+		} else {
+			// Unknwn order
+			$this->addErrorMessage( $this->getMessageString(2206) );
+		}
+	}
+	
+	/**
+     * This method handles each parcel response from the API request
+     *
+     * @param
+     *
+	 * @return array
+	 */
+	public function handleParcelResponse($order_response,$parcel_response) {
+		if(isset($parcel_response['tracecode']) && $parcel_response['tracecode'] != '') {
+			$this->addTracecodeToParcel($order_response['orderno'], $parcel_response['reference'], $parcel_response['tracecode'],$parcel_response['tracelink']);
+				return array(
+					'id'		=> $parcel_response['id'],
+					'reference'	=> $parcel_response['reference'],
+					'tracecode'	=> $parcel_response['tracecode'],
+					'tracelink'	=> $parcel_response['tracelink']
+					);
+		} else {
+			return;
+		}
+		
+	}
+	
+	/*
+	 * Add an error message that is subsequently shown in admin
+	 *
+	 * @param string $error_message
+	 *
+	 * @return void
+	 */
+	public function addErrorMessage($error_message) {
+		$this->messages[] = array(
+			'type'		=> 'error',
+			'text'		=> $error_message
+			);
+	}
+	
+	/*
+	 * Add a warning message that is subsequently shown in admin
+	 *
+	 * @param string $warning_message
+	 *
+	 * @return void
+	 */
+	public function addWarningMessage($warning_message) {
+		$this->messages[] = array(
+			'type'		=> 'warning',
+			'text'		=> $warning_message
+			);
+	}
+	
+	/*
+	 * Add a success message that is subsequently shown in admin
+	 *
+	 * @param string $success_message
+	 *
+	 * @return void
+	 */
+	public function addSuccessMessage($success_message) {
+		$this->messages[] = array(
+			'type'		=> 'success',
+			'text'		=> $success_message
+			);
+	}
+	
+	/*
+	 * Add an information message that is subsequently shown in admin
+	 *
+	 * @param string $information_message
+	 *
+	 * @return void
+	 */
+	public function addInfoMessage($information_message) {
+		$this->messages[] = array(
+			'type'		=> 'info',
+			'text'		=> $information_message
+			);
+	}
+	
 }
