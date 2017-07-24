@@ -30,7 +30,7 @@
  * @copyright	Copyright (c) Smart Send ApS (http://www.smartsend.dk)
  * @license		http://smartsend.dk/license
  * @since		Class available since Release 7.1.0
- * @version		Release: 7.1.2
+ * @version		Release: 7.1.3
 */
 
 /*

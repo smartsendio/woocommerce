@@ -30,7 +30,7 @@
  * @copyright	Copyright (c) Smart Send ApS (http://www.smartsend.dk)
  * @license		http://smartsend.dk/license
  * @since		Class available since Release 7.1.0
- * @version		Release: 7.1.2
+ * @version		Release: 7.1.3
  *
  *	// Overall functions
  *	public function _construct()
@@ -206,8 +206,8 @@ class Smartsend_Logistics_Order {
 		try {
 			$method = strtolower($this->getShippingId());
 	
-			//Check if shipping methode starts with 'smartsend'
-			if(substr($method, 0, strlen('smartsend')) === 'smartsend') {
+			//Check if shipping methode contains 'smartsend'
+			if(strpos($method, 'smartsend') !== false) {
 				return true;
 			} else {
 				return false;
@@ -228,10 +228,10 @@ class Smartsend_Logistics_Order {
 		try{
 			$method = strtolower($this->getShippingId());
 	
-			//Check if shipping methode starts with 'vconnect' or 'vc'
-			if(substr($method, 0, strlen('vconnect')) === 'vconnect') {
+			//Check if shipping methode contains 'vconnect' or 'vc'
+			if(strpos($method, 'vconnect') !== false) {
 				return true;
-			} elseif(substr($method, 0, strlen('vc')) === 'vc') {
+			} elseif(strpos($method, 'vc') !== false) {
 				return true;
 			} else {
 				return false;
@@ -489,7 +489,7 @@ class Smartsend_Logistics_Order {
 		} elseif(substr($shipping_string, -strlen('gls')) === 'gls') {
 			$method = 'pickup';
 	// Support for vConnect shipping method 'pdkalpha'
-		} elseif(substr($shipping_string, 0, strlen('vconnect_pdkalpha')) === 'vconnect_pdkalpha') {
+		} elseif(strpos($shipping_string,'vconnect_pdkalpha') !== false) {
 			$method = 'lastmile';
 		} else {
 	// If the shipping method is unknown throw an error
