@@ -7,7 +7,7 @@
  * These are the CMS dependent functions that is used by the order class.
  *
  * @class 		Smartsend_Logistics_Order_Woocommerce
- * @version		7.0.2
+ * @version		7.1.0
  * @author 		Smart Send
  *
 
@@ -485,7 +485,7 @@ class Smartsend_Logistics_Order_Woocommerce extends Smartsend_Logistics_Order {
 				'width'		=> null,
 				'length'	=> null,
 				'size'		=> null,
-				'freetext1'	=> $this->getCustomerComment(),
+				'freetext1'	=> ($this->getCustomerCommentStringPositionsFlex() !== false ? $this->getFlexDeliverComment() : $this->getCustomerCommentTrimmed()),
 				'freetext2'	=> null,
 				'freetext3'	=> null,
 				'items' 	=> $this->getUnshippedItems()

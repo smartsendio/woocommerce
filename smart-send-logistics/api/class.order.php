@@ -15,7 +15,7 @@ require_once( WP_PLUGIN_DIR . '/smart-send-logistics/class.smartsend.posten.php'
  * Create order objects that is included in the final Smart Send label API callout.
  *
  * @class 		Smartsend_Logistics_Order
- * @version		7.1.2
+ * @version		7.1.0
  * @author 		Smart Send
  *
  *
@@ -33,6 +33,7 @@ require_once( WP_PLUGIN_DIR . '/smart-send-logistics/class.smartsend.posten.php'
  *	public function isVconnect()
  *	public function isPickupSmartsend()
  *	public function isPickupVconnect()
+ *	public function isSmartDelivery()
  *
  *	// Shipping functions
  *	protected function getShippingCarrierAndMethod()
@@ -55,6 +56,12 @@ require_once( WP_PLUGIN_DIR . '/smart-send-logistics/class.smartsend.posten.php'
  *	public function getPickupDataVconnect()
  *	public function getSettingsCarrier()
  *	public function getWaybill($string,$country)
+ *	protected function getCustomerCommentStringPositions()
+ *	protected function getCustomerCommentStringPositionsFlex()
+ *	protected function getCustomerCommentStringPositionsSmartDelivery()
+ *	public function getCustomerCommentTrimmed()
+ *	public function getFlexDeliverComment()
+ *	public function getSmartDeliveryTimeInterval($time)
  *
  *
  *	// This class is called by using the code:
@@ -254,6 +261,21 @@ class Smartsend_Logistics_Order {
 		} else {
 			return false;
 		}
+	}
+	
+	/**
+	* 
+	* Check if Smart Delivery is active
+	* @return boolean
+	*/	
+	public function isSmartDelivery() {
+	
+		if($this->getCustomerCommentStringPositionsSmartDelivery() !== false) {
+			return true;
+		} else {
+			return false;
+		}
+		
 	}
 	
 /*****************************************************************************************
@@ -632,14 +654,17 @@ class Smartsend_Logistics_Order {
 		$settings = $this->getSettingsCarrier();
 		
 		$this->_service = array(
-			'notemail'			=> ($settings['notemail'] == 1 ? $this->_receiver['mail'] : null),
-			'notesms'			=> ($settings['notesms'] == 1 ? $this->_receiver['sms'] : null),
-			'prenote'			=> $settings['prenote'],
-			'prenote_from'		=> $settings['prenote_from'],
-			'prenote_receiver'	=> ($settings['prenote_receiver'] == '' ? $this->_receiver['mail'] : $settings['prenote_receiver']),
-			'prenote_message'	=> ($settings['prenote_message'] != '' ? $settings['prenote_message'] : null),
-			'flex'				=> ($settings['flex'] == true || substr(strtolower($this->getCustomerComment()), 0, strlen('flex:')) === 'flex:' ? true : null),
-			'waybillid'			=> $this->getWaybill($settings['waybillid'],$this->_receiver['country'])
+			'notemail'				=> ($settings['notemail'] == 1 ? $this->_receiver['mail'] : null),
+			'notesms'				=> ($settings['notesms'] == 1 ? $this->_receiver['sms'] : null),
+			'prenote'				=> $settings['prenote'],
+			'prenote_from'			=> $settings['prenote_from'],
+			'prenote_receiver'		=> ($settings['prenote_receiver'] == '' ? $this->_receiver['mail'] : $settings['prenote_receiver']),
+			'prenote_message'		=> ($settings['prenote_message'] != '' ? $settings['prenote_message'] : null),
+			'flex'					=> ($this->getCustomerCommentStringPositionsFlex() !== false ? true : null),
+			'waybillid'				=> $this->getWaybill($settings['waybillid'],$this->_receiver['country']),
+			'smartdelivery'			=> $this->isSmartDelivery(),
+			'smartdelivery_start'	=> $this->getSmartDeliveryTimeInterval('start'),
+			'smartdelivery_end'		=> $this->getSmartDeliveryTimeInterval('end'),
 			);
 	
 	}
@@ -825,6 +850,135 @@ class Smartsend_Logistics_Order {
 		}
 
 	}
+	
+	/**
+	* 
+	* Get array with string posistion of custom information
+	* @return array / false
+	*/
+	protected function getCustomerCommentStringPositions() {
+		//søg efter 'Flex:' og 'SmartDeliver' (case-insensitive). Sorter acending
+		$strpos_array = array();
+		
+		//Search for 'Flex:' in order customer comment
+		if($this->getCustomerCommentStringPositionsFlex() !== false) {
+			$strpos_array[] = $this->getCustomerCommentStringPositionsFlex();
+		}
+		
+		//Search for 'SmartDeliver:' in order customer comment
+		if($this->getCustomerCommentStringPositionsSmartDelivery() !== false) {
+			$strpos_array[] = $this->getCustomerCommentStringPositionsSmartDelivery();
+		}
 
+		if(!empty($strpos_array)) {
+			sort($strpos_array);
+			return $strpos_array;
+		} else {
+			return false;
+		}
+
+	}
+	
+	/**
+	* 
+	* Get array with string posistion of custom information
+	* @return int / false
+	*/
+	protected function getCustomerCommentStringPositionsFlex() {
+		return stripos($this->getCustomerComment(),"Flex:");
+	}
+	
+	/**
+	* 
+	* Get array with string posistion of custom information
+	* @return int / false
+	*/
+	protected function getCustomerCommentStringPositionsSmartDelivery() {
+		return stripos($this->getCustomerComment(),"SmartDelivery:");
+	}
+
+	/**
+	* 
+	* Get trimmed order comment only with the text entered by the customer
+	* @return string / null
+	*/
+	public function getCustomerCommentTrimmed() {
+		if( $this->getCustomerCommentStringPositions() ) {
+			if(min( $this->getCustomerCommentStringPositions() ) > 0) {
+				return substr($this->getCustomerComment(),0,min( $this->getCustomerCommentStringPositions() ));
+			} else {
+				return null;
+			}
+		} else {
+			return $this->getCustomerComment();
+		}
+	}
+
+	/**
+	* 
+	* Get the Flex delivery comment (where to place the parcel)
+	* @return string / null
+	*/
+	public function getFlexDeliverComment() {
+		$strpost_flexdeliver = false;
+		
+		//Search for 'Flex:' in order customer comment
+		if(stripos($this->getCustomerComment(),"Flex:") !== false) {
+			$strpost_flexdeliver = stripos($this->getCustomerComment(),"Flex:");
+		}
+		
+		if($strpost_flexdeliver !== false) {
+			// Check if there is any more information in the OrderComment and cut from there
+			$strpost_flexdeliver_end = 0;
+			foreach ($this->getCustomerCommentStringPositions() as $position) {
+				if ($position > $strpost_flexdeliver) {
+					$strpost_flexdeliver_end = $position;
+					break;
+				}
+			}
+			$strpost_flexdeliver = $strpost_flexdeliver + strlen("Flex:");
+			if($strpost_flexdeliver_end) {
+				return substr($this->getCustomerComment(),$strpost_flexdeliver,$strpost_flexdeliver_end-$strpost_flexdeliver);
+			} else {
+				return substr($this->getCustomerComment(),$strpost_flexdeliver);
+			}
+		} else {
+			return null;
+		}
+	
+	}
+	
+	/**
+	 *
+	 * Function to return Smart Deliver time interval
+	 * @return string
+	 */
+	protected function getSmartDeliveryTimeInterval($time) {
+		
+		if($this->getCustomerCommentStringPositionsSmartDelivery() !== false) {
+			$comment = $this->getCustomerComment();
+			$position = $this->getCustomerCommentStringPositionsSmartDelivery();
+		
+			if($position !== false) {
+				$string_array = explode(":", substr($comment,$position));
+				if(is_array($string_array) && isset($string_array[0]) && $string_array[1] && $string_array[2]) {
+					if($time == 'start') {
+						return str_replace(".", ":", trim($string_array[1]));
+					} elseif($time == 'end') {
+						return str_replace(".", ":", trim($string_array[2]));
+					} else {
+						return null;
+					}
+				} else {
+					return null;
+				}
+			} else {
+				return null;
+			}
+		} else {
+			return null;
+		}
+		
+	}
 
 }

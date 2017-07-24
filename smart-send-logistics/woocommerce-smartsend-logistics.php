@@ -7,7 +7,7 @@
 	Author URI: http://www.smartsend.dk
 	Text Domain: smart-send-logistics
 	Domain Path: /lang
-	Version: 7.0.16
+	Version: 7.0.17
 
 	Copyright: (c) 2014 Smart Send ApS (email : kontakt@smartsend.dk)
 	License: GNU General Public License v3.0
@@ -35,6 +35,28 @@ if ( in_array( 'woocommerce/woocommerce.php', apply_filters( 'active_plugins', g
 	require_once 'smartsend-api-functions.php';
 	require_once 'settings.php';
 	require_once 'class.smartsend.primary.php';
+	
+/*-----------------------------------------------------------------------------------------------------------------------
+* 					Plugin update hook
+*----------------------------------------------------------------------------------------------------------------------*/	
+
+	$smartsend_logistics_file   = basename( __FILE__ );
+	$smartsend_logistics_folder = basename( dirname( __FILE__ ) );
+	$smartsend_logistics_hook = "in_plugin_update_message-{$smartsend_logistics_folder}/{$smartsend_logistics_file}";
+	add_action( $smartsend_logistics_hook, 'smartsend_logistics_update_message_wpse_87051', 10, 2 ); 
+	function smartsend_logistics_update_message_wpse_87051( $plugin_data, $r )
+	{
+		if(isset($plugin_data['new_version']) && isset($plugin_data['Version']) && smartsend_logistics_major_version_compare($plugin_data['new_version'], $plugin_data['Version'])) {
+			echo '<div class="woothemes-updater-plugin-upgrade-notice">'.__('This is a major update. Please go through settings once the module is updated and verify that these are as espected.').'</div>';
+		}
+	}	
+
+	function  smartsend_logistics_major_version_compare($new_version, $old_version,$delimiter_position=2) {
+		$new = explode(".",$new_version);
+		$old = explode(".",$old_version);
+	
+		return version_compare(implode(".",array_slice($new, 0, $delimiter_position)), implode(".",array_slice($old, 0, $delimiter_position)));
+	}
 
 /*-----------------------------------------------------------------------------------------------------------------------
 * 					Register CSS script
@@ -124,9 +146,9 @@ if ( in_array( 'woocommerce/woocommerce.php', apply_filters( 'active_plugins', g
  */     
         
 	function smartsend_logistics_process_order($order) {
-		include('api/class.label.php');
-		include('api/class.order.php');
-		include('api/class.order.woocommerce.php');
+		require_once 'api/class.label.php';
+		require_once 'api/class.order.php';
+		require_once 'api/class.order.woocommerce.php';
 	
 		if((get_option( 'smartsend_logistics_username', '' ) == '' || get_option( 'smartsend_logistics_licencekey', '' ) == '') && !is_plugin_active( 'vc_pdk_allinone/vc_pdk_allinone.php')) {
 			smartsend_logistics_admin_notice(__("Username and licencekey must be entered in settings",'smart-send-logistics'), 'error');
@@ -162,9 +184,9 @@ if ( in_array( 'woocommerce/woocommerce.php', apply_filters( 'active_plugins', g
 
 	function smartsend_logistics_process_return_order($order) {
 	
-		include('api/class.label.php');
-		include('api/class.order.php');
-		include('api/class.order.woocommerce.php');
+		require_once 'api/class.label.php';
+		require_once 'api/class.order.php';
+		require_once 'api/class.order.woocommerce.php';
 	
 		if((get_option( 'smartsend_logistics_username', '' ) == '' || get_option( 'smartsend_logistics_licencekey', '' ) == '') && !is_plugin_active( 'vc_pdk_allinone/vc_pdk_allinone.php')) {
 			smartsend_logistics_admin_notice(__("Username and licencekey must be entered in settings",'smart-send-logistics'), 'error');
@@ -201,9 +223,9 @@ if ( in_array( 'woocommerce/woocommerce.php', apply_filters( 'active_plugins', g
 	
 	function smartsend_logistics_process_normal_return_order($order) {
 	
-		include('api/class.label.php');
-		include('api/class.order.php');
-		include('api/class.order.woocommerce.php');
+		require_once 'api/class.label.php';
+		require_once 'api/class.order.php';
+		require_once 'api/class.order.woocommerce.php';
 	
 		if((get_option( 'smartsend_logistics_username', '' ) == '' || get_option( 'smartsend_logistics_licencekey', '' ) == '') && !is_plugin_active( 'vc_pdk_allinone/vc_pdk_allinone.php')) {
 			smartsend_logistics_admin_notice(__("Username and licencekey must be entered in settings",'smart-send-logistics'), 'error');
@@ -244,9 +266,9 @@ if ( in_array( 'woocommerce/woocommerce.php', apply_filters( 'active_plugins', g
  * @ order_ids: list of order
  */
 	function smartsend_logistics_process_orders($order_ids) {
-		include('api/class.label.php');
-		include('api/class.order.php');
-		include('api/class.order.woocommerce.php');
+		require_once 'api/class.label.php';
+		require_once 'api/class.order.php';
+		require_once 'api/class.order.woocommerce.php';
 	
 		if((get_option( 'smartsend_logistics_username', '' ) == '' || get_option( 'smartsend_logistics_licencekey', '' ) == '') && !is_plugin_active( 'vc_pdk_allinone/vc_pdk_allinone.php')) {
 			if(isset($_SESSION['smartsend_errors']) && is_array($_SESSION['smartsend_errors'])) {
@@ -293,9 +315,9 @@ if ( in_array( 'woocommerce/woocommerce.php', apply_filters( 'active_plugins', g
 
 	function smartsend_logistics_process_return_orders($order_ids) {
 	
-		include('api/class.label.php');
-		include('api/class.order.php');
-		include('api/class.order.woocommerce.php');
+		require_once 'api/class.label.php';
+		require_once 'api/class.order.php';
+		require_once 'api/class.order.woocommerce.php';
 	
 		if((get_option( 'smartsend_logistics_username', '' ) == '' || get_option( 'smartsend_logistics_licencekey', '' ) == '') && !is_plugin_active( 'vc_pdk_allinone/vc_pdk_allinone.php')) {
 			if(isset($_SESSION['smartsend_errors']) && is_array($_SESSION['smartsend_errors'])) {
@@ -343,9 +365,9 @@ if ( in_array( 'woocommerce/woocommerce.php', apply_filters( 'active_plugins', g
 	
 	function smartsend_logistics_process_normal_return_orders($order_ids) {
 	
-		include('api/class.label.php');
-		include('api/class.order.php');
-		include('api/class.order.woocommerce.php');
+		require_once 'api/class.label.php';
+		require_once 'api/class.order.php';
+		require_once 'api/class.order.woocommerce.php';
 	
 		if((get_option( 'smartsend_logistics_username', '' ) == '' || get_option( 'smartsend_logistics_licencekey', '' ) == '') && !is_plugin_active( 'vc_pdk_allinone/vc_pdk_allinone.php')) {
 			if(isset($_SESSION['smartsend_errors']) && is_array($_SESSION['smartsend_errors'])) {
@@ -883,7 +905,7 @@ if ( in_array( 'woocommerce/woocommerce.php', apply_filters( 'active_plugins', g
 		</script>
 		<?php if(!empty($pickup_loc) && is_array($pickup_loc)):?>
                 
-			<div id='selectpickup' class="selectstore"> <?php echo __('Select a pickup location','smart-send-logistics'); echo ' ('.$shippingTitle.')'; ?>
+			<div id='selectpickup' class="selectstore">
 			<?php if(!empty($pickup_loc) && is_array($pickup_loc)):?>				
 				<select name="store_pickup" class="pk-drop">
 					<option value=""><?php echo __('Select a pickup location','smart-send-logistics'); ?></option>

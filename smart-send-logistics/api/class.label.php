@@ -313,19 +313,19 @@ class Smartsend_Logistics_Label {
 				// An array of orders was returned
 				foreach($json->orders as $json_order) {
 					if(isset($json_order->pdflink) && !(isset($json->combine_pdf) && get_option('smartsend_logistics_combinepdf','yes') == "yes")) {
-						$_succeses[] = 'Order #'.$json_order->orderno.': <a href="'. $json_order->pdflink .'" target="_blank">' . $this->_notifications[2105] .'</a>';
+						$_succeses[] = 'Order #'.$json_order->reference.': <a href="'. $json_order->pdflink .'" target="_blank">' . $this->_notifications[2105] .'</a>';
 						// Go through parcels and add trace to shipments
 						$this->verifyParcels($json_order);	
 					} elseif(isset($json_order->link) && !(isset($json->combine_link) && get_option('smartsend_logistics_combinepdf','yes') == "yes")) {
-						$_succeses[] = 'Order #'.$json_order->orderno.': <a href="'. $json_order->link .'" target="_blank">' . $this->_notifications[2106] .'</a>';
+						$_succeses[] = 'Order #'.$json_order->reference.': <a href="'. $json_order->link .'" target="_blank">' . $this->_notifications[2106] .'</a>';
 						// Go through parcels and add trace to shipments
 						$this->verifyParcels($json_order);	
 					} elseif( (isset($json_order->pdflink) || isset($json_order->link) ) && get_option('smartsend_logistics_combinepdf','yes') == "yes") {
-						$_succeses[] = 'Order #'.$json_order->orderno.': '. $json_order->message;
+						$_succeses[] = 'Order #'.$json_order->reference.': '. $json_order->message;
 						$this->verifyParcels($json_order);
 					} else {
 						if(isset($json_order->status) && $json_order->status != '') {
-							$_errors[] = 'Order #'.$json_order->orderno.': '. $json_order->message; 
+							$_errors[] = 'Order #'.$json_order->reference.': '. $json_order->message; 
 						} else {
 							$_errors[] = $this->_notifications[2102] . ': '. $json_order->message;
 						}
@@ -336,16 +336,16 @@ class Smartsend_Logistics_Label {
 				// An array of orders was not returned. Check if just a single order was returned
 			
 				if(isset($json->pdflink) && !(isset($json->combine_pdf) && get_option('smartsend_logistics_combinepdf','yes') == 1)) {
-					$_succeses[] = 'Order #'.$json->orderno.': <a href="'. $json->pdflink .'" target="_blank">' . $this->_notifications[2105] .'</a>';
+					$_succeses[] = 'Order #'.$json->reference.': <a href="'. $json->pdflink .'" target="_blank">' . $this->_notifications[2105] .'</a>';
 					// Go through parcels and add trace to shipments
 					$this->verifyParcels($json);	
 				} elseif(isset($json->link) && !(isset($json->combine_link) && get_option('smartsend_logistics_combinepdf','yes') == 1)) {
-					$_succeses[] = 'Order #'.$json->orderno.': <a href="'. $json->link .'" target="_blank">' . $this->_notifications[2106] .'</a>';
+					$_succeses[] = 'Order #'.$json->reference.': <a href="'. $json->link .'" target="_blank">' . $this->_notifications[2106] .'</a>';
 					// Go through parcels and add trace to shipments
 					$this->verifyParcels($json);	
 				} else {
 					if(isset($json->status) && $json->status != '') {
-						$_errors[] = 'Order #'.$json->orderno.': '. $json->message;
+						$_errors[] = 'Order #'.$json->reference.': '. $json->message;
 					} else {
 						$_errors[] = $this->_notifications[2102] . ': '. $json->message;
 					}
