@@ -55,7 +55,7 @@ if ( in_array( 'woocommerce/woocommerce.php', apply_filters( 'active_plugins', g
 	
 		$pickup_loc = '';
 		
-		if($shipping_method_id == 'free_shipping') {
+		if(substr($shipping_method_id, 0, strlen('free_shipping')) === 'free_shipping') {
 			$shipping_method_id = get_option( 'smartsend_logistics_wc_shipping_free_shipping','free_shipping');
 		}
 				

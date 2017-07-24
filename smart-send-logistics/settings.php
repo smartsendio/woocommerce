@@ -246,7 +246,7 @@ if ( in_array( 'woocommerce/woocommerce.php', apply_filters( 'active_plugins', g
 					)
 			),
 			'shipping_method_for_free_shipping' => array(
-				'title'    	=> __( 'Shipping method used for WooCommerce method','smart-send-logistics') . " '" . $WC_Shipping_Free_Shipping->method_title ."'",
+				'title'    	=> __( 'Shipping method used for WooCommerce method Free Shipping','smart-send-logistics'),
 				'id'       	=> 'smartsend_logistics_wc_shipping_free_shipping',
 				'default'  	=> '0',
 				'type'     	=> 'select',

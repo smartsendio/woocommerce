@@ -21,13 +21,16 @@
  * versions in the future. If you wish to customize the plugin for your
  * needs please refer to http://www.smartsend.dk
  *
- * @class		Smartsend_Logistics_Order
- * @folder		/api/class.order.php
- * @category	Smartsend
+ * @class		/api/class.order.php
+ * @folder		class_order.php
+ * @category	Smart Send
  * @package		Smartsend_Logistics
- * @author		Smart Send
- * @url			www.smartsend.dk
- * @version		7.1.0
+ * @author 		Smart Send ApS
+ * @url			http://smartsend.dk/
+ * @copyright	Copyright (c) Smart Send ApS (http://www.smartsend.dk)
+ * @license		http://smartsend.dk/license
+ * @since		Class available since Release 7.1.0
+ * @version		Release: 7.1.1
  *
  *	// Overall functions
  *	public function _construct()
@@ -199,13 +202,17 @@ class Smartsend_Logistics_Order {
 	* @return boolean
 	*/
 	public function isSmartsend() {
+		
+		try {
+			$method = strtolower($this->getShippingId());
 	
-		$method = strtolower($this->getShippingId());
-	
-		//Check if shipping methode starts with 'smartsend'
-		if(substr($method, 0, strlen('smartsend')) === 'smartsend') {
-			return true;
-		} else {
+			//Check if shipping methode starts with 'smartsend'
+			if(substr($method, 0, strlen('smartsend')) === 'smartsend') {
+				return true;
+			} else {
+				return false;
+			}
+		} catch(Exception $e) {
 			return false;
 		}
 	
@@ -218,14 +225,18 @@ class Smartsend_Logistics_Order {
 	*/
 	public function isVconnect() {
 	
-		$method = strtolower($this->getShippingId());
+		try{
+			$method = strtolower($this->getShippingId());
 	
-		//Check if shipping methode starts with 'vconnect' or 'vc'
-		if(substr($method, 0, strlen('vconnect')) === 'vconnect') {
-			return true;
-		} elseif(substr($method, 0, strlen('vc')) === 'vc') {
-			return true;
-		} else {
+			//Check if shipping methode starts with 'vconnect' or 'vc'
+			if(substr($method, 0, strlen('vconnect')) === 'vconnect') {
+				return true;
+			} elseif(substr($method, 0, strlen('vc')) === 'vc') {
+				return true;
+			} else {
+				return false;
+			}
+		} catch(Exception $e) {
 			return false;
 		}
 	
@@ -237,17 +248,20 @@ class Smartsend_Logistics_Order {
 	* @return boolean
 	*/	
 	public function isPickupSmartsend() {
+		try{
+			if($this->isSmartsend() == true) {
+				$method = $this->getShippingMethod();
 	
-		if($this->isSmartsend() == true) {
-			$method = $this->getShippingMethod();
-	
-			//Check if shipping methode ends with 'pickup'
-			if(substr($method, -strlen('pickup')) === 'pickup') {
-				return true;
+				//Check if shipping methode ends with 'pickup'
+				if(substr($method, -strlen('pickup')) === 'pickup') {
+					return true;
+				} else {
+					return false;
+				}
 			} else {
 				return false;
 			}
-		} else {
+		} catch(Exception $e) {
 			return false;
 		}
 	
@@ -260,16 +274,21 @@ class Smartsend_Logistics_Order {
 	*/	
 	public function isPickupVconnect() {
 	
-		if($this->isVconnect() == true) {
-			$method = $this->getShippingMethod();
+		try{
+			if($this->isVconnect() == true) {
+				$method = $this->getShippingMethod();
 	
-			//Check if shipping methode ends with 'pickup'
-			if(substr($method, -strlen('pickup')) === 'pickup') {
-				return true;
+				//Check if shipping methode ends with 'pickup'
+				if(substr($method, -strlen('pickup')) === 'pickup') {
+					return true;
+				} else {
+					return false;
+				}
 			} else {
 				return false;
 			}
-		} else {
+		
+		} catch(Exception $e) {
 			return false;
 		}
 	}
@@ -734,7 +753,7 @@ class Smartsend_Logistics_Order {
 			}
 		} else {
 			if($this->getUnshippedItems() != null) {
-				$this->createShipment();
+				$this->addParcelWithUnshippedItems();
 			} else {
 				throw new Exception( $this->_errors[2402] );
 			}

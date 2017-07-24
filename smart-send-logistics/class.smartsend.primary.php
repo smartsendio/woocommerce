@@ -91,30 +91,36 @@ class Smartsend_Logistics_PrimaryClass {
                 }
             }
 
-            $dformat = get_option('woocommerce_carrier_display_format', 1);
+            $dformat = get_option('woocommerce_carrier_display_format', 0);
             foreach ($shp as $rates) {
                 if ($rates['method_name']) {
                     switch ($dformat) {
-                        case "0" :
-                            $mname = ' - ' . $rates['method_name'];
+                        case "0" : //#Carrier - #Method
+                            $mname = $x->title . ' - ' . $rates['method_name'];
                             break;
-                        case "1" :
-                            $mname = ' (' . $rates['method_name'] . ')';
+                        case "1" : //#Carrier - (#Method)
+                            $mname = $x->title . ' (' . $rates['method_name'] . ')';
                             break;
-                        case "2" :
-                            $mname = ' - (' . $rates['method_name'] . ')';
+                        case "2" : //#Carrier - (#Method)
+                            $mname = $x->title . ' - (' . $rates['method_name'] . ')';
                             break;
-                        case "3" :
-                            $mname = ' ' . $rates['method_name'];
+                        case "3" : //#Carrier #Method
+                            $mname = $x->title . ' ' . $rates['method_name'];
                             break;
-                        case "4" :
-                            $mname = '-(' . $rates['method_name'] . ')';
+                        case "4" : //#Carrier-(#Method)
+                            $mname = $x->title . '-(' . $rates['method_name'] . ')';
+                            break;
+                        case "5" : //#Carrier
+                            $mname = $x->title;
+                            break;
+                        case "6" : //#Method
+                            $mname = $rates['method_name'];
                             break;
                     }
 
                     $rate = array(
                         'id' => $x->id . '_' . $rates['methods'], // ID for the rate
-                        'label' => $x->title . $mname, // Label for the rate
+                        'label' => $mname, // Label for the rate
                         'cost' => $rates['shippingO'], // Amount for shipping or an array of costs (for per item shipping)
                         'taxes' => $rates['tax'], // Pass an array of taxes, or pass nothing to have it calculated for you, or pass 'false' to calculate no tax for this method
                         'calc_tax' => 'per_order' // Calc tax per_order or per_item. Per item needs an array of costs passed via 'cost'

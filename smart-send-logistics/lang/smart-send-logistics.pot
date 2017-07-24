@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Plural-Forms: nplurals=INTEGER; plural=EXPRESSION;\n"
 "Project-Id-Version: Smart Send Logistics\n"
-"POT-Creation-Date: 2016-06-12 11:29+0200\n"
+"POT-Creation-Date: 2016-07-16 13:33+0200\n"
 "PO-Revision-Date: 2016-06-09 18:30+0200\n"
 "Last-Translator: Anders Bilfeldt <anders@smartsend.dk>\n"
 "Language-Team: Anders Bilfeldt <anders@smartsend.dk>\n"
@@ -20,138 +20,138 @@ msgstr ""
 "X-Poedit-SearchPath-0: .\n"
 "X-Poedit-SearchPathExcluded-0: *.js\n"
 
-#: api/class.label.woocommerce.php:56 woocommerce-smartsend-logistics.php:202
+#: api/class.label.woocommerce.php:71 woocommerce-smartsend-logistics.php:202
 #: woocommerce-smartsend-logistics.php:219
 msgid "Order"
 msgstr ""
 
-#: api/class.label.woocommerce.php:58
+#: api/class.label.woocommerce.php:73
 msgid "Download combined PDF label"
 msgstr ""
 
-#: api/class.label.woocommerce.php:59
+#: api/class.label.woocommerce.php:74
 msgid "Link to print labels"
 msgstr ""
 
-#: api/class.label.woocommerce.php:60
+#: api/class.label.woocommerce.php:75
 msgid "Download PDF label"
 msgstr ""
 
-#: api/class.label.woocommerce.php:61
+#: api/class.label.woocommerce.php:76
 msgid "Link to print label"
 msgstr ""
 
-#: api/class.label.woocommerce.php:62
+#: api/class.label.woocommerce.php:77
 msgid "Label generated with Smart Send Logistics"
 msgstr ""
 
-#: api/class.label.woocommerce.php:63
+#: api/class.label.woocommerce.php:78
 msgid "Tracecode"
 msgstr ""
 
-#: api/class.label.woocommerce.php:65
+#: api/class.label.woocommerce.php:80
 msgid "Unknown API method"
 msgstr ""
 
-#: api/class.label.woocommerce.php:66
+#: api/class.label.woocommerce.php:81
 msgid "Trying to send empty order array"
 msgstr ""
 
-#: api/class.label.woocommerce.php:67
+#: api/class.label.woocommerce.php:82
 msgid "Error from server"
 msgstr ""
 
-#: api/class.label.woocommerce.php:68
+#: api/class.label.woocommerce.php:83
 msgid "No orders returned from server"
 msgstr ""
 
-#: api/class.label.woocommerce.php:69
+#: api/class.label.woocommerce.php:84
 msgid "No parcels returned from server"
 msgstr ""
 
-#: api/class.label.woocommerce.php:70
+#: api/class.label.woocommerce.php:85
 msgid "Unknown order was returned from server"
 msgstr ""
 
-#: api/class.label.woocommerce.php:71
+#: api/class.label.woocommerce.php:86
 msgid "No PDF file or link returned from server"
 msgstr ""
 
-#: api/class.label.woocommerce.php:72
+#: api/class.label.woocommerce.php:87
 msgid "Failed to insert tracecode. No tracecode available."
 msgstr ""
 
-#: api/class.label.woocommerce.php:73
+#: api/class.label.woocommerce.php:88
 msgid "Failed to change order status. Status unchanged."
 msgstr ""
 
-#: api/class.label.woocommerce.php:74
+#: api/class.label.woocommerce.php:89
 msgid "Failed to send shipment mail. No mail sent."
 msgstr ""
 
-#: api/class.label.woocommerce.php:75
+#: api/class.label.woocommerce.php:90
 msgid "Failed to add order comment"
 msgstr ""
 
-#: api/class.label.woocommerce.php:76
+#: api/class.label.woocommerce.php:91
 msgid "Please enter a username in the modules settings"
 msgstr ""
 
-#: api/class.label.woocommerce.php:77
+#: api/class.label.woocommerce.php:92
 msgid "Please enter a license key in the modules settings"
 msgstr ""
 
-#: api/class.order.woocommerce.php:74
+#: api/class.order.woocommerce.php:75
 msgid "Unable to determine the shipping method used for return parcels"
 msgstr ""
 
-#: api/class.order.woocommerce.php:75
+#: api/class.order.woocommerce.php:76
 msgid "Unable to determine the shipping carrier"
 msgstr ""
 
-#: api/class.order.woocommerce.php:76
+#: api/class.order.woocommerce.php:77
 msgid "Unable to determine the shipping method"
 msgstr ""
 
-#: api/class.order.woocommerce.php:77
+#: api/class.order.woocommerce.php:78
 msgid "Unable to determine carrier for pickup shipping method"
 msgstr ""
 
-#: api/class.order.woocommerce.php:78
+#: api/class.order.woocommerce.php:79
 msgid "Unsupported carrier"
 msgstr ""
 
-#: api/class.order.woocommerce.php:79
+#: api/class.order.woocommerce.php:80
 msgid "Unable to determine shipping method for carrier"
 msgstr ""
 
-#: api/class.order.woocommerce.php:80
+#: api/class.order.woocommerce.php:81
 msgid "Unable to determine shipping carrier"
 msgstr ""
 
-#: api/class.order.woocommerce.php:81
+#: api/class.order.woocommerce.php:82
 msgid "Unknown shipping carrier"
 msgstr ""
 
-#: api/class.order.woocommerce.php:82
+#: api/class.order.woocommerce.php:83
 msgid "Unable to determine shipping method"
 msgstr ""
 
-#: api/class.order.woocommerce.php:84
+#: api/class.order.woocommerce.php:85
 msgid ""
 "All packages has been shipped. No parcels without trace code exists. Remove "
 "existing tracecodes to re-generate labels."
 msgstr ""
 
-#: api/class.order.woocommerce.php:85
+#: api/class.order.woocommerce.php:86
 msgid "No items to ship"
 msgstr ""
 
-#: api/class.order.woocommerce.php:86
+#: api/class.order.woocommerce.php:87
 msgid "No parcels to ship"
 msgstr ""
 
-#: api/class.order.woocommerce.php:88
+#: api/class.order.woocommerce.php:89
 msgid ""
 "Trying to access pickup data for an order that is not a pickup point order"
 msgstr ""
@@ -499,113 +499,113 @@ msgstr ""
 msgid "Enable flex delivery for the selected shipping methods"
 msgstr ""
 
-#: class.smartsend.primary.php:187
+#: class.smartsend.primary.php:193
 msgid "Shipping class"
 msgstr ""
 
-#: class.smartsend.primary.php:187
+#: class.smartsend.primary.php:193
 msgid "Products must belong to this shipping class"
 msgstr ""
 
-#: class.smartsend.primary.php:188 woocommerce-smartsend-logistics.php:331
+#: class.smartsend.primary.php:194 woocommerce-smartsend-logistics.php:331
 msgid "Shipping method"
 msgstr ""
 
-#: class.smartsend.primary.php:189 class.smartsend.primary.php:322
+#: class.smartsend.primary.php:195 class.smartsend.primary.php:328
 msgid "Min. price"
 msgstr ""
 
-#: class.smartsend.primary.php:189
+#: class.smartsend.primary.php:195
 msgid "Minimum total order price for this shipping rate"
 msgstr ""
 
-#: class.smartsend.primary.php:190 class.smartsend.primary.php:323
+#: class.smartsend.primary.php:196 class.smartsend.primary.php:329
 msgid "Max. price"
 msgstr ""
 
-#: class.smartsend.primary.php:190
+#: class.smartsend.primary.php:196
 msgid "Maximum total order price for this shipping rate"
 msgstr ""
 
-#: class.smartsend.primary.php:191
+#: class.smartsend.primary.php:197
 msgid "Min. weight"
 msgstr ""
 
-#: class.smartsend.primary.php:191
+#: class.smartsend.primary.php:197
 msgid "Minimum total order weight for this shipping rate"
 msgstr ""
 
-#: class.smartsend.primary.php:192
+#: class.smartsend.primary.php:198
 msgid "Max. weight"
 msgstr ""
 
-#: class.smartsend.primary.php:192
+#: class.smartsend.primary.php:198
 msgid "Maximum total order weight for this shipping rate"
 msgstr ""
 
-#: class.smartsend.primary.php:193 class.smartsend.primary.php:324
+#: class.smartsend.primary.php:199 class.smartsend.primary.php:330
 msgid "Shipping fee"
 msgstr ""
 
-#: class.smartsend.primary.php:193
+#: class.smartsend.primary.php:199
 msgid "Shipping price for this shipping method"
 msgstr ""
 
-#: class.smartsend.primary.php:194
+#: class.smartsend.primary.php:200
 msgid "Countries"
 msgstr ""
 
-#: class.smartsend.primary.php:194
+#: class.smartsend.primary.php:200
 msgid ""
 "Countries can be entered as a comma-separated list in ISO 3166-1 alpha-2 "
 "format. Use * for all valid countries."
 msgstr ""
 
-#: class.smartsend.primary.php:195
+#: class.smartsend.primary.php:201
 msgid "Title"
 msgstr ""
 
-#: class.smartsend.primary.php:195
+#: class.smartsend.primary.php:201
 msgid "Shipping method name shown in frontend"
 msgstr ""
 
-#: class.smartsend.primary.php:201
+#: class.smartsend.primary.php:207
 msgid "Add shipping rate"
 msgstr ""
 
-#: class.smartsend.primary.php:202
+#: class.smartsend.primary.php:208
 msgid "Define table rates here in order of priority"
 msgstr ""
 
-#: class.smartsend.primary.php:203
+#: class.smartsend.primary.php:209
 msgid "Duplicate selected rows"
 msgstr ""
 
-#: class.smartsend.primary.php:204
+#: class.smartsend.primary.php:210
 msgid "Delete selected rows"
 msgstr ""
 
-#: class.smartsend.primary.php:292
+#: class.smartsend.primary.php:298
 msgid "Unknown carrier"
 msgstr ""
 
-#: class.smartsend.primary.php:322 class.smartsend.primary.php:323
+#: class.smartsend.primary.php:328 class.smartsend.primary.php:329
 msgid "Input the order price"
 msgstr ""
 
-#: class.smartsend.primary.php:322 class.smartsend.primary.php:323
+#: class.smartsend.primary.php:328 class.smartsend.primary.php:329
 msgid "including tax"
 msgstr ""
 
-#: class.smartsend.primary.php:324
+#: class.smartsend.primary.php:330
 msgid "Input the shipping fee"
 msgstr ""
 
-#: class.smartsend.primary.php:324
+#: class.smartsend.primary.php:330
 msgid "excluding tax"
 msgstr ""
 
-#: class.smartsend.primary.php:372
+#: class.smartsend.primary.php:378
 msgid "Delete the selected rates?"
 msgstr ""
 
@@ -734,7 +734,7 @@ msgid "Method"
 msgstr ""
 
 #: settings.php:249
-msgid "Shipping method used for WooCommerce method"
+msgid "Shipping method used for WooCommerce method Free Shipping"
 msgstr ""
 
 #: settings.php:258
@@ -750,30 +750,50 @@ msgid "This will include a long list of shipping methods in the shipping table"
 msgstr ""
 
 #: smartsend-flexdelivery.php:73
-msgid "By the frontdoor"
+msgid "By the front door"
 msgstr ""
 
 #: smartsend-flexdelivery.php:74
-msgid "By the carport"
+msgid "By the back door"
 msgstr ""
 
 #: smartsend-flexdelivery.php:75
-msgid "By the back dor"
+msgid "One the porch"
 msgstr ""
 
 #: smartsend-flexdelivery.php:76
-msgid "Can be left unattended"
+msgid "In the greenhouse"
 msgstr ""
 
 #: smartsend-flexdelivery.php:77
+msgid "In the garage/carport"
+msgstr ""
+
+#: smartsend-flexdelivery.php:78
+msgid "In the tool shed"
+msgstr ""
+
+#: smartsend-flexdelivery.php:79
+msgid "In the playhouse"
+msgstr ""
+
+#: smartsend-flexdelivery.php:80
+msgid "Under the roof of the porch"
+msgstr ""
+
+#: smartsend-flexdelivery.php:81
+msgid "Can be left unattended"
+msgstr ""
+
+#: smartsend-flexdelivery.php:82
 msgid "I have Modtagerflex"
 msgstr ""
 
-#: smartsend-flexdelivery.php:133 smartsend-flexdelivery.php:158
+#: smartsend-flexdelivery.php:138 smartsend-flexdelivery.php:163
 msgid "Select a flexdelivery option"
 msgstr ""
 
-#: smartsend-flexdelivery.php:188 smartsend-flexdelivery.php:191
+#: smartsend-flexdelivery.php:193 smartsend-flexdelivery.php:196
 msgid "Flexdelivery note"
 msgstr ""
 

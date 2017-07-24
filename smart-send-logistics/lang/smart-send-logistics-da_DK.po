@@ -1,8 +1,8 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: Smart Send Logistics\n"
-"POT-Creation-Date: 2016-06-12 11:29+0200\n"
-"PO-Revision-Date: 2016-06-12 11:31+0200\n"
+"POT-Creation-Date: 2016-07-16 13:33+0200\n"
+"PO-Revision-Date: 2016-07-16 13:34+0200\n"
 "Last-Translator: Anders Bilfeldt <anders@smartsend.dk>\n"
 "Language-Team: Anders Bilfeldt <anders@smartsend.dk>\n"
 "Language: da_DK\n"
@@ -20,126 +20,126 @@ msgstr ""
 "X-Poedit-SearchPath-0: .\n"
 "X-Poedit-SearchPathExcluded-0: *.js\n"
 
-#: api/class.label.woocommerce.php:56 woocommerce-smartsend-logistics.php:202
+#: api/class.label.woocommerce.php:71 woocommerce-smartsend-logistics.php:202
 #: woocommerce-smartsend-logistics.php:219
 msgid "Order"
 msgstr "Order"
 
-#: api/class.label.woocommerce.php:58
+#: api/class.label.woocommerce.php:73
 msgid "Download combined PDF label"
 msgstr "Hent samlet PDF-label"
 
-#: api/class.label.woocommerce.php:59
+#: api/class.label.woocommerce.php:74
 msgid "Link to print labels"
 msgstr "Link til print af labels"
 
-#: api/class.label.woocommerce.php:60
+#: api/class.label.woocommerce.php:75
 msgid "Download PDF label"
 msgstr "Hent PDF-label"
 
-#: api/class.label.woocommerce.php:61
+#: api/class.label.woocommerce.php:76
 msgid "Link to print label"
 msgstr "Link til print af label"
 
-#: api/class.label.woocommerce.php:62
+#: api/class.label.woocommerce.php:77
 msgid "Label generated with Smart Send Logistics"
 msgstr "Label genereret via Smart Send Logistics"
 
-#: api/class.label.woocommerce.php:63
+#: api/class.label.woocommerce.php:78
 msgid "Tracecode"
 msgstr "Trackingnummer"
 
-#: api/class.label.woocommerce.php:65
+#: api/class.label.woocommerce.php:80
 msgid "Unknown API method"
 msgstr "Ukendt API-metode"
 
-#: api/class.label.woocommerce.php:66
+#: api/class.label.woocommerce.php:81
 msgid "Trying to send empty order array"
 msgstr "Forsøger at sende et tomt order array"
 
-#: api/class.label.woocommerce.php:67
+#: api/class.label.woocommerce.php:82
 msgid "Error from server"
 msgstr "Serverfejl"
 
-#: api/class.label.woocommerce.php:68
+#: api/class.label.woocommerce.php:83
 msgid "No orders returned from server"
 msgstr "Ingen ordre returneret fra server"
 
-#: api/class.label.woocommerce.php:69
+#: api/class.label.woocommerce.php:84
 msgid "No parcels returned from server"
 msgstr "Ingen forsendelser returneret fra serveren"
 
-#: api/class.label.woocommerce.php:70
+#: api/class.label.woocommerce.php:85
 msgid "Unknown order was returned from server"
 msgstr "Ukendt order returneret fra server"
 
-#: api/class.label.woocommerce.php:71
+#: api/class.label.woocommerce.php:86
 msgid "No PDF file or link returned from server"
 msgstr "Ingen PDF-fil eller link til udskrift tilgængeligt"
 
-#: api/class.label.woocommerce.php:72
+#: api/class.label.woocommerce.php:87
 msgid "Failed to insert tracecode. No tracecode available."
 msgstr ""
 "Fejl under indsættese af trackingnummer. Trackingnummer er ikke tilgængeligt."
 
-#: api/class.label.woocommerce.php:73
+#: api/class.label.woocommerce.php:88
 msgid "Failed to change order status. Status unchanged."
 msgstr "Fejl ved opdatering af ordrestatus. Ordrestatus er ikke opdateret."
 
-#: api/class.label.woocommerce.php:74
+#: api/class.label.woocommerce.php:89
 msgid "Failed to send shipment mail. No mail sent."
 msgstr ""
 "Fejl ved udsendelse af forsendelsemail. Forsendelsesmail blev ikke udsendt."
 
-#: api/class.label.woocommerce.php:75
+#: api/class.label.woocommerce.php:90
 msgid "Failed to add order comment"
 msgstr "Fejl ved opdatering af ordrehistorikken"
 
-#: api/class.label.woocommerce.php:76
+#: api/class.label.woocommerce.php:91
 msgid "Please enter a username in the modules settings"
 msgstr "Indtast venligst et brugernavn i modulets indstillinger"
 
-#: api/class.label.woocommerce.php:77
+#: api/class.label.woocommerce.php:92
 msgid "Please enter a license key in the modules settings"
 msgstr "Indtast venligst en licenskode i modulets indstillinger"
 
-#: api/class.order.woocommerce.php:74
+#: api/class.order.woocommerce.php:75
 msgid "Unable to determine the shipping method used for return parcels"
 msgstr "Kunne ikke bestemme forsendelsesmetoden til returpakker"
 
-#: api/class.order.woocommerce.php:75
+#: api/class.order.woocommerce.php:76
 msgid "Unable to determine the shipping carrier"
 msgstr "Kunne ikke bestemme fragtfirmaet"
 
-#: api/class.order.woocommerce.php:76
+#: api/class.order.woocommerce.php:77
 msgid "Unable to determine the shipping method"
 msgstr "Kunne ikke bestemme fragtmetoden"
 
-#: api/class.order.woocommerce.php:77
+#: api/class.order.woocommerce.php:78
 msgid "Unable to determine carrier for pickup shipping method"
 msgstr "Kunne ikke bestemme fragtfirma for fragtmetode til afhentningssted"
 
-#: api/class.order.woocommerce.php:78
+#: api/class.order.woocommerce.php:79
 msgid "Unsupported carrier"
 msgstr "Ikke supporteret fragtmetode"
 
-#: api/class.order.woocommerce.php:79
+#: api/class.order.woocommerce.php:80
 msgid "Unable to determine shipping method for carrier"
 msgstr "Kunne ikke bestemme fragtmetoden for fragtfirmaet"
 
-#: api/class.order.woocommerce.php:80
+#: api/class.order.woocommerce.php:81
 msgid "Unable to determine shipping carrier"
 msgstr "Kunne ikke bestemme fragtfirmaet"
 
-#: api/class.order.woocommerce.php:81
+#: api/class.order.woocommerce.php:82
 msgid "Unknown shipping carrier"
 msgstr "Ukendt fragtmetode"
 
-#: api/class.order.woocommerce.php:82
+#: api/class.order.woocommerce.php:83
 msgid "Unable to determine shipping method"
 msgstr "Kunne ikke bestemme fragtmetoden"
 
-#: api/class.order.woocommerce.php:84
+#: api/class.order.woocommerce.php:85
 msgid ""
 "All packages has been shipped. No parcels without trace code exists. Remove "
 "existing tracecodes to re-generate labels."
@@ -147,15 +147,15 @@ msgstr ""
 "Alle pakker er allerede afsendt. Ingen pakker mangler trackingnummer. Fjern "
 "eksisterende trackingnumre for at lave nye labels."
 
-#: api/class.order.woocommerce.php:85
+#: api/class.order.woocommerce.php:86
 msgid "No items to ship"
 msgstr "Ingen produkter kan afsendes"
 
-#: api/class.order.woocommerce.php:86
+#: api/class.order.woocommerce.php:87
 msgid "No parcels to ship"
 msgstr "Ingen forsendelser at sende"
 
-#: api/class.order.woocommerce.php:88
+#: api/class.order.woocommerce.php:89
 msgid ""
 "Trying to access pickup data for an order that is not a pickup point order"
 msgstr ""
@@ -514,63 +514,63 @@ msgstr "Flexlevering"
 msgid "Enable flex delivery for the selected shipping methods"
 msgstr "Aktiver flexlevering for de valgte fragtmetoder"
 
-#: class.smartsend.primary.php:187
+#: class.smartsend.primary.php:193
 msgid "Shipping class"
 msgstr "Forsendelsesklasse"
 
-#: class.smartsend.primary.php:187
+#: class.smartsend.primary.php:193
 msgid "Products must belong to this shipping class"
 msgstr "Produkterne må tilhøre denne forsendelsesklasse"
 
-#: class.smartsend.primary.php:188 woocommerce-smartsend-logistics.php:331
+#: class.smartsend.primary.php:194 woocommerce-smartsend-logistics.php:331
 msgid "Shipping method"
 msgstr "Fragtmetode"
 
-#: class.smartsend.primary.php:189 class.smartsend.primary.php:322
+#: class.smartsend.primary.php:195 class.smartsend.primary.php:328
 msgid "Min. price"
 msgstr "Min. pris"
 
-#: class.smartsend.primary.php:189
+#: class.smartsend.primary.php:195
 msgid "Minimum total order price for this shipping rate"
 msgstr "Minimum order total pris for denne forsendelsesmetode"
 
-#: class.smartsend.primary.php:190 class.smartsend.primary.php:323
+#: class.smartsend.primary.php:196 class.smartsend.primary.php:329
 msgid "Max. price"
 msgstr "Maks pris"
 
-#: class.smartsend.primary.php:190
+#: class.smartsend.primary.php:196
 msgid "Maximum total order price for this shipping rate"
 msgstr "Maksimal order total pris for denne forsendelsesmetode"
 
-#: class.smartsend.primary.php:191
+#: class.smartsend.primary.php:197
 msgid "Min. weight"
 msgstr "Min. vægt"
 
-#: class.smartsend.primary.php:191
+#: class.smartsend.primary.php:197
 msgid "Minimum total order weight for this shipping rate"
 msgstr "Minimum order total vægt for denne forsendelsesmetode"
 
-#: class.smartsend.primary.php:192
+#: class.smartsend.primary.php:198
 msgid "Max. weight"
 msgstr "Maks vægt"
 
-#: class.smartsend.primary.php:192
+#: class.smartsend.primary.php:198
 msgid "Maximum total order weight for this shipping rate"
 msgstr "Maksimum order total vægt for denne forsendelsesmetode"
 
-#: class.smartsend.primary.php:193 class.smartsend.primary.php:324
+#: class.smartsend.primary.php:199 class.smartsend.primary.php:330
 msgid "Shipping fee"
 msgstr "Fragtpris"
 
-#: class.smartsend.primary.php:193
+#: class.smartsend.primary.php:199
 msgid "Shipping price for this shipping method"
 msgstr "Forsendelsesprisen for denne forsendelsesmetode"
 
-#: class.smartsend.primary.php:194
+#: class.smartsend.primary.php:200
 msgid "Countries"
 msgstr "Lande"
 
-#: class.smartsend.primary.php:194
+#: class.smartsend.primary.php:200
 msgid ""
 "Countries can be entered as a comma-separated list in ISO 3166-1 alpha-2 "
 "format. Use * for all valid countries."
@@ -578,51 +578,51 @@ msgstr ""
 "Lande kan indtastes som en komma-separeret liste i ISO-3166-1 alpha-2 "
 "format. Brug * for alle gyldige lande."
 
-#: class.smartsend.primary.php:195
+#: class.smartsend.primary.php:201
 msgid "Title"
 msgstr "Titel"
 
-#: class.smartsend.primary.php:195
+#: class.smartsend.primary.php:201
 msgid "Shipping method name shown in frontend"
 msgstr "Navn på forsendelsesmetoden som vises i frontend"
 
-#: class.smartsend.primary.php:201
+#: class.smartsend.primary.php:207
 msgid "Add shipping rate"
 msgstr "Tilføj forsendelsesrate"
 
-#: class.smartsend.primary.php:202
+#: class.smartsend.primary.php:208
 msgid "Define table rates here in order of priority"
 msgstr "Definer fragtmetoder her i prioriteret rækkefølge"
 
-#: class.smartsend.primary.php:203
+#: class.smartsend.primary.php:209
 msgid "Duplicate selected rows"
 msgstr "Dupliker vælge rækker"
 
-#: class.smartsend.primary.php:204
+#: class.smartsend.primary.php:210
 msgid "Delete selected rows"
 msgstr "Slet valgte rækker"
 
-#: class.smartsend.primary.php:292
+#: class.smartsend.primary.php:298
 msgid "Unknown carrier"
 msgstr "Ukendt fragtfirma"
 
-#: class.smartsend.primary.php:322 class.smartsend.primary.php:323
+#: class.smartsend.primary.php:328 class.smartsend.primary.php:329
 msgid "Input the order price"
 msgstr "Indtast ordrens samlede pris"
 
-#: class.smartsend.primary.php:322 class.smartsend.primary.php:323
+#: class.smartsend.primary.php:328 class.smartsend.primary.php:329
 msgid "including tax"
 msgstr "inklusiv moms"
 
-#: class.smartsend.primary.php:324
+#: class.smartsend.primary.php:330
 msgid "Input the shipping fee"
 msgstr "Indtast fragtprisen"
 
-#: class.smartsend.primary.php:324
+#: class.smartsend.primary.php:330
 msgid "excluding tax"
 msgstr "eksklusiv moms"
 
-#: class.smartsend.primary.php:372
+#: class.smartsend.primary.php:378
 msgid "Delete the selected rates?"
 msgstr "Slet de valgte rækker?"
 
@@ -758,8 +758,8 @@ msgid "Method"
 msgstr "Metode"
 
 #: settings.php:249
-msgid "Shipping method used for WooCommerce method"
-msgstr "Forsendelsesmetode brug til WooCommerce metoden"
+msgid "Shipping method used for WooCommerce method Free Shipping"
+msgstr "Fragtmetode der bruges for WooCommerce fragtmetoden Gratis Fragt"
 
 #: settings.php:258
 msgid "Include order comment on label"
@@ -776,30 +776,50 @@ msgstr ""
 "forsendelsestabellen"
 
 #: smartsend-flexdelivery.php:73
-msgid "By the frontdoor"
+msgid "By the front door"
 msgstr "Foran hoveddøren"
 
 #: smartsend-flexdelivery.php:74
-msgid "By the carport"
-msgstr "Ved carporten eller garagen"
-
-#: smartsend-flexdelivery.php:75
-msgid "By the back dor"
+msgid "By the back door"
 msgstr "Ved bagdøren"
 
+#: smartsend-flexdelivery.php:75
+msgid "One the porch"
+msgstr "På terrassen"
+
 #: smartsend-flexdelivery.php:76
+msgid "In the greenhouse"
+msgstr "I drivhuset"
+
+#: smartsend-flexdelivery.php:77
+msgid "In the garage/carport"
+msgstr "I garagen/carporten"
+
+#: smartsend-flexdelivery.php:78
+msgid "In the tool shed"
+msgstr "I skuret/værkstedet"
+
+#: smartsend-flexdelivery.php:79
+msgid "In the playhouse"
+msgstr "I legehuset"
+
+#: smartsend-flexdelivery.php:80
+msgid "Under the roof of the porch"
+msgstr "Under halvtaget"
+
+#: smartsend-flexdelivery.php:81
 msgid "Can be left unattended"
 msgstr "Må stilles et andet sted"
 
-#: smartsend-flexdelivery.php:77
+#: smartsend-flexdelivery.php:82
 msgid "I have Modtagerflex"
 msgstr "Jeg har Modtagerflex"
 
-#: smartsend-flexdelivery.php:133 smartsend-flexdelivery.php:158
+#: smartsend-flexdelivery.php:138 smartsend-flexdelivery.php:163
 msgid "Select a flexdelivery option"
 msgstr "Vælg en flexleverings mulighed"
 
-#: smartsend-flexdelivery.php:188 smartsend-flexdelivery.php:191
+#: smartsend-flexdelivery.php:193 smartsend-flexdelivery.php:196
 msgid "Flexdelivery note"
 msgstr "Flexleveringsnote"
 
@@ -888,6 +908,18 @@ msgstr "Smart Send ApS"
 #. Author URI of the plugin/theme
 msgid "http://www.smartsend.dk"
 msgstr "http://www.smartsend.dk"
+
+#~ msgid "Shipping method used for WooCommerce method"
+#~ msgstr "Forsendelsesmetode brug til WooCommerce metoden"
+
+#~ msgid "By the frontdoor"
+#~ msgstr "Ved hoveddøren"
+
+#~ msgid "By the carport"
+#~ msgstr "Ved carporten eller garagen"
+
+#~ msgid "By the back dor"
+#~ msgstr "Ved bagdøren"
 
 #~ msgid "Shipping to closest pickup point"
 #~ msgstr "Sendes til nærmeste afhentningssted"

@@ -1,10 +1,9 @@
 <?php
 
 /**
- * Smartsend_Logistics Order class
+ * Smartsend_Logistics Order WooCommerce class
  *
  * Create order objects that is included in the final Smart Send label API callout.
- * These are the CMS dependent functions that is used by the order class.
  *
  * LICENSE
  *
@@ -22,14 +21,16 @@
  * versions in the future. If you wish to customize the plugin for your
  * needs please refer to http://www.smartsend.dk
  *
- *
  * @class		Smartsend_Logistics_Order_Woocommerce
  * @folder		/api/class.order.woocommerce.php
- * @category	Smartsend
+ * @category	Smart Send
  * @package		Smartsend_Logistics
- * @author		Smart Send
- * @url			www.smartsend.dk
- * @version		7.1.0
+ * @author 		Smart Send ApS
+ * @url			http://smartsend.dk/
+ * @copyright	Copyright (c) Smart Send ApS (http://www.smartsend.dk)
+ * @license		http://smartsend.dk/license
+ * @since		Class available since Release 7.1.0
+ * @version		Release: 7.1.0
  *
  *	// Order
  *	public function getShippingId()
@@ -58,8 +59,9 @@
  *	public function getShipmentTrace($shipment)
  *	public function getShipmentWeight($shipment)
  *	protected function getUnshippedItems()
- *	protected function createShipment()
+ *	public function createShipment($tracking_number)
  *	protected function addShipment($shipment)
+ *	protected function addParcelWithUnshippedItems()
  *	protected function addItem($item)
  *	
  */
@@ -113,7 +115,7 @@ class Smartsend_Logistics_Order_Woocommerce extends Smartsend_Logistics_Order {
 			}
 		}
 	
-		if($shipMethod_id == 'free_shipping') {
+		if(substr($shipping_method_id, 0, strlen('free_shipping')) === 'free_shipping') {
 			$shipMethod_id = get_option( 'smartsend_logistics_wc_shipping_free_shipping','free_shipping');
 		}
 	
@@ -546,8 +548,8 @@ class Smartsend_Logistics_Order_Woocommerce extends Smartsend_Logistics_Order {
 	
 		$weight = 0;
 		foreach($shipment as $eachShipmentItem) {
-			$itemWeight = $eachShipmentItem['unitweight'];
-			$itemQty    = $eachShipmentItem['quantity'];
+			$itemWeight = (float) $eachShipmentItem['unitweight'];
+			$itemQty    = (float) $eachShipmentItem['quantity'];
 			$rowWeight  = $itemWeight*$itemQty;
 
 			$weight = $weight + $rowWeight;
@@ -589,9 +591,9 @@ class Smartsend_Logistics_Order_Woocommerce extends Smartsend_Logistics_Order {
 			$items[] =  array(
 				'sku'		=> ($_product->get_sku() != '' ? $_product->get_sku() : null),
 				'title'		=> ($_product->get_title() != '' ? $_product->get_title() : null),
-				'quantity'	=> $item['qty'],
-				'unitweight'=> ($weight != '' ? $weight : null),
-				'unitprice'	=> $_product->get_price(),
+				'quantity'	=> (float) $item['qty'],
+				'unitweight'=> ((float) $weight != 0 ? (float) $weight : null),
+				'unitprice'	=> (float) $_product->get_price(),
 				'currency'	=> get_woocommerce_currency()
 				);
 		}
@@ -610,34 +612,7 @@ class Smartsend_Logistics_Order_Woocommerce extends Smartsend_Logistics_Order {
 	* Create a parcel containing all unshipped items.
 	* Add the parcel to the request.
 	*/
-	protected function createShipment() {
-
-		//create and object, $shipment, with all items
-		if ( sizeof( $this->_order->get_items() ) > 0 ) {
-			$shipment = array(
-				'shipdate'	=> null,
-				'reference' => $this->getOrderId(),
-				'weight'	=> $this->getShipmentWeight($this->getUnshippedItems()),
-				'height'	=> null,
-				'width'		=> null,
-				'length'	=> null,
-				'size'		=> null,
-				'freetext1'	=> $this->getFreetext(),
-				'freetext2'	=> null,
-				'freetext3'	=> null,
-				'items' 	=> $this->getUnshippedItems()
-				);
-		} else {
-			//Order has no shipments and cannot be shipped
-			throw new Exception($this->_errors[2402]);
-		}
-
-		/* All */
-		if ($shipment) {
-			//Lastly add the shipment to the order array.
-			$this->addShipment($shipment);
-		}
-
+	public function createShipment($tracking_number=null) {
 	}
 	
 	/**
@@ -648,6 +623,33 @@ class Smartsend_Logistics_Order_Woocommerce extends Smartsend_Logistics_Order {
 	
 		$this->_parcels[] = $shipment;
 
+	}
+	
+	/*
+	 * Add a parcel to the request
+	 * The parcel contains all unshipped items
+	 */
+	protected function addParcelWithUnshippedItems() {
+		$unshipped_items = $this->getUnshippedItems();
+		
+		//create and object, $shipment, with all items
+		if ( sizeof( $unshipped_items ) > 0 ) {
+			$parcel = array(
+				'shipdate'	=> null,
+				'reference' => $this->getOrderId(),
+				'weight'	=> $this->getShipmentWeight($unshipped_items),
+				'height'	=> null,
+				'width'		=> null,
+				'length'	=> null,
+				'size'		=> null,
+				'freetext1'	=> $this->getFreetext(),
+				'freetext2'	=> null,
+				'freetext3'	=> null,
+				'items' 	=> $unshipped_items
+				);
+	
+			$this->_parcels[] = $parcel;
+		}
 	}
 
 	/**

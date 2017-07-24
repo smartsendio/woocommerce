@@ -105,7 +105,7 @@ if ( ! class_exists( 'Smartsend_Logistics_Posten' ) ) {
 					)
 				),
 				'tax_status' 		=> array(
-					'title' 			=> __( 'Exclude from TAX', 'woocommerce' ),
+					'title' 			=> __( 'Exclude from TAX', 'smart-send-logistics' ),
 					'description'		=> __('Excluded private shipping methods to Denmark from TAX','smart-send-logistics'),
 					'type'      		=> 'checkbox',
 					'default'   		=> 'yes',

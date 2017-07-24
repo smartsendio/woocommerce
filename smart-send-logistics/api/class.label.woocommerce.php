@@ -1,22 +1,37 @@
 <?php
 
 /**
- * Label class
+ * Smartsend_Logistics Label WooCommerce class
  *
  * The label class is used to handle requests and responses from the Smart Send Logistics API
- * These are the CMS dependent functions that is used by the parent label class.
  *
- * @folder		/app/code/community/Smartsend/Logistics/Model/Labelmagento.php
+ * LICENSE
+ *
+ * This source file is subject to the GNU General Public License v3.0
+ * that is bundled with this package in the file license.txt.
+ * It is also available through the world-wide-web at this URL:
+ * http://www.gnu.org/licenses/gpl-3.0.html
+ * If you did not receive a copy of the license and are unable to
+ * obtain it through the world-wide-web, please send an email
+ * to license@smartsend.dk so we can send you a copy immediately.
+ *
+ * DISCLAIMER
+ *
+ * Do not edit or add to this file if you wish to upgrade the plugin to newer
+ * versions in the future. If you wish to customize the plugin for your
+ * needs please refer to http://www.smartsend.dk
+ *
+ * @class 		Smartsend_Logistics_Label_Woocommerce
+ * @folder		/api/class.label.woocommerce.php
  * @category	Smart Send
  * @package		Smartsend_Logistics
- * @class 		Smartsend_Logistics_Label
+ * @author 		Smart Send ApS
+ * @url			http://smartsend.dk/
  * @copyright	Copyright (c) Smart Send ApS (http://www.smartsend.dk)
  * @license		http://smartsend.dk/license
- * @version		Release: 7.1.0
- * @author 		Smart Send ApS
- * @link			http://smartsend.dk/download/generec
  * @since		Class available since Release 7.1.0
- */
+ * @version		Release: 7.1.1.0
+*/
 
 class Smartsend_Logistics_Label_Woocommerce extends Smartsend_Logistics_Label {
 
@@ -226,15 +241,16 @@ class Smartsend_Logistics_Label_Woocommerce extends Smartsend_Logistics_Label {
 	
 	/*
 	 * Add a trace code to the parcel
+	 * If order has no parcels, create a parcel with alll unshipped items
 	 *
 	 * @param string $order_number is the id of the order
 	 * @param string $shipment_number is the id of the shipment
-	 * @param string $tracking_numder is the tracking number to add
+	 * @param string $tracking_number is the tracking number to add
 	 * @param string $tracelink is the linked used to crack the parcel
 	 *
 	 * @return void
 	 */
-	protected function addTracecodeToParcel($order_number,$shipment_number,$tracking_numder,$tracelink) {
+	protected function addTracecodeToParcel($order_number,$shipment_number,$tracking_number,$tracelink) {
 		$order = new WC_Order( $order_number );
 		
 		$smartsendorder = new Smartsend_Logistics_Order_Woocommerce();
@@ -243,7 +259,7 @@ class Smartsend_Logistics_Label_Woocommerce extends Smartsend_Logistics_Label {
 		//Add trace link to WooTheme extension 'Shipment Tracking'
 		update_post_meta( $order->id, '_tracking_provider', $smartsendorder->getShippingCarrier($format=0) );
 		//update_post_meta( $order->id, '_custom_tracking_provider', $smartsendorder->getShippingCarrier($format=0) );
-		update_post_meta( $order->id, '_tracking_number', $tracking_numder );
+		update_post_meta( $order->id, '_tracking_number', $tracking_number );
 		//update_post_meta( $order->id, '_custom_tracking_link', null );
 		update_post_meta( $order->id, '_date_shipped', time() );
 
@@ -280,7 +296,7 @@ class Smartsend_Logistics_Label_Woocommerce extends Smartsend_Logistics_Label {
 				case 'error':
 					//Add an error
 					if(isset($_SESSION['smartsend_errors']) && is_array($_SESSION['smartsend_errors'])) {
-						$_SESSION['smartsend_errors'] 		= array_push($_SESSION['smartsend_errors'],$message['text']);
+						$_SESSION['smartsend_errors'][] 	= $message['text'];
 					} else {
 						$_SESSION['smartsend_errors']		= array($message['text']);
 					}
@@ -288,7 +304,7 @@ class Smartsend_Logistics_Label_Woocommerce extends Smartsend_Logistics_Label {
 				case 'warning':
 					//Add a warning
 					if(isset($_SESSION['smartsend_notification']) && is_array($_SESSION['smartsend_notification'])) {
- 						$_SESSION['smartsend_notification'] = array_push($_SESSION['smartsend_notification'],$message['text']);
+ 						$_SESSION['smartsend_notification'][] = $message['text'];
  					} else {
  						$_SESSION['smartsend_notification']	= array($message['text']);
  					}
@@ -296,7 +312,7 @@ class Smartsend_Logistics_Label_Woocommerce extends Smartsend_Logistics_Label {
 				case 'success':
 					//Add a success
 					if(isset($_SESSION['smartsend_succeses']) && is_array($_SESSION['smartsend_succeses'])) {
- 						$_SESSION['smartsend_succeses'] 	= array_push($_SESSION['smartsend_succeses'],$message['text']);
+ 						$_SESSION['smartsend_succeses'][] 	= $message['text'];
  					} else {
  						$_SESSION['smartsend_succeses']		= array($message['text']);
  					}
@@ -304,7 +320,7 @@ class Smartsend_Logistics_Label_Woocommerce extends Smartsend_Logistics_Label {
 				default:
 					//Add an information
 					if(isset($_SESSION['smartsend_notification']) && is_array($_SESSION['smartsend_notification'])) {
- 						$_SESSION['smartsend_notification'] = array_push($_SESSION['smartsend_notification'],$message['text']);
+ 						$_SESSION['smartsend_notification'][] = $message['text'];
  					} else {
  						$_SESSION['smartsend_notification']	= array($message['text']);
  					}

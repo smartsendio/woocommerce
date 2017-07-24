@@ -4,7 +4,7 @@ Donate link: http://www.SmartSend.dk/
 Tags: shipping, pickup, pakkeboks, pakkeshop, hente selv, døgnboks, post danmark, gls, swipbox, bring, carrier, pacsoft, yourgls, mybring, postage, shipping method, your-gls, my-bring, pacosft-online, pacsoftonline, denmark, sweeden, posten, norway, post 
 Requires at least: 3.0.1
 Tested up to: 4.5
-Stable tag: 7.1.0
+Stable tag: 7.1.1
 License: GNU General Public License v3.0
 License URI: http://www.gnu.org/licenses/gpl-3.0.html
 
@@ -114,7 +114,16 @@ To install a plugin manually, follow the process:
 
 == Changelog ==
 
+= 7.1.1 =
+* Implementing support for Free Shipping in WooCommerce 2.6
+* Adding more options to the flex delivery dropdown
+* Fixing error with showing Pacsoft label print links
+* Fixing error with shipping method display format
+* Fixing error with translation of flex delivery methods
+* Catching errors for unknown shipping methods
+
 = 7.1.0 =
+* WooCommerce 2.6 compatible
 * Multisite compatible
 * Adding Flexdelivery option for Post Danmark
 * Adding the possibility to exclude private shipping methods from TAX for Post Danmark

@@ -70,11 +70,16 @@ if ( in_array( 'woocommerce/woocommerce.php', apply_filters( 'active_plugins', g
 					if( is_array($flexdelivery_methods) && in_array($shipping_method,$flexdelivery_methods) ) {
 						$display_selectbox = true;
 						$flexdelivery_array = array(
-							__('By the frontdoor'),
-							__('By the carport'),
-							__('By the back dor'),
-							__('Can be left unattended'),
-							__('I have Modtagerflex')
+							__('By the front door','smart-send-logistics'),
+							__('By the back door','smart-send-logistics'),
+							__('One the porch','smart-send-logistics'),
+							__('In the greenhouse','smart-send-logistics'),
+							__('In the garage/carport','smart-send-logistics'),
+							__('In the tool shed','smart-send-logistics'),
+							__('In the playhouse','smart-send-logistics'),
+							__('Under the roof of the porch','smart-send-logistics'),
+							__('Can be left unattended','smart-send-logistics'),
+							__('I have Modtagerflex','smart-send-logistics')
 						);
 					}
 					break;
