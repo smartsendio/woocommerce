@@ -255,14 +255,14 @@ class Smartsend_Logistics_Label_Woocommerce extends Smartsend_Logistics_Label {
 		
 		$smartsendorder = new Smartsend_Logistics_Order_Woocommerce();
 		$smartsendorder->setOrderObject($order);
+		
+		$provider = $smartsendorder->getShippingCarrier($format=0);
 			
 		//Add trace link to WooTheme extension 'Shipment Tracking'
-		update_post_meta( $order->id, '_tracking_provider', $smartsendorder->getShippingCarrier($format=0) );
-		//update_post_meta( $order->id, '_custom_tracking_provider', $smartsendorder->getShippingCarrier($format=0) );
-		update_post_meta( $order->id, '_tracking_number', $tracking_number );
-		//update_post_meta( $order->id, '_custom_tracking_link', null );
-		update_post_meta( $order->id, '_date_shipped', time() );
-
+		if( function_exists('wc_st_add_tracking_number') ) {
+			wc_st_add_tracking_number( $order->id, $tracking_number, $provider, $date_shipped = null, $custom_url = false );
+		}
+		
 	}
 	
 	/*

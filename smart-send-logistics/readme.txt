@@ -4,7 +4,7 @@ Donate link: http://www.SmartSend.dk/
 Tags: shipping, pickup, pakkeboks, pakkeshop, hente selv, døgnboks, post danmark, gls, swipbox, bring, carrier, pacsoft, yourgls, mybring, postage, shipping method, your-gls, my-bring, pacosft-online, pacsoftonline, denmark, sweeden, posten, norway, post 
 Requires at least: 3.0.1
 Tested up to: 4.7
-Stable tag: 7.1.7
+Stable tag: 7.1.8
 License: GNU General Public License v3.0
 License URI: http://www.gnu.org/licenses/gpl-3.0.html
 
@@ -114,7 +114,13 @@ To install a plugin manually, follow the process:
 
 == Changelog ==
 
+= 7.1.8 =
+* Fixing problem with WooCommerce Shipment Tracking version 1.6.4
+
 = 7.1.7 =
+* Compatible with WooCommerce 3
+* Updating Post Danmark tracking url
+* Updating Posten tracking url
 * Updating Post Danmark tracking url
 * Updating Posten tracking url
 
