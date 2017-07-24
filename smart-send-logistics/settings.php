@@ -195,11 +195,12 @@ if ( in_array( 'woocommerce/woocommerce.php', apply_filters( 'active_plugins', g
 				'title'   	=> __( 'Pickup dropdown display place','smart-send-logistics'),
 				'desc'    	=> __( 'This controls the display postion of pick-up point dropdown on checkout page.','smart-send-logistics'),
 				'id'      	=> 'woocommerce_pickup_display_mode',
-				'default' 	=> '0',
+				'default' 	=> '2',
 				'type'    	=> 'radio',
 				'options' 	=> array(
 					'0'     	=> __( 'Above the "Your Order" section on Checkout page','smart-send-logistics'),
 					'1'      	=> __( "Add to specific location on Checkout page by using custom hook in your theme: do_action('smartsend_logistics_dropdown_hook')",'smart-send-logistics'),
+					'2'      	=> __( 'Below the shipping method','smart-send-logistics'),
 				),
 				'autoload'        => false,
 				'desc_tip'        =>  true,
@@ -276,6 +277,12 @@ if ( in_array( 'woocommerce/woocommerce.php', apply_filters( 'active_plugins', g
 			'id' => 'Smartsend_Logistics_section_end'
 			)
 		);
+		
+		$woocommerce_version = smartsend_logistics_get_woocommerce_version();
+		if( version_compare($woocommerce_version, '2.5.0', '<') ) {
+			$settings['dropdown_display_mode']['default'] = '0';
+			unset($settings['dropdown_display_mode']['options'][2]);
+		}
 		
 		return apply_filters( 'wc_settings_tab_smartsend_logistics_settings', $settings );
 	}

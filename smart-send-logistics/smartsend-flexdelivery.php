@@ -12,7 +12,26 @@
 include_once( ABSPATH . 'wp-admin/includes/plugin.php' );
 if(!is_network_admin()){
 if ( in_array( 'woocommerce/woocommerce.php', apply_filters( 'active_plugins', get_option( 'active_plugins' ) ) ) || is_plugin_active_for_network('woocommerce/woocommerce.php')) {
-
+	
+	function smartsend_logistics_get_woocommerce_version_flexdelivery() {
+		/*
+		// If get_plugins() isn't available, require it
+		if ( ! function_exists( 'get_plugins' ) )
+			require_once( ABSPATH . 'wp-admin/includes/plugin.php' );
+	*/
+		// Create the plugins folder and file variables
+		$plugin_folder = get_plugins( '/' . 'woocommerce' );
+		$plugin_file = 'woocommerce.php';
+	
+		// If the plugin version number is set, return it 
+		if ( isset( $plugin_folder[$plugin_file]['Version'] ) ) {
+			$woocommerce_version = $plugin_folder[$plugin_file]['Version'];
+		} else {
+			$woocommerce_version = null;
+		}
+		return $woocommerce_version;
+	}
+	
 /*-----------------------------------------------------------------------------------------------------------------------
 * 					Add pickuppoint dropdown on chechout page	
 *----------------------------------------------------------------------------------------------------------------------*/		
@@ -21,15 +40,20 @@ if ( in_array( 'woocommerce/woocommerce.php', apply_filters( 'active_plugins', g
                             return false;
                     }
         }*/
-	$x = get_option( 'woocommerce_pickup_display_mode', 0 );
+	$woocommerce_version = smartsend_logistics_get_woocommerce_version_flexdelivery();
+    $default_hook = (version_compare($woocommerce_version, '2.5.0', '<') ? 0 : 2);
+	$x = get_option( 'woocommerce_pickup_display_mode', $default_hook ); //Should be 2 as default if WooCommerce version >= 2.5.0 and 0 else.
 	if($x==1) {
-		add_filter( 'smartsend_logistics_dropdown_hook' , 'Smartsend_Logistics_custom_flexdelivery_field');
+		add_action( 'smartsend_logistics_dropdown_hook' , 'Smartsend_Logistics_custom_flexdelivery_field', 10, 3 );
+	} elseif($x==2) {
+		add_action( 'woocommerce_after_shipping_rate', 'Smartsend_Logistics_custom_flexdelivery_field', 10, 3 );
+		//do_action( 'woocommerce_after_shipping_rate', $method, $index ); Line 35: /templates/cart/cart-shipping.php
 	} else {
-		add_filter( 'woocommerce_review_order_after_cart_contents' , 'Smartsend_Logistics_custom_flexdelivery_field');
+		add_action( 'woocommerce_review_order_after_cart_contents' , 'Smartsend_Logistics_custom_flexdelivery_field', 10, 3 );
+		//do_action( 'woocommerce_review_order_after_cart_contents' );  Line 52: /templates/checkout/review-order.php
 	}
-
         
-	function Smartsend_Logistics_custom_flexdelivery_field( $fields ) {
+	function Smartsend_Logistics_custom_flexdelivery_field( $method=null, $index=null ) {
 	
 		$display_selectbox = false;
        
@@ -37,7 +61,19 @@ if ( in_array( 'woocommerce/woocommerce.php', apply_filters( 'active_plugins', g
 		if(!isset($_REQUEST['post_data'])) return false;
                
 		parse_str($_REQUEST['post_data'],$request);
-		$shipping_method_id = $request['shipping_method'][0];
+		
+		$first_shipping_method_element = reset($request['shipping_method']); //First item of array
+		
+		$shipping_method_id = null;
+		if($method) {
+			if($method->id == $first_shipping_method_element) {
+				$shipping_method_id = $method->id;
+			}
+		} else {
+			$shipping_method_id = $first_shipping_method_element;
+		}
+		$shipping_carrier = smartsend_logistics_get_shipping_carrier_from_id($shipping_method_id);
+		$shipping_method = smartsend_logistics_get_shipping_method_from_id($shipping_method_id);
 					
 		if(isset($request['ship_to_different_address']) && $request['ship_to_different_address']){
 			$address_1 	= $request['shipping_address_1'];
@@ -53,22 +89,15 @@ if ( in_array( 'woocommerce/woocommerce.php', apply_filters( 'active_plugins', g
 			$country 	= $request['billing_country'];
 		}
 		
-		if(strpos($shipping_method_id, 'free_shipping') !== false) {
-			$shipping_method_id = get_option( 'smartsend_logistics_wc_shipping_free_shipping','free_shipping');
-		}
-		
-		$shipping_method_array = explode("_", $shipping_method_id);
-	
-		if(isset($shipping_method_array[0]) && $shipping_method_array[0] == 'smartsend') {
-			$shipping_carrier = $shipping_method_array[1];
-			$shipping_method = $shipping_method_array[2];
-			 
+		if($shipping_carrier) {
+			$display_selectbox = true;
 			switch( $shipping_carrier ){
+		
 				case 'posten': 
 					break;
 				case 'gls':
 					break;
-				case 'postdanmark':
+				case 'postdanmark': 
 					// Should be if the method is in the setting for flexdelivery!
 					$postdanmark = new Smartsend_Logistics_Postdanmark();
 					$flexdelivery_methods = $postdanmark->get_option( 'flexdelivery','');
@@ -89,10 +118,39 @@ if ( in_array( 'woocommerce/woocommerce.php', apply_filters( 'active_plugins', g
 					}
 					break;
 				case 'bring': 
-					break;                   
-			}
-							
+					break;	
+			}			
 		}
+		 
+		switch( $shipping_carrier ){
+			case 'posten': 
+				break;
+			case 'gls':
+				break;
+			case 'postdanmark':
+				// Should be if the method is in the setting for flexdelivery!
+				$postdanmark = new Smartsend_Logistics_Postdanmark();
+				$flexdelivery_methods = $postdanmark->get_option( 'flexdelivery','');
+				if( is_array($flexdelivery_methods) && in_array($shipping_method,$flexdelivery_methods) ) {
+					$display_selectbox = true;
+					$flexdelivery_array = array(
+						__('By the front door','smart-send-logistics'),
+						__('By the back door','smart-send-logistics'),
+						__('One the porch','smart-send-logistics'),
+						__('In the greenhouse','smart-send-logistics'),
+						__('In the garage/carport','smart-send-logistics'),
+						__('In the tool shed','smart-send-logistics'),
+						__('In the playhouse','smart-send-logistics'),
+						__('Under the roof of the porch','smart-send-logistics'),
+						__('Can be left unattended','smart-send-logistics'),
+						__('I have Modtagerflex','smart-send-logistics')
+					);
+				}
+				break;
+			case 'bring': 
+				break;                   
+		}
+							
         ?>
 		<script>
 			jQuery(document).ready(function(){

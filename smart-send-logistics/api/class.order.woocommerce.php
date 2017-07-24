@@ -30,7 +30,7 @@
  * @copyright	Copyright (c) Smart Send ApS (http://www.smartsend.dk)
  * @license		http://smartsend.dk/license
  * @since		Class available since Release 7.1.0
- * @version		Release: 7.1.3.1
+ * @version		Release: 7.1.3.2
  *
  *	// Order
  *	public function getShippingId()
@@ -82,7 +82,7 @@ class Smartsend_Logistics_Order_Woocommerce extends Smartsend_Logistics_Order {
 			2308	=>	__('Unknown shipping carrier','smart-send-logistics'),
 			2309	=>	__('Unable to determine shipping method','smart-send-logistics'),
 			// Order set
-			2401	=>	__('All packages has been shipped. No parcels without trace code exists. Remove existing tracecodes to re-generate labels.','smart-send-logistics'),
+			2401	=>	__('All packages have been shipped. No parcels without trace code exists. Remove existing tracecodes to re-generate labels.','smart-send-logistics'),
 			2402	=>	__('No items to ship','smart-send-logistics'),
 			2403	=>	__('No parcels to ship','smart-send-logistics'),
 			// Order get
@@ -116,6 +116,14 @@ class Smartsend_Logistics_Order_Woocommerce extends Smartsend_Logistics_Order {
 	
 		if(strpos($shipMethod_id, 'free_shipping') !== false) {
 			$shipMethod_id = get_option( 'smartsend_logistics_wc_shipping_free_shipping','free_shipping');
+		}
+		
+		if(strpos($shipMethod_id, 'smartsend') !== 0) {
+			$string_start = strpos($shipMethod_id, 'smartsend');
+			$shipMethod_id = substr($shipMethod_id, $string_start);
+		} elseif(strpos($shipMethod_id, 'vconnect') !== 0) {
+			$string_start = strpos($shipMethod_id, 'vconnect');
+			$shipMethod_id = substr($shipMethod_id, $string_start);
 		}
 		
 		//If id is of the instance type like: smartsend_postdanmark_pickup:7

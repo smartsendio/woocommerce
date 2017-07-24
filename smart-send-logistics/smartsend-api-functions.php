@@ -56,6 +56,13 @@
 	
 	function Smartsend_Logistics_API_Find_Nearest($carrier,$address_1,$address_2,$city,$zip,$country) {
         
+        if($carrier == '') {
+      		return;
+      	} elseif($country == '') {
+      		return;
+      	} elseif($city == '' && $zip == '') {
+      		return;
+      	}
 	
 		$url = "http://smartsend-prod.apigee.net/v7/pickup/";
 		$url .= $carrier.'?'.http_build_query(array(
@@ -149,6 +156,11 @@
 	}
 	
     function Smartsend_User_Validation($username,$licensekey) {
+    
+    	if($username == '' || $licensekey == '') {
+    		return false;
+    	}
+    
 		$ch = curl_init();
 
         /* Script URL */

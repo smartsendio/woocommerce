@@ -25,15 +25,16 @@ class Smartsend_Logistics_PrimaryClass {
 
 		if( isset( $woocommerce->cart->cart_contents_total ) ) {
 			if ( $woocommerce->cart->prices_include_tax ) {
-				$price = (float) $woocommerce->cart->cart_contents_total + array_sum( $woocommerce->cart->taxes );
+				$subtotal = (float) $woocommerce->cart->cart_contents_total + array_sum( $woocommerce->cart->taxes );
 			} else {
-				$price = (float) $woocommerce->cart->cart_contents_total;
+				$subtotal = (float) $woocommerce->cart->cart_contents_total;
 			}
 		} else {
-			$price = -1;
+			$subtotal = -1;
 		}
-
-        $weight = (float) $woocommerce->cart->cart_contents_weight;
+		$price = apply_filters( 'smartsend_logistics_cart_subtotal', $subtotal, $woocommerce->cart, $woocommerce->customer );
+		
+		$weight = apply_filters( 'smartsend_logistics_cart_weight', (float)$woocommerce->cart->cart_contents_weight, $woocommerce->cart, $woocommerce->customer );
         $cheapestexpensive = $x->get_option('cheap_expensive', 'cheapest');
 
         $sc = array(0 => 'all');

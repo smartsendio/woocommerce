@@ -7,7 +7,7 @@
 	Author URI: http://www.smartsend.dk
 	Text Domain: smart-send-logistics
 	Domain Path: /lang
-	Version: 7.1.5
+	Version: 7.1.6
 
 	Copyright: (c) 2014 Smart Send ApS (email : kontakt@smartsend.dk)
 	License: GNU General Public License v3.0
@@ -155,17 +155,107 @@ if ( in_array( 'woocommerce/woocommerce.php', apply_filters( 'active_plugins', g
 		}
 	}
 
+/*-----------------------------------------------------------------------------------------------------------------------
+* 					Miscellaneous functions
+*----------------------------------------------------------------------------------------------------------------------*/	
+
+	function smartsend_logistics_get_woocommerce_version() {
+		/*
+		// If get_plugins() isn't available, require it
+		if ( ! function_exists( 'get_plugins' ) )
+			require_once( ABSPATH . 'wp-admin/includes/plugin.php' );
+	*/
+		// Create the plugins folder and file variables
+		$plugin_folder = get_plugins( '/' . 'woocommerce' );
+		$plugin_file = 'woocommerce.php';
+	
+		// If the plugin version number is set, return it 
+		if ( isset( $plugin_folder[$plugin_file]['Version'] ) ) {
+			$woocommerce_version = $plugin_folder[$plugin_file]['Version'];
+		} else {
+			$woocommerce_version = null;
+		}
+		return $woocommerce_version;
+	}
 
 /*-----------------------------------------------------------------------------------------------------------------------
 * 					Functions that deals with orders
 *----------------------------------------------------------------------------------------------------------------------*/	
 
-	function smartsend_logistics_register_session(){
-        if( !session_id() ) {
-            session_start();
-        }
-    }
-    add_action('init','smartsend_logistics_register_session');
+	/*
+	 * Function to get carrier and shipping method
+	 *
+	 * @param string $shipping_method_id is the id of the shipping method
+	 *
+	 * @return array containing field 'carrier' and 'shipping_method'
+	 *
+	 */
+	function smartsend_logistics_get_shipping_method_and_carrier_from_id($shipping_method_id) {
+		$return_shipping_method_array = false;
+	
+		if(strpos($shipping_method_id, 'free_shipping') !== false) {
+			$shipping_method_id = get_option( 'smartsend_logistics_wc_shipping_free_shipping','free_shipping');
+		}
+	
+		if (strpos($shipping_method_id, 'smartsend') !== false) {
+		
+			$shipping_method_array = explode("_", $shipping_method_id);
+		
+			if(is_array($shipping_method_array)) {
+				foreach($shipping_method_array as $key => $value) {
+					$isSmartsend = ($value == 'smartsend' ? true : false);
+					$hasFields = (isset($shipping_method_array[$key+1]) && isset($shipping_method_array[$key+2]) ? true : false);
+					if($isSmartsend && $hasFields) {
+						$return_shipping_method_array = array(
+							'carrier'			=> $shipping_method_array[$key+1],
+							'shipping_method'	=> $shipping_method_array[$key+2]
+							);
+					}
+				}
+			}
+		
+		}
+	
+		return $return_shipping_method_array;
+	}
+	
+	/*
+	 * Function to get shipping method
+	 *
+	 * @param string $shipping_method_id is the id of the shipping method
+	 *
+	 * @return string containing shipping method
+	 *
+	 */
+	function smartsend_logistics_get_shipping_method_from_id($shipping_method_id) {
+		
+		$shipping_method_array = smartsend_logistics_get_shipping_method_and_carrier_from_id($shipping_method_id);
+		
+		if(isset($shipping_method_array['shipping_method']) && $shipping_method_array['shipping_method'] != '') {
+			return $shipping_method_array['shipping_method'];
+		} else {
+			return $shipping_method_id;
+		}
+	}
+	
+	/*
+	 * Function to get carrier
+	 *
+	 * @param string $shipping_method_id is the id of the shipping method
+	 *
+	 * @return string containing carrier
+	 *
+	 */
+	function smartsend_logistics_get_shipping_carrier_from_id($shipping_method_id) {
+		
+		$shipping_method_array = smartsend_logistics_get_shipping_method_and_carrier_from_id($shipping_method_id);
+		
+		if(isset($shipping_method_array['carrier']) && $shipping_method_array['carrier'] != '') {
+			return $shipping_method_array['carrier'];
+		} else {
+			return $shipping_method_id;
+		}
+	}
 
 	/*
 	 * Function to generate a label
@@ -269,7 +359,17 @@ if ( in_array( 'woocommerce/woocommerce.php', apply_filters( 'active_plugins', g
 	 * @return void
 	 */
  	function smartsend_logistics_meta_box_process_order( $order ) {
-		smartsend_logistics_create_label_action($order,$return=false);
+                                
+  		// this is based on wp-admin/post.php
+                $sendback = remove_query_arg( array('message'), wp_get_referer() );
+                if ( ! $sendback )
+                 $sendback = admin_url( "post.php?post=".$_POST['post_ID']."&action=edit" );
+
+                $sendback = add_query_arg( array('smartsend_type' => 'create_label'), $sendback );
+                //$sendback = remove_query_arg( array('export', 'message', 'tags_input', 'post_author', 'comment_status', 'ping_status', '_status',   'bulk_edit', 'post_view'), $sendback );
+                //wc_add_notice('test','error');
+                wp_redirect($sendback);
+                exit();
 	}
 	
 	/*
@@ -279,7 +379,18 @@ if ( in_array( 'woocommerce/woocommerce.php', apply_filters( 'active_plugins', g
 	 * @return void
 	 */
 	function smartsend_logistics_meta_box_process_return_order( $order ) {
-		smartsend_logistics_create_label_action($order,$return=true);
+            
+                             
+  		// this is based on wp-admin/post.php
+                $sendback = remove_query_arg( array('message'), wp_get_referer() );
+                if ( ! $sendback )
+                $sendback = admin_url( "post.php?post=".$_POST['post_ID']."&action=edit" );
+                                
+                $sendback = add_query_arg( array('smartsend_type' => 'create_label_return'), $sendback );
+                //$sendback = remove_query_arg( array('export', 'message', 'tags_input', 'post_author', 'comment_status', 'ping_status', '_status',   'bulk_edit', 'post_view'), $sendback );
+                //wc_add_notice('test','error');
+                wp_redirect($sendback);
+                exit();
 	}
 	
 	/*
@@ -289,7 +400,17 @@ if ( in_array( 'woocommerce/woocommerce.php', apply_filters( 'active_plugins', g
 	 * @return void
 	 */
 	function smartsend_logistics_meta_box_process_normal_return_order( $order ) {
-		smartsend_logistics_create_label_action($order,$return='both');
+            
+                // this is based on wp-admin/post.php
+                $sendback = remove_query_arg( array('message'), wp_get_referer() );
+                if ( ! $sendback )
+                $sendback = admin_url( "post.php?post=".$_POST['post_ID']."&action=edit" );
+                 
+                $sendback = add_query_arg( array('smartsend_type' => 'create_label_normal_return'), $sendback );
+                //$sendback = remove_query_arg( array('export', 'message', 'tags_input', 'post_author', 'comment_status', 'ping_status', '_status',   'bulk_edit', 'post_view'), $sendback );
+                //wc_add_notice('test','error');
+                wp_redirect($sendback);
+                exit();
 	}
 
 /*-----------------------------------------------------------------------------------------------------------------------
@@ -337,9 +458,9 @@ if ( in_array( 'woocommerce/woocommerce.php', apply_filters( 'active_plugins', g
 		Smartsend_Logistics_display_order_flexdelivery_details($order,'h3',false);
 		
 		echo '<br/><hr>';
-		echo '<a href="post.php?post='.$post->ID.'&action=edit&type=create_label" class="button button-primary">'.__( 'Generate label','smart-send-logistics').'</a><br/><br/>';
-		echo '<a href="post.php?post='.$post->ID.'&action=edit&type=create_label_return" class="button">'.__( 'Generate return label','smart-send-logistics').'</a><br/><br/>';
-		echo '<a href="post.php?post='.$post->ID.'&action=edit&type=create_label_normal_return" class="button">'.__( 'Generate normal and return label','smart-send-logistics').'</a>'; 
+		echo '<a href="post.php?post='.$post->ID.'&action=edit&smartsend_type=create_label" class="button button-primary">'.__( 'Generate label','smart-send-logistics').'</a><br/><br/>';
+		echo '<a href="post.php?post='.$post->ID.'&action=edit&smartsend_type=create_label_return" class="button">'.__( 'Generate return label','smart-send-logistics').'</a><br/><br/>';
+		echo '<a href="post.php?post='.$post->ID.'&action=edit&smartsend_type=create_label_normal_return" class="button">'.__( 'Generate normal and return label','smart-send-logistics').'</a>'; 
     }
 	
 /*****************************************************
@@ -347,20 +468,21 @@ if ( in_array( 'woocommerce/woocommerce.php', apply_filters( 'active_plugins', g
  */
 	add_action( 'admin_notices', 'smartsend_logistics_admin_notice_process' );
 	function smartsend_logistics_admin_notice_process() {
-		if(isset($_GET['type']) && ($_GET['type'] == 'create_label' || $_GET['type'] == 'create_label_return' || $_GET['type'] == 'create_label_normal_return')){
-		
-			if($_GET['type']=='create_label') {
-				$order = new WC_Order( $_GET['post'] );
+		if(isset($_GET['smartsend_type']) && ($_GET['smartsend_type'] == 'create_label' || $_GET['smartsend_type'] == 'create_label_return' || $_GET['smartsend_type'] == 'create_label_normal_return')){
+                        $order='';
+                        if(isset($_GET['post']) && $_GET['post']!='' && isset($_GET['action']) && $_GET['action']=='edit'){
+                            $order = new WC_Order( $_GET['post'] );
+                        }else if(isset($_GET['ids']) && $_GET['ids']!='' && isset($_GET['post_type']) && $_GET['post_type']=='shop_order'){
+                            $order=  explode(',', $_GET['ids']);
+                        }
+                       
+			if($_GET['smartsend_type']=='create_label') {
 				smartsend_logistics_create_label_action($order,$return=false);
 			}
-		
-			if($_GET['type']=='create_label_return') {
-				$order = new WC_Order( $_GET['post'] );
+			if($_GET['smartsend_type']=='create_label_return') {
 				smartsend_logistics_create_label_action($order,$return=true);
 			}
-			
-			if($_GET['type']=='create_label_normal_return') {
-				$order = new WC_Order( $_GET['post'] );
+			if($_GET['smartsend_type']=='create_label_normal_return') {
 				smartsend_logistics_create_label_action($order,$return='both');
 			}
 		}
@@ -392,12 +514,12 @@ if ( in_array( 'woocommerce/woocommerce.php', apply_filters( 'active_plugins', g
 			?>
 				<script type="text/javascript">
 					jQuery(document).ready(function() {
-						jQuery('<option>').val('smartsend_label').text('<?php _e('Generate label','smart-send-logistics')?>').appendTo("select[name='action']");
-						jQuery('<option>').val('smartsend_label').text('<?php _e('Generate label','smart-send-logistics')?>').appendTo("select[name='action2']");
-						jQuery('<option>').val('smartsend_return_label').text('<?php _e('Generate return label','smart-send-logistics')?>').appendTo("select[name='action']");
-						jQuery('<option>').val('smartsend_return_label').text('<?php _e('Generate return label','smart-send-logistics')?>').appendTo("select[name='action2']");
-						jQuery('<option>').val('smartsend_normal_return_label').text('<?php _e('Generate normal and return label','smart-send-logistics')?>').appendTo("select[name='action']");
-						jQuery('<option>').val('smartsend_normal_return_label').text('<?php _e('Generate normal and return label','smart-send-logistics')?>').appendTo("select[name='action2']");
+						jQuery('<option>').val('create_label').text('<?php _e('Generate label','smart-send-logistics')?>').appendTo("select[name='action']");
+						jQuery('<option>').val('create_label').text('<?php _e('Generate label','smart-send-logistics')?>').appendTo("select[name='action2']");
+						jQuery('<option>').val('create_label_return').text('<?php _e('Generate return label','smart-send-logistics')?>').appendTo("select[name='action']");
+						jQuery('<option>').val('create_label_return').text('<?php _e('Generate return label','smart-send-logistics')?>').appendTo("select[name='action2']");
+						jQuery('<option>').val('create_label_normal_return').text('<?php _e('Generate normal and return label','smart-send-logistics')?>').appendTo("select[name='action']");
+						jQuery('<option>').val('create_label_normal_return').text('<?php _e('Generate normal and return label','smart-send-logistics')?>').appendTo("select[name='action2']");
 					});
 				</script>
 			<?php
@@ -418,7 +540,7 @@ if ( in_array( 'woocommerce/woocommerce.php', apply_filters( 'active_plugins', g
 			$wp_list_table = _get_list_table('WP_Posts_List_Table');  // depending on your resource type this could be WP_Users_List_Table, WP_Comments_List_Table, etc
 			$action = $wp_list_table->current_action();
                        
-			$allowed_actions = array("smartsend_label","smartsend_return_label", "smartsend_normal_return_label");
+			$allowed_actions = array("create_label","create_label_return", "create_label_normal_return");
 			if(!in_array($action, $allowed_actions)) return;
 
 			// security check
@@ -432,15 +554,15 @@ if ( in_array( 'woocommerce/woocommerce.php', apply_filters( 'active_plugins', g
 			if(empty($post_ids)) return;
 		
 			// this is based on wp-admin/edit.php
-			$sendback = remove_query_arg( array('exported', 'untrashed', 'deleted', 'ids'), wp_get_referer() );
-			if ( ! $sendback )
+			//$sendback = remove_query_arg( array('exported', 'untrashed', 'deleted', 'ids'), wp_get_referer() );
+			//if ( ! $sendback )
 				$sendback = admin_url( "edit.php?post_type=$post_type" );
 		
 			$pagenum = $wp_list_table->get_pagenum();
 			$sendback = add_query_arg( 'paged', $pagenum, $sendback );
 		
 			switch($action) {
-				case 'smartsend_label':
+				case 'create_label':
 				
 					// if we set up user permissions/capabilities, the code might look like:
 					//if ( !current_user_can($post_type_object->cap->export_post, $post_id) )
@@ -456,23 +578,20 @@ if ( in_array( 'woocommerce/woocommerce.php', apply_filters( 'active_plugins', g
 	
 						$smartsend++;
 					} */
-					smartsend_logistics_create_label_action($post_ids,$return=false);
 					
 					$sendback = add_query_arg( array('ids' => join(',', $post_ids)), $sendback );
 				
 					break;
 				
-				case 'smartsend_return_label':
+				case 'create_label_return':
 				
-					smartsend_logistics_create_label_action($post_ids,$return=true);
 					
 					$sendback = add_query_arg( array('ids' => join(',', $post_ids)), $sendback );
 				
 					break;
 					
-				case 'smartsend_normal_return_label':
+				case 'create_label_normal_return':
 				
-					smartsend_logistics_create_label_action($post_ids,$return='both');
 					
 					$sendback = add_query_arg( array('ids' => join(',', $post_ids)), $sendback );
 				
@@ -480,7 +599,8 @@ if ( in_array( 'woocommerce/woocommerce.php', apply_filters( 'active_plugins', g
 			
 				default: return;
 			}
-		
+			$sendback = add_query_arg( array('smartsend_type' => $action), $sendback );
+
 			$sendback = remove_query_arg( array_merge(array('export', 'message', 'tags_input', 'post_author', 'comment_status', 'ping_status', '_status',  'post', 'bulk_edit', 'post_view'),$allowed_actions), $sendback );
 		
 			//wc_add_notice('test','error');
@@ -495,42 +615,10 @@ if ( in_array( 'woocommerce/woocommerce.php', apply_filters( 'active_plugins', g
 *----------------------------------------------------------------------------------------------------------------------*/	
 
 /*****************************************************
- * Notification hook at top of the edit page
- * The succeses are taken from the $_SESSION called smartsend_succeses
- * The notification are taken from the $_SESSION called smartsend_notification
- * The errors are taken from the $_SESSION called smartsend_errors
- */
-	add_action( 'admin_notices', 'smartsend_logistics_admin_notice_messages' ); 
-	function smartsend_logistics_admin_notice_messages() {
-	
-		if(isset($_SESSION['smartsend_errors']) && is_array($_SESSION['smartsend_errors'])) {
-			foreach($_SESSION['smartsend_errors'] as $error) {
-				smartsend_logistics_admin_notice($error, 'error');
-			}
-			unset($_SESSION['smartsend_errors']);
-		}
-		
-		if(isset($_SESSION['smartsend_notification']) && is_array($_SESSION['smartsend_notification'])) {
-			foreach($_SESSION['smartsend_notification'] as $notification) {
-				smartsend_logistics_admin_notice($notification, 'info');
-			}
-			unset($_SESSION['smartsend_notification']);
-		}
-		
-		if(isset($_SESSION['smartsend_succeses']) && is_array($_SESSION['smartsend_succeses'])) {
-			foreach($_SESSION['smartsend_succeses'] as $succes) {
-				smartsend_logistics_admin_notice($succes, 'succes');
-			}
-			unset($_SESSION['smartsend_succeses']);
-		}
-		
-	}
-
-/*****************************************************
  * Print a message (succes, notification and errors) div class
  */
 	function smartsend_logistics_admin_notice($message, $type='info') {
-	
+	error_log($type .': '.$message);
 		switch ($type) {
 			case 'info':
 				$class = 'update-nag';
@@ -616,7 +704,11 @@ if ( in_array( 'woocommerce/woocommerce.php', apply_filters( 'active_plugins', g
  		// Bring
    		require_once 'class.smartsend.bring.php';
  	}
-			
+        
+	add_filter( 'removable_query_args', 'smartsend_logistics_removable_query_args' );
+	function smartsend_logistics_removable_query_args($removable_query_args){
+                return array_merge($removable_query_args,array('smartsend_type'));    
+ 	}	
 }
 
 }

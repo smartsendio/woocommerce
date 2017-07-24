@@ -295,35 +295,19 @@ class Smartsend_Logistics_Label_Woocommerce extends Smartsend_Logistics_Label {
 			switch ($message['type']) {
 				case 'error':
 					//Add an error
-					if(isset($_SESSION['smartsend_errors']) && is_array($_SESSION['smartsend_errors'])) {
-						$_SESSION['smartsend_errors'][] 	= $message['text'];
-					} else {
-						$_SESSION['smartsend_errors']		= array($message['text']);
-					}
+					smartsend_logistics_admin_notice($message['text'], 'error');
 					break;
 				case 'warning':
 					//Add a warning
-					if(isset($_SESSION['smartsend_notification']) && is_array($_SESSION['smartsend_notification'])) {
- 						$_SESSION['smartsend_notification'][] = $message['text'];
- 					} else {
- 						$_SESSION['smartsend_notification']	= array($message['text']);
- 					}
+					smartsend_logistics_admin_notice($message['text'], 'info');
 					break;
 				case 'success':
 					//Add a success
-					if(isset($_SESSION['smartsend_succeses']) && is_array($_SESSION['smartsend_succeses'])) {
- 						$_SESSION['smartsend_succeses'][] 	= $message['text'];
- 					} else {
- 						$_SESSION['smartsend_succeses']		= array($message['text']);
- 					}
+					smartsend_logistics_admin_notice($message['text'], 'succes');
 					break;
 				default:
 					//Add an information
-					if(isset($_SESSION['smartsend_notification']) && is_array($_SESSION['smartsend_notification'])) {
- 						$_SESSION['smartsend_notification'][] = $message['text'];
- 					} else {
- 						$_SESSION['smartsend_notification']	= array($message['text']);
- 					}
+					smartsend_logistics_admin_notice($message['text'], 'info');
 			}
 
 		}
