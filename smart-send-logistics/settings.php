@@ -117,7 +117,7 @@ if ( in_array( 'woocommerce/woocommerce.php', apply_filters( 'active_plugins', g
 					'desc_tip'        =>  true,
 					'show_if_checked' => 'option',
 				);
-			/*	$updated_settings[] = array(
+				$updated_settings[] = array(
 					'title'   	=> __( 'Store Location Display Mode', 'woocommerce' ),
 					'desc'    	=> __( 'This controls display postion of store location dropdown on checkout page.', 'woocommerce' ),
 					'id'      	=> 'woocommerce_pickup_display_mode1',
@@ -125,45 +125,36 @@ if ( in_array( 'woocommerce/woocommerce.php', apply_filters( 'active_plugins', g
 					'type'    	=> 'radio',
 					'options' 	=> array(
 						'0'     	=> __( 'Above the "Your Order" section on Checkout page', 'woocommerce' ),
-						'1'      	=> __( 'Below the "Your Order" section on Checkout page', 'woocommerce' ),
+						'1'      	=> __( "Add to specific location on Checkout page by using custom hook in your theme.(do_action( 'smartsend_logistics_dropdown_hook' ))", 'woocommerce' ),
 					),
 					'autoload'        => false,
 					'desc_tip'        =>  true,
 					'show_if_checked' => 'option',
-				); */
+				);
 				$updated_settings[] = array(
 					'title'   	=> __( 'Dropdown legend', 'woocommerce' ),
 					'desc'    	=> __( 'This is the legend of the dropdown containing the pickup points.', 'woocommerce' ),
 					'id'      	=> 'woocommerce_pickup_display_dropdown_legend',
-					'default' 	=> 'Choose Store Location',
+					'default' 	=> 'Vælg udleveringssted', //Choose Store Location
 					'type'    	=> 'text',
 					'desc_tip'        =>  true,
 					'show_if_checked' => 'option',
 				);
 				
 				$updated_settings[] = array(
-					'title'   	=> __( 'Dropdown heading', 'woocommerce' ),
+					'title'   	=> __( 'Dropdown text', 'woocommerce' ),
 					'desc'    	=> __( 'This is what will be shown in the first row of the dropdown containing the pickup points.', 'woocommerce' ),
 					'id'      	=> 'woocommerce_pickup_display_dropdown_text',
-					'default' 	=> 'Select pickup location',
+					'default' 	=> 'Klik og vælg udleveringssted', //Select pickup location
 					'type'    	=> 'text',
 					'desc_tip'        =>  true,
 					'show_if_checked' => 'option',
 				);
 				$updated_settings[] = array(
-					'title'   	=> __( 'Dropdown error', 'woocommerce' ),
+					'title'   	=> __( 'Dropdown text', 'woocommerce' ),
 					'desc'    	=> __( 'This is the error message shown if no pickup point is selected.', 'woocommerce' ),
 					'id'      	=> 'woocommerce_pickup_display_dropdown_error',
-					'default' 	=> 'Please select a pickup loaction',
-					'type'    	=> 'text',
-					'desc_tip'        =>  true,
-					'show_if_checked' => 'option',
-				);
-				$updated_settings[] = array(
-					'title'   	=> __( 'No dropdown points', 'woocommerce' ),
-					'desc'    	=> __( 'This is the text shown instead of the dropdown if no pickup points are found.', 'woocommerce' ),
-					'id'      	=> 'woocommerce_pickup_display_dropdown_nopoints',
-					'default' 	=> 'Delivered to closest pickup point',
+					'default' 	=> 'Vælg venligst et udleveringssted på listen.', //Please select the store pickup loaction!
 					'type'    	=> 'text',
 					'desc_tip'        =>  true,
 					'show_if_checked' => 'option',

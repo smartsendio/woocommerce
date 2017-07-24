@@ -11,7 +11,11 @@ class Smartsend_Logistics_PrimaryClass {
 	
 	public function calculate_shipping($package = array(),$x){
 		global $woocommerce;
-        	$customerCountry = $woocommerce->customer->country;    
+        	if($woocommerce->customer->shipping_country){
+                        $customerCountry = $woocommerce->customer->shipping_country;       
+                    }else{
+                        $customerCountry = $woocommerce->customer->country;    
+                    }
                     
 			$x->rate = array();
                         

@@ -5,7 +5,7 @@ Plugin URI: http://smartsend.dk/integrationer/woocommerce
 Description: Table rate shipping methods with Post Danmark, GLS, SwipBox and Bring pickup points. Listed in a dropdown sorted by distance from shipping adress.
 Author: Smart Send ApS
 Author URI: http://www.smartsend.dk
-Version: 7.0.3
+Version: 7.0.4
 
 Copyright: (c) 2014 Smart Send ApS (email : kontakt@smartsend.dk)
 License: GNU General Public License v3.0
@@ -41,7 +41,7 @@ if ( in_array( 'woocommerce/woocommerce.php', apply_filters( 'active_plugins', g
 	 * Register style sheet.
 	 */
 	function smartsend_logistics_register_plugin_styles() {
-		wp_register_style( 'smartsend_logistics_style_frontend', plugins_url( 'smartsend_logistics/css/smartsend_logsitics_pickup.css' ) );
+		wp_register_style( 'smartsend_logistics_style_frontend', plugin_dir_url( __FILE__ ) . 'css/smartsend_logsitics_pickup.css' );
 		wp_enqueue_style( 'smartsend_logistics_style_frontend' );
 }
 
@@ -511,22 +511,23 @@ function smartsend_logistics_admin_notice($message, $type='info') {
 /*-----------------------------------------------------------------------------------------------------------------------
 * 					Add Store Pick up loaction on chechout page	
 *----------------------------------------------------------------------------------------------------------------------*/		
-/*	if ( ! function_exists( 'is_ajax' ) ) {
-    	function is_ajax() {
-        	return false;
-    	}
-    }*/
-
-/*	if(get_option( 'woocommerce_pickup_display_mode1', 1 ) == 1) {
-		add_filter( 'woocommerce_review_order_before_payment' , 'Smartsend_Logistics_custom_store_pickup_field');
-	} else { */
+	/*if ( ! function_exists( 'is_ajax' ) ) {
+                   function is_ajax() {
+                            return false;
+                    }
+        }*/
+	$x = get_option( 'woocommerce_pickup_display_mode1', 1 );
+	if($x==1) {
+		add_filter( 'smartsend_logistics_dropdown_hook' , 'Smartsend_Logistics_custom_store_pickup_field');
+	} else {
 		add_filter( 'woocommerce_review_order_after_cart_contents' , 'Smartsend_Logistics_custom_store_pickup_field');
-/*	} */
+	}
 
+        
 	function Smartsend_Logistics_custom_store_pickup_field( $fields ) {
-	
-		if(!isset($_REQUEST['post_data'])) return false;
-	
+               
+		//if(!isset($_REQUEST['post_data'])) return false;
+               
 		parse_str($_REQUEST['post_data'],$request);
 		$shipping_method = $request['shipping_method'][0];
 					
@@ -607,20 +608,29 @@ function smartsend_logistics_admin_notice($message, $type='info') {
 					
 					$pickup_loc = Smartsend_Logistics_API_Call(implode(",",$carriers),$address_1,$address_2,$city,$zip,$country);
 					break;	
+                                
 			} 
 							
 		}
-		if($display_selectbox){
+               ?>
+               
+		<?php if($display_selectbox){ 
 		?>
 		<script>
+                    
 			   jQuery(document).ready(function(){
-				   jQuery('.shipping_method, #ship-to-different-address-checkbox').click(function(){
-					   jQuery('.selectstore').remove();
+                                    var numItems =  jQuery('.selectstore').length;
+                                    if(numItems > 1){
+                                        jQuery('.selectstore').last().remove();
+                                    }
+				   jQuery('.shipping_method, #ship-to-different-address-checkbox, #billing_country').click(function(){
+                                          jQuery('.selectstore').remove();
 					   jQuery('.pic_error, .pic_script').remove();
 				   });
 			   });
 		</script>
 		<?php if(!empty($pickup_loc) && is_array($pickup_loc)):?>
+                
 		<div id='selectpickup' class="selectstore"> <?php echo __(get_option('woocommerce_pickup_display_dropdown_legend', 'Choose Store Location'),'woocommerce'); echo ' ('.$shippingTitle.')'; ?>
 		<?php if(!empty($pickup_loc) && is_array($pickup_loc)):?>				
 		<select name="store_pickup" class="pk-drop">
@@ -629,6 +639,7 @@ function smartsend_logistics_admin_notice($message, $type='info') {
 				<option value='<?php echo $picIndex?>'><?php echo $picValue?></option>
 			<?php }?>
 		</select>
+                    
 		<?php else:?>
 			<?php //echo ' : Delivered to closest pickup point.'?>
 		<?php endif;?>
@@ -637,9 +648,29 @@ function smartsend_logistics_admin_notice($message, $type='info') {
 			<?php echo '<div id="selectpickup" class="selectstore">'; echo __(get_option('woocommerce_pickup_display_dropdown_nopoints', 'Delivered to closest pickup point'),'woocommerce'); echo '</div>'; ?>
 		<?php endif;?>
 	<?php
-		}
+                }
 
 	}
+        
+        add_action('woocommerce_review_order_after_shipping','remove_pickup_dropdown_not_needed');
+        function remove_pickup_dropdown_not_needed(){
+            Smartsend_Logistics_custom_store_pickup_field( $fields='' );
+           ?><script>
+                   jQuery(document).ready(function(){
+                        var found = false;
+                            jQuery( ".shipping_method" ).each(function( index ) { 
+                            
+                            var a = jQuery( this ).val() ;
+                            if (a.indexOf('smartsend') > -1) { 
+                                found = true;
+                            }
+                          });
+                          if(!found){
+                              jQuery('.selectstore').remove();
+                          }
+                   });
+               </script><?php
+        }
 	add_action('woocommerce_checkout_process', 'smartsend_pickup_select_process');
 	function smartsend_pickup_select_process() {
 		if (empty($_POST['store_pickup']) && isset($_POST['store_pickup'])) {
