@@ -55,7 +55,7 @@ if ( ! class_exists( 'Smartsend_Logistics_GLS' ) ) {
 					'title' 		=> __( 'Enable/Disable', 'woocommerce' ),
 					'type' 			=> 'checkbox',
 					'label' 		=> __( 'Enable this shipping method', 'woocommerce' ),
-					'default' 		=> 'yes'
+					'default' 		=> 'no'
 				),
 				'title' => array(
 					'title' 		=> __( 'Carrier Title', 'woocommerce' ),
@@ -211,19 +211,25 @@ if ( ! class_exists( 'Smartsend_Logistics_GLS' ) ) {
 				);
 		}
 		
-		function getCountries(){
-            $datas = array_filter( (array) get_option( $this->table_rate_option ) );
-            $countries = array();
-            if($datas){
-                foreach($datas as $data){
-                    $countries[] =$data['country']; 
+                function getCountries(){
+                    $datas = array_filter( (array) get_option( $this->table_rate_option ) );
+
+                    $countries = array();
+                    if($datas){
+                        foreach($datas as $data){
+                                $countriesArray = explode(',',$data['country']);
+                                if(is_array($countriesArray)){
+                                    foreach($countriesArray as $c){
+                                        $countries[] = trim(strtoupper($c)); 
+                                    }
+                                }else{
+                                    $countries[] =trim(strtoupper($data['country'])); 
+                                }
+                        }
+                    }
+
+                    return $countries;
                 }
-            }
-		/*	if(empty($countries)){
-                return  $countries = array('DK');
-			} */
-            return $countries;
-        }
 
 	}
 }

@@ -6,8 +6,16 @@
  * and open the template in the editor.
  */
 
-require_once( ABSPATH . 'wp-content/plugins/woocommerce/includes/abstracts/abstract-wc-order.php' );
-require_once( ABSPATH . 'wp-content/plugins/woocommerce/includes/class-wc-order.php' );
+require_once( WP_PLUGIN_DIR . '/woocommerce/includes/abstracts/abstract-wc-order.php' );
+require_once( WP_PLUGIN_DIR . '/woocommerce/includes/class-wc-order.php' );
+
+require_once( WP_PLUGIN_DIR . '/smartsend_logistics/class.smartsend.bring.php' );
+require_once( WP_PLUGIN_DIR . '/smartsend_logistics/class.smartsend.gls.php' );
+require_once( WP_PLUGIN_DIR . '/smartsend_logistics/class.smartsend.pickuppoints.php' );
+require_once( WP_PLUGIN_DIR . '/smartsend_logistics/class.smartsend.postdanmark.php' );
+require_once( WP_PLUGIN_DIR . '/smartsend_logistics/class.smartsend.posten.php' );
+require_once( WP_PLUGIN_DIR . '/smartsend_logistics/class.smartsend.swipbox.php' );
+
 
 class Smartsend_Logistics_Order{
 
@@ -16,6 +24,7 @@ class Smartsend_Logistics_Order{
 	public $agent;
 	public $parcels;
 	public $service;
+	private $carrier;
 	
 	/*
 	$order->id
@@ -106,7 +115,15 @@ class Smartsend_Logistics_Order{
     
     private function isVconnect($order) {
     //Check that this is the name of vConnect in WooCommerce
-    	if(substr($this->getShippingMethod($order), 0, strlen('vconnect_postnord_bestway')) === 'vconnect_postnord_bestway') {
+    	if(substr($this->getShippingMethod($order), 0, strlen('VC_PostDanmark')) === 'VC_PostDanmark') {
+    		return true;
+    	} elseif(substr($this->getShippingMethod($order), 0, strlen('VC_GLS')) === 'VC_GLS') {
+    		return true;
+    	} elseif(substr($this->getShippingMethod($order), 0, strlen('VC_Bring')) === 'VC_Bring') {
+    		return true;
+    	} elseif(substr($this->getShippingMethod($order), 0, strlen('VC_Posten')) === 'VC_Posten') {
+    		return true;
+    	} elseif(substr($this->getShippingMethod($order), 0, strlen('VC_SwipBox')) === 'VC_SwipBox') {
     		return true;
     	} else {
     		return false;
@@ -119,7 +136,19 @@ class Smartsend_Logistics_Order{
     	if(substr($this->getShippingMethod($order), -strlen('pickup')) === 'pickup' && $this->isSmartSend($order)) {
     		// It is a Smart Send 'pickup' method.
     		return true;
-    	} elseif(substr($this->getShippingMethod($order), 0, strlen('vconnect_postnord_bestway')) === 'vconnect_postnord_bestway') {
+    	} elseif(substr($this->getShippingMethod($order), 0, strlen('VC_PostDanmark')) === 'VC_PostDanmark') {
+    		// It is a vConnect checkout method.
+    		return true;
+    	} elseif(substr($this->getShippingMethod($order), 0, strlen('VC_GLS')) === 'VC_GLS') {
+    		// It is a vConnect checkout method.
+    		return true;
+    	} elseif(substr($this->getShippingMethod($order), 0, strlen('VC_Bring')) === 'VC_Bring') {
+    		// It is a vConnect checkout method.
+    		return true;
+    	} elseif(substr($this->getShippingMethod($order), 0, strlen('VC_Posten')) === 'VC_Posten') {
+    		// It is a vConnect checkout method.
+    		return true;
+    	} elseif(substr($this->getShippingMethod($order), 0, strlen('VC_SwipBox')) === 'VC_SwipBox') {
     		// It is a vConnect checkout method.
     		return true;
     	} else {
@@ -202,8 +231,16 @@ class Smartsend_Logistics_Order{
     		return 'postdanmark';
     	} elseif(substr($this->getShippingMethod($order), 0, strlen('smartsend_posten')) === 'smartsend_posten') {
     		return 'posten';
-    	} elseif(substr($this->getShippingMethod($order), 0, strlen('vconnect_postnord_bestway')) === 'vconnect_postnord_bestway') {
+    	} elseif(substr($this->getShippingMethod($order), 0, strlen('VC_PostDanmark')) === 'VC_PostDanmark') {
     		return 'postdanmark';
+    	} elseif(substr($this->getShippingMethod($order), 0, strlen('VC_GLS')) === 'VC_GLS') {
+    		return 'gls';
+    	} elseif(substr($this->getShippingMethod($order), 0, strlen('VC_Bring')) === 'VC_Bring') {
+    		return 'bring';
+    	} elseif(substr($this->getShippingMethod($order), 0, strlen('VC_Posten')) === 'VC_Posten') {
+    		return 'posten';
+    	} elseif(substr($this->getShippingMethod($order), 0, strlen('VC_SwipBox')) === 'VC_SwipBox') {
+    		return 'swipbox';
     	} else {
     		throw new Exception(__("Unsupported carrier").": ".$this->getShippingMethod($order) );
     	}
@@ -267,7 +304,15 @@ class Smartsend_Logistics_Order{
     		return 'privatehome_bulksplit';
     	} elseif(substr($this->getShippingMethod($order), -strlen('commercial_bulksplit')) === 'commercial_bulksplit') {
     		return 'commercial_bulksplit';
-    	} elseif(substr($this->getShippingMethod($order), -strlen('vconnect_postnord_bestway')) === 'vconnect_postnord_bestway') {
+    	} elseif(substr($this->getShippingMethod($order), -strlen('VC_PostDanmark')) === 'VC_PostDanmark') {
+    		return 'pickup';
+    	} elseif(substr($this->getShippingMethod($order), -strlen('VC_Posten')) === 'VC_Posten') {
+    		return 'pickup';
+    	} elseif(substr($this->getShippingMethod($order), -strlen('VC_Bring')) === 'VC_Bring') {
+    		return 'pickup';
+    	} elseif(substr($this->getShippingMethod($order), -strlen('VC_SwipBox')) === 'VC_SwipBox') {
+    		return 'pickup';
+    	} elseif(substr($this->getShippingMethod($order), -strlen('VC_GLS')) === 'VC_GLS') {
     		return 'pickup';
     	} else {
     		throw new Exception(__("Unsupported shipping method").": ".$this->getShippingMethod($order) );
@@ -276,9 +321,32 @@ class Smartsend_Logistics_Order{
     }
     
     public function setOrder($order) {
- 		if(!$this->isSmartSend($order)) {
+ 		if(!$this->isSmartSend($order) && !$this->isVconnect($order) ) {
  			throw new Exception(__("Unknown carrier").": ".$this->getShippingMethod($order) );
  		}
+ 		
+ 		$carrier = $this->getCarrier($order);
+    	switch ($carrier) {
+    		case 'bring':
+				$this->carrier = new Smartsend_Logistics_Bring();
+				break;
+			case 'gls':
+				$this->carrier = new Smartsend_Logistics_GLS();
+				break;
+			case 'postdanmark':
+				$this->carrier = new Smartsend_Logistics_PostDanmark();
+				break;
+			case 'posten':
+				$this->carrier = new Smartsend_Logistics_Posten();
+				break;
+			case 'swipbox':
+				$this->carrier = new Smartsend_Logistics_SwipBox();
+				break;
+			default:
+				throw new Exception(__("Unknown carrier").": ".$this->getShippingMethod($order) );
+			break;
+		}
+ 		
 		$this->setInfo($order);
 		$this->setReceiver($order);
 		$this->setSender($order);
@@ -288,9 +356,18 @@ class Smartsend_Logistics_Order{
  	}
  	
  	private function setInfo($order) {
+ 	
+ 		if($this->getCarrier($order) == 'postdanmark') {
+			$type	= $this->carrier->get_option( 'format','pdf');
+		} elseif($this->getCarrier($order) == 'posten') {
+			$type	= $this->carrier->get_option( 'format','pdf');
+		} else {
+			$type	= null;
+		}
 
  		$this->info = array(
  			'orderno'		=> $order->id,
+ 			'type'			=> $type,
    			'reference'		=> $order->id."-".time()."-".rand(9999,10000),
    			'carrier'		=> $this->getCarrier($order),
    			'method'		=> $this->getMethod($order),
@@ -343,7 +420,7 @@ class Smartsend_Logistics_Order{
  		switch ($carrier) {
  			case 'postdanmark':
  				$this->sender = array(
- 					'senderid' => get_option( 'smartsend_logistics_postdanmark_quickid',1),
+ 					'senderid' 	=> $this->carrier->get_option('quickid',1),
  					'company'	=> null,
 					'name1'		=> null,
 					'name2'		=> null,
@@ -358,7 +435,7 @@ class Smartsend_Logistics_Order{
  				break;
  			case 'posten':
  				$this->sender = array(
- 					'senderid' => get_option( 'smartsend_logistics_postdanmark_quickid',1),
+ 					'senderid' 	=> $this->carrier->get_option('quickid',1),
  					'company'	=> null,
 					'name1'		=> null,
 					'name2'		=> null,
@@ -421,18 +498,18 @@ class Smartsend_Logistics_Order{
  		switch ($carrier) {
  			case 'postdanmark':
 				$this->service = array(
-					"notemail"			=> (get_option( 'smartsend_logistics_postdanmark_notemail',1) == 1 ? $order->billing_email : null),
-					"notesms"			=> (get_option( 'smartsend_logistics_postdanmark_notesms',1) == 1 ? $order->billing_phone : null),
-					"prenote"			=> get_option( 'smartsend_logistics_postdanmark_prenote',1),
-					"prenote_from"		=> get_option( 'smartsend_logistics_postdanmark_prenote_sender',1),
-					"prenote_to"		=> (get_option( 'smartsend_logistics_postdanmark_prenote_receiver') == '' ? $order->billing_email : Mget_option( 'smartsend_logistics_postdanmark_prenote_receiver')),
-					"prenote_message"	=> (get_option( 'smartsend_logistics_postdanmark_prenote_sender') != '' ? get_option( 'smartsend_logistics_postdanmark_prenote_sender') : null),
+					"notemail"			=> ($this->carrier->get_option( 'notemail','yes') == 'yes' ? $order->billing_email : null),
+					"notesms"			=> ($this->carrier->get_option( 'notesms','yes') == 'yes' ? $order->billing_phone : null),
+					"prenote"			=> ($this->carrier->get_option( 'prenote','yes') == 'yes' ? true : false),
+					"prenote_from"		=> ($this->carrier->get_option( 'prenote_receiver','user') == 'user' ? $order->billing_email : $this->carrier->get_option( 'prenote_receiver','user')),
+					"prenote_to"		=> ($this->carrier->get_option( 'prenote_sender','') != '' ? $this->carrier->get_option( 'prenote_sender', '') : null),
+					"prenote_message"	=> ($this->carrier->get_option( 'prenote_message','') != '' ? $this->carrier->get_option( 'prenote_message', '') : null),
 					);
 				break;
 			case 'gls':
 				$this->service = array(
-					"notemail"			=> (get_option( 'smartsend_logistics_gls_notemail',1) == 1 ? $order->billing_email : null),
-					"notesms"			=> (get_option( 'smartsend_logistics_gls_notesms',1) == 1 ? $order->billing_phone : null),
+					"notemail"			=> ($this->carrier->get_option( 'notemail','yes') == 'yes' ? $order->billing_email : null),
+					"notesms"			=> ($this->carrier->get_option( 'notesms','yes') == 'yes' ? $order->billing_phone : null),
 					"prenote"			=> null,
 					"prenote_from"		=> null,
 					"prenote_to"		=> null,
@@ -441,8 +518,8 @@ class Smartsend_Logistics_Order{
 				break;
 			case 'swipbox':
 				$this->service = array(
-					"notemail"			=> (get_option( 'smartsend_logistics_swipbox_notemail',1) == 1 ? $order->billing_email : null),
-					"notesms"			=> (get_option( 'smartsend_logistics_swipbox_notesms',1) == 1 ? $order->billing_phone : null),
+					"notemail"			=> ($this->carrier->get_option( 'notemail','yes') == 'yes' ? $order->billing_email : null),
+					"notesms"			=> ($this->carrier->get_option( 'notesms','yes') == 'yes' ? $order->billing_phone : null),
 					"prenote"			=> null,
 					"prenote_from"		=> null,
 					"prenote_to"		=> null,
@@ -451,8 +528,8 @@ class Smartsend_Logistics_Order{
 				break;
 			case 'bring':
 				$this->service = array(
-					"notemail"			=> (get_option( 'smartsend_logistics_bring_notemail',1) == 1 ? $order->billing_email : null),
-					"notesms"			=> (get_option( 'smartsend_logistics_bring_notesms',1) == 1 ? $order->billing_phone : null),
+					"notemail"			=> ($this->carrier->get_option( 'notemail','yes') == 'yes' ? $order->billing_email : null),
+					"notesms"			=> ($this->carrier->get_option( 'notesms','yes') == 'yes' ? $order->billing_phone : null),
 					"prenote"			=> null,
 					"prenote_from"		=> null,
 					"prenote_to"		=> null,
@@ -461,16 +538,16 @@ class Smartsend_Logistics_Order{
 				break;
 			case 'posten':
 				$this->service = array(
-					"notemail"			=> (get_option( 'smartsend_logistics_posten_notemail',1) == 1 ? $order->billing_email : null),
-					"notesms"			=> (get_option( 'smartsend_logistics_posten_notesms',1) == 1 ? $order->billing_phone : null),
-					"prenote"			=> get_option( 'smartsend_logistics_posten_prenote',1),
-					"prenote_from"		=> get_option( 'smartsend_logistics_posten_prenote_sender',1),
-					"prenote_to"		=> (get_option( 'smartsend_logistics_posten_prenote_receiver') == '' ? $order->billing_email : Mget_option( 'smartsend_logistics_posten_prenote_receiver')),
-					"prenote_message"	=> (get_option( 'smartsend_logistics_posten_prenote_sender') != '' ? get_option( 'smartsend_logistics_posten_prenote_sender') : null),
+					"notemail"			=> ($this->carrier->get_option( 'notemail','yes') == 'yes' ? $order->billing_email : null),
+					"notesms"			=> ($this->carrier->get_option( 'notesms','yes') == 'yes' ? $order->billing_phone : null),
+					"prenote"			=> ($this->carrier->get_option( 'prenote','yes') == 'yes' ? true : false),
+					"prenote_from"		=> ($this->carrier->get_option( 'prenote_receiver','user') == 'user' ? $order->billing_email : $this->carrier->get_option( 'prenote_receiver','user')),
+					"prenote_to"		=> ($this->carrier->get_option( 'prenote_sender','') != '' ? $this->carrier->get_option( 'prenote_sender', '') : null),
+					"prenote_message"	=> ($this->carrier->get_option( 'prenote_message','') != '' ? $this->carrier->get_option( 'prenote_message', '') : null),
 					);
 				break;
 			default:
-				throw new Exception(Mage::helper('logistics')->__("Unknown carrier when adding services"));
+				throw new Exception(__("Unknown carrier when adding services"));
 				
 		}
  		

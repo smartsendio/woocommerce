@@ -24,9 +24,9 @@ class Smartsend_Logistics_PrimaryClass {
 
 			$virtualPrice = 0;
 			$shipping_cost = 0;
-                        $weight = 0 ;
+        	$weight = 0 ;
 			$discount_total = 0.00;
-                        $sc = '';
+        	$sc = '';
 			foreach ( $woocommerce->cart->get_cart() as $item ) {
                                
 				if ( ! $item['data']->is_virtual() ){
@@ -84,10 +84,15 @@ class Smartsend_Logistics_PrimaryClass {
 				$shp = array();  
 				
 				foreach ( $shipping_rates as $rates ) {
+					$countries = explode(',', $rates['country']);
+                	$countries = array_map("strtoupper", $countries);
+                        $countries = array_map("trim", $countries);
+                	in_array(strtoupper($customerCountry), $countries);
+				
 					if ( ( (float)$price >= (float)$rates['minO'] ) && ( (float)$price <= (float)$rates['maxO'] )
 						&& ( (float)$weight >= (float)$rates['minwO'] ) && ( (float)$weight <= (float)$rates['maxwO'] )
 						&& ($rates['class'] == 'all' || $rates['class'] == $sc)
-						&& ($rates['country'] == $customerCountry)
+						&& in_array(strtoupper($customerCountry), $countries)
 						) {
 						// The shipping rate is valid.
 						

@@ -55,7 +55,7 @@ if ( ! class_exists( 'Smartsend_Logistics_Posten' ) ) {
 					'title' 			=> __( 'Enable/Disable', 'woocommerce' ),
 					'type' 				=> 'checkbox',
 					'label' 			=> __( 'Enable this shipping method', 'woocommerce' ),
-					'default' 			=> 'yes'
+					'default' 			=> 'no'
 				),
 				'title' 			=> array(
 					'title' 			=> __( 'Carrier Title', 'woocommerce' ),
@@ -133,6 +133,27 @@ if ( ! class_exists( 'Smartsend_Logistics_Posten' ) ) {
 					'type' 				=> 'checkbox',
 					'label' 			=> __( 'Enable', 'woocommerce' ),
 					'default' 			=> 'no'
+				),
+				'prenote_receiver' 	=> array(
+					'title'    			=> __( 'Pre notification receiver', 'woocommerce' ),
+					'description'     	=> __( 'Receivers email address. Leave blank if receiver should be the user.' ),
+					'type' 				=> 'text',
+					'default'			=> __( '', 'woocommerce' ),
+					'desc_tip'			=> true,
+				),
+				'prenote_sender' 	=> array(
+					'title'    			=> __( 'Pre notification sender', 'woocommerce' ),
+					'description'     	=> __( 'Senders email address.' ),
+					'type' 				=> 'text',
+					'default'			=> __( '', 'woocommerce' ),
+					'desc_tip'			=> true,
+				),
+				'prenote_message' 	=> array(
+					'title'    			=> __( 'Pre notification message', 'woocommerce' ),
+					'description'     	=> __( 'Email message' ),
+					'type' 				=> 'text',
+					'default'			=> __( '', 'woocommerce' ),
+					'desc_tip'			=> true,
 				),
 				'return' 	=> array(
 					'title'    			=> __( 'Return shipping method', 'woocommerce' ),
@@ -238,19 +259,25 @@ if ( ! class_exists( 'Smartsend_Logistics_Posten' ) ) {
 				);
 		}
                 
-        function getCountries(){
-        	$datas = array_filter( (array) get_option( $this->table_rate_option ) );
-            $countries = array();
-            if($datas){
-            	foreach($datas as $data){
-                    $countries[] =$data['country']; 
+                function getCountries(){
+                    $datas = array_filter( (array) get_option( $this->table_rate_option ) );
+
+                    $countries = array();
+                    if($datas){
+                        foreach($datas as $data){
+                                $countriesArray = explode(',',$data['country']);
+                                if(is_array($countriesArray)){
+                                    foreach($countriesArray as $c){
+                                        $countries[] = trim(strtoupper($c)); 
+                                    }
+                                }else{
+                                    $countries[] =trim(strtoupper($data['country'])); 
+                                }
+                        }
+                    }
+
+                    return $countries;
                 }
-            }
-		/*	if(empty($countries)){
-                return  $countries = array('DK');
-			} */
-            return $countries;
-        }
 
 	}
 }

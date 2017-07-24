@@ -6,8 +6,8 @@
  * and open the template in the editor.
  */
 
-require_once( ABSPATH . 'wp-content/plugins/woocommerce/includes/abstracts/abstract-wc-order.php' );
-require_once( ABSPATH . 'wp-content/plugins/woocommerce/includes/class-wc-order.php' );
+require_once( WP_PLUGIN_DIR . '/woocommerce/includes/abstracts/abstract-wc-order.php' );
+require_once( WP_PLUGIN_DIR . '/woocommerce/includes/class-wc-order.php' );
 
 class Smartsend_Logistics_Label{
 
