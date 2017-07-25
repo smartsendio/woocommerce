@@ -61,8 +61,14 @@ if ( in_array( 'woocommerce/woocommerce.php', apply_filters( 'active_plugins', g
 		if(!isset($_REQUEST['post_data'])) return false;
                
 		parse_str($_REQUEST['post_data'],$request);
-		
-		$first_shipping_method_element = reset($request['shipping_method']); //First item of array
+
+        if( isset($request['shipping_method']) && is_array($request['shipping_method']) ) {
+            $first_shipping_method_element = reset($request['shipping_method']); //First item of array
+        } elseif( isset($request['shipping_method']) ) {
+            $first_shipping_method_element = $request['shipping_method'];
+        } else {
+            $first_shipping_method_element = null;
+        }
 		
 		$shipping_method_id = null;
 		if($method) {
