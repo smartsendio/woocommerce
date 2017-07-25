@@ -275,6 +275,8 @@ class Smartsend_Logistics_Order_Woocommerce extends Smartsend_Logistics_Order {
 		
 		if(isset($store_pickup['store_pickup'][0])) {
 			$store_pickup = @unserialize($store_pickup['store_pickup'][0]);
+            $store_pickup = str_replace(array("\\\\\\"), '', $store_pickup);
+
 			if(!is_array($store_pickup)) $store_pickup = unserialize($store_pickup);
 
 			if(!empty($store_pickup)){

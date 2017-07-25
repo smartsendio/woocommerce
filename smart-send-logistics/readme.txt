@@ -116,6 +116,7 @@ To install a plugin manually, follow the process:
 
 = 7.1.10 =
 * Fixing PHP notification for WooCommerce 3.0+
+* Fixing problem fetching pickup point data for some installations
 * Adding compatability for WooCommerce 2.5+
 * Adding cURL timeout to API calls
 
