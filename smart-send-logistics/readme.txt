@@ -116,6 +116,7 @@ To install a plugin manually, follow the process:
 
 = 7.1.9 =
 * Adding compatibility with WooCommerce 3.1.0
+* Adding shipping method 'Post Danmark Valuemail small'
 * Fixing problem with setting whether or not to include order comment on labels.
 * Fixing PHP notifications
 
