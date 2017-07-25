@@ -218,9 +218,11 @@ class Smartsend_Logistics_Order_Woocommerce extends Smartsend_Logistics_Order {
 	* @return array
 	*/
  	public function getShippingAddress() {
- 	
+
+ 	    $user_id = ( WC()->version < '2.7.0' ) ? $this->_order->user_id : $this->_order->get_user_id();
+
 		return array(
-			'receiverid'=> ($this->_order->user_id != '' ? $this->_order->user_id : 'guest-'.rand(100000,999999)),
+			'receiverid'=> ($user_id != '' ? $user_id : 'guest-'.rand(100000,999999)),
 			'company'	=> ( WC()->version < '2.7.0' ) ? $this->_order->shipping_company : $this->_order->get_shipping_company(),
 			'name1' 	=> ( WC()->version < '2.7.0' ) ? implode(" ",array($this->_order->shipping_first_name, $this->_order->shipping_last_name)) : implode(" ",array($this->_order->get_shipping_first_name(), $this->_order->get_shipping_last_name())),
 			'name2'		=> null,
@@ -241,9 +243,11 @@ class Smartsend_Logistics_Order_Woocommerce extends Smartsend_Logistics_Order {
 	* @return array
 	*/
  	public function getBillingAddress() {
- 	
+
+        $user_id = ( WC()->version < '2.7.0' ) ? $this->_order->user_id : $this->_order->get_user_id();
+
 		return array(
-			'receiverid'=> ($this->_order->user_id != '' ? $this->_order->user_id : 'guest-'.rand(100000,999999)),
+			'receiverid'=> ($user_id != '' ? $user_id : 'guest-'.rand(100000,999999)),
 			'company'	=> ( WC()->version < '2.7.0' ) ? $this->_order->billing_company : $this->_order->get_billing_company(),
 			'name1' 	=> ( WC()->version < '2.7.0' ) ? implode(" ", array($this->_order->billing_first_name, $this->_order->billing_last_name)) : implode(" ", array($this->_order->get_billing_first_name(),$this->_order->get_billing_last_name())),
 			'name2'		=> null,
