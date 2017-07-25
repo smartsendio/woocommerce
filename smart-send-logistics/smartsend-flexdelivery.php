@@ -248,8 +248,10 @@ if ( in_array( 'woocommerce/woocommerce.php', apply_filters( 'active_plugins', g
 
 	#HTML code showing the flexdelivery information
 	function Smartsend_Logistics_display_order_flexdelivery_details($order,$tag=false,$new_line=false) {
-			   
-		$post_custom = get_post_custom($order->get_id());
+
+        $order_id = ( WC()->version < '2.7.0' ) ? $order->id : $order->get_id();
+
+		$post_custom = get_post_custom( $order_id );
 		if( isset($post_custom['flexdelivery'][0]) && !empty($post_custom['flexdelivery'][0]) ){
 			if($tag) {
 				echo '<'.$tag.'>';

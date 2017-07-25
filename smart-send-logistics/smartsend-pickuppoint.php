@@ -212,8 +212,10 @@ if ( in_array( 'woocommerce/woocommerce.php', apply_filters( 'active_plugins', g
 
 	#HTML code showing the pickup information
 	function Smartsend_Logistics_display_order_pickuppoint_details($order,$tag=false,$show_id=false,$new_line=true) {
+
+        $order_id = ( WC()->version < '2.7.0' ) ? $order->id : $order->get_id();
 			   
-		$store_pickup = get_post_custom($order->get_id());
+		$store_pickup = get_post_custom( $order_id );
 	
 		if(isset($store_pickup['store_pickup'][0]) && $store_pickup['store_pickup'][0] != '') {
 			$store_pickup = @unserialize($store_pickup['store_pickup'][0]);

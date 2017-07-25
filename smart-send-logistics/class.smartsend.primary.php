@@ -11,10 +11,19 @@ class Smartsend_Logistics_PrimaryClass {
 
     public function calculate_shipping($package = array(), $x) {
         global $woocommerce;
-        if ($woocommerce->customer->shipping_country) {
-            $customerCountry = $woocommerce->customer->shipping_country;
+
+        if ( WC()->version < '2.7.0') {
+            if ($woocommerce->customer->shipping_country) {
+                $customerCountry = $woocommerce->customer->shipping_country;
+            } else {
+                $customerCountry = $woocommerce->customer->country;
+            }
         } else {
-            $customerCountry = $woocommerce->customer->country;
+            if ( $woocommerce->customer->get_shipping_country() != '') {
+                $customerCountry = $woocommerce->customer->get_shipping_country();
+            } else {
+                $customerCountry = $woocommerce->customer->get_country();
+            }
         }
 
         $x->rate = array();
