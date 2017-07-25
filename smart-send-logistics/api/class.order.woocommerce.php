@@ -221,16 +221,16 @@ class Smartsend_Logistics_Order_Woocommerce extends Smartsend_Logistics_Order {
  	
 		return array(
 			'receiverid'=> ($this->_order->user_id != '' ? $this->_order->user_id : 'guest-'.rand(100000,999999)),
-			'company'	=> $this->_order->shipping_company,
-			'name1' 	=> $this->_order->shipping_first_name .' '. $this->_order->shipping_last_name,
+			'company'	=> ( WC()->version < '2.7.0' ) ? $this->_order->shipping_company : $this->_order->get_shipping_company(),
+			'name1' 	=> ( WC()->version < '2.7.0' ) ? implode(" ",array($this->_order->shipping_first_name, $this->_order->shipping_last_name)) : implode(" ",array($this->_order->get_shipping_first_name(), $this->_order->get_shipping_last_name())),
 			'name2'		=> null,
-			'address1'	=> $this->_order->shipping_address_1,
-			'address2'	=> $this->_order->shipping_address_2,
-			'city'		=> $this->_order->shipping_city,
-			'zip'		=> $this->_order->shipping_postcode,
-			'country'	=> $this->_order->shipping_country,
-			'sms'		=> $this->_order->billing_phone, // Billing used
-			'mail'		=> $this->_order->billing_email // Billing used
+			'address1'	=> ( WC()->version < '2.7.0' ) ? $this->_order->shipping_address_1 : $this->_order->get_shipping_address_1(),
+			'address2'	=> ( WC()->version < '2.7.0' ) ? $this->_order->shipping_address_2 : $this->_order->get_shipping_address_2(),
+			'city'		=> ( WC()->version < '2.7.0' ) ? $this->_order->shipping_city : $this->_order->get_shipping_city(),
+			'zip'		=> ( WC()->version < '2.7.0' ) ? $this->_order->shipping_postcode : $this->_order->get_shipping_postcode(),
+			'country'	=> ( WC()->version < '2.7.0' ) ? $this->_order->shipping_country : $this->_order->get_shipping_country(),
+			'sms'		=> ( WC()->version < '2.7.0' ) ? $this->_order->billing_phone : $this->_order->get_billing_phone(), // Billing used
+			'mail'		=> ( WC()->version < '2.7.0' ) ? $this->_order->billing_email : $this->_order->get_billing_email() // Billing used
 			);
 			
  	}
@@ -244,16 +244,16 @@ class Smartsend_Logistics_Order_Woocommerce extends Smartsend_Logistics_Order {
  	
 		return array(
 			'receiverid'=> ($this->_order->user_id != '' ? $this->_order->user_id : 'guest-'.rand(100000,999999)),
-			'company'	=> $this->_order->billing_company,
-			'name1' 	=> $this->_order->billing_first_name .' '. $this->_order->billing_last_name,
+			'company'	=> ( WC()->version < '2.7.0' ) ? $this->_order->billing_company : $this->_order->get_billing_company(),
+			'name1' 	=> ( WC()->version < '2.7.0' ) ? implode(" ", array($this->_order->billing_first_name, $this->_order->billing_last_name)) : implode(" ", array($this->_order->get_billing_first_name(),$this->_order->get_billing_last_name())),
 			'name2'		=> null,
-			'address1'	=> $this->_order->billing_address_1,
-			'address2'	=> $this->_order->billing_address_2,
-			'city'		=> $this->_order->billing_city,
-			'zip'		=> $this->_order->billing_postcode,
-			'country'	=> $this->_order->billing_country,
-			'sms'		=> $this->_order->billing_phone, // Billing used
-			'mail'		=> $this->_order->billing_email // Billing used
+			'address1'	=> ( WC()->version < '2.7.0' ) ? $this->_order->billing_address_1 : $this->_order->get_billing_addres1(),
+			'address2'	=> ( WC()->version < '2.7.0' ) ? $this->_order->billing_address_2 : $this->_order->get_billing_addess2(),
+			'city'		=> ( WC()->version < '2.7.0' ) ? $this->_order->billing_city : $this->_order->get_billing_city(),
+			'zip'		=> ( WC()->version < '2.7.0' ) ? $this->_order->billing_postcode : $this->_order->get_billing_postcode(),
+			'country'	=> ( WC()->version < '2.7.0' ) ? $this->_order->billing_country : $this->_order->get_billing_country(),
+			'sms'		=> ( WC()->version < '2.7.0' ) ? $this->_order->billing_phone : $this->_order->get_billing_phone(),
+			'mail'		=> ( WC()->version < '2.7.0' ) ? $this->_order->billing_email : $this->_order->get_billing_email()
 			);
 				
  	}
