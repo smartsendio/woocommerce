@@ -90,6 +90,7 @@ class Smartsend_Logistics_Label_Woocommerce extends Smartsend_Logistics_Label {
 			2211	=> __('Failed to add order comment','smart-send-logistics'),
 			2212	=> __('Please enter a username in the modules settings','smart-send-logistics'),
 			2213	=> __('Please enter a license key in the modules settings','smart-send-logistics'),
+            2214	=> __('cURL is not activated on the server','smart-send-logistics'),
 			);
 	}
 	

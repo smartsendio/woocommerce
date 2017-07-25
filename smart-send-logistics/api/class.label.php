@@ -317,7 +317,11 @@ class Smartsend_Logistics_Label {
 	 * @return void
 	 */
 	public function sendRequest() {
-		
+
+	    if( !function_exists('curl_version') ) {
+            throw new Exception($this->getMessageString(2214));
+        }
+
 		//intitiate curl
 		$ch = curl_init();
 
@@ -351,6 +355,8 @@ class Smartsend_Logistics_Label {
         curl_setopt($ch, CURLOPT_POST, true);
         curl_setopt($ch, CURLOPT_POSTFIELDS, $this->getRequestJsonEncoded());
         curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($ch, CURLOPT_CONNECTTIMEOUT ,30); // - Number of seconds to wait while trying to connect. 0 means infinity.
+        curl_setopt($ch, CURLOPT_TIMEOUT, 30); //timeout in seconds
         curl_setopt($ch, CURLOPT_HTTPHEADER, array(
         	'apikey:'.$this->getApikey(),
         	'smartsendmail:'.$this->getSmartsendUsername(),
@@ -381,7 +387,7 @@ class Smartsend_Logistics_Label {
             throw new Exception( $this->getMessageString(2203) . ': (' . $response_code . ') '. $response );
         }
         
-        curl_close($ch); // Close the curl. Only AFTER the errro has been checked
+        curl_close($ch); // Close the curl. Only AFTER the error has been checked
 
 	}
 	

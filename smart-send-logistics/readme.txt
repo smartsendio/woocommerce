@@ -114,6 +114,11 @@ To install a plugin manually, follow the process:
 
 == Changelog ==
 
+= 7.1.10 =
+* Fixing PHP notification for WooCommerce 3.0+
+* Adding compatability for WooCommerce 2.5+
+* Adding cURL timeout to API calls
+
 = 7.1.9 =
 * Adding compatibility with WooCommerce 3.1.0
 * Adding shipping method 'Post Danmark Valuemail small'

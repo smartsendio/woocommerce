@@ -1,8 +1,13 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: Smart Send Logistics\n"
+<<<<<<< HEAD
 "POT-Creation-Date: 2017-07-25 17:36+0200\n"
 "PO-Revision-Date: 2017-07-25 17:38+0200\n"
+=======
+"POT-Creation-Date: 2017-07-25 18:33+0200\n"
+"PO-Revision-Date: 2017-07-25 18:33+0200\n"
+>>>>>>> feature-curl-check-and-timeout
 "Last-Translator: \n"
 "Language-Team: \n"
 "Language: da_DK\n"
@@ -103,6 +108,10 @@ msgstr "Indtast venligst et brugernavn i modulets indstillinger"
 #: api/class.label.woocommerce.php:92
 msgid "Please enter a license key in the modules settings"
 msgstr "Indtast venligst en licenskode i modulets indstillinger"
+
+#: api/class.label.woocommerce.php:93
+msgid "cURL is not activated on the server"
+msgstr "cURL er ikke aktiveret på serveren"
 
 #: api/class.order.woocommerce.php:75
 msgid "Unable to determine the shipping method used for return parcels"
@@ -210,8 +219,13 @@ msgstr "Minipakke"
 #: class.smartsend.gls.php:274 class.smartsend.postdanmark.php:289
 #: class.smartsend.postdanmark.php:300 class.smartsend.postdanmark.php:401
 #: class.smartsend.posten.php:280 class.smartsend.posten.php:291
+<<<<<<< HEAD
 #: class.smartsend.posten.php:337 smartsend-pickuppoint.php:235
 #: smartsend-pickuppoint.php:238
+=======
+#: class.smartsend.posten.php:337 smartsend-pickuppoint.php:229
+#: smartsend-pickuppoint.php:232
+>>>>>>> feature-curl-check-and-timeout
 msgid "Pickuppoint"
 msgstr "Afhentningssted"
 
@@ -515,10 +529,13 @@ msgstr "Flexlevering"
 msgid "Enable flex delivery for the selected shipping methods"
 msgstr "Aktiver flexlevering for de valgte fragtmetoder"
 
+<<<<<<< HEAD
 #: class.smartsend.postdanmark.php:408
 msgid "Value mail small"
 msgstr "Storbrev"
 
+=======
+>>>>>>> feature-curl-check-and-timeout
 #: class.smartsend.primary.php:203
 msgid "Shipping class"
 msgstr "Forsendelsesklasse"
@@ -792,6 +809,7 @@ msgstr ""
 "Dette vil inkludere en lang række af forsendelsesmetoder i "
 "forsendelsestabellen"
 
+<<<<<<< HEAD
 #: smartsend-flexdelivery.php:113 smartsend-flexdelivery.php:143
 msgid "By the front door"
 msgstr "Foran hoveddøren"
@@ -849,6 +867,65 @@ msgid "Shipping to closest pick-up point"
 msgstr "Sendes til nærmeste afhentningssted"
 
 #: smartsend-pickuppoint.php:274
+=======
+#: smartsend-flexdelivery.php:107 smartsend-flexdelivery.php:137
+msgid "By the front door"
+msgstr "Foran hoveddøren"
+
+#: smartsend-flexdelivery.php:108 smartsend-flexdelivery.php:138
+msgid "By the back door"
+msgstr "Ved bagdøren"
+
+#: smartsend-flexdelivery.php:109 smartsend-flexdelivery.php:139
+msgid "One the porch"
+msgstr "På terrassen"
+
+#: smartsend-flexdelivery.php:110 smartsend-flexdelivery.php:140
+msgid "In the greenhouse"
+msgstr "I drivhuset"
+
+#: smartsend-flexdelivery.php:111 smartsend-flexdelivery.php:141
+msgid "In the garage/carport"
+msgstr "I garagen/carporten"
+
+#: smartsend-flexdelivery.php:112 smartsend-flexdelivery.php:142
+msgid "In the tool shed"
+msgstr "I skuret/værkstedet"
+
+#: smartsend-flexdelivery.php:113 smartsend-flexdelivery.php:143
+msgid "In the playhouse"
+msgstr "I legehuset"
+
+#: smartsend-flexdelivery.php:114 smartsend-flexdelivery.php:144
+msgid "Under the roof of the porch"
+msgstr "Under halvtaget"
+
+#: smartsend-flexdelivery.php:115 smartsend-flexdelivery.php:145
+msgid "Can be left unattended"
+msgstr "Må stilles et andet sted"
+
+#: smartsend-flexdelivery.php:116 smartsend-flexdelivery.php:146
+msgid "I have Modtagerflex"
+msgstr "Jeg har Modtagerflex"
+
+#: smartsend-flexdelivery.php:201 smartsend-flexdelivery.php:226
+msgid "Select a flexdelivery option"
+msgstr "Vælg en flexleverings mulighed"
+
+#: smartsend-flexdelivery.php:258 smartsend-flexdelivery.php:261
+msgid "Flexdelivery note"
+msgstr "Flexleveringsnote"
+
+#: smartsend-pickuppoint.php:164 smartsend-pickuppoint.php:190
+msgid "Select a pick-up point"
+msgstr "Vælg et afhentningssted"
+
+#: smartsend-pickuppoint.php:176
+msgid "Shipping to closest pick-up point"
+msgstr "Sendes til nærmeste afhentningssted"
+
+#: smartsend-pickuppoint.php:268
+>>>>>>> feature-curl-check-and-timeout
 msgid "Shipping"
 msgstr "Forsendelse"
 
