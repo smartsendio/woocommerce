@@ -75,8 +75,10 @@
 		* Post the response using CURL
 		**/
 		$ch = curl_init();    
-		curl_setopt($ch, CURLOPT_URL, $url);             //curl url
-		curl_setopt($ch, CURLOPT_HTTPGET, true);            //curl request method
+		curl_setopt($ch, CURLOPT_URL, $url); //curl url
+		curl_setopt($ch, CURLOPT_HTTPGET, true); //curl request method
+        curl_setopt($ch, CURLOPT_CONNECTTIMEOUT ,2); // - Number of seconds to wait while trying to connect. 0 means infinity.
+        curl_setopt($ch, CURLOPT_TIMEOUT, 6); //timeout in seconds
 		curl_setopt($ch, CURLOPT_HTTPHEADER, array(
         	'apikey:N5egWgckXdb4NhV3bTzCAKB26ou73nJm',
         	'smartsendmail:'.get_option( 'smartsend_logistics_username', '' ),
