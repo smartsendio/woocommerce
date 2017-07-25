@@ -203,7 +203,7 @@ class Smartsend_Logistics_Order_Woocommerce extends Smartsend_Logistics_Order {
 	*/
  	public function getCustomerComment() {
  	
-		$comment = $this->_order->customer_message;
+		$comment = ( WC()->version < '2.7.0' ) ? $this->_order->customer_message : $this->_order->get_customer_note();
 		
 		if(isset($comment) && $comment != '') {
 			return $comment;
