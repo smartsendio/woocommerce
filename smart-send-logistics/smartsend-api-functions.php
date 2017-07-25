@@ -55,8 +55,13 @@
 	}
 	
 	function Smartsend_Logistics_API_Find_Nearest($carrier,$address_1,$address_2,$city,$zip,$country) {
-        
-        if($carrier == '') {
+
+        if( !function_exists('curl_version') ) {
+            //cURL is not active on the server
+            return false;
+        }
+
+	    if($carrier == '') {
       		return;
       	} elseif($country == '') {
       		return;

@@ -317,7 +317,11 @@ class Smartsend_Logistics_Label {
 	 * @return void
 	 */
 	public function sendRequest() {
-		
+
+	    if( !function_exists('curl_version') ) {
+            throw new Exception($this->getMessageString(2214));
+        }
+
 		//intitiate curl
 		$ch = curl_init();
 
