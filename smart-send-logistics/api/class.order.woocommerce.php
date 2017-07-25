@@ -143,8 +143,10 @@ class Smartsend_Logistics_Order_Woocommerce extends Smartsend_Logistics_Order {
 	* @return string
 	*/
  	public function getOrderId() {
+
+        $order_id = ( WC()->version < '2.7.0' ) ? $this->_order->id : $this->_order->get_id();
  	
-		return $this->_order->get_id();
+		return $order_id;
 		
  	}
  	
@@ -260,8 +262,10 @@ class Smartsend_Logistics_Order_Woocommerce extends Smartsend_Logistics_Order {
 	* @return array
 	*/	
 	public function getPickupDataSmartsend() {
+
+        $order_id = ( WC()->version < '2.7.0' ) ? $this->_order->id : $this->_order->get_id();
 	
-		$store_pickup = get_post_custom( $this->_order->get_id() );
+		$store_pickup = get_post_custom( $order_id );
 		
 		if(isset($store_pickup['store_pickup'][0])) {
 			$store_pickup = @unserialize($store_pickup['store_pickup'][0]);
@@ -300,8 +304,10 @@ class Smartsend_Logistics_Order_Woocommerce extends Smartsend_Logistics_Order {
 	* @return array
 	*/	
 	public function getPickupDataVconnect() {
+
+        $order_id = ( WC()->version < '2.7.0' ) ? $this->_order->id : $this->_order->get_id();
 		
-		$store_pickup = get_post_custom( $this->_order->get_id() );
+		$store_pickup = get_post_custom( $order_id );
 		
 		if(isset($store_pickup['_service_point_id'][0]) && $store_pickup['_service_point_id'][0] != '') {
 		
@@ -359,9 +365,12 @@ class Smartsend_Logistics_Order_Woocommerce extends Smartsend_Logistics_Order {
 	* @return string / null
 	*/
 	public function getFlexDeliveryNote() {
+
+        $order_id = ( WC()->version < '2.7.0' ) ? $this->_order->id : $this->_order->get_id();
+
 		if( $this->isSmartsend() ) {
 			//This is a Smart Send order
-			$post_custom = get_post_custom( $this->_order->get_id() );
+			$post_custom = get_post_custom( $order_id );
 			if( isset($post_custom['flexdelivery'][0]) && !empty($post_custom['flexdelivery'][0]) ){
 				return $post_custom['flexdelivery'][0];
 			} else {
@@ -369,7 +378,7 @@ class Smartsend_Logistics_Order_Woocommerce extends Smartsend_Logistics_Order {
 			}
 		} elseif( $this->isVconnect() ) {
 			//This is a vConnect order
-			$post_custom = get_post_custom( $this->_order->get_id() );
+			$post_custom = get_post_custom( $order_id );
 			if( isset($post_custom['_vc_aino_delivery_type'][0]) && !empty($post_custom['_vc_aino_delivery_type'][0]) ){
 				return $post_custom['_vc_aino_delivery_type'][0];
 			} else {
