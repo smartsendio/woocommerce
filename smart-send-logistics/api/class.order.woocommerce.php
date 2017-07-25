@@ -189,8 +189,10 @@ class Smartsend_Logistics_Order_Woocommerce extends Smartsend_Logistics_Order {
 	* @return string
 	*/
  	public function getOrderPriceCurrency() {
+
+ 	    $currency = ( WC()->version < '2.7.0' ) ? $this->_order->get_order_currency() : $this->_order->get_currency() ;
  	
-		return $this->_order->get_currency();
+		return $currency;
 		
  	}
  	
