@@ -90,6 +90,7 @@ class Smartsend_Logistics_Label_Woocommerce extends Smartsend_Logistics_Label {
 			2211	=> __('Failed to add order comment','smart-send-logistics'),
 			2212	=> __('Please enter a username in the modules settings','smart-send-logistics'),
 			2213	=> __('Please enter a license key in the modules settings','smart-send-logistics'),
+            2214	=> __('cURL is not activated on the server','smart-send-logistics'),
 			);
 	}
 	
@@ -233,8 +234,10 @@ class Smartsend_Logistics_Label_Woocommerce extends Smartsend_Logistics_Label {
 	 */
 	protected function setOrderStatus($order_number,$order_status) {
 		$order = new WC_Order($order_number);
+
+        $order_id = ( WC()->version < '2.7.0' ) ? $order->id : $order->get_id();
 		
-		if( $order->get_id() != '' && $order_status != '0' ) {
+		if( $order_id != '' && $order_status != '0' ) {
 			$order->update_status( $order_status ); // update_status($status,$norder_note); order note is optional, if you want to  add a note to order
 		}
 	}
@@ -252,6 +255,8 @@ class Smartsend_Logistics_Label_Woocommerce extends Smartsend_Logistics_Label {
 	 */
 	protected function addTracecodeToParcel($order_number,$shipment_number,$tracking_number,$tracelink) {
 		$order = new WC_Order( $order_number );
+
+        $order_id = ( WC()->version < '2.7.0' ) ? $order->id : $order->get_id();
 		
 		$smartsendorder = new Smartsend_Logistics_Order_Woocommerce();
 		$smartsendorder->setOrderObject($order);
@@ -260,7 +265,7 @@ class Smartsend_Logistics_Label_Woocommerce extends Smartsend_Logistics_Label {
 			
 		//Add trace link to WooTheme extension 'Shipment Tracking'
 		if( function_exists('wc_st_add_tracking_number') ) {
-			wc_st_add_tracking_number( $order->get_id(), $tracking_number, $provider, $date_shipped = null, $custom_url = false );
+			wc_st_add_tracking_number( $order_id, $tracking_number, $provider, $date_shipped = null, $custom_url = false );
 		}
 		
 	}
@@ -275,7 +280,10 @@ class Smartsend_Logistics_Label_Woocommerce extends Smartsend_Logistics_Label {
 	 */
 	protected function addCommentToOrder($order_number,$order_comment) {
 		$order = new WC_Order( $order_number );
-		if($order->get_id() != '') {
+
+		$order_id = ( WC()->version < '2.7.0' ) ? $order->id : $order->get_id();
+
+		if($order_id != '') {
 			//Add order history comment
 			$order->add_order_note($order_comment);
 		} else {

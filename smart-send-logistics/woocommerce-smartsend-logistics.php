@@ -7,7 +7,7 @@
 	Author URI: http://www.smartsend.dk
 	Text Domain: smart-send-logistics
 	Domain Path: /lang
-	Version: 7.1.9
+	Version: 7.1.10
 
 	Copyright: (c) 2014 Smart Send ApS (email : kontakt@smartsend.dk)
 	License: GNU General Public License v3.0
@@ -279,6 +279,7 @@ if ( in_array( 'woocommerce/woocommerce.php', apply_filters( 'active_plugins', g
  			$label->setRequestType('bulk');
 			foreach($order_ids as $order_id) {
 				$order = new WC_Order( $order_id );
+                $order_id = ( WC()->version < '2.7.0' ) ? $order->id : $order->get_id();
 				try{
 					if((string)$return == 'both') {
 						$label->addOrderToRequest($order,false);
@@ -289,11 +290,12 @@ if ( in_array( 'woocommerce/woocommerce.php', apply_filters( 'active_plugins', g
 				}
 				//catch exception
 				catch(Exception $e) {
-					$label->addErrorMessage( __('Order','smart-send-logistics') . ' ' . $order->get_id() . ': ' . $e->getMessage() );
+					$label->addErrorMessage( __('Order','smart-send-logistics') . ' ' . $order_id . ': ' . $e->getMessage() );
 				}
 			}
-		} elseif( method_exists($order_ids,'get_id' ) && $order_ids->get_id() != '') {
+		} elseif( (method_exists($order_ids,'get_id' ) && $order_ids->get_id() != '') || (WC()->version < '2.7.0' && isset($order_ids->id) && $order_ids->id != '') ) {
 			$order = $order_ids;
+            $order_id = ( WC()->version < '2.7.0' ) ? $order->id : $order->get_id();
 			try{
 				if((string)$return == 'both') {
 					$label->setRequestType('bulk');
@@ -306,7 +308,7 @@ if ( in_array( 'woocommerce/woocommerce.php', apply_filters( 'active_plugins', g
 			}
 			//catch exception
 			catch(Exception $e) {
-				$label->addErrorMessage( __('Order','smart-send-logistics') . ' ' . $order->get_id() . ': ' . $e->getMessage() );
+				$label->addErrorMessage( __('Order','smart-send-logistics') . ' ' . $order_id . ': ' . $e->getMessage() );
 			}
 		} else {
 			$label->addErrorMessage( __('No orders selected','smart-send-logistics')); 
@@ -439,6 +441,8 @@ if ( in_array( 'woocommerce/woocommerce.php', apply_filters( 'active_plugins', g
 
 		$order = wc_get_order( $post->ID );
 
+        $order_id = ( WC()->version < '2.7.0' ) ? $order->id : $order->get_id();
+
 		$line_items_shipping = $order->get_items( 'shipping' );
 		if(!empty($line_items_shipping)){
 			foreach ( $line_items_shipping as $item_id => $item ) {
@@ -447,7 +451,7 @@ if ( in_array( 'woocommerce/woocommerce.php', apply_filters( 'active_plugins', g
 			}
 		}
 	
-		$store_pickup = get_post_custom($order->get_id());
+		$store_pickup = get_post_custom( $order_id );
 		if(isset($shipMethod) && $shipMethod != '') {
 			echo '<p><h3>'.__('Shipping method','smart-send-logistics').'</h3>'.$shipMethod;
 			//echo ' ('.$shipMethod_id.')';

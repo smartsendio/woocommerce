@@ -3,15 +3,16 @@ msgid ""
 msgstr ""
 "Plural-Forms: nplurals=INTEGER; plural=EXPRESSION;\n"
 "Project-Id-Version: Smart Send Logistics\n"
-"POT-Creation-Date: 2016-10-11 07:39+0200\n"
-"PO-Revision-Date: 2016-06-09 18:30+0200\n"
-"Last-Translator: Anders Bilfeldt <anders@smartsend.dk>\n"
-"Language-Team: Anders Bilfeldt <anders@smartsend.dk>\n"
+"POT-Creation-Date: 2017-07-25 18:37+0200\n"
+"PO-Revision-Date: 2017-07-25 18:36+0200\n"
+"Last-Translator: \n"
+"Language-Team: \n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"X-Generator: Poedit 1.8.9\n"
+"X-Generator: Poedit 2.0.3\n"
 "X-Poedit-Basepath: ..\n"
+"X-Poedit-Flags-xgettext: --add-comments=translators:\n"
 "X-Poedit-WPHeader: woocommerce-smartsend-logistics.php\n"
 "X-Poedit-SourceCharset: UTF-8\n"
 "X-Poedit-KeywordsList: __;_e;_n:1,2;_x:1,2c;_ex:1,2c;_nx:4c,1,2;esc_attr__;"
@@ -20,8 +21,8 @@ msgstr ""
 "X-Poedit-SearchPath-0: .\n"
 "X-Poedit-SearchPathExcluded-0: *.js\n"
 
-#: api/class.label.woocommerce.php:71 woocommerce-smartsend-logistics.php:299
-#: woocommerce-smartsend-logistics.php:316
+#: api/class.label.woocommerce.php:71 woocommerce-smartsend-logistics.php:293
+#: woocommerce-smartsend-logistics.php:311
 msgid "Order"
 msgstr ""
 
@@ -99,6 +100,10 @@ msgstr ""
 
 #: api/class.label.woocommerce.php:92
 msgid "Please enter a license key in the modules settings"
+msgstr ""
+
+#: api/class.label.woocommerce.php:93
+msgid "cURL is not activated on the server"
 msgstr ""
 
 #: api/class.order.woocommerce.php:75
@@ -203,8 +208,8 @@ msgstr ""
 #: class.smartsend.gls.php:274 class.smartsend.postdanmark.php:289
 #: class.smartsend.postdanmark.php:300 class.smartsend.postdanmark.php:401
 #: class.smartsend.posten.php:280 class.smartsend.posten.php:291
-#: class.smartsend.posten.php:337 smartsend-pickuppoint.php:206
-#: smartsend-pickuppoint.php:209
+#: class.smartsend.posten.php:337 smartsend-pickuppoint.php:229
+#: smartsend-pickuppoint.php:232
 msgid "Pickuppoint"
 msgstr ""
 
@@ -499,121 +504,121 @@ msgstr ""
 msgid "Enable flex delivery for the selected shipping methods"
 msgstr ""
 
-#: class.smartsend.primary.php:194
+#: class.smartsend.primary.php:203
 msgid "Shipping class"
 msgstr ""
 
-#: class.smartsend.primary.php:194
+#: class.smartsend.primary.php:203
 msgid "Products must belong to this shipping class"
 msgstr ""
 
-#: class.smartsend.primary.php:195 woocommerce-smartsend-logistics.php:428
+#: class.smartsend.primary.php:204 woocommerce-smartsend-logistics.php:456
 msgid "Shipping method"
 msgstr ""
 
-#: class.smartsend.primary.php:196 class.smartsend.primary.php:330
+#: class.smartsend.primary.php:205 class.smartsend.primary.php:339
 msgid "Min. price"
 msgstr ""
 
-#: class.smartsend.primary.php:196
+#: class.smartsend.primary.php:205
 msgid "Minimum total order price for this shipping rate"
 msgstr ""
 
-#: class.smartsend.primary.php:197 class.smartsend.primary.php:330
+#: class.smartsend.primary.php:206 class.smartsend.primary.php:339
 msgid "Max. price"
 msgstr ""
 
-#: class.smartsend.primary.php:197
+#: class.smartsend.primary.php:206
 msgid "Maximum total order price for this shipping rate"
 msgstr ""
 
-#: class.smartsend.primary.php:198 class.smartsend.primary.php:329
+#: class.smartsend.primary.php:207 class.smartsend.primary.php:338
 msgid "Min. weight"
 msgstr ""
 
-#: class.smartsend.primary.php:198
+#: class.smartsend.primary.php:207
 msgid "Minimum total order weight for this shipping rate"
 msgstr ""
 
-#: class.smartsend.primary.php:199 class.smartsend.primary.php:329
+#: class.smartsend.primary.php:208 class.smartsend.primary.php:338
 msgid "Max. weight"
 msgstr ""
 
-#: class.smartsend.primary.php:199
+#: class.smartsend.primary.php:208
 msgid "Maximum total order weight for this shipping rate"
 msgstr ""
 
-#: class.smartsend.primary.php:200 class.smartsend.primary.php:331
+#: class.smartsend.primary.php:209 class.smartsend.primary.php:340
 msgid "Shipping fee"
 msgstr ""
 
-#: class.smartsend.primary.php:200
+#: class.smartsend.primary.php:209
 msgid "Shipping price for this shipping method"
 msgstr ""
 
-#: class.smartsend.primary.php:201
+#: class.smartsend.primary.php:210
 msgid "Countries"
 msgstr ""
 
-#: class.smartsend.primary.php:201
+#: class.smartsend.primary.php:210
 msgid ""
 "Countries can be entered as a comma-separated list in ISO 3166-1 alpha-2 "
 "format. Use * for all valid countries."
 msgstr ""
 
-#: class.smartsend.primary.php:202
+#: class.smartsend.primary.php:211
 msgid "Title"
 msgstr ""
 
-#: class.smartsend.primary.php:202
+#: class.smartsend.primary.php:211
 msgid "Shipping method name shown in frontend"
 msgstr ""
 
-#: class.smartsend.primary.php:208
+#: class.smartsend.primary.php:217
 msgid "Add shipping rate"
 msgstr ""
 
-#: class.smartsend.primary.php:209
+#: class.smartsend.primary.php:218
 msgid "Define table rates here in order of priority"
 msgstr ""
 
-#: class.smartsend.primary.php:210
+#: class.smartsend.primary.php:219
 msgid "Duplicate selected rows"
 msgstr ""
 
-#: class.smartsend.primary.php:211
+#: class.smartsend.primary.php:220
 msgid "Delete selected rows"
 msgstr ""
 
-#: class.smartsend.primary.php:299
+#: class.smartsend.primary.php:308
 msgid "Unknown carrier"
 msgstr ""
 
-#: class.smartsend.primary.php:329 class.smartsend.primary.php:330
+#: class.smartsend.primary.php:338 class.smartsend.primary.php:339
 msgid "and"
 msgstr ""
 
-#: class.smartsend.primary.php:329
+#: class.smartsend.primary.php:338
 msgid "Input the order weight in"
 msgstr ""
 
-#: class.smartsend.primary.php:330
+#: class.smartsend.primary.php:339
 msgid "Input the order price"
 msgstr ""
 
-#: class.smartsend.primary.php:330
+#: class.smartsend.primary.php:339
 msgid "including tax"
 msgstr ""
 
-#: class.smartsend.primary.php:331
+#: class.smartsend.primary.php:340
 msgid "Input the shipping fee"
 msgstr ""
 
-#: class.smartsend.primary.php:331
+#: class.smartsend.primary.php:340
 msgid "excluding tax"
 msgstr ""
 
-#: class.smartsend.primary.php:379
+#: class.smartsend.primary.php:388
 msgid "Delete the selected rates?"
 msgstr ""
 
@@ -761,63 +766,63 @@ msgstr ""
 msgid "This will include a long list of shipping methods in the shipping table"
 msgstr ""
 
-#: smartsend-flexdelivery.php:89 smartsend-flexdelivery.php:119
+#: smartsend-flexdelivery.php:107 smartsend-flexdelivery.php:137
 msgid "By the front door"
 msgstr ""
 
-#: smartsend-flexdelivery.php:90 smartsend-flexdelivery.php:120
+#: smartsend-flexdelivery.php:108 smartsend-flexdelivery.php:138
 msgid "By the back door"
 msgstr ""
 
-#: smartsend-flexdelivery.php:91 smartsend-flexdelivery.php:121
+#: smartsend-flexdelivery.php:109 smartsend-flexdelivery.php:139
 msgid "One the porch"
 msgstr ""
 
-#: smartsend-flexdelivery.php:92 smartsend-flexdelivery.php:122
+#: smartsend-flexdelivery.php:110 smartsend-flexdelivery.php:140
 msgid "In the greenhouse"
 msgstr ""
 
-#: smartsend-flexdelivery.php:93 smartsend-flexdelivery.php:123
+#: smartsend-flexdelivery.php:111 smartsend-flexdelivery.php:141
 msgid "In the garage/carport"
 msgstr ""
 
-#: smartsend-flexdelivery.php:94 smartsend-flexdelivery.php:124
+#: smartsend-flexdelivery.php:112 smartsend-flexdelivery.php:142
 msgid "In the tool shed"
 msgstr ""
 
-#: smartsend-flexdelivery.php:95 smartsend-flexdelivery.php:125
+#: smartsend-flexdelivery.php:113 smartsend-flexdelivery.php:143
 msgid "In the playhouse"
 msgstr ""
 
-#: smartsend-flexdelivery.php:96 smartsend-flexdelivery.php:126
+#: smartsend-flexdelivery.php:114 smartsend-flexdelivery.php:144
 msgid "Under the roof of the porch"
 msgstr ""
 
-#: smartsend-flexdelivery.php:97 smartsend-flexdelivery.php:127
+#: smartsend-flexdelivery.php:115 smartsend-flexdelivery.php:145
 msgid "Can be left unattended"
 msgstr ""
 
-#: smartsend-flexdelivery.php:98 smartsend-flexdelivery.php:128
+#: smartsend-flexdelivery.php:116 smartsend-flexdelivery.php:146
 msgid "I have Modtagerflex"
 msgstr ""
 
-#: smartsend-flexdelivery.php:183 smartsend-flexdelivery.php:208
+#: smartsend-flexdelivery.php:201 smartsend-flexdelivery.php:226
 msgid "Select a flexdelivery option"
 msgstr ""
 
-#: smartsend-flexdelivery.php:238 smartsend-flexdelivery.php:241
+#: smartsend-flexdelivery.php:258 smartsend-flexdelivery.php:261
 msgid "Flexdelivery note"
 msgstr ""
 
-#: smartsend-pickuppoint.php:146 smartsend-pickuppoint.php:172
+#: smartsend-pickuppoint.php:164 smartsend-pickuppoint.php:190
 msgid "Select a pick-up point"
 msgstr ""
 
-#: smartsend-pickuppoint.php:158
+#: smartsend-pickuppoint.php:176
 msgid "Shipping to closest pick-up point"
 msgstr ""
 
-#: smartsend-pickuppoint.php:245
+#: smartsend-pickuppoint.php:268
 msgid "Shipping"
 msgstr ""
 
@@ -839,33 +844,33 @@ msgstr ""
 msgid "Support"
 msgstr ""
 
-#: woocommerce-smartsend-logistics.php:319
+#: woocommerce-smartsend-logistics.php:314
 msgid "No orders selected"
 msgstr ""
 
-#: woocommerce-smartsend-logistics.php:346
-#: woocommerce-smartsend-logistics.php:437
-#: woocommerce-smartsend-logistics.php:492
-#: woocommerce-smartsend-logistics.php:493
+#: woocommerce-smartsend-logistics.php:341
+#: woocommerce-smartsend-logistics.php:465
+#: woocommerce-smartsend-logistics.php:521
+#: woocommerce-smartsend-logistics.php:522
 msgid "Generate label"
 msgstr ""
 
-#: woocommerce-smartsend-logistics.php:347
-#: woocommerce-smartsend-logistics.php:438
-#: woocommerce-smartsend-logistics.php:494
-#: woocommerce-smartsend-logistics.php:495
+#: woocommerce-smartsend-logistics.php:342
+#: woocommerce-smartsend-logistics.php:466
+#: woocommerce-smartsend-logistics.php:523
+#: woocommerce-smartsend-logistics.php:524
 msgid "Generate return label"
 msgstr ""
 
-#: woocommerce-smartsend-logistics.php:348
-#: woocommerce-smartsend-logistics.php:439
-#: woocommerce-smartsend-logistics.php:496
-#: woocommerce-smartsend-logistics.php:497
+#: woocommerce-smartsend-logistics.php:343
+#: woocommerce-smartsend-logistics.php:467
+#: woocommerce-smartsend-logistics.php:525
+#: woocommerce-smartsend-logistics.php:526
 msgid "Generate normal and return label"
 msgstr ""
 
 #. Plugin Name of the plugin/theme
-#: woocommerce-smartsend-logistics.php:403
+#: woocommerce-smartsend-logistics.php:429
 msgid "Smart Send Logistics"
 msgstr ""
 

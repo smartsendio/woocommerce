@@ -405,6 +405,7 @@ if ( ! class_exists( 'Smartsend_Logistics_Postdanmark' ) ) {
 				'dpdclassic'			=> __( 'DPD Classic', 'smart-send-logistics'),
                 'dpdguarantee'			=> __( 'DPD Guarantee', 'smart-send-logistics'),
 				'valuemail'				=> __( 'Value mail', 'smart-send-logistics'),
+                'valuemailsmall'		=> __( 'Value mail small', 'smart-send-logistics'),
 				'privatesamsending' 	=> __( 'Private collective', 'smart-send-logistics'),
             	'privatepriority'		=> __( 'Private priority', 'smart-send-logistics'),
             	'privateeconomy'		=> __( 'Private economy', 'smart-send-logistics'),

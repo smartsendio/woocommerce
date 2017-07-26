@@ -61,8 +61,14 @@ if ( in_array( 'woocommerce/woocommerce.php', apply_filters( 'active_plugins', g
 		if(!isset($_REQUEST['post_data'])) return false;
                
 		parse_str($_REQUEST['post_data'],$request);
-		
-		$first_shipping_method_element = reset($request['shipping_method']); //First item of array
+
+        if( isset($request['shipping_method']) && is_array($request['shipping_method']) ) {
+            $first_shipping_method_element = reset($request['shipping_method']); //First item of array
+        } elseif( isset($request['shipping_method']) ) {
+            $first_shipping_method_element = $request['shipping_method'];
+        } else {
+            $first_shipping_method_element = null;
+        }
 		
 		$shipping_method_id = null;
 		if($method) {
@@ -174,8 +180,12 @@ if ( in_array( 'woocommerce/woocommerce.php', apply_filters( 'active_plugins', g
                 if(numItems > 1){
                 	jQuery('.selectflexdelivery').last().remove();
                 }
-				jQuery('.shipping_method, #ship-to-different-address-checkbox, #billing_country').click(function(){
-                	jQuery('.selectflexdelivery').remove();
+				jQuery('#ship-to-different-address-checkbox, #billing_country').click(function(){
+					jQuery('.selectpickuppoint').remove();
+					jQuery('.pic_error, .pic_script').remove();
+				});
+				jQuery('#shipping_method').click(function(){
+					//jQuery('.selectpickuppoint').remove();
 					jQuery('.pic_error, .pic_script').remove();
 				});
 			});
@@ -248,8 +258,10 @@ if ( in_array( 'woocommerce/woocommerce.php', apply_filters( 'active_plugins', g
 
 	#HTML code showing the flexdelivery information
 	function Smartsend_Logistics_display_order_flexdelivery_details($order,$tag=false,$new_line=false) {
-			   
-		$post_custom = get_post_custom($order->get_id());
+
+        $order_id = ( WC()->version < '2.7.0' ) ? $order->id : $order->get_id();
+
+		$post_custom = get_post_custom( $order_id );
 		if( isset($post_custom['flexdelivery'][0]) && !empty($post_custom['flexdelivery'][0]) ){
 			if($tag) {
 				echo '<'.$tag.'>';

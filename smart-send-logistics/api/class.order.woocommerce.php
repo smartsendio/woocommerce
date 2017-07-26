@@ -143,8 +143,10 @@ class Smartsend_Logistics_Order_Woocommerce extends Smartsend_Logistics_Order {
 	* @return string
 	*/
  	public function getOrderId() {
+
+        $order_id = ( WC()->version < '2.7.0' ) ? $this->_order->id : $this->_order->get_id();
  	
-		return $this->_order->get_id();
+		return $order_id;
 		
  	}
  	
@@ -187,8 +189,10 @@ class Smartsend_Logistics_Order_Woocommerce extends Smartsend_Logistics_Order {
 	* @return string
 	*/
  	public function getOrderPriceCurrency() {
+
+ 	    $currency = ( WC()->version < '2.7.0' ) ? $this->_order->get_order_currency() : $this->_order->get_currency() ;
  	
-		return $this->_order->get_currency();
+		return $currency;
 		
  	}
  	
@@ -199,7 +203,7 @@ class Smartsend_Logistics_Order_Woocommerce extends Smartsend_Logistics_Order {
 	*/
  	public function getCustomerComment() {
  	
-		$comment = $this->_order->customer_message;
+		$comment = ( WC()->version < '2.7.0' ) ? $this->_order->customer_message : $this->_order->get_customer_note();
 		
 		if(isset($comment) && $comment != '') {
 			return $comment;
@@ -214,19 +218,21 @@ class Smartsend_Logistics_Order_Woocommerce extends Smartsend_Logistics_Order {
 	* @return array
 	*/
  	public function getShippingAddress() {
- 	
+
+ 	    $user_id = ( WC()->version < '2.7.0' ) ? $this->_order->user_id : $this->_order->get_user_id();
+
 		return array(
-			'receiverid'=> ($this->_order->user_id != '' ? $this->_order->user_id : 'guest-'.rand(100000,999999)),
-			'company'	=> $this->_order->shipping_company,
-			'name1' 	=> $this->_order->shipping_first_name .' '. $this->_order->shipping_last_name,
+			'receiverid'=> ($user_id != '' ? $user_id : 'guest-'.rand(100000,999999)),
+			'company'	=> ( WC()->version < '2.7.0' ) ? $this->_order->shipping_company : $this->_order->get_shipping_company(),
+			'name1' 	=> ( WC()->version < '2.7.0' ) ? implode(" ",array($this->_order->shipping_first_name, $this->_order->shipping_last_name)) : implode(" ",array($this->_order->get_shipping_first_name(), $this->_order->get_shipping_last_name())),
 			'name2'		=> null,
-			'address1'	=> $this->_order->shipping_address_1,
-			'address2'	=> $this->_order->shipping_address_2,
-			'city'		=> $this->_order->shipping_city,
-			'zip'		=> $this->_order->shipping_postcode,
-			'country'	=> $this->_order->shipping_country,
-			'sms'		=> $this->_order->billing_phone, // Billing used
-			'mail'		=> $this->_order->billing_email // Billing used
+			'address1'	=> ( WC()->version < '2.7.0' ) ? $this->_order->shipping_address_1 : $this->_order->get_shipping_address_1(),
+			'address2'	=> ( WC()->version < '2.7.0' ) ? $this->_order->shipping_address_2 : $this->_order->get_shipping_address_2(),
+			'city'		=> ( WC()->version < '2.7.0' ) ? $this->_order->shipping_city : $this->_order->get_shipping_city(),
+			'zip'		=> ( WC()->version < '2.7.0' ) ? $this->_order->shipping_postcode : $this->_order->get_shipping_postcode(),
+			'country'	=> ( WC()->version < '2.7.0' ) ? $this->_order->shipping_country : $this->_order->get_shipping_country(),
+			'sms'		=> ( WC()->version < '2.7.0' ) ? $this->_order->billing_phone : $this->_order->get_billing_phone(), // Billing used
+			'mail'		=> ( WC()->version < '2.7.0' ) ? $this->_order->billing_email : $this->_order->get_billing_email() // Billing used
 			);
 			
  	}
@@ -237,19 +243,21 @@ class Smartsend_Logistics_Order_Woocommerce extends Smartsend_Logistics_Order {
 	* @return array
 	*/
  	public function getBillingAddress() {
- 	
+
+        $user_id = ( WC()->version < '2.7.0' ) ? $this->_order->user_id : $this->_order->get_user_id();
+
 		return array(
-			'receiverid'=> ($this->_order->user_id != '' ? $this->_order->user_id : 'guest-'.rand(100000,999999)),
-			'company'	=> $this->_order->billing_company,
-			'name1' 	=> $this->_order->billing_first_name .' '. $this->_order->billing_last_name,
+			'receiverid'=> ($user_id != '' ? $user_id : 'guest-'.rand(100000,999999)),
+			'company'	=> ( WC()->version < '2.7.0' ) ? $this->_order->billing_company : $this->_order->get_billing_company(),
+			'name1' 	=> ( WC()->version < '2.7.0' ) ? implode(" ", array($this->_order->billing_first_name, $this->_order->billing_last_name)) : implode(" ", array($this->_order->get_billing_first_name(),$this->_order->get_billing_last_name())),
 			'name2'		=> null,
-			'address1'	=> $this->_order->billing_address_1,
-			'address2'	=> $this->_order->billing_address_2,
-			'city'		=> $this->_order->billing_city,
-			'zip'		=> $this->_order->billing_postcode,
-			'country'	=> $this->_order->billing_country,
-			'sms'		=> $this->_order->billing_phone, // Billing used
-			'mail'		=> $this->_order->billing_email // Billing used
+			'address1'	=> ( WC()->version < '2.7.0' ) ? $this->_order->billing_address_1 : $this->_order->get_billing_addres1(),
+			'address2'	=> ( WC()->version < '2.7.0' ) ? $this->_order->billing_address_2 : $this->_order->get_billing_addess2(),
+			'city'		=> ( WC()->version < '2.7.0' ) ? $this->_order->billing_city : $this->_order->get_billing_city(),
+			'zip'		=> ( WC()->version < '2.7.0' ) ? $this->_order->billing_postcode : $this->_order->get_billing_postcode(),
+			'country'	=> ( WC()->version < '2.7.0' ) ? $this->_order->billing_country : $this->_order->get_billing_country(),
+			'sms'		=> ( WC()->version < '2.7.0' ) ? $this->_order->billing_phone : $this->_order->get_billing_phone(),
+			'mail'		=> ( WC()->version < '2.7.0' ) ? $this->_order->billing_email : $this->_order->get_billing_email()
 			);
 				
  	}
@@ -260,11 +268,15 @@ class Smartsend_Logistics_Order_Woocommerce extends Smartsend_Logistics_Order {
 	* @return array
 	*/	
 	public function getPickupDataSmartsend() {
+
+        $order_id = ( WC()->version < '2.7.0' ) ? $this->_order->id : $this->_order->get_id();
 	
-		$store_pickup = get_post_custom( $this->_order->get_id() );
+		$store_pickup = get_post_custom( $order_id );
 		
 		if(isset($store_pickup['store_pickup'][0])) {
 			$store_pickup = @unserialize($store_pickup['store_pickup'][0]);
+            $store_pickup = str_replace(array("\\\\\\"), '', $store_pickup);
+
 			if(!is_array($store_pickup)) $store_pickup = unserialize($store_pickup);
 
 			if(!empty($store_pickup)){
@@ -300,8 +312,10 @@ class Smartsend_Logistics_Order_Woocommerce extends Smartsend_Logistics_Order {
 	* @return array
 	*/	
 	public function getPickupDataVconnect() {
+
+        $order_id = ( WC()->version < '2.7.0' ) ? $this->_order->id : $this->_order->get_id();
 		
-		$store_pickup = get_post_custom( $this->_order->get_id() );
+		$store_pickup = get_post_custom( $order_id );
 		
 		if(isset($store_pickup['_service_point_id'][0]) && $store_pickup['_service_point_id'][0] != '') {
 		
@@ -359,9 +373,12 @@ class Smartsend_Logistics_Order_Woocommerce extends Smartsend_Logistics_Order {
 	* @return string / null
 	*/
 	public function getFlexDeliveryNote() {
+
+        $order_id = ( WC()->version < '2.7.0' ) ? $this->_order->id : $this->_order->get_id();
+
 		if( $this->isSmartsend() ) {
 			//This is a Smart Send order
-			$post_custom = get_post_custom( $this->_order->get_id() );
+			$post_custom = get_post_custom( $order_id );
 			if( isset($post_custom['flexdelivery'][0]) && !empty($post_custom['flexdelivery'][0]) ){
 				return $post_custom['flexdelivery'][0];
 			} else {
@@ -369,7 +386,7 @@ class Smartsend_Logistics_Order_Woocommerce extends Smartsend_Logistics_Order {
 			}
 		} elseif( $this->isVconnect() ) {
 			//This is a vConnect order
-			$post_custom = get_post_custom( $this->_order->get_id() );
+			$post_custom = get_post_custom( $order_id );
 			if( isset($post_custom['_vc_aino_delivery_type'][0]) && !empty($post_custom['_vc_aino_delivery_type'][0]) ){
 				return $post_custom['_vc_aino_delivery_type'][0];
 			} else {
