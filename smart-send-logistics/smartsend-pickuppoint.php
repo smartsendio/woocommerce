@@ -143,8 +143,12 @@ if ( in_array( 'woocommerce/woocommerce.php', apply_filters( 'active_plugins', g
                 if(numItems > 1){
                 	jQuery('.selectpickuppoint').last().remove();
                 }
-				jQuery('.shipping_method, #ship-to-different-address-checkbox, #billing_country').click(function(){
-                	jQuery('.selectpickuppoint').remove();
+				jQuery('#ship-to-different-address-checkbox, #billing_country').click(function(){
+					jQuery('.selectpickuppoint').remove();
+					jQuery('.pic_error, .pic_script').remove();
+				});
+				jQuery('#shipping_method').click(function(){
+					//jQuery('.selectpickuppoint').remove();
 					jQuery('.pic_error, .pic_script').remove();
 				});
 			});
