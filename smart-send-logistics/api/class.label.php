@@ -384,7 +384,7 @@ class Smartsend_Logistics_Label {
     
         // If there were any 
         if( !($response_code >= 200 &&  $response_code < 300) ) {
-            throw new Exception( $this->getMessageString(2203) . ': (' . $response_code . ') '. $response );
+            throw new Exception( $this->getMessageString(2203) . ': (' . $response_code . ') '. ($response != '' ? $response : $response_error));
         }
         
         curl_close($ch); // Close the curl. Only AFTER the error has been checked

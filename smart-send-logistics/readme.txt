@@ -114,6 +114,8 @@ To install a plugin manually, follow the process:
 
 == Changelog ==
 
+* Add cURL error description is no response from server
+
 = 7.1.11 =
 * Fixing problem with missing file for version 7.1.10
 
