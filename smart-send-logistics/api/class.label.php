@@ -329,11 +329,13 @@ class Smartsend_Logistics_Label {
         switch ($this->getRequestType()) {
 			case 'bulk':
 				//Label was created from order list
-				$url = 'http://smartsend-prod.apigee.net/v7/booking/orders';
+				//$url = 'http://smartsend-prod.apigee.net/v7/booking/orders';
+                $url = 'http://v70.api.smartsend.dk/booking/orders';
 				break;
 			case 'single':
 				//Label was created from order info page
-				$url = 'http://smartsend-prod.apigee.net/v7/booking/order';
+				//$url = 'http://smartsend-prod.apigee.net/v7/booking/order';
+                $url = 'http://v70.api.smartsend.dk/booking/order';
 				break;
 			default:
 				throw new Exception( $this->getMessageString(2201) );
@@ -384,7 +386,7 @@ class Smartsend_Logistics_Label {
     
         // If there were any 
         if( !($response_code >= 200 &&  $response_code < 300) ) {
-            throw new Exception( $this->getMessageString(2203) . ': (' . $response_code . ') '. $response );
+            throw new Exception( $this->getMessageString(2203) . ': (' . $response_code . ') '. ($response != '' ? $response : $response_error));
         }
         
         curl_close($ch); // Close the curl. Only AFTER the error has been checked
