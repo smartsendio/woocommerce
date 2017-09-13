@@ -115,6 +115,7 @@ To install a plugin manually, follow the process:
 == Changelog ==
 
 = 7.1.13 =
+* Changing API booking endpoint
 
 = 7.1.12 =
 * Changing API booking endpoint
