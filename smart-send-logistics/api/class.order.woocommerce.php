@@ -316,26 +316,51 @@ class Smartsend_Logistics_Order_Woocommerce extends Smartsend_Logistics_Order {
         $order_id = ( WC()->version < '2.7.0' ) ? $this->_order->id : $this->_order->get_id();
 		
 		$store_pickup = get_post_custom( $order_id );
-		
-		if(isset($store_pickup['_service_point_id'][0]) && $store_pickup['_service_point_id'][0] != '') {
-		
-			return array(
-				'id' 		=> (isset($store_pickup['_service_point_id'][0]) ? $store_pickup['_service_point_id'][0] : 0)."-".time()."-".rand(9999,10000),
-				'agentno'	=> (isset($store_pickup['_service_point_id'][0]) ? $store_pickup['_service_point_id'][0] : null),
-				'agenttype'	=> ($this->getShippingCarrier() == 'postdanmark' ? 'PDK' : null),
-				'company' 	=> (isset($store_pickup['_service_point_id_name'][0]) ? $store_pickup['_service_point_id_name'][0] : null),
-				'name1' 	=> null,
-				'name2' 	=> null,
-				'address1'	=> (isset($store_pickup['_service_point_id_address'][0]) ? $store_pickup['_service_point_id_address'][0] : null),
-				'address2' 	=> null,
-				'city'		=> (isset($store_pickup['_service_point_id_city'][0]) ? $store_pickup['_service_point_id_city'][0] : null),
-				'zip'		=> (isset($store_pickup['_service_point_id_postcode'][0]) ? $store_pickup['_service_point_id_postcode'][0] : null),
-				'country'	=> (isset($store_pickup['_service_point_id_country'][0]) ? $store_pickup['_service_point_id_country'][0] : null),
-				'sms' 		=> null,
-				'mail' 		=> null,
-				);
 
+		// Load vConnect All-in-1 data
+		if(isset($store_pickup['_vc_aio_options']) && !empty($store_pickup['_vc_aio_options'])) {
+			$vconnect_all_in_one_data = unserialize($store_pickup['_vc_aio_options'][0]);
 		} else {
+			$vconnect_all_in_one_data = false;
+		}
+
+		if( isset($vconnect_all_in_one_data['typeId']['value']) && isset($vconnect_all_in_one_data['addressId']['value']) && isset($vconnect_all_in_one_data['typeId']['value']) == 'pickuppostoffice' && $vconnect_all_in_one_data['addressId']['value'] !='' ) {
+			// This is a pickup point saved with the vConnect All-in-1 plugin
+			$pickupData = array(
+					'id' 		=> $vconnect_all_in_one_data['addressId']['value']."-".time()."-".rand(9999,10000),
+					'agentno'	=> $vconnect_all_in_one_data['addressId']['value'],
+					'agenttype'	=> ($this->getShippingCarrier() == 'postdanmark' ? 'PDK' : null),
+					'company' 	=> $vconnect_all_in_one_data['name']['value'],
+					'name1' 	=> null,
+					'name2' 	=> null,
+					'address1'	=> $vconnect_all_in_one_data['addressText']['value'],
+					'address2' 	=> null,
+					'city'		=> $vconnect_all_in_one_data['city']['value'],
+					'zip'		=> $vconnect_all_in_one_data['postcode']['value'],
+					'country'	=> $vconnect_all_in_one_data['country']['value'],
+					'sms' 		=> null,
+					'mail' 		=> null,
+					);
+
+				return $pickupData;
+		} elseif( isset($store_pickup['_service_point_id'][0]) && $store_pickup['_service_point_id'][0] != '') {
+            // This is for the legacy vConnect All-in-1 plugin
+            return array(
+                'id' 		=> (isset($store_pickup['_service_point_id'][0]) ? $store_pickup['_service_point_id'][0] : 0)."-".time()."-".rand(9999,10000),
+                'agentno'	=> (isset($store_pickup['_service_point_id'][0]) ? $store_pickup['_service_point_id'][0] : null),
+                'agenttype'	=> ($this->getShippingCarrier() == 'postdanmark' ? 'PDK' : null),
+                'company' 	=> (isset($store_pickup['_service_point_id_name'][0]) ? $store_pickup['_service_point_id_name'][0] : null),
+                'name1' 	=> null,
+                'name2' 	=> null,
+                'address1'	=> (isset($store_pickup['_service_point_id_address'][0]) ? $store_pickup['_service_point_id_address'][0] : null),
+                'address2' 	=> null,
+                'city'		=> (isset($store_pickup['_service_point_id_city'][0]) ? $store_pickup['_service_point_id_city'][0] : null),
+                'zip'		=> (isset($store_pickup['_service_point_id_postcode'][0]) ? $store_pickup['_service_point_id_postcode'][0] : null),
+                'country'	=> (isset($store_pickup['_service_point_id_country'][0]) ? $store_pickup['_service_point_id_country'][0] : null),
+                'sms' 		=> null,
+                'mail' 		=> null,
+            );
+        } else {
 			$billing_address = $this->getShippingAddress();
 
 			$pacsoftServicePoint 		= str_replace(' ', '', $billing_address['address2']); 	//remove spaces
@@ -376,25 +401,36 @@ class Smartsend_Logistics_Order_Woocommerce extends Smartsend_Logistics_Order {
 
         $order_id = ( WC()->version < '2.7.0' ) ? $this->_order->id : $this->_order->get_id();
 
-		if( $this->isSmartsend() ) {
-			//This is a Smart Send order
-			$post_custom = get_post_custom( $order_id );
-			if( isset($post_custom['flexdelivery'][0]) && !empty($post_custom['flexdelivery'][0]) ){
-				return $post_custom['flexdelivery'][0];
-			} else {
-				return null;
-			}
-		} elseif( $this->isVconnect() ) {
-			//This is a vConnect order
-			$post_custom = get_post_custom( $order_id );
-			if( isset($post_custom['_vc_aino_delivery_type'][0]) && !empty($post_custom['_vc_aino_delivery_type'][0]) ){
-				return $post_custom['_vc_aino_delivery_type'][0];
-			} else {
-				return null;
-			}
-		} else {
-			return null;
-		}
+        if( $this->isSmartsend() ) {
+            //This is a Smart Send order
+            $post_custom = get_post_custom( $order_id );
+            if( isset($post_custom['flexdelivery'][0]) && !empty($post_custom['flexdelivery'][0]) ){
+                return $post_custom['flexdelivery'][0];
+            } else {
+                return null;
+            }
+        } elseif( $this->isVconnect() ) {
+            //This is a vConnect order
+            $post_custom = get_post_custom( $order_id );
+
+            // Load vConnect All-in-1 data
+            if(isset($post_custom['_vc_aio_options']) && !empty($post_custom['_vc_aio_options'])) {
+                $vconnect_all_in_one_data = unserialize($post_custom['_vc_aio_options'][0]);
+            } else {
+                $vconnect_all_in_one_data = false;
+            }
+
+            if( isset($vconnect_all_in_one_data['typeId']['value']) && isset($vconnect_all_in_one_data['addressText']['value']) && $vconnect_all_in_one_data['typeId']['value'] == 'flexDelivery' && $vconnect_all_in_one_data['addressText']['value'] !='' ) {
+                return $vconnect_all_in_one_data['addressText']['value'];
+            } elseif( isset($post_custom['_vc_aino_delivery_type'][0]) && !empty($post_custom['_vc_aino_delivery_type'][0]) ){
+                // This is for the legacy vConnect All-in-1 plugin
+                return $post_custom['_vc_aino_delivery_type'][0];
+            } else {
+                return null;
+            }
+        } else {
+            return null;
+        }
 	}
 	
 	/**

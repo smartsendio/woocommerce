@@ -117,6 +117,7 @@ To install a plugin manually, follow the process:
 = 7.1.13 =
 * Updating PostNord tracking link used for Shipment Tracking
 * Changing API booking endpoint
+* Adding support for vConnect All-in-1 module v2.x
 
 = 7.1.12 =
 * Changing API booking endpoint
