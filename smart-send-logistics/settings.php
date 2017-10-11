@@ -100,11 +100,12 @@ if ( in_array( 'woocommerce/woocommerce.php', apply_filters( 'active_plugins', g
 	 * Change the country name, the provider name, and the URL (it must include the %1$s)
 	 * Add one provider per line
 	*/
+
 	add_action( 'wc_shipment_tracking_get_providers' , 'smartsend_logistics_wc_shipment_tracking_add_custom_provider' );
 	function smartsend_logistics_wc_shipment_tracking_add_custom_provider( $providers ) {
 
 		//Denmark
-		$providers['Denmark']['PostDanmark'] 	= 'https://pakkeboksen.dk/track-trace.html?searchId=%1$s';
+		//$providers['Denmark']['PostDanmark'] 	= 'https://pakkeboksen.dk/track-trace.html?searchId=%1$s'; //Remove since the tracking link is now dynamical
 		$providers['Denmark']['GLS'] 			= 'http://www.gls-group.eu/276-I-PORTAL-WEB/content/GLS/DK01/DA/5004.htm?txtAction=71000&txtRefNo=%1$s';
 		$providers['Denmark']['Bring'] 			= 'http://sporing.bring.no/sporing.html?q=%1$s';
 		
