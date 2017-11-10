@@ -2,7 +2,7 @@
 /*
 	Plugin Name: Smart Send Logistics
 	Plugin URI: http://smartsend.dk/integrationer/woocommerce
-	Description: Table rate shipping methods with flexible conditions determining the rate and even let the customer chose a pick-up point during checkout. Integrates the shipping methods directly with carrier systems and create PDF labels directly from the backend.
+	Description: Complete WooCommerce shipping solution for PostNord, GLS and Bring.
 	Author: Smart Send ApS
 	Author URI: http://www.smartsend.dk
 	Text Domain: smart-send-logistics
