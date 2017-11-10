@@ -115,6 +115,7 @@ To install a plugin manually, follow the process:
 == Changelog ==
 
 * Fixing issue with local pickup shipping method being intrepretered as Bring pickup
+* Fix help text under shipping table, explaining about tax settings
 
 = 7.1.13 =
 * Updating PostNord tracking link used for Shipment Tracking
