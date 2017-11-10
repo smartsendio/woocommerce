@@ -12,7 +12,7 @@ Complete WooCommerce shipping solution for PostNord, GLS and Bring.
 
 == Description ==
 
-Complete shipping solution for PostNord, GLS and Bring. Setup shipping methods with rates automatically calculated based on products, shipping address, weight, subtotal and much more. Show closest pickup points to the customer during checkout and create shipping labels directly from the WooCommerce admin panel.
+Complete shipping solution for PostNord, GLS and Bring. Setup shipping methods with rates calculated based on products, shipping address, weight, subtotal and much more. Show pickup points to the customer during checkout and create shipping labels directly from the WooCommerce admin panel.
 
 Supported carriers:
 
