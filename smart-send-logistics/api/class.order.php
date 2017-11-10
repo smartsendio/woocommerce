@@ -413,7 +413,7 @@ class Smartsend_Logistics_Order {
 			$carrier = 'postdanmark';
 		} elseif(strpos($shipping_string,'vconnect_gls') !== false || strpos($shipping_string,'vc_gls') !== false) {
 			$carrier = 'gls';
-		} elseif(strpos($shipping_string,'vconnect_bring') !== false || strpos($shipping_string,'vc_bring') === false) {
+		} elseif(strpos($shipping_string,'vconnect_bring') !== false || strpos($shipping_string,'vc_bring') !== false) {
 			$carrier = 'bring';
 		} elseif(strpos($shipping_string,'vconnect_pdkalpha') !== false) {
 			$carrier = 'postdanmark';

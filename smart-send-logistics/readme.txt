@@ -114,6 +114,8 @@ To install a plugin manually, follow the process:
 
 == Changelog ==
 
+* Fixing issue with local pickup shipping method being interpreted as Bring pickup
+
 = 7.1.13 =
 * Updating PostNord tracking link used for Shipment Tracking
 * Changing API booking endpoint
