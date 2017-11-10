@@ -3,24 +3,24 @@ Contributors: SmartSend
 Donate link: http://www.SmartSend.dk/
 Tags: shipping, pickup, pakkeboks, pakkeshop, hente selv, døgnboks, post danmark, gls, swipbox, bring, carrier, pacsoft, yourgls, mybring, postage, shipping method, your-gls, my-bring, pacosft-online, pacsoftonline, denmark, sweeden, posten, norway, post 
 Requires at least: 3.0.1
-Tested up to: 4.8
-Stable tag: 7.1.13
+Tested up to: 4.9
+Stable tag: 7.1.14
 License: GNU General Public License v3.0
 License URI: http://www.gnu.org/licenses/gpl-3.0.html
 
-Table rate shipping methods with flexible conditions determining the rate and even let the customer chose a pick-up point during checkout. Integrates the shipping methods directly with carrier systems and create PDF labels directly from the backend.
+Complete WooCommerce shipping solution for PostNord, GLS and Bring.
 
 == Description ==
 
-The module is a complete user friendly shipping system that allows for easy setup of multiple shipping methods and allows for a direct integration to the carries. Integrate tracking information directly in the system and customer emails.
+Complete shipping solution for PostNord, GLS and Bring. Setup shipping methods with rates calculated based on products, shipping address, weight, subtotal and much more. Show pickup points to the customer during checkout and create shipping labels directly from the WooCommerce admin panel.
 
 Supported carriers:
 
 * GLS (YourGLS)
 * Bring (MyBring)
+* Post Nord (Pacsoft)
 * Post Danmark (Pacsoft)
 * Posten (Pacsoft)
-* Post Nord (Pacsoft)
 
 Supports worldwide shipping from these countries:
 
@@ -113,6 +113,10 @@ To install a plugin manually, follow the process:
 5. Services for each carrier is easily setup in WooCommerce backend.
 
 == Changelog ==
+
+= 7.1.14 =
+* Fixing issue with local pickup shipping method being intrepretered as Bring pickup
+* Fix help text under shipping table, explaining about tax settings
 
 = 7.1.13 =
 * Updating PostNord tracking link used for Shipment Tracking

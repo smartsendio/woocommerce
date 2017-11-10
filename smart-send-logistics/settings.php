@@ -265,7 +265,7 @@ if ( in_array( 'woocommerce/woocommerce.php', apply_filters( 'active_plugins', g
 				'desc_tip'        =>  false,
 			),
 			'add_all_shipping_methods' => array(
-				'title'    	=> __( 'Enable function to change shipping method in admin ','smart-send-logistics'),
+				'title'    	=> __( 'Enable function to change shipping method in admin','smart-send-logistics'),
 				'desc'		=> __('This will include a long list of shipping methods in the shipping table','smart-send-logistics'),
 				'id'      	=> 'smartsend_logistics_add_all_shipping_methods',
 				'default' 	=> 'no',

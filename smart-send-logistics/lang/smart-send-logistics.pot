@@ -3,14 +3,14 @@ msgid ""
 msgstr ""
 "Plural-Forms: nplurals=INTEGER; plural=EXPRESSION;\n"
 "Project-Id-Version: Smart Send Logistics\n"
-"POT-Creation-Date: 2017-07-25 18:37+0200\n"
+"POT-Creation-Date: 2017-10-16 12:08+0200\n"
 "PO-Revision-Date: 2017-07-25 18:36+0200\n"
 "Last-Translator: \n"
 "Language-Team: \n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"X-Generator: Poedit 2.0.3\n"
+"X-Generator: Poedit 2.0.4\n"
 "X-Poedit-Basepath: ..\n"
 "X-Poedit-Flags-xgettext: --add-comments=translators:\n"
 "X-Poedit-WPHeader: woocommerce-smartsend-logistics.php\n"
@@ -208,8 +208,8 @@ msgstr ""
 #: class.smartsend.gls.php:274 class.smartsend.postdanmark.php:289
 #: class.smartsend.postdanmark.php:300 class.smartsend.postdanmark.php:401
 #: class.smartsend.posten.php:280 class.smartsend.posten.php:291
-#: class.smartsend.posten.php:337 smartsend-pickuppoint.php:229
-#: smartsend-pickuppoint.php:232
+#: class.smartsend.posten.php:337 smartsend-pickuppoint.php:239
+#: smartsend-pickuppoint.php:242
 msgid "Pickuppoint"
 msgstr ""
 
@@ -270,6 +270,7 @@ msgstr ""
 #: carriers/class.smartsend.postdanmark.privatepriority.php:20
 #: carriers/class.smartsend.postdanmark.privatesamsending.php:20
 #: carriers/class.smartsend.postdanmark.valuemail.php:20
+#: carriers/class.smartsend.postdanmark.valuemailsmall.php:20
 #: class.smartsend.bring.php:122 class.smartsend.gls.php:122
 #: class.smartsend.postdanmark.php:19 class.smartsend.postdanmark.php:91
 #: class.smartsend.postdanmark.php:194 class.smartsend.posten.php:185
@@ -277,7 +278,7 @@ msgid "Post Danmark"
 msgstr ""
 
 #: carriers/class.smartsend.postdanmark.businesspriority.php:20
-#: class.smartsend.postdanmark.php:412
+#: class.smartsend.postdanmark.php:413
 msgid "Commercial priority"
 msgstr ""
 
@@ -292,26 +293,27 @@ msgid "DPD Guarantee"
 msgstr ""
 
 #: carriers/class.smartsend.postdanmark.lastmile.php:20
-#: class.smartsend.postdanmark.php:411
+#: class.smartsend.postdanmark.php:412
 msgid "Service Logistics"
 msgstr ""
 
 #: carriers/class.smartsend.postdanmark.privateeconomy.php:20
-#: class.smartsend.postdanmark.php:410
+#: class.smartsend.postdanmark.php:411
 msgid "Private economy"
 msgstr ""
 
 #: carriers/class.smartsend.postdanmark.privatepriority.php:20
-#: class.smartsend.postdanmark.php:409
+#: class.smartsend.postdanmark.php:410
 msgid "Private priority"
 msgstr ""
 
 #: carriers/class.smartsend.postdanmark.privatesamsending.php:20
-#: class.smartsend.postdanmark.php:408
+#: class.smartsend.postdanmark.php:409
 msgid "Private collective"
 msgstr ""
 
 #: carriers/class.smartsend.postdanmark.valuemail.php:20
+#: carriers/class.smartsend.postdanmark.valuemailsmall.php:20
 #: carriers/class.smartsend.posten.valuemail.php:20
 #: class.smartsend.postdanmark.php:407 class.smartsend.posten.php:341
 msgid "Value mail"
@@ -504,6 +506,10 @@ msgstr ""
 msgid "Enable flex delivery for the selected shipping methods"
 msgstr ""
 
+#: class.smartsend.postdanmark.php:408
+msgid "Value mail small"
+msgstr ""
+
 #: class.smartsend.primary.php:203
 msgid "Shipping class"
 msgstr ""
@@ -622,7 +628,7 @@ msgstr ""
 msgid "Delete the selected rates?"
 msgstr ""
 
-#: settings.php:88 settings.php:142
+#: settings.php:88 settings.php:143
 msgid "Valid user information"
 msgstr ""
 
@@ -630,199 +636,199 @@ msgstr ""
 msgid "Please enter valid user information"
 msgstr ""
 
-#: settings.php:92 settings.php:145
+#: settings.php:92 settings.php:146
 msgid "Save settings to validate"
 msgstr ""
 
-#: settings.php:126
+#: settings.php:127
 msgid "Smart Send"
 msgstr ""
 
-#: settings.php:154
+#: settings.php:155
 msgid "Smart Send Logistics settings"
 msgstr ""
 
-#: settings.php:156
+#: settings.php:157
 msgid ""
 "If you don't have a Smart Send subscription please create one at our website"
 msgstr ""
 
-#: settings.php:160
+#: settings.php:161
 msgid "Username"
 msgstr ""
 
-#: settings.php:167
+#: settings.php:168
 msgid "License key"
 msgstr ""
 
-#: settings.php:174
+#: settings.php:175
 msgid "Validation"
 msgstr ""
 
-#: settings.php:182
+#: settings.php:183
 msgid "Merge labels from multiple orders"
 msgstr ""
 
-#: settings.php:183
+#: settings.php:184
 msgid ""
 "Generate PDF file containing all labels or create a single PDF file for each "
 "order"
 msgstr ""
 
-#: settings.php:188
+#: settings.php:189
 msgid "Merged PDF file"
 msgstr ""
 
-#: settings.php:189
+#: settings.php:190
 msgid "Separate PDF files"
 msgstr ""
 
-#: settings.php:195
+#: settings.php:196
 msgid "Pickup dropdown display place"
 msgstr ""
 
-#: settings.php:196
+#: settings.php:197
 msgid ""
 "This controls the display postion of pick-up point dropdown on checkout page."
 msgstr ""
 
-#: settings.php:201
+#: settings.php:202
 msgid "Above the \"Your Order\" section on Checkout page"
 msgstr ""
 
-#: settings.php:202
+#: settings.php:203
 msgid ""
 "Add to specific location on Checkout page by using custom hook in your "
 "theme: do_action('smartsend_logistics_dropdown_hook')"
 msgstr ""
 
-#: settings.php:203
+#: settings.php:204
 msgid "Below the shipping method"
 msgstr ""
 
-#: settings.php:209
+#: settings.php:210
 msgid "Dropdown format"
 msgstr ""
 
-#: settings.php:210
+#: settings.php:211
 msgid "How the pickup points are listed during checkout"
 msgstr ""
 
-#: settings.php:217 settings.php:218 settings.php:219 settings.php:220
+#: settings.php:218 settings.php:219 settings.php:220 settings.php:221
 msgid "Company"
 msgstr ""
 
-#: settings.php:217 settings.php:218 settings.php:219 settings.php:220
+#: settings.php:218 settings.php:219 settings.php:220 settings.php:221
 msgid "Street"
 msgstr ""
 
-#: settings.php:218 settings.php:220
+#: settings.php:219 settings.php:221
 msgid "Zipcode"
 msgstr ""
 
-#: settings.php:219 settings.php:220
+#: settings.php:220 settings.php:221
 msgid "City"
 msgstr ""
 
-#: settings.php:224
+#: settings.php:225
 msgid "Set order status after label print"
 msgstr ""
 
-#: settings.php:229
+#: settings.php:230
 msgid "Don't change order status"
 msgstr ""
 
-#: settings.php:232
+#: settings.php:233
 msgid "Shipping method display format"
 msgstr ""
 
-#: settings.php:233
+#: settings.php:234
 msgid "How the shipping methods are shown during checkout"
 msgstr ""
 
-#: settings.php:240 settings.php:241 settings.php:242 settings.php:243
-#: settings.php:244 settings.php:245
+#: settings.php:241 settings.php:242 settings.php:243 settings.php:244
+#: settings.php:245 settings.php:246
 msgid "Carrier"
 msgstr ""
 
-#: settings.php:240 settings.php:241 settings.php:242 settings.php:243
-#: settings.php:244 settings.php:246
+#: settings.php:241 settings.php:242 settings.php:243 settings.php:244
+#: settings.php:245 settings.php:247
 msgid "Method"
 msgstr ""
 
-#: settings.php:250
+#: settings.php:251
 msgid "Shipping method used for WooCommerce method Free Shipping"
 msgstr ""
 
-#: settings.php:259
+#: settings.php:260
 msgid "Include order comment on label"
 msgstr ""
 
-#: settings.php:267
-msgid "Enable function to change shipping method in admin "
+#: settings.php:268
+msgid "Enable function to change shipping method in admin"
 msgstr ""
 
-#: settings.php:268
+#: settings.php:269
 msgid "This will include a long list of shipping methods in the shipping table"
 msgstr ""
 
-#: smartsend-flexdelivery.php:107 smartsend-flexdelivery.php:137
+#: smartsend-flexdelivery.php:113 smartsend-flexdelivery.php:143
 msgid "By the front door"
 msgstr ""
 
-#: smartsend-flexdelivery.php:108 smartsend-flexdelivery.php:138
+#: smartsend-flexdelivery.php:114 smartsend-flexdelivery.php:144
 msgid "By the back door"
 msgstr ""
 
-#: smartsend-flexdelivery.php:109 smartsend-flexdelivery.php:139
+#: smartsend-flexdelivery.php:115 smartsend-flexdelivery.php:145
 msgid "One the porch"
 msgstr ""
 
-#: smartsend-flexdelivery.php:110 smartsend-flexdelivery.php:140
+#: smartsend-flexdelivery.php:116 smartsend-flexdelivery.php:146
 msgid "In the greenhouse"
 msgstr ""
 
-#: smartsend-flexdelivery.php:111 smartsend-flexdelivery.php:141
+#: smartsend-flexdelivery.php:117 smartsend-flexdelivery.php:147
 msgid "In the garage/carport"
 msgstr ""
 
-#: smartsend-flexdelivery.php:112 smartsend-flexdelivery.php:142
+#: smartsend-flexdelivery.php:118 smartsend-flexdelivery.php:148
 msgid "In the tool shed"
 msgstr ""
 
-#: smartsend-flexdelivery.php:113 smartsend-flexdelivery.php:143
+#: smartsend-flexdelivery.php:119 smartsend-flexdelivery.php:149
 msgid "In the playhouse"
 msgstr ""
 
-#: smartsend-flexdelivery.php:114 smartsend-flexdelivery.php:144
+#: smartsend-flexdelivery.php:120 smartsend-flexdelivery.php:150
 msgid "Under the roof of the porch"
 msgstr ""
 
-#: smartsend-flexdelivery.php:115 smartsend-flexdelivery.php:145
+#: smartsend-flexdelivery.php:121 smartsend-flexdelivery.php:151
 msgid "Can be left unattended"
 msgstr ""
 
-#: smartsend-flexdelivery.php:116 smartsend-flexdelivery.php:146
+#: smartsend-flexdelivery.php:122 smartsend-flexdelivery.php:152
 msgid "I have Modtagerflex"
 msgstr ""
 
-#: smartsend-flexdelivery.php:201 smartsend-flexdelivery.php:226
+#: smartsend-flexdelivery.php:211 smartsend-flexdelivery.php:236
 msgid "Select a flexdelivery option"
 msgstr ""
 
-#: smartsend-flexdelivery.php:258 smartsend-flexdelivery.php:261
+#: smartsend-flexdelivery.php:268 smartsend-flexdelivery.php:271
 msgid "Flexdelivery note"
 msgstr ""
 
-#: smartsend-pickuppoint.php:164 smartsend-pickuppoint.php:190
+#: smartsend-pickuppoint.php:174 smartsend-pickuppoint.php:200
 msgid "Select a pick-up point"
 msgstr ""
 
-#: smartsend-pickuppoint.php:176
+#: smartsend-pickuppoint.php:186
 msgid "Shipping to closest pick-up point"
 msgstr ""
 
-#: smartsend-pickuppoint.php:268
+#: smartsend-pickuppoint.php:278
 msgid "Shipping"
 msgstr ""
 

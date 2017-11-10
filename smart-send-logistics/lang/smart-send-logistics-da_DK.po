@@ -1,30 +1,16 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: Smart Send Logistics\n"
-<<<<<<< HEAD
-"POT-Creation-Date: 2017-07-25 17:36+0200\n"
-"PO-Revision-Date: 2017-07-25 17:38+0200\n"
-=======
-"POT-Creation-Date: 2017-07-25 18:33+0200\n"
-"PO-Revision-Date: 2017-07-25 18:33+0200\n"
->>>>>>> feature-curl-check-and-timeout
+"POT-Creation-Date: 2017-10-16 12:08+0200\n"
+"PO-Revision-Date: \n"
 "Last-Translator: \n"
 "Language-Team: \n"
 "Language: da_DK\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"X-Generator: Poedit 2.0.3\n"
-"X-Poedit-Basepath: ..\n"
-"Plural-Forms: nplurals=2; plural=(n != 1);\n"
-"X-Poedit-Flags-xgettext: --add-comments=translators:\n"
-"X-Poedit-WPHeader: woocommerce-smartsend-logistics.php\n"
+"X-Generator: Poedit 2.0.4\n"
 "X-Poedit-SourceCharset: UTF-8\n"
-"X-Poedit-KeywordsList: __;_e;_n:1,2;_x:1,2c;_ex:1,2c;_nx:4c,1,2;esc_attr__;"
-"esc_attr_e;esc_attr_x:1,2c;esc_html__;esc_html_e;esc_html_x:1,2c;_n_noop:1,2;"
-"_nx_noop:3c,1,2;__ngettext_noop:1,2\n"
-"X-Poedit-SearchPath-0: .\n"
-"X-Poedit-SearchPathExcluded-0: *.js\n"
 
 #: api/class.label.woocommerce.php:71 woocommerce-smartsend-logistics.php:293
 #: woocommerce-smartsend-logistics.php:311
@@ -65,7 +51,7 @@ msgstr "Forsøger at sende et tomt order array"
 
 #: api/class.label.woocommerce.php:82
 msgid "Error from server"
-msgstr "Serverfejl"
+msgstr "Fejl fra server"
 
 #: api/class.label.woocommerce.php:83
 msgid "No orders returned from server"
@@ -219,13 +205,8 @@ msgstr "Minipakke"
 #: class.smartsend.gls.php:274 class.smartsend.postdanmark.php:289
 #: class.smartsend.postdanmark.php:300 class.smartsend.postdanmark.php:401
 #: class.smartsend.posten.php:280 class.smartsend.posten.php:291
-<<<<<<< HEAD
-#: class.smartsend.posten.php:337 smartsend-pickuppoint.php:235
-#: smartsend-pickuppoint.php:238
-=======
-#: class.smartsend.posten.php:337 smartsend-pickuppoint.php:229
-#: smartsend-pickuppoint.php:232
->>>>>>> feature-curl-check-and-timeout
+#: class.smartsend.posten.php:337 smartsend-pickuppoint.php:239
+#: smartsend-pickuppoint.php:242
 msgid "Pickuppoint"
 msgstr "Afhentningssted"
 
@@ -286,6 +267,7 @@ msgstr "GLS"
 #: carriers/class.smartsend.postdanmark.privatepriority.php:20
 #: carriers/class.smartsend.postdanmark.privatesamsending.php:20
 #: carriers/class.smartsend.postdanmark.valuemail.php:20
+#: carriers/class.smartsend.postdanmark.valuemailsmall.php:20
 #: class.smartsend.bring.php:122 class.smartsend.gls.php:122
 #: class.smartsend.postdanmark.php:19 class.smartsend.postdanmark.php:91
 #: class.smartsend.postdanmark.php:194 class.smartsend.posten.php:185
@@ -315,7 +297,7 @@ msgstr "Service Logistik"
 #: carriers/class.smartsend.postdanmark.privateeconomy.php:20
 #: class.smartsend.postdanmark.php:411
 msgid "Private economy"
-msgstr "Privatpakke økonomi"
+msgstr "Privatpakke Økonomi"
 
 #: carriers/class.smartsend.postdanmark.privatepriority.php:20
 #: class.smartsend.postdanmark.php:410
@@ -328,6 +310,7 @@ msgid "Private collective"
 msgstr "Privat samsending"
 
 #: carriers/class.smartsend.postdanmark.valuemail.php:20
+#: carriers/class.smartsend.postdanmark.valuemailsmall.php:20
 #: carriers/class.smartsend.posten.valuemail.php:20
 #: class.smartsend.postdanmark.php:407 class.smartsend.posten.php:341
 msgid "Value mail"
@@ -355,7 +338,7 @@ msgstr "Stort brev"
 #: carriers/class.smartsend.posten.valuemaileconomy.php:20
 #: class.smartsend.posten.php:343
 msgid "Value mail economy"
-msgstr "Varebrev økonomi"
+msgstr "Varebrev Økonomi"
 
 #: carriers/class.smartsend.posten.valuemailfirstclass.php:20
 #: class.smartsend.posten.php:342
@@ -381,7 +364,7 @@ msgstr "Aktiveret"
 #: class.smartsend.bring.php:77 class.smartsend.gls.php:77
 #: class.smartsend.postdanmark.php:84 class.smartsend.posten.php:83
 msgid "Enable the shipping methods from the table"
-msgstr "Aktivér forsendelsesmetoderne fra tabellen"
+msgstr "Aktiver forsendelsesmetoderne fra tabellen"
 
 #: class.smartsend.bring.php:81 class.smartsend.gls.php:81
 #: class.smartsend.postdanmark.php:88 class.smartsend.posten.php:87
@@ -529,13 +512,10 @@ msgstr "Flexlevering"
 msgid "Enable flex delivery for the selected shipping methods"
 msgstr "Aktiver flexlevering for de valgte fragtmetoder"
 
-<<<<<<< HEAD
 #: class.smartsend.postdanmark.php:408
 msgid "Value mail small"
 msgstr "Storbrev"
 
-=======
->>>>>>> feature-curl-check-and-timeout
 #: class.smartsend.primary.php:203
 msgid "Shipping class"
 msgstr "Forsendelsesklasse"
@@ -570,7 +550,7 @@ msgstr "Min. vægt"
 
 #: class.smartsend.primary.php:207
 msgid "Minimum total order weight for this shipping rate"
-msgstr "Minimum order total vægt for denne forsendelsesmetode"
+msgstr "Minimum ordre totalvægt for denne forsendelsesmetode"
 
 #: class.smartsend.primary.php:208 class.smartsend.primary.php:338
 msgid "Max. weight"
@@ -578,7 +558,7 @@ msgstr "Maks vægt"
 
 #: class.smartsend.primary.php:208
 msgid "Maximum total order weight for this shipping rate"
-msgstr "Maksimum order total vægt for denne forsendelsesmetode"
+msgstr "Maksimum ordre totalvægt for denne forsendelsesmetode"
 
 #: class.smartsend.primary.php:209 class.smartsend.primary.php:340
 msgid "Shipping fee"
@@ -618,7 +598,7 @@ msgstr "Definer fragtmetoder her i prioriteret rækkefølge"
 
 #: class.smartsend.primary.php:219
 msgid "Duplicate selected rows"
-msgstr "Dupliker vælge rækker"
+msgstr "Dupliker valgte rækker"
 
 #: class.smartsend.primary.php:220
 msgid "Delete selected rows"
@@ -656,7 +636,7 @@ msgstr "eksklusiv moms"
 msgid "Delete the selected rates?"
 msgstr "Slet de valgte rækker?"
 
-#: settings.php:88 settings.php:142
+#: settings.php:88 settings.php:143
 msgid "Valid user information"
 msgstr "Gyldig bruger"
 
@@ -664,72 +644,73 @@ msgstr "Gyldig bruger"
 msgid "Please enter valid user information"
 msgstr "Indtast venligt gyldig bruger-information"
 
-#: settings.php:92 settings.php:145
+#: settings.php:92 settings.php:146
 msgid "Save settings to validate"
 msgstr "Gem indstillingerne for at validere"
 
-#: settings.php:126
+#: settings.php:127
 msgid "Smart Send"
 msgstr "Smart Send"
 
-#: settings.php:154
+#: settings.php:155
 msgid "Smart Send Logistics settings"
 msgstr "Smart Send Logistics indstillinger"
 
-#: settings.php:156
+#: settings.php:157
 msgid ""
 "If you don't have a Smart Send subscription please create one at our website"
 msgstr ""
 "Hvis du ikke har et abonnement hos Smart Send, opret da et på vores "
 "hjemmeside"
 
-#: settings.php:160
+#: settings.php:161
 msgid "Username"
 msgstr "Brugernavn"
 
-#: settings.php:167
+#: settings.php:168
 msgid "License key"
 msgstr "Licensnøgle"
 
-#: settings.php:174
+#: settings.php:175
 msgid "Validation"
 msgstr "Validering"
 
-#: settings.php:182
+#: settings.php:183
 msgid "Merge labels from multiple orders"
 msgstr "Sammensæt PDF-labels fra flere ordre"
 
-#: settings.php:183
+#: settings.php:184
 msgid ""
 "Generate PDF file containing all labels or create a single PDF file for each "
 "order"
 msgstr ""
-"Generer PDF indeholdende alle fragtlabels eller generer én PDF-fil for hver "
+"Generer PDF indeholdende alle fragtlabels eller generer Ã©n PDF-fil for hver "
 "ordre"
 
-#: settings.php:188
+#: settings.php:189
 msgid "Merged PDF file"
 msgstr "Sammensat PDF-fil"
 
-#: settings.php:189
+#: settings.php:190
 msgid "Separate PDF files"
 msgstr "Seperate PDF-filer"
 
-#: settings.php:195
+#: settings.php:196
 msgid "Pickup dropdown display place"
 msgstr "Visningssted for dropdown med udleveringssteder"
 
-#: settings.php:196
+#: settings.php:197
 msgid ""
 "This controls the display postion of pick-up point dropdown on checkout page."
 msgstr ""
-"Styrer visningspositionen for dropdown med afhentningssteder på checkud siden"
+"Styrer visningspositionen for dropdown med afhentningssteder på checkud "
+"siden."
 
-#: settings.php:201
+#: settings.php:202
 msgid "Above the \"Your Order\" section on Checkout page"
 msgstr "Over \"Min Ordre\" sektionen på checkud siden"
 
-#: settings.php:202
+#: settings.php:203
 msgid ""
 "Add to specific location on Checkout page by using custom hook in your "
 "theme: do_action('smartsend_logistics_dropdown_hook')"
@@ -737,79 +718,78 @@ msgstr ""
 "Tilføj til en specifik placeret på checkud siden ved brug af egen hook i "
 "siden tema: do_action('smartsend_logistics_dropdown_hook')"
 
-#: settings.php:203
+#: settings.php:204
 msgid "Below the shipping method"
 msgstr "Under forsendelsesmetoden"
 
-#: settings.php:209
+#: settings.php:210
 msgid "Dropdown format"
 msgstr "Dropdown-format"
 
-#: settings.php:210
+#: settings.php:211
 msgid "How the pickup points are listed during checkout"
 msgstr "Hvordan listen af afhentningssteder vises i checkout"
 
-#: settings.php:217 settings.php:218 settings.php:219 settings.php:220
+#: settings.php:218 settings.php:219 settings.php:220 settings.php:221
 msgid "Company"
 msgstr "Firma"
 
-#: settings.php:217 settings.php:218 settings.php:219 settings.php:220
+#: settings.php:218 settings.php:219 settings.php:220 settings.php:221
 msgid "Street"
 msgstr "Adresse"
 
-#: settings.php:218 settings.php:220
+#: settings.php:219 settings.php:221
 msgid "Zipcode"
 msgstr "Postnummer"
 
-#: settings.php:219 settings.php:220
+#: settings.php:220 settings.php:221
 msgid "City"
 msgstr "By"
 
-#: settings.php:224
+#: settings.php:225
 msgid "Set order status after label print"
-msgstr "Ændre ordre-status efter label-generering"
+msgstr "Ændr ordre-status efter label-generering"
 
-#: settings.php:229
+#: settings.php:230
 msgid "Don't change order status"
-msgstr "Ændre ikke ordre-status"
+msgstr "Ændr ikke ordre-status"
 
-#: settings.php:232
+#: settings.php:233
 msgid "Shipping method display format"
 msgstr "Visningsformat for forsendelsesmetoder"
 
-#: settings.php:233
+#: settings.php:234
 msgid "How the shipping methods are shown during checkout"
-msgstr "Hvordan forsendelsesmetoder er vist på checkud siden"
+msgstr "Hvordan forsendelsesmetoder er vist på checkud-siden"
 
-#: settings.php:240 settings.php:241 settings.php:242 settings.php:243
-#: settings.php:244 settings.php:245
+#: settings.php:241 settings.php:242 settings.php:243 settings.php:244
+#: settings.php:245 settings.php:246
 msgid "Carrier"
 msgstr "Fragtfirma"
 
-#: settings.php:240 settings.php:241 settings.php:242 settings.php:243
-#: settings.php:244 settings.php:246
+#: settings.php:241 settings.php:242 settings.php:243 settings.php:244
+#: settings.php:245 settings.php:247
 msgid "Method"
 msgstr "Metode"
 
-#: settings.php:250
+#: settings.php:251
 msgid "Shipping method used for WooCommerce method Free Shipping"
 msgstr "Fragtmetode der bruges for WooCommerce fragtmetoden Gratis Fragt"
 
-#: settings.php:259
+#: settings.php:260
 msgid "Include order comment on label"
 msgstr "Påsæt ordrekommentar på pakkelabel"
 
-#: settings.php:267
-msgid "Enable function to change shipping method in admin "
+#: settings.php:268
+msgid "Enable function to change shipping method in admin"
 msgstr "Aktiver funktion til at ændre forsendelsesmetode i admin"
 
-#: settings.php:268
+#: settings.php:269
 msgid "This will include a long list of shipping methods in the shipping table"
 msgstr ""
 "Dette vil inkludere en lang række af forsendelsesmetoder i "
 "forsendelsestabellen"
 
-<<<<<<< HEAD
 #: smartsend-flexdelivery.php:113 smartsend-flexdelivery.php:143
 msgid "By the front door"
 msgstr "Foran hoveddøren"
@@ -850,82 +830,23 @@ msgstr "Må stilles et andet sted"
 msgid "I have Modtagerflex"
 msgstr "Jeg har Modtagerflex"
 
-#: smartsend-flexdelivery.php:207 smartsend-flexdelivery.php:232
+#: smartsend-flexdelivery.php:211 smartsend-flexdelivery.php:236
 msgid "Select a flexdelivery option"
 msgstr "Vælg en flexleverings mulighed"
 
-#: smartsend-flexdelivery.php:264 smartsend-flexdelivery.php:267
+#: smartsend-flexdelivery.php:268 smartsend-flexdelivery.php:271
 msgid "Flexdelivery note"
 msgstr "Flexleveringsnote"
 
-#: smartsend-pickuppoint.php:170 smartsend-pickuppoint.php:196
+#: smartsend-pickuppoint.php:174 smartsend-pickuppoint.php:200
 msgid "Select a pick-up point"
 msgstr "Vælg et afhentningssted"
 
-#: smartsend-pickuppoint.php:182
+#: smartsend-pickuppoint.php:186
 msgid "Shipping to closest pick-up point"
 msgstr "Sendes til nærmeste afhentningssted"
 
-#: smartsend-pickuppoint.php:274
-=======
-#: smartsend-flexdelivery.php:107 smartsend-flexdelivery.php:137
-msgid "By the front door"
-msgstr "Foran hoveddøren"
-
-#: smartsend-flexdelivery.php:108 smartsend-flexdelivery.php:138
-msgid "By the back door"
-msgstr "Ved bagdøren"
-
-#: smartsend-flexdelivery.php:109 smartsend-flexdelivery.php:139
-msgid "One the porch"
-msgstr "På terrassen"
-
-#: smartsend-flexdelivery.php:110 smartsend-flexdelivery.php:140
-msgid "In the greenhouse"
-msgstr "I drivhuset"
-
-#: smartsend-flexdelivery.php:111 smartsend-flexdelivery.php:141
-msgid "In the garage/carport"
-msgstr "I garagen/carporten"
-
-#: smartsend-flexdelivery.php:112 smartsend-flexdelivery.php:142
-msgid "In the tool shed"
-msgstr "I skuret/værkstedet"
-
-#: smartsend-flexdelivery.php:113 smartsend-flexdelivery.php:143
-msgid "In the playhouse"
-msgstr "I legehuset"
-
-#: smartsend-flexdelivery.php:114 smartsend-flexdelivery.php:144
-msgid "Under the roof of the porch"
-msgstr "Under halvtaget"
-
-#: smartsend-flexdelivery.php:115 smartsend-flexdelivery.php:145
-msgid "Can be left unattended"
-msgstr "Må stilles et andet sted"
-
-#: smartsend-flexdelivery.php:116 smartsend-flexdelivery.php:146
-msgid "I have Modtagerflex"
-msgstr "Jeg har Modtagerflex"
-
-#: smartsend-flexdelivery.php:201 smartsend-flexdelivery.php:226
-msgid "Select a flexdelivery option"
-msgstr "Vælg en flexleverings mulighed"
-
-#: smartsend-flexdelivery.php:258 smartsend-flexdelivery.php:261
-msgid "Flexdelivery note"
-msgstr "Flexleveringsnote"
-
-#: smartsend-pickuppoint.php:164 smartsend-pickuppoint.php:190
-msgid "Select a pick-up point"
-msgstr "Vælg et afhentningssted"
-
-#: smartsend-pickuppoint.php:176
-msgid "Shipping to closest pick-up point"
-msgstr "Sendes til nærmeste afhentningssted"
-
-#: smartsend-pickuppoint.php:268
->>>>>>> feature-curl-check-and-timeout
+#: smartsend-pickuppoint.php:278
 msgid "Shipping"
 msgstr "Forsendelse"
 
@@ -991,7 +912,7 @@ msgid ""
 "directly from the backend."
 msgstr ""
 "Fragtmetoder med fleksible betingelser til bestemmelse af fragtpriser samt "
-"visning af afhentningssteder på checkud siden. Integrere "
+"visning af afhentningssteder på checkud-siden. Integrere "
 "forsendelsesmetoderne direkt med fragtfirmaernes systemer så der let kan "
 "laves PDF labels direkte fra administrationssiden."
 
@@ -1017,13 +938,13 @@ msgstr "http://www.smartsend.dk"
 #~ msgstr "Forsendelsesmetode brug til WooCommerce metoden"
 
 #~ msgid "By the frontdoor"
-#~ msgstr "Ved hoveddøren"
+#~ msgstr "Ved hoveddÃ¸ren"
 
 #~ msgid "By the carport"
 #~ msgstr "Ved carporten eller garagen"
 
 #~ msgid "By the back dor"
-#~ msgstr "Ved bagdøren"
+#~ msgstr "Ved bagdÃ¸ren"
 
 #~ msgid "Shipping to closest pickup point"
-#~ msgstr "Sendes til nærmeste afhentningssted"
+#~ msgstr "Sendes til nÃ¦rmeste afhentningssted"
