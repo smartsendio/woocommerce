@@ -106,8 +106,8 @@ To install a plugin manually, follow the process:
 
 == Screenshots ==
 
-1. Setup multiple shipping methods and let the customer choose between them.
-2. A dropdown with pickup points is shown for shipping methods where the customer collects the package at a store.
+1. Create shipping labels from backend and let tracking information being saved automatically
+2. Let the customer choose a close pickup point where the parcel can be collected
 3. Easy setup of the centrale module settings
 4. Table rate setup of shipping methods have never been easier.
 5. Services for each carrier is easily setup in WooCommerce backend.
