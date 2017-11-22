@@ -462,6 +462,8 @@ class Smartsend_Logistics_Order {
 			$method = 'dpdguarantee';
 		} elseif(substr($shipping_string, -strlen('valuemail')) === 'valuemail') {
 			$method = 'valuemail';
+		} elseif(substr($shipping_string, -strlen('valuemailsmall')) === 'valuemailsmall') {
+			$method = 'valuemailsmall';
 		} elseif(substr($shipping_string, -strlen('valuemailfirstclass')) === 'valuemailfirstclass') {
 			$method = 'valuemailfirstclass';
 		} elseif(substr($shipping_string, -strlen('valuemaileconomy')) === 'valuemaileconomy') {
