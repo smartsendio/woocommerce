@@ -1,0 +1,329 @@
+<?php
+/**
+ * Plugin Name: Smart Send Shipping for WooCommerce
+ * Plugin URI: https://github.com/
+ * Description: Smart Send Shipping for WooCommerce
+ * Author: Smart Send
+ * Author URI: 
+ * Version: 1.0
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program. If not, see <http://www.gnu.org/licenses/>.
+ *
+ */
+
+if ( ! defined( 'ABSPATH' ) ) {
+	exit; // Exit if accessed directly.
+}
+
+if ( ! class_exists( 'SS_Shipping_WC' ) ) :
+
+class SS_Shipping_WC {
+
+	private $version = "1.0.0";
+
+	/**
+	 * Instance to call certain functions globally within the plugin
+	 *
+	 * @var SS_Shipping_WC
+	 */
+	protected static $_instance = null;
+	
+	/**
+	 * Smart Send Shipping Order for label and tracking.
+	 *
+	 * @var SS_Shipping_WC_Order
+	 */
+	public $shipping_as_order = null;
+
+	/**
+	 * Smart Send Shipping Front-end
+	 *
+	 * @var SS_Shipping_Paket_Front_End
+	 */
+	protected $shipping_as_frontend = null;
+	
+	/**
+	 * Smart Send Shipping Product for label and tracking.
+	 *
+	 * @var SS_Shipping_WC_Product
+	 */
+	protected $shipping_as_product = null;
+
+	/**
+	 * Smart Send Shipping Order for label and tracking.
+	 *
+	 * @var SS_Shipping_Logger
+	 */
+	protected $logger = null;
+
+	private $payment_gateway_titles = array();
+
+	/**
+	* Construct the plugin.
+	*/
+	public function __construct() {
+		// add_action( 'init', array( $this, 'init' ) );
+		// add_action( 'plugins_loaded', array( $this, 'init' ) );
+		$this->define_constants();
+		$this->includes();
+		$this->init_hooks();
+		// create classes
+		// $this->init();
+	}
+
+	/**
+	 * Main Smart Send Shipping Instance.
+	 *
+	 * Ensures only one instance is loaded or can be loaded.
+	 *
+	 * @static
+	 * @see SS_Shipping_WC()
+	 * @return SS_Shipping_WC - Main instance.
+	 */
+	public static function instance() {
+		if ( is_null( self::$_instance ) ) {
+			self::$_instance = new self();
+		}
+		return self::$_instance;
+	}
+
+	/**
+	 * Define WC Constants.
+	 */
+	private function define_constants() {
+		$upload_dir = wp_upload_dir();
+
+		// Path related defines
+		$this->define( 'SS_SHIPPING_PLUGIN_FILE', __FILE__ );
+		$this->define( 'SS_SHIPPING_PLUGIN_BASENAME', plugin_basename( __FILE__ ) );
+		$this->define( 'SS_SHIPPING_PLUGIN_DIR_PATH', untrailingslashit( plugin_dir_path( __FILE__ ) ) );
+		$this->define( 'SS_SHIPPING_PLUGIN_DIR_URL', untrailingslashit( plugins_url( '/', __FILE__ ) ) );
+		$this->define( 'SS_SHIPPING_VERSION', $this->version );
+
+		$this->define( 'SS_SHIPPING_LOG_DIR', $upload_dir['basedir'] . '/wc-logs/' );
+		$this->define( 'SS_SHIPPING_BUTTON_TEST_CONNECTION', __( 'Test Connection', 'smart-send-shipping' ) );
+
+		$this->define( 'SS_SHIPPING_METHOD_ID', 'smart_send_shipping' );
+
+	}
+	
+	/**
+	 * Include required core files used in admin and on the frontend.
+	 */
+	public function includes() {
+		// Auto loader class
+		include_once( 'includes/class-ss-shipping-autoloader.php' );
+		
+		// include_once( 'includes/class-ss-shipping-wc-method.php' );
+		// Load abstract classes
+		// include_once( 'includes/abstract-ss-shipping-wc-order.php' );
+		// include_once( 'includes/abstract-ss-shipping-wc-product.php' );
+	}
+
+	public function init_hooks() {
+		add_action( 'init', array( $this, 'init' ), 0 );
+		add_action( 'init', array( $this, 'load_textdomain' ) );
+		// add_action( 'admin_notices', array( $this, 'environment_check' ) );
+		add_action( 'admin_enqueue_scripts', array( $this, 'as_theme_enqueue_styles') );		
+
+		// add_action( 'woocommerce_shipping_init', array( $this, 'includes' ) );
+		add_filter( 'woocommerce_shipping_methods', array( $this, 'add_shipping_method' ) );
+		// Test connection
+		add_action( 'wp_ajax_test_as_connection', array( $this, 'test_as_connection_callback' ) );
+	}
+
+
+	/**
+	* Initialize the plugin.
+	*/
+	public function init() {
+		// Checks if WooCommerce is installed.
+		if ( class_exists( 'WC_Shipping_Method' ) ) {			
+			// $this->get_ss_shipping_wc_product();
+			// $this->get_ss_shipping_wc_order();
+
+		} else {
+			// Throw an admin error informing the user this plugin needs WooCommerce to function
+			add_action( 'admin_notices', array( $this, 'notice_wc_required' ) );
+		}
+
+	}
+	
+	public function get_ss_shipping_wc_order() {
+
+		if ( ! isset( $this->shipping_as_order ) ){
+			try {
+				$as_obj = $this->get_as_factory();
+				
+				if( $as_obj->is_as_old_dominion() ) {
+					// $this->shipping_as_order = new SS_Shipping_WC_Order_Old_Dominion();
+					$this->shipping_as_frontend = new SS_Shipping_WC_Frontend_Old_Dominion();
+				}
+				
+			} catch (Exception $e) {
+				// THIS IS THE WRONT ERROR, IT IS JUST FOR TESTING, ADD A BETTER ONE!
+				add_action( 'admin_notices', array( $this, 'notice_wc_required' ) );
+			}
+		}
+
+		return $this->shipping_as_order;
+	}
+
+	public function get_ss_shipping_wc_product() {
+
+		if ( ! isset( $this->shipping_as_product ) ){
+			try {
+				$as_obj = $this->get_as_factory();
+				
+				if( $as_obj->is_as_old_dominion() ) {
+					$this->shipping_as_product = new SS_Shipping_WC_Product_Old_Dominion();
+				}
+				
+			} catch (Exception $e) {
+				// THIS IS THE WRONT ERROR, IT IS JUST FOR TESTING, ADD A BETTER ONE!
+				add_action( 'admin_notices', array( $this, 'notice_wc_required' ) );
+			}
+		}
+
+		return $this->shipping_as_product;
+	}
+
+	/**
+	 * Localisation
+	 */
+	public function load_textdomain() {
+		load_plugin_textdomain( 'smart-send-shipping', false, dirname( plugin_basename(__FILE__) ) . '/lang/' );
+	}
+
+	public function as_theme_enqueue_styles() {
+		// wp_enqueue_style( 'ss-shipping-admin-css', SS_SHIPPING_PLUGIN_DIR_URL . '/assets/css/ss-shipping-admin.css' );
+	}
+
+	/**
+	 * Define constant if not already set.
+	 *
+	 * @param  string $name
+	 * @param  string|bool $value
+	 */
+	public function define( $name, $value ) {
+		if ( ! defined( $name ) ) {
+			define( $name, $value );
+		}
+	}
+	
+	/**
+	 * Add a new integration to WooCommerce.
+	 */
+	public function add_shipping_method( $shipping_method ) {
+		$ss_shipping_shipping_method = 'SS_Shipping_WC_Method';
+		$shipping_method['smart_send_shipping'] = $ss_shipping_shipping_method;
+
+		return $shipping_method;
+	}
+
+	/**
+	 * Admin error notifying user that WC is required
+	 */
+	public function notice_wc_required() {
+	?>
+		<div class="error">
+			<p><?php _e( 'Smart Send Shipping requires WooCommerce to be installed and activated!', 'smart-send-shipping' ); ?></p>
+		</div>
+	<?php
+	}
+
+
+	public function get_base_country() {
+		$origin_point = wc_get_base_location();
+		return $origin_point['country'];
+	}
+
+	public function get_shipping_as_settings( ) {
+		return get_option('woocommerce_' . SS_SHIPPING_METHOD_ID . '_settings');
+	}
+
+	public function test_as_connection_callback() {
+		check_ajax_referer( 'ss-shipping-test-con', 'test_con_nonce' );
+		try {
+
+			$shipping_as_settings = $this->get_shipping_as_settings();
+		
+			$api_user = $shipping_as_settings['as_api_user']; 
+			$api_pwd = $shipping_as_settings['as_api_pwd'];
+		
+			$connection = $as_obj->as_test_connection( $api_user, $api_pwd );
+				
+			$connection_msg = __('Connection Successful!', 'smart-send-shipping');
+			$this->log_msg( $connection_msg );
+
+			wp_send_json( array( 
+				'connection_success' 	=> $connection_msg,
+				'button_txt'			=> SS_SHIPPING_BUTTON_TEST_CONNECTION
+				) );
+
+		} catch (Exception $e) {
+			$this->log_msg($e->getMessage());
+
+			wp_send_json( array( 
+				'connection_error' => sprintf( __('Connected Failed: %s Make sure to save the settings before testing the connection. ', 'smart-send-shipping'), $e->getMessage() ),
+				'button_txt'			=> SS_SHIPPING_BUTTON_TEST_CONNECTION
+				 ) );
+		}
+
+		wp_die();
+	}
+
+	public function log_msg( $msg )	{
+		
+		try {
+			$shipping_as_settings = $this->get_shipping_as_settings();
+			$as_debug = isset( $shipping_as_settings['as_debug'] ) ? $shipping_as_settings['as_debug'] : 'yes';
+			
+			if( ! $this->logger ) {
+				$this->logger = new SS_Shipping_Logger( $as_debug );
+			}
+
+			$this->logger->write( $msg );
+			
+		} catch (Exception $e) {
+			// do nothing
+		}
+	}
+
+	public function get_log_url( )	{
+
+		try {
+			$shipping_as_settings = $this->get_shipping_as_settings();
+			$as_debug = isset( $shipping_as_settings['as_debug'] ) ? $shipping_as_settings['as_debug'] : 'yes';
+			
+			if( ! $this->logger ) {
+				$this->logger = new SS_Shipping_Logger( $as_debug );
+			}
+			
+			return $this->logger->get_log_url( );
+			
+		} catch (Exception $e) {
+			throw $e;
+		}
+	}
+
+}
+
+endif;
+
+function SS_SHIPPING_WC() {
+	return SS_Shipping_WC::instance();
+}
+
+$SS_Shipping_WC = SS_SHIPPING_WC();
