@@ -12,9 +12,9 @@ class SS_Shipping_Logger {
 	private $debug;
 
 	/**
-	 * WC_SS_Shipping_Logger constructor.
+	 * SS_Shipping_Logger constructor.
 	 *
-	 * @param WC_XR_debug $debug
+	 * @param bool $debug
 	 */
 	public function __construct( $debug ) {
 		$this->debug = $debug;

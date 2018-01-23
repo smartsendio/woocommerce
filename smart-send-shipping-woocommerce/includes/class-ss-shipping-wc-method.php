@@ -11,26 +11,26 @@ class SS_Shipping_WC_Method extends WC_Shipping_Method {
 
 	private $shipping_method = array( 'PostNord' 	=> 
 											array( 
-												'postnord_pickuppoint' 			=>	'Pickup point',
-												'postnord_closestpickup'	 	=>	'Closest pickup point',
-												'postnord_privatetohome'		=>	'Private to home',
-												'postnord_commercial' 			=>	'Commercial',
-												'postnord_valuemail' 			=>	'Valuemail',
-												'postnord_valuemailsmall'		=>	'Small Valuemail',
+												'postnord_pickuppoint' 			=>	'PostNord: Pickup point',
+												'postnord_closestpickup'	 	=>	'PostNord: Closest pickup point',
+												'postnord_privatetohome'		=>	'PostNord: Private to home',
+												'postnord_commercial' 			=>	'PostNord: Commercial',
+												'postnord_valuemail' 			=>	'PostNord: Valuemail',
+												'postnord_valuemailsmall'		=>	'PostNord: Small Valuemail',
 											),
 										'GLS'		=>
 											array( 
-												'gls_pickuppoint' 				=>	'Pickup point',
-												'gls_closestpickup'	 			=>	'Closest pickup point',
-												'gls_privatetohome'				=>	'Private to home',
-												'gls_commercial' 				=>	'Commercial',
+												'gls_pickuppoint' 				=>	'GLS: Pickup point',
+												'gls_closestpickup'	 			=>	'GLS: Closest pickup point',
+												'gls_privatetohome'				=>	'GLS: Private to home',
+												'gls_commercial' 				=>	'GLS: Commercial',
 											),
 										'Bring'		=>
 											array( 
-												'bring_pickuppoint' 			=>	'Pickup point',
-												'bring_closestpickup'	 		=>	'Closest pickup point',
-												'bring_privatetohome'			=>	'Private to home',
-												'bring_commercial' 				=>	'Commercial',
+												'bring_pickuppoint' 			=>	'Bring: Pickup point',
+												'bring_closestpickup'	 		=>	'Bring: Closest pickup point',
+												'bring_privatetohome'			=>	'Bring: Private to home',
+												'bring_commercial' 				=>	'Bring: Commercial',
 											),
 								);
 
@@ -41,7 +41,7 @@ class SS_Shipping_WC_Method extends WC_Shipping_Method {
 		$this->id = SS_SHIPPING_METHOD_ID;
 		$this->instance_id = absint( $instance_id );
 		$this->method_title = __( 'Smart Send', 'smart-send-shipping' );
-		$this->method_description = __( 'To start shipping via Smart Send configure settings below.', 'smart-send-shipping' );
+		$this->method_description = __( 'Advanced shipping solution for PostNord, GLS and Bring.', 'smart-send-shipping' );
 		
 		$this->supports           = array(
 			'settings',
@@ -100,34 +100,11 @@ class SS_Shipping_WC_Method extends WC_Shipping_Method {
 	public function init_form_fields() {
 
 		$this->form_fields = array(
-			'title'	=> array(
-				'name' 		=> __( 'Smart Send Logistics settings', 'smart-send-logistics' ),
-				'type' 		=> 'title',
-				'desc' 		=> __("If you don't have a Smart Send subscription please create one at our website", 'smart-send-logistics').': <a href="http://www.smartsend.dk/signup" target="_blank">Smart Send</a>',
-				'id' 		=> 'smartsend_logistics_settings'
-			),/*
-			'username' => array(
-				'title'   	=> __( 'Username','smart-send-logistics'),
-				'id'      	=> 'smartsend_logistics_username',
-				'default' 	=> '', //Choose Store Location
-				'type'    	=> 'text',
-				'desc_tip'        =>  false,
+			'title_labels'	=> array(
+				'title'   		=> __( 'Shipping Labels','smart-send-logistics'),
+				'type' 			=> 'title',
+				'description' 	=> __( 'Settings for general shipping labels','smart-send-logistics' ),
 			),
-			'licensekey' => array(
-				'title'   	=> __( 'License key','smart-send-logistics'),
-				'id'      	=> 'smartsend_logistics_licencekey',
-				'default' 	=> '',
-				'type'    	=> 'text',
-				'desc_tip'        =>  false,
-			),
-            'validation' => array(
-				'title'		=> __( 'Validation','smart-send-logistics'),
-				'id'		=> 'smartsend_logistics_validation',
-				'default'	=> '0',
-				'type'		=> 'text',
-				'desc_tip'	=>  false,
-                'css'		=> 'box-shadow:none;width:255px; color: '.$validate_color.'; background: none repeat scroll 0 0 rgba(0, 0, 0, 0) !important; border: none;'
-			),*/
 			'combine_pdf_files' => array(
 				'title'    	=> __( 'Merge labels from multiple orders','smart-send-logistics'),
 				'desc'     	=> __( 'Generate PDF file containing all labels or create a single PDF file for each order','smart-send-logistics'),
@@ -138,6 +115,33 @@ class SS_Shipping_WC_Method extends WC_Shipping_Method {
 					'no'      	=> __( 'Separate PDF files','smart-send-logistics'),
 				),
 				'desc_tip'        =>  true,
+			),
+			'order_status' => array(
+				'title'    	=> __( 'Set order status after label print','smart-send-logistics'),
+				'id'       	=> 'smartsend_logistics_order_status',
+				'default'  	=> '0',
+				'type'     	=> 'select',
+				'class'    	=> 'wc-enhanced-select',
+				'options'   => array_merge( array( '0' => __("Don't change order status",'smart-send-logistics') ), wc_get_order_statuses() )
+			),
+			'shipping_method_for_free_shipping' => array(
+				'title'    	=> __( 'Shipping method used for WooCommerce method Free Shipping','smart-send-logistics'),
+				'type'     	=> 'selectopt',
+				'class'    	=> 'wc-enhanced-select',
+				'description' => __( 'This controls the title which the user sees during checkout.', 'smart-send-shipping' ),
+				'desc_tip' 	=> true,
+				'options'         	=> $this->shipping_method
+			),
+			'include_order_comment' => array(
+				'title'    	=> __( 'Include order comment on label','smart-send-logistics'),
+				'default' 	=> 'yes',
+				'type'    	=> 'checkbox',
+				'desc_tip'        =>  false,
+			),
+			'title_pickup'	=> array(
+				'title'   		=> __( 'Pickup Points','smart-send-logistics'),
+				'type' 			=> 'title',
+				'description' 	=> __( 'Settings for displaying pickup points during checkout.','smart-send-logistics' ),
 			),
 			'dropdown_display_mode' => array(
 				'title'   	=> __( 'Pickup dropdown display place','smart-send-logistics'),
@@ -166,28 +170,6 @@ class SS_Shipping_WC_Method extends WC_Shipping_Method {
 					'6'    		=> '#'.__('Company','smart-send-logistics').', #'.__('Zipcode','smart-send-logistics').', #'.__('City','smart-send-logistics'),
 					'7'    		=> '#'.__('Company','smart-send-logistics').', #'.__('City','smart-send-logistics'),
 				)
-			),
-			'order_status' => array(
-				'title'    	=> __( 'Set order status after label print','smart-send-logistics'),
-				'id'       	=> 'smartsend_logistics_order_status',
-				'default'  	=> '0',
-				'type'     	=> 'select',
-				'class'    	=> 'wc-enhanced-select',
-				'options'   => array_merge( array( '0' => __("Don't change order status",'smart-send-logistics') ), wc_get_order_statuses() )
-			),
-			'shipping_method_for_free_shipping' => array(
-				'title'    	=> __( 'Shipping method used for WooCommerce method Free Shipping','smart-send-logistics'),
-				'type'     	=> 'selectopt',
-				'class'    	=> 'wc-enhanced-select',
-				'description' => __( 'This controls the title which the user sees during checkout.', 'smart-send-shipping' ),
-				'desc_tip' 	=> true,
-				'options'         	=> $this->shipping_method
-			),
-			'include_order_comment' => array(
-				'title'    	=> __( 'Include order comment on label','smart-send-logistics'),
-				'default' 	=> 'yes',
-				'type'    	=> 'checkbox',
-				'desc_tip'        =>  false,
 			),
 		);
 	}
@@ -306,7 +288,7 @@ class SS_Shipping_WC_Method extends WC_Shipping_Method {
 				'label'             => __( 'Enable', 'smart-send-shipping' ),
 				'default'           => 'no',
 				'description'       => __( 'Enable/disable advanced validation and click save to show/hide settings.', 'smart-send-shipping' ),
-				'desc_tip'          => true,
+				'desc_tip'          => false,
 			),
 		);
 
@@ -460,9 +442,9 @@ class SS_Shipping_WC_Method extends WC_Shipping_Method {
 					<thead>
 						<tr>
 							<th class="sort">&nbsp;</th>
-							<th><?php _e( 'Minimum [kg]', 'woocommerce' ); ?></th>
-							<th><?php _e( 'Maximum [kg]', 'woocommerce' ); ?></th>
-							<th><?php _e( 'Cost', 'woocommerce' ); ?> <a class="tips" data-tip="<?php _e('Products must belong to this shipping class', 'smart-send-logistics'); ?>">[?]</a></th>
+							<th><?php _e( 'Minimum [kg]', 'woocommerce' ); ?><a class="tips" data-tip="<?php _e('Minimum Weight', 'smart-send-logistics'); ?>">[?]</a></th>
+							<th><?php _e( 'Maximum [kg]', 'woocommerce' ); ?><a class="tips" data-tip="<?php _e('Maximim Weight', 'smart-send-logistics'); ?>">[?]</a></th>
+							<th><?php _e( 'Cost', 'woocommerce' ); ?><a class="tips" data-tip="<?php _e('Shipping Cost', 'smart-send-logistics'); ?>">[?]</a></th>
 						</tr>
 					</thead>
 					<tbody class="ss_weight_cost">

@@ -3,9 +3,9 @@
  * Plugin Name: Smart Send Shipping for WooCommerce
  * Plugin URI: https://github.com/
  * Description: Smart Send Shipping for WooCommerce
- * Author: Smart Send
- * Author URI: 
- * Version: 1.0
+ * Author: Smart Send ApS
+ * Author URI: http://www.smartsend.dk
+ * Version: 8.0.0
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -30,7 +30,7 @@ if ( ! class_exists( 'SS_Shipping_WC' ) ) :
 
 class SS_Shipping_WC {
 
-	private $version = "1.0.0";
+	private $version = "8.0.0";
 
 	/**
 	 * Instance to call certain functions globally within the plugin
@@ -134,13 +134,17 @@ class SS_Shipping_WC {
 	public function init_hooks() {
 		add_action( 'init', array( $this, 'init' ), 0 );
 		add_action( 'init', array( $this, 'load_textdomain' ) );
-		// add_action( 'admin_notices', array( $this, 'environment_check' ) );
-		add_action( 'admin_enqueue_scripts', array( $this, 'as_theme_enqueue_styles') );		
+
+		add_filter( 'plugin_action_links_' . SS_SHIPPING_PLUGIN_BASENAME, array( $this, 'plugin_action_links' ) );
+		add_filter( 'plugin_row_meta', array( $this, 'ss_shipping_plugin_row_meta'), 10, 2 );
+		
+		// add_action( 'admin_notices', array( $tif ( WC_PLUGIN_BASENAME == $file ) {
+		add_action( 'admin_enqueue_scripts', array( $this, 'ss_shipping_theme_enqueue_styles') );		
 
 		// add_action( 'woocommerce_shipping_init', array( $this, 'includes' ) );
 		add_filter( 'woocommerce_shipping_methods', array( $this, 'add_shipping_method' ) );
 		// Test connection
-		add_action( 'wp_ajax_test_as_connection', array( $this, 'test_as_connection_callback' ) );
+		add_action( 'wp_ajax_test_as_connection', array( $this, 'ss_shipping_test_connection_callback' ) );
 	}
 
 
@@ -148,55 +152,16 @@ class SS_Shipping_WC {
 	* Initialize the plugin.
 	*/
 	public function init() {
-		// Checks if WooCommerce is installed.
-		if ( class_exists( 'WC_Shipping_Method' ) ) {			
-			// $this->get_ss_shipping_wc_product();
-			// $this->get_ss_shipping_wc_order();
+		
+		// Checks if WooCommerce 2.6 is installed.
+		if ( defined( 'WOOCOMMERCE_VERSION' ) && version_compare( WOOCOMMERCE_VERSION, '2.6', '>=' ) ) {
+			
 
 		} else {
 			// Throw an admin error informing the user this plugin needs WooCommerce to function
 			add_action( 'admin_notices', array( $this, 'notice_wc_required' ) );
 		}
 
-	}
-	
-	public function get_ss_shipping_wc_order() {
-
-		if ( ! isset( $this->shipping_as_order ) ){
-			try {
-				$as_obj = $this->get_as_factory();
-				
-				if( $as_obj->is_as_old_dominion() ) {
-					// $this->shipping_as_order = new SS_Shipping_WC_Order_Old_Dominion();
-					$this->shipping_as_frontend = new SS_Shipping_WC_Frontend_Old_Dominion();
-				}
-				
-			} catch (Exception $e) {
-				// THIS IS THE WRONT ERROR, IT IS JUST FOR TESTING, ADD A BETTER ONE!
-				add_action( 'admin_notices', array( $this, 'notice_wc_required' ) );
-			}
-		}
-
-		return $this->shipping_as_order;
-	}
-
-	public function get_ss_shipping_wc_product() {
-
-		if ( ! isset( $this->shipping_as_product ) ){
-			try {
-				$as_obj = $this->get_as_factory();
-				
-				if( $as_obj->is_as_old_dominion() ) {
-					$this->shipping_as_product = new SS_Shipping_WC_Product_Old_Dominion();
-				}
-				
-			} catch (Exception $e) {
-				// THIS IS THE WRONT ERROR, IT IS JUST FOR TESTING, ADD A BETTER ONE!
-				add_action( 'admin_notices', array( $this, 'notice_wc_required' ) );
-			}
-		}
-
-		return $this->shipping_as_product;
 	}
 
 	/**
@@ -206,7 +171,7 @@ class SS_Shipping_WC {
 		load_plugin_textdomain( 'smart-send-shipping', false, dirname( plugin_basename(__FILE__) ) . '/lang/' );
 	}
 
-	public function as_theme_enqueue_styles() {
+	public function ss_shipping_theme_enqueue_styles() {
 		// wp_enqueue_style( 'ss-shipping-admin-css', SS_SHIPPING_PLUGIN_DIR_URL . '/assets/css/ss-shipping-admin.css' );
 	}
 
@@ -220,6 +185,43 @@ class SS_Shipping_WC {
 		if ( ! defined( $name ) ) {
 			define( $name, $value );
 		}
+	}
+
+
+	/**
+	 * Show action links on the plugin screen.
+	 *
+	 * @param	mixed $links Plugin Action links
+	 * @return	array
+	 */
+	public static function plugin_action_links( $links ) {
+		$action_links = array(
+			'settings' => '<a href="' . admin_url( 'admin.php?page=wc-settings&tab=shipping&section=smart_send_shipping' ) . '" aria-label="' . esc_attr__( 'View WooCommerce settings', 'smart-send-shipping' ) . '">' . esc_html__( 'Settings', 'smart-send-shipping' ) . '</a>',
+		);
+
+		return array_merge( $action_links, $links );
+	}
+
+	/**
+	 * Show row meta on the plugin screen.
+	 *
+	 * @param	mixed $links Plugin Row Meta
+	 * @param	mixed $file  Plugin Base file
+	 * @return	array
+	 */
+	function ss_shipping_plugin_row_meta( $links, $file ) {
+
+		if ( SS_SHIPPING_PLUGIN_BASENAME == $file ) {
+			$row_meta = array(
+				'installation'	=> '<a href="' . esc_url( apply_filters( 'smartsend_logistics_installation_url', 'http://smartsend.dk/woocommerce/installation/' ) ) . '" title="' . esc_attr( __( 'Installation guide','smart-send-shipping' ) ) . '" target="_blank">' . __( 'Installation guide','smart-send-shipping' ) . '</a>',
+				'configuration'	=> '<a href="' . esc_url( apply_filters( 'smartsend_logistics_configuration_url', 'http://smartsend.dk/woocommerce/configuration/' ) ) . '" title="' . esc_attr( __( 'Configuration guide','smart-send-shipping' ) ) . '" target="_blank">' . __( 'Configuration guide','smart-send-shipping' ) . '</a>',
+				'support'		=> '<a href="' . esc_url( apply_filters( 'smartsend_logistics_support_url', 'http://smartsend.dk/support/' ) ) . '" title="' . esc_attr( __( 'Support','smart-send-shipping' ) ) . '" target="_blank">' . __( 'Support','smart-send-shipping' ) . '</a>',
+			);
+			
+			return array_merge( $links, $row_meta );
+		}
+
+		return (array) $links;
 	}
 	
 	/**
@@ -238,7 +240,7 @@ class SS_Shipping_WC {
 	public function notice_wc_required() {
 	?>
 		<div class="error">
-			<p><?php _e( 'Smart Send Shipping requires WooCommerce to be installed and activated!', 'smart-send-shipping' ); ?></p>
+			<p><?php _e( 'Smart Send Shipping requires WooCommerce 2.6 and above to be installed and activated!', 'smart-send-shipping' ); ?></p>
 		</div>
 	<?php
 	}
@@ -253,7 +255,7 @@ class SS_Shipping_WC {
 		return get_option('woocommerce_' . SS_SHIPPING_METHOD_ID . '_settings');
 	}
 
-	public function test_as_connection_callback() {
+	public function ss_shipping_test_connection_callback() {
 		check_ajax_referer( 'ss-shipping-test-con', 'test_con_nonce' );
 		try {
 
