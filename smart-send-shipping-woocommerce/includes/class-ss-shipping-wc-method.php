@@ -498,7 +498,7 @@ class SS_Shipping_WC_Method extends WC_Shipping_Method {
 	}
 
 	public function validate_cost_weight_field() {
-		error_log('validate_cost_weight_field');
+
 		$weight_costs = array();
 
 		if ( isset( $_POST['ss_min_weight'] ) ) {
