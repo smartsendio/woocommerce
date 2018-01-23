@@ -213,9 +213,9 @@ class SS_Shipping_WC {
 
 		if ( SS_SHIPPING_PLUGIN_BASENAME == $file ) {
 			$row_meta = array(
-				'installation'	=> '<a href="' . esc_url( apply_filters( 'smartsend_logistics_installation_url', 'http://smartsend.dk/woocommerce/installation/' ) ) . '" title="' . esc_attr( __( 'Installation guide','smart-send-shipping' ) ) . '" target="_blank">' . __( 'Installation guide','smart-send-shipping' ) . '</a>',
-				'configuration'	=> '<a href="' . esc_url( apply_filters( 'smartsend_logistics_configuration_url', 'http://smartsend.dk/woocommerce/configuration/' ) ) . '" title="' . esc_attr( __( 'Configuration guide','smart-send-shipping' ) ) . '" target="_blank">' . __( 'Configuration guide','smart-send-shipping' ) . '</a>',
-				'support'		=> '<a href="' . esc_url( apply_filters( 'smartsend_logistics_support_url', 'http://smartsend.dk/support/' ) ) . '" title="' . esc_attr( __( 'Support','smart-send-shipping' ) ) . '" target="_blank">' . __( 'Support','smart-send-shipping' ) . '</a>',
+				'installation'	=> '<a href="' . esc_url( apply_filters( 'smartsend_logistics_installation_url', 'https://smartsend.io/woocommerce/installation/' ) ) . '" title="' . esc_attr( __( 'Installation guide','smart-send-shipping' ) ) . '" target="_blank">' . __( 'Installation guide','smart-send-shipping' ) . '</a>',
+				'configuration'	=> '<a href="' . esc_url( apply_filters( 'smartsend_logistics_configuration_url', 'https://smartsend.io/woocommerce/configuration/' ) ) . '" title="' . esc_attr( __( 'Configuration guide','smart-send-shipping' ) ) . '" target="_blank">' . __( 'Configuration guide','smart-send-shipping' ) . '</a>',
+				'support'		=> '<a href="' . esc_url( apply_filters( 'smartsend_logistics_support_url', 'https://smartsend.io/support/' ) ) . '" title="' . esc_attr( __( 'Support','smart-send-shipping' ) ) . '" target="_blank">' . __( 'Support','smart-send-shipping' ) . '</a>',
 			);
 			
 			return array_merge( $links, $row_meta );
