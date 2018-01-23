@@ -442,8 +442,8 @@ class SS_Shipping_WC_Method extends WC_Shipping_Method {
 					<thead>
 						<tr>
 							<th class="sort">&nbsp;</th>
-							<th><?php _e( 'Minimum [kg]', 'woocommerce' ); ?><a class="tips" data-tip="<?php _e('Cart minimum weight for this rate to be applicable', 'smart-send-logistics'); ?>">[?]</a></th>
-							<th><?php _e( 'Maximum [kg]', 'woocommerce' ); ?><a class="tips" data-tip="<?php _e('Cart maximum weight for this rate to be applicable', 'smart-send-logistics'); ?>">[?]</a></th>
+							<th><?php _e( 'Minimum [kg]', 'woocommerce' ); ?><a class="tips" data-tip="<?php _e('Cart weight should be equal to or larger than this value for the shipping rate to be applicable', 'smart-send-logistics'); ?>">[?]</a></th>
+							<th><?php _e( 'Maximum [kg]', 'woocommerce' ); ?><a class="tips" data-tip="<?php _e('Cart weight should be strictly less than this value for the shipping rate to be applicable', 'smart-send-logistics'); ?>">[?]</a></th>
 							<th><?php _e( 'Cost', 'woocommerce' ); ?><a class="tips" data-tip="<?php _e('Cost of shipping', 'smart-send-logistics'); ?>">[?]</a></th>
 						</tr>
 					</thead>
