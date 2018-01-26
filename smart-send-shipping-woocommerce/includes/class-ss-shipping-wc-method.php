@@ -101,31 +101,31 @@ class SS_Shipping_WC_Method extends WC_Shipping_Method {
 
 		$this->form_fields = array(
 			'title_labels'	=> array(
-				'title'   		=> __( 'Shipping Labels','smart-send-logistics'),
+				'title'   		=> __( 'Shipping Labels','smart-send-shipping'),
 				'type' 			=> 'title',
-				'description' 	=> __( 'Settings for general shipping labels','smart-send-logistics' ),
+				'description' 	=> __( 'Settings for general shipping labels','smart-send-shipping' ),
 			),
 			'combine_pdf_files' => array(
-				'title'    	=> __( 'Merge labels from multiple orders','smart-send-logistics'),
-				'desc'     	=> __( 'Generate PDF file containing all labels or create a single PDF file for each order','smart-send-logistics'),
+				'title'    	=> __( 'Merge labels from multiple orders','smart-send-shipping'),
+				'desc'     	=> __( 'Generate PDF file containing all labels or create a single PDF file for each order','smart-send-shipping'),
 				'default' 	=> 'yes',
 				'type'    	=> 'radio',
 				'options' 	=> array(
-					'yes'     	=> __( 'Merged PDF file','smart-send-logistics'),
-					'no'      	=> __( 'Separate PDF files','smart-send-logistics'),
+					'yes'     	=> __( 'Merged PDF file','smart-send-shipping'),
+					'no'      	=> __( 'Separate PDF files','smart-send-shipping'),
 				),
 				'desc_tip'        =>  true,
 			),
 			'order_status' => array(
-				'title'    	=> __( 'Set order status after label print','smart-send-logistics'),
+				'title'    	=> __( 'Set order status after label print','smart-send-shipping'),
 				'id'       	=> 'smartsend_logistics_order_status',
 				'default'  	=> '0',
 				'type'     	=> 'select',
 				'class'    	=> 'wc-enhanced-select',
-				'options'   => array_merge( array( '0' => __("Don't change order status",'smart-send-logistics') ), wc_get_order_statuses() )
+				'options'   => array_merge( array( '0' => __("Don't change order status",'smart-send-shipping') ), wc_get_order_statuses() )
 			),
 			'shipping_method_for_free_shipping' => array(
-				'title'    	=> __( 'Shipping method used for WooCommerce method Free Shipping','smart-send-logistics'),
+				'title'    	=> __( 'Shipping method used for WooCommerce method Free Shipping','smart-send-shipping'),
 				'type'     	=> 'selectopt',
 				'class'    	=> 'wc-enhanced-select',
 				'description' => __( 'This controls the title which the user sees during checkout.', 'smart-send-shipping' ),
@@ -133,42 +133,42 @@ class SS_Shipping_WC_Method extends WC_Shipping_Method {
 				'options'         	=> $this->shipping_method
 			),
 			'include_order_comment' => array(
-				'title'    	=> __( 'Include order comment on label','smart-send-logistics'),
+				'title'    	=> __( 'Include order comment on label','smart-send-shipping'),
 				'default' 	=> 'yes',
 				'type'    	=> 'checkbox',
 				'desc_tip'        =>  false,
 			),
 			'title_pickup'	=> array(
-				'title'   		=> __( 'Pickup Points','smart-send-logistics'),
+				'title'   		=> __( 'Pickup Points','smart-send-shipping'),
 				'type' 			=> 'title',
-				'description' 	=> __( 'Settings for displaying pickup points during checkout.','smart-send-logistics' ),
+				'description' 	=> __( 'Settings for displaying pickup points during checkout.','smart-send-shipping' ),
 			),
 			'dropdown_display_mode' => array(
-				'title'   	=> __( 'Pickup dropdown display place','smart-send-logistics'),
-				'desc'    	=> __( 'This controls the display postion of pick-up point dropdown on checkout page.','smart-send-logistics'),
+				'title'   	=> __( 'Pickup dropdown display place','smart-send-shipping'),
+				'desc'    	=> __( 'This controls the display postion of pick-up point dropdown on checkout page.','smart-send-shipping'),
 				'default' 	=> 'below_shipping',
 				'type'    	=> 'radio',
 				'options' 	=> array(
-					'below_shipping'   	=> __( 'Below the shipping method','smart-send-logistics'),
-					'custom_hook'     	=> __( 'User custom hook in theme: "do_action(\'smart_send_shipping_pickup_dropdown\')"','smart-send-logistics'),
+					'below_shipping'   	=> __( 'Below the shipping method','smart-send-shipping'),
+					'custom_hook'     	=> __( 'User custom hook in theme: "do_action(\'smart_send_shipping_pickup_dropdown\')"','smart-send-shipping'),
 				),
 				'desc_tip'        =>  true,
 			),
 			'dropdown_display_format' => array(
-				'title'    	=> __( 'Dropdown format','smart-send-logistics'),
-				'desc'		=> __('How the pickup points are listed during checkout','smart-send-logistics'),
+				'title'    	=> __( 'Dropdown format','smart-send-shipping'),
+				'desc'		=> __('How the pickup points are listed during checkout','smart-send-shipping'),
 				'default'  	=> '4',
 				'type'     	=> 'select',
 				'class'    	=> 'wc-enhanced-select',
 				'desc_tip' 	=> true,
 				'options'   => array(
-					'1' 		=> '#'.__('Company','smart-send-logistics').', #'.__('Street','smart-send-logistics'),
-					'2'    		=> '#'.__('Company','smart-send-logistics').', #'.__('Street','smart-send-logistics').', #'.__('Zipcode','smart-send-logistics'),
-					'3'    		=> '#'.__('Company','smart-send-logistics').', #'.__('Street','smart-send-logistics').', #'.__('City','smart-send-logistics'),
-					'4'    		=> '#'.__('Company','smart-send-logistics').', #'.__('Street','smart-send-logistics').', #'.__('Zipcode','smart-send-logistics').' #'.__('City','smart-send-logistics'),
-					'5'    		=> '#'.__('Company','smart-send-logistics').', #'.__('Zipcode','smart-send-logistics'),
-					'6'    		=> '#'.__('Company','smart-send-logistics').', #'.__('Zipcode','smart-send-logistics').', #'.__('City','smart-send-logistics'),
-					'7'    		=> '#'.__('Company','smart-send-logistics').', #'.__('City','smart-send-logistics'),
+					'1' 		=> '#'.__('Company','smart-send-shipping').', #'.__('Street','smart-send-shipping'),
+					'2'    		=> '#'.__('Company','smart-send-shipping').', #'.__('Street','smart-send-shipping').', #'.__('Zipcode','smart-send-shipping'),
+					'3'    		=> '#'.__('Company','smart-send-shipping').', #'.__('Street','smart-send-shipping').', #'.__('City','smart-send-shipping'),
+					'4'    		=> '#'.__('Company','smart-send-shipping').', #'.__('Street','smart-send-shipping').', #'.__('Zipcode','smart-send-shipping').' #'.__('City','smart-send-shipping'),
+					'5'    		=> '#'.__('Company','smart-send-shipping').', #'.__('Zipcode','smart-send-shipping'),
+					'6'    		=> '#'.__('Company','smart-send-shipping').', #'.__('Zipcode','smart-send-shipping').', #'.__('City','smart-send-shipping'),
+					'7'    		=> '#'.__('Company','smart-send-shipping').', #'.__('City','smart-send-shipping'),
 				)
 			),
 		);
@@ -436,15 +436,15 @@ class SS_Shipping_WC_Method extends WC_Shipping_Method {
 
 		?>
 		<tr valign="top">
-			<th scope="row" class="titledesc"><?php _e( 'Cost based on weight', 'woocommerce' ); ?>:</th>
+			<th scope="row" class="titledesc"><?php _e( 'Cost based on weight', 'smart-send-shipping' ); ?>:</th>
 			<td class="forminp" id="ss_cost_weight">
 				<table class="widefat wc_input_table sortable" cellspacing="0">
 					<thead>
 						<tr>
 							<th class="sort">&nbsp;</th>
-							<th><?php _e( 'Minimum [kg]', 'woocommerce' ); ?><a class="tips" data-tip="<?php _e('Cart weight should be equal to or larger than this value for the shipping rate to be applicable', 'smart-send-logistics'); ?>">[?]</a></th>
-							<th><?php _e( 'Maximum [kg]', 'woocommerce' ); ?><a class="tips" data-tip="<?php _e('Cart weight should be strictly less than this value for the shipping rate to be applicable', 'smart-send-logistics'); ?>">[?]</a></th>
-							<th><?php _e( 'Cost', 'woocommerce' ); ?><a class="tips" data-tip="<?php _e('Cost of shipping', 'smart-send-logistics'); ?>">[?]</a></th>
+							<th><?php _e( 'Minimum [kg]', 'smart-send-shipping' ); ?><a class="tips" data-tip="<?php _e('Cart weight should be equal to or larger than this value for the shipping rate to be applicable', 'smart-send-shipping'); ?>">[?]</a></th>
+							<th><?php _e( 'Maximum [kg]', 'smart-send-shipping' ); ?><a class="tips" data-tip="<?php _e('Cart weight should be strictly less than this value for the shipping rate to be applicable', 'smart-send-shipping'); ?>">[?]</a></th>
+							<th><?php _e( 'Cost', 'smart-send-shipping' ); ?><a class="tips" data-tip="<?php _e('Cost of shipping', 'smart-send-shipping'); ?>">[?]</a></th>
 						</tr>
 					</thead>
 					<tbody class="ss_weight_cost">
@@ -469,7 +469,7 @@ class SS_Shipping_WC_Method extends WC_Shipping_Method {
 					</tbody>
 					<tfoot>
 						<tr>
-							<th colspan="4"><a href="#" class="add button"><?php _e( '+ Add shipping rate', 'woocommerce' ); ?></a> <a href="#" class="remove_rows button"><?php _e( 'Remove selected rate(s)', 'woocommerce' ); ?></a></th>
+							<th colspan="4"><a href="#" class="add button"><?php _e( '+ Add shipping rate', 'smart-send-shipping' ); ?></a> <a href="#" class="remove_rows button"><?php _e( 'Remove selected rate(s)', 'smart-send-shipping' ); ?></a></th>
 						</tr>
 					</tfoot>
 				</table>
@@ -594,15 +594,9 @@ class SS_Shipping_WC_Method extends WC_Shipping_Method {
 	public function calculate_shipping( $package = array() ) {
 		// error_log('cacluate shipping');
 		// error_log(print_r($package,true));
-		// error_log(print_r($this->instance_form_fields,true));
-		$selected_carrier = strtolower( $this->instance_form_fields['carrier']['options'][ $this->get_instance_option( 'carrier' ) ] );
-		$selected_type = strtolower( $this->instance_form_fields['type']['options'][ $this->get_instance_option( 'type' ) ] );
-
-		$selected_carrier = str_replace( ' ', '', $selected_carrier );
-		$selected_type = str_replace( ' ', '', $selected_type );
 
 		$this->add_rate( array(
-			'id' 	=> $this->get_rate_id() . '_' . $selected_carrier . '_' . $selected_type,
+			'id' 	=> $this->get_rate_id() . '_' . $this->get_instance_option( 'method' ),
 			'label' => $this->title,
 			'cost' 	=> 10,
 			'sort'  => 0
