@@ -7,7 +7,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 if ( ! class_exists( 'SS_Shipping_WC_Method' ) ) :
 
-class SS_Shipping_WC_Method extends WC_Shipping_Method {
+class SS_Shipping_WC_Method extends WC_Shipping_Flat_Rate {
 
 	private $shipping_method = array( 'PostNord' 	=> 
 											array( 
@@ -68,7 +68,10 @@ class SS_Shipping_WC_Method extends WC_Shipping_Method {
 
 		// add_action( 'admin_notices', array( $this, 'environment_check' ) );
 		add_action( 'woocommerce_update_options_shipping_' . $this->id, array( $this, 'process_admin_options' ) );
+		// Admin script
 		add_action( 'admin_enqueue_scripts', array( $this, 'load_admin_scripts' ) );
+		// Frontend script
+		// add_action( 'wp_enqueue_scripts', array( $this, 'load_styles_scripts' ) );
 
 		
 	}
@@ -80,16 +83,34 @@ class SS_Shipping_WC_Method extends WC_Shipping_Method {
 			return;
 	    }
 	    
-	    $test_con_data = array( 
-	    					'ajax_url' => admin_url( 'admin-ajax.php' ),
-	    					'test_con_nonce' => wp_create_nonce( 'ss-shipping-test-con' ) 
-	    				);
+		// $test_con_data = array(
+	    	// 'ajax_url' => admin_url( 'admin-ajax.php' ),
+	    	// 'test_con_nonce' => wp_create_nonce( 'ss-shipping-test-con' ) 
+	    // );
 
 		// wp_enqueue_style( 'wc-shipment-as-label-css', SS_Shipping_PLUGIN_DIR_URL . '/assets/css/pr-as-admin.css' );		
-		wp_enqueue_script( 'wc-shipment-as-testcon-js', SS_SHIPPING_PLUGIN_DIR_URL . '/assets/js/ss-shipping-test-connection.js', array('jquery'), SS_SHIPPING_VERSION );
+		wp_enqueue_script( 'smart-send-shipping-admin-js', SS_SHIPPING_PLUGIN_DIR_URL . '/assets/js/ss-shipping-admin.js', array('jquery'), SS_SHIPPING_VERSION );
 
 		// in JavaScript, object properties are accessed as ajax_object.ajax_url, ajax_object.we_value
-		wp_localize_script( 'wc-shipment-as-testcon-js', 'as_test_con_obj', $test_con_data );
+		// wp_localize_script( 'smart-send-shipping-admin-js', 'as_test_con_obj', $test_con_data );
+	}
+
+	public function load_styles_scripts() {
+		// load scripts on checkout page only
+		if( ! is_checkout() ) {
+			return;
+		}
+
+		$display_company_opt = $this->get_instance_option( 'display_company_opt' );
+		error_log($display_company_opt);
+
+		// if( ! empty( $display_company_opt ) && ( $display_company_opt != 'no_company' ) ) {
+			error_log('enqueue script');
+			// Register and load our styles and scripts
+			wp_enqueue_script( 'ss-shipping-checkout-frontend', SS_SHIPPING_PLUGIN_DIR_URL . '/assets/js/ss-shipping-checkout-frontend.js', array( 'jquery', 'wc-checkout' ), SS_SHIPPING_VERSION, true );
+			// wp_localize_script( 'ss-shipping-checkout-frontend', 'ss_shipping_checkout_frontend', $frontend_data);
+			// wp_enqueue_script( 'ss-shipping-checkout-frontend' );
+		// }
 	}
 
 	/**
@@ -217,6 +238,12 @@ class SS_Shipping_WC_Method extends WC_Shipping_Method {
 	}
 
 	public function init_instance_form_fields() {
+		$wc_shipping = WC_Shipping::instance();
+		$wc_shipping_classes = $wc_shipping->get_shipping_classes();
+		$shipping_classes = wp_list_pluck($wc_shipping_classes, 'name', 'slug');
+
+		global $wp_roles;
+		$user_roles = $wp_roles->get_names();
 
 		$this->instance_form_fields = array(
 			'title'            	=> array(
@@ -252,6 +279,9 @@ class SS_Shipping_WC_Method extends WC_Shipping_Method {
 				'description'     => __( 'Configure the shipping method cost and free shipping.', 'smart-send-shipping' ),
 				'class'			  => '',
 			),
+			'cost_weight' => array(
+				'type'        => 'cost_weight',
+			),
 			'requires' => array(
 				'title'   => __( 'Free shipping requires...', 'smart-send-shipping' ),
 				'type'    => 'select',
@@ -273,26 +303,66 @@ class SS_Shipping_WC_Method extends WC_Shipping_Method {
 				'default'     => '0',
 				'desc_tip'    => true,
 			),
-			'cost_weight' => array(
-				'type'        => 'cost_weight',
-			),
 			'advanced_title'     => array(
-				'title'           => __( 'Advanced Validation', 'smart-send-shipping' ),
+				'title'           => __( 'Advanced Settings', 'smart-send-shipping' ),
 				'type'            => 'title',
-				'description'     => __( 'Configure the advanced validation.', 'smart-send-shipping' ),
-				'class'			  => '',
+				'description'     => __( 'Configure the advanced settings.', 'smart-send-shipping' ),
 			),
-			'advanced_validation_enable' => array(
-				'title'             => __( 'Advanced Validation:', 'smart-send-shipping' ),
+			'advanced_settings_enable' => array(
+				'title'             => __( 'Advanced Settings', 'smart-send-shipping' ),
 				'type'              => 'checkbox',
 				'label'             => __( 'Enable', 'smart-send-shipping' ),
 				'default'           => 'no',
-				'description'       => __( 'Enable/disable advanced validation and click save to show/hide settings.', 'smart-send-shipping' ),
+				'description'       => __( 'Enable/disable advanced settings and click save to show/hide settings.', 'smart-send-shipping' ),
 				'desc_tip'          => false,
+			),
+			'display_shipping_class_opt'  => array(
+				'title'           => __( 'Display based on shipping classes', 'smart-send-shipping' ),
+				'type'            => 'radio',
+				'description'     => __( 'Select when to display the shipping method based on shipping class.', 'smart-send-shipping' ),
+				'class'			  => '',
+				'default'         => 'no_shipping_class',
+				'options' => array(
+					'no_shipping_class'		=> __( 'Does not depend on shipping class', 'smart-send-shipping' ),
+					'all_shipping_class'   	=> __( 'Display if ALL products belong to one of the shipping classes', 'smart-send-shipping' ),
+					'one_shipping_class' 	=> __( 'Display if at least ONE product belongs to one of the shipping classes', 'smart-send-shipping' ),
+					'nall_shipping_class'  	=> __( 'Do NOT display if ALL products belong to one of the shipping classes', 'smart-send-shipping' ),
+					'none_shipping_class' 	=> __( 'Do NOT display if at least ONE product belongs to one of the shipping classes', 'smart-send-shipping' )
+				),
+				'desc_tip'          => true,
+			),
+			'display_shipping_class'	=> array(
+				'title' 		=> __( 'Shipping classes', 'smart-send-shipping' ),
+				'type'	 		=> 'multiselect',
+				'class' 	    => 'wc-enhanced-select',
+				'description'   => __( 'Shipping classes used to display the shipping method.', 'smart-send-shipping' ),
+				'desc_tip'     	=> false,
+				'options'		=> $shipping_classes,
+			),/*
+			'display_company_opt'  => array(
+				'title'           => __( 'Display based on company field', 'smart-send-shipping' ),
+				'type'            => 'radio',
+				'description'     => __( 'Select when to display the shipping method based on company field.', 'smart-send-shipping' ),
+				'class'			  => '',
+				'default'         => 'no_company',
+				'options' => array(
+					'no_company'		=> __( 'Display regardless of company field', 'smart-send-shipping' ),
+					'only_company'	   	=> __( 'ONLY display if company-field entered', 'smart-send-shipping' ),
+					'not_company' 		=> __( 'Do NOT display if company-field entered', 'smart-send-shipping' ),
+				),
+				'desc_tip'          => true,
+			),*/
+			'user_roles'	=> array(
+				'title' 			=> __( 'Exclude User role', 'smart-send-shipping' ),
+				'type'	 			=> 'multiselect',
+				'class' 	        => 'wc-enhanced-select',
+				'description'     	=> __( 'Do NOT display shipping method for these user roles.', 'smart-send-shipping' ),
+				'desc_tip'        	=> false,
+				'options'			=> $user_roles,
 			),
 		);
 
-
+		/*
 		$advanced_validation_flag = 'no';
 		// Load the advanced validation POST to see if it is enabled and load associated fields
 		if( ! empty( $_POST ) ) {
@@ -303,72 +373,7 @@ class SS_Shipping_WC_Method extends WC_Shipping_Method {
 			$instance_settings = get_option( $this->get_instance_option_key(), null );
 			$advanced_validation_flag = $instance_settings['advanced_validation_enable'];
 		}
-		
-		if ( $advanced_validation_flag == 'yes' ) {
-			$wc_shipping = WC_Shipping::instance();
-			$wc_shipping_classes = $wc_shipping->get_shipping_classes();
-			// error_log('shipping classes');
-			// error_log(print_r($wc_shipping->get_shipping_classes(),true));
-			$shipping_classes = wp_list_pluck($wc_shipping_classes, 'name');
-
-			global $wp_roles;
-			$user_roles = $wp_roles->get_names();
-
-			$this->instance_form_fields += array(
-					'validate_class'  => array(
-						'title'           => __( 'Validate based on shipping classes', 'smart-send-shipping' ),
-						'type'            => 'radio',
-						'description'     => __( 'Configure the advanced validation.', 'smart-send-shipping' ),
-						'class'			  => '',
-						'default'         => 'no_shipping_class',
-						'options' => array(
-							'no_shipping_class'		=> __( 'Does not depend on shipping class', 'smart-send-shipping' ),
-							'all_shipping_class'   	=> __( 'Valid if ALL products belong to one of the shipping classes', 'smart-send-shipping' ),
-							'one_shipping_class' 	=> __( 'Valid if at least ONE product belongs to one of the shipping classes', 'smart-send-shipping' ),
-							'nall_shipping_class'  	=> __( 'NOT valid if ALL products belong to one of the shipping classes', 'smart-send-shipping' ),
-							'none_shipping_class' 	=> __( 'NOT valid if at least ONE product belongs to one of the shipping classes', 'smart-send-shipping' )
-						),
-						'desc_tip'          => true,
-					),
-					'ship_classes'	=> array(
-						'title' 		=> __( 'Shipping classes', 'smart-send-shipping' ),
-						'type'	 		=> 'multiselect',
-						'class' 	    => 'wc-enhanced-select',
-						'description'   => __( 'Shipping classes used for validatation', 'smart-send-shipping' ),
-						'desc_tip'     	=> false,
-						'options'		=> $shipping_classes,
-					),
-					'validate_company'  => array(
-						'title'           => __( 'Validate based on company field', 'smart-send-shipping' ),
-						'type'            => 'radio',
-						'description'     => __( 'Configure the advanced validation.', 'smart-send-shipping' ),
-						'class'			  => '',
-						'default'         => 'no_company',
-						'options' => array(
-							'no_company'		=> __( 'Validate regardless of company-field', 'smart-send-shipping' ),
-							'only_company'	   	=> __( 'ONLY valid if company-field entered', 'smart-send-shipping' ),
-							'not_company' 		=> __( 'NOT valid if company-field entered', 'smart-send-shipping' ),
-						),
-						'desc_tip'          => true,
-					),
-					'user_roles'	=> array(
-						'title' 			=> __( 'User role', 'smart-send-shipping' ),
-						'type'	 			=> 'multiselect',
-						'class' 	        => 'wc-enhanced-select',
-						'description'     	=> __( 'Shipping method only valid for user roles', 'smart-send-shipping' ),
-						'desc_tip'        	=> false,
-						'options'			=> $user_roles,
-					),
-					'cost_formula' => array(
-						'title'             => __( 'Cost formula', 'smart-send-shipping' ),
-						'type'              => 'text',
-						'description'       => __( 'Advanced calculations.', 'smart-send-shipping' ),
-						'desc_tip'          => true,
-						'default'           => ''
-					),
-			);
-		}
-
+		*/
 	}
 	
 	public function generate_selectopt_html( $key, $data ) {
@@ -434,6 +439,8 @@ class SS_Shipping_WC_Method extends WC_Shipping_Method {
 
 		ob_start();
 
+		$cost_desc = __( 'Enter a cost (excl. tax) or sum, e.g. 10.00 * [qty].', 'smart-send-shipping' ) . '<br/><br/>' . __( 'Use [qty] for the number of items, <br/>[cost] for the total cost of items, and [fee percent=\'10\' min_fee=\'20\' max_fee=\'\'] for percentage based fees.', 'smart-send-shipping' );
+
 		?>
 		<tr valign="top">
 			<th scope="row" class="titledesc"><?php _e( 'Cost based on weight', 'smart-send-shipping' ); ?>:</th>
@@ -444,14 +451,21 @@ class SS_Shipping_WC_Method extends WC_Shipping_Method {
 							<th class="sort">&nbsp;</th>
 							<th><?php _e( 'Minimum [kg]', 'smart-send-shipping' ); ?><a class="tips" data-tip="<?php _e('Cart weight should be equal to or larger than this value for the shipping rate to be applicable', 'smart-send-shipping'); ?>">[?]</a></th>
 							<th><?php _e( 'Maximum [kg]', 'smart-send-shipping' ); ?><a class="tips" data-tip="<?php _e('Cart weight should be strictly less than this value for the shipping rate to be applicable', 'smart-send-shipping'); ?>">[?]</a></th>
-							<th><?php _e( 'Cost', 'smart-send-shipping' ); ?><a class="tips" data-tip="<?php _e('Cost of shipping', 'smart-send-shipping'); ?>">[?]</a></th>
+							<th><?php _e( 'Cost', 'smart-send-shipping' ); ?><a class="tips" data-tip="<?php echo $cost_desc; ?>">[?]</a></th>
 						</tr>
 					</thead>
 					<tbody class="ss_weight_cost">
 						<?php
 						$i = -1;
 						
-						$weight_costs = $this->get_option( 'cost_weight', array() );
+						$weight_costs = $this->get_option( 'cost_weight', 
+							array(
+								array(
+									'ss_min_weight'		=> 0,
+									'ss_max_weight'		=> 20,
+									'ss_cost_weight'	=> 15,
+								),
+							) );
 
 						if ( $weight_costs ) {
 							foreach ( $weight_costs as $weight_cost ) {
@@ -461,7 +475,7 @@ class SS_Shipping_WC_Method extends WC_Shipping_Method {
 									<td class="sort"></td>
 									<td><input type="text" value="' . esc_attr( $weight_cost['ss_min_weight'] ) . '" name="ss_min_weight[' . $i . ']" class ="wc_input_decimal" /></td>
 									<td><input type="text" value="' . esc_attr( $weight_cost['ss_max_weight'] ) . '" name="ss_max_weight[' . $i . ']" class ="wc_input_decimal" /></td>
-									<td><input type="text" value="' . esc_attr( $weight_cost['ss_cost_weight'] ) . '" name="ss_cost_weight[' . $i . ']"  class ="wc_input_price"/></td>
+									<td><input type="text" value="' . esc_attr( $weight_cost['ss_cost_weight'] ) . '" name="ss_cost_weight[' . $i . ']"  class =""/></td>
 								</tr>';
 							}
 						}
@@ -483,7 +497,7 @@ class SS_Shipping_WC_Method extends WC_Shipping_Method {
 									<td class="sort"></td>\
 									<td><input type="text" class ="wc_input_decimal" name="ss_min_weight[' + size + ']" /></td>\
 									<td><input type="text" class ="wc_input_decimal" name="ss_max_weight[' + size + ']" /></td>\
-									<td><input type="text" class ="wc_input_price" name="ss_cost_weight[' + size + ']" /></td>\
+									<td><input type="text" class ="" name="ss_cost_weight[' + size + ']" /></td>\
 								</tr>').appendTo('#ss_cost_weight table tbody');
 
 							return false;
@@ -594,15 +608,213 @@ class SS_Shipping_WC_Method extends WC_Shipping_Method {
 	public function calculate_shipping( $package = array() ) {
 		// error_log('cacluate shipping');
 		// error_log(print_r($package,true));
-
-		$this->add_rate( array(
+		$rate = array(
 			'id' 	=> $this->get_rate_id() . '_' . $this->get_instance_option( 'method' ),
-			'label' => $this->title,
-			'cost' 	=> 10,
-			'sort'  => 0
-		) );
+			'label'   => $this->title,
+			'cost'    => 0,
+			'package' => $package,
+		);
+
+		// Check if free shipping, otherwise claculate based on weight and evaluate formulas
+		if( $this->is_free_shipping( $package ) ) {
+
+			$rate[ 'taxes' ] = false;
+			$this->add_rate( $rate );
+
+		} else {
+			$cart_weight = WC()->cart->get_cart_contents_weight();
+			$weight_costs = $this->get_option( 'cost_weight', array() );
+			// Set tax status based on selection otherwise always taxed
+			$this->tax_status = $this->get_option( 'tax_status' );
+
+			if ( $weight_costs ) {
+				foreach ( $weight_costs as $weight_cost ) {
+					if ( ( $cart_weight >= $weight_cost['ss_min_weight'] ) && ( $cart_weight < $weight_cost['ss_max_weight'] ) ) {
+						if ( '' !== $weight_cost['ss_cost_weight'] ) {
+
+							$rate['cost'] = $this->evaluate_cost( $weight_cost['ss_cost_weight'], array(
+								'qty'  => $this->get_package_item_qty( $package ),
+								'cost' => $package['contents_cost'],
+							) );
+
+							$this->add_rate( $rate );
+						}		
+					}
+				}
+			}
+		}
+
+		/**
+		 * Developers can add additional flat rates based on this one via this action since @version 2.4.
+		 *
+		 * Previously there were (overly complex) options to add additional rates however this was not user.
+		 * friendly and goes against what Flat Rate Shipping was originally intended for.
+		 *
+		 * This example shows how you can add an extra rate based on this flat rate via custom function:
+		 *
+		 * 		add_action( 'woocommerce_flat_rate_shipping_add_rate', 'add_another_custom_flat_rate', 10, 2 );
+		 *
+		 * 		function add_another_custom_flat_rate( $method, $rate ) {
+		 * 			$new_rate          = $rate;
+		 * 			$new_rate['id']    .= ':' . 'custom_rate_name'; // Append a custom ID.
+		 * 			$new_rate['label'] = 'Rushed Shipping'; // Rename to 'Rushed Shipping'.
+		 * 			$new_rate['cost']  += 2; // Add $2 to the cost.
+		 *
+		 * 			// Add it to WC.
+		 * 			$method->add_rate( $new_rate );
+		 * 		}.
+		 */
+		do_action( 'woocommerce_' . $this->id . '_shipping_add_rate', $this, $rate );
 	}
 
+	public function is_available( $package ) {
+		error_log('is available');
+		// error_log(print_r($package,true));
+		$is_available = true;
+		$one_in_array = false;
+		$all_in_array = true;
+
+		if( $this->get_instance_option( 'advanced_settings_enable' ) == 'yes' ) {
+			
+			// Display based on shipping class
+			$display_shipping_class = $this->get_instance_option( 'display_shipping_class' );
+			// error_log(print_r($display_shipping_class,true));
+			if( ! empty( $display_shipping_class ) ) {
+				
+				foreach ( $package['contents'] as $item_id => $values ) {
+					
+					if ( $values['data']->needs_shipping() ) {
+						$found_class = $values['data']->get_shipping_class();
+
+						if ( in_array($found_class, $display_shipping_class) ) {
+							$one_in_array = true;
+						} else {
+							$all_in_array = false;
+						}
+						// error_log(print_r($found_class,true));
+
+					}
+				}
+
+				$display_shipping_class_opt = $this->get_instance_option( 'display_shipping_class_opt' );
+
+				// $found_shipping_classes = $this->find_shipping_classes( $package );
+				// error_log(print_r($found_shipping_classes,true));
+
+				// array_intersect()
+				switch ( $display_shipping_class_opt ) {
+					case 'all_shipping_class' :
+						$is_available = $all_in_array;
+						break;
+					case 'one_shipping_class' :
+						$is_available = $one_in_array;
+						break;
+					case 'nall_shipping_class' :
+						$is_available = ! $all_in_array;
+						break;
+					case 'none_shipping_class' :
+						$is_available = ! $one_in_array;
+						break;
+				}
+			}
+
+			// $package['destination']['com']
+			// $shipping_company = WC()->customer->get_shipping_company();
+			// error_log($shipping_company);
+			// error_log(print_r($_POST['post_data'],true));
+			/*
+			if ( WOOCOMMERCE_CHECKOUT && isset( $_POST['post_data'] ) ) {
+				$post_data = array();
+				parse_str($_POST['post_data'], $post_data);
+				
+				// Not billing only address OR not set to billing (different shipping address)
+				$shipping_company = wc_ship_to_billing_address_only() || ! isset( $post_data['ship_to_different_address'] ) ? wc_clean( $post_data['billing_company'] ) : wc_clean( $post_data['shipping_company'] );
+				
+				// error_log($shipping_company);
+				// Display if company name
+				$display_company_opt = $this->get_instance_option( 'display_company_opt' );
+				// error_log($display_company_opt);
+				switch ( $display_company_opt ) {
+					case 'only_company' :
+						$is_available = ! empty( $shipping_company );
+						break;
+					case 'not_company' :
+						$is_available = empty( $shipping_company );
+						break;
+				}
+			}*/
+
+			// Exclude customer roles
+			$customer_role = WC()->customer->get_role();
+			$exclude_roles = $this->get_instance_option( 'user_roles' );
+			// error_log(print_r($customer_role,true));
+			// error_log(print_r($exclude_roles,true));
+			if ( ! empty( $exclude_roles ) && in_array( $customer_role, $exclude_roles) ) {
+				$is_available = false;
+			}
+
+		}
+
+		return $is_available;
+	}
+	
+	/**
+	 * See if free shipping is available based on the package and cart.
+	 *
+	 * @param array $package Shipping package.
+	 * @return bool
+	 */
+	public function is_free_shipping( $package ) {
+		$has_coupon         = false;
+		$has_met_min_amount = false;
+		$requires = $this->get_instance_option( 'requires' );
+		$min_amount = $this->get_instance_option( 'min_amount' );
+
+		if ( in_array( $requires, array( 'coupon', 'either', 'both' ) ) ) {
+			if ( $coupons = WC()->cart->get_coupons() ) {
+				foreach ( $coupons as $code => $coupon ) {
+					if ( $coupon->is_valid() && $coupon->get_free_shipping() ) {
+						$has_coupon = true;
+						break;
+					}
+				}
+			}
+		}
+
+		if ( in_array( $requires, array( 'min_amount', 'either', 'both' ) ) ) {
+			$total = WC()->cart->get_displayed_subtotal();
+
+			if ( 'incl' === WC()->cart->tax_display_cart ) {
+				$total = round( $total - ( WC()->cart->get_discount_total() + WC()->cart->get_discount_tax() ), wc_get_price_decimals() );
+			} else {
+				$total = round( $total - WC()->cart->get_discount_total(), wc_get_price_decimals() );
+			}
+
+			if ( $total >= $min_amount ) {
+				$has_met_min_amount = true;
+			}
+		}
+
+		switch ( $requires ) {
+			case 'min_amount' :
+				$is_available = $has_met_min_amount;
+				break;
+			case 'coupon' :
+				$is_available = $has_coupon;
+				break;
+			case 'both' :
+				$is_available = $has_met_min_amount && $has_coupon;
+				break;
+			case 'either' :
+				$is_available = $has_met_min_amount || $has_coupon;
+				break;
+			default :
+				$is_available = true;
+				break;
+		}
+
+		return apply_filters( 'woocommerce_shipping_' . $this->id . '_is_free_shipping', $is_available, $package, $this );
+	}
 }
 
 endif;
