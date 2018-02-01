@@ -47,7 +47,6 @@ class SS_Shipping_WC_Method extends WC_Shipping_Flat_Rate {
 			'settings',
 			'shipping-zones', // support shipping zones shipping method
 			'instance-settings',
-			// 'instance-settings-modal',
 		);
 
 		$this->init();
@@ -70,10 +69,6 @@ class SS_Shipping_WC_Method extends WC_Shipping_Flat_Rate {
 		add_action( 'woocommerce_update_options_shipping_' . $this->id, array( $this, 'process_admin_options' ) );
 		// Admin script
 		add_action( 'admin_enqueue_scripts', array( $this, 'load_admin_scripts' ) );
-		// Frontend script
-		// add_action( 'wp_enqueue_scripts', array( $this, 'load_styles_scripts' ) );
-
-		
 	}
 
 	public function load_admin_scripts( $hook ) {
@@ -82,35 +77,9 @@ class SS_Shipping_WC_Method extends WC_Shipping_Flat_Rate {
 			// Only applies to WC Settings panel
 			return;
 	    }
-	    
-		// $test_con_data = array(
-	    	// 'ajax_url' => admin_url( 'admin-ajax.php' ),
-	    	// 'test_con_nonce' => wp_create_nonce( 'ss-shipping-test-con' ) 
-	    // );
 
-		// wp_enqueue_style( 'wc-shipment-as-label-css', SS_Shipping_PLUGIN_DIR_URL . '/assets/css/pr-as-admin.css' );		
 		wp_enqueue_script( 'smart-send-shipping-admin-js', SS_SHIPPING_PLUGIN_DIR_URL . '/assets/js/ss-shipping-admin.js', array('jquery'), SS_SHIPPING_VERSION );
 
-		// in JavaScript, object properties are accessed as ajax_object.ajax_url, ajax_object.we_value
-		// wp_localize_script( 'smart-send-shipping-admin-js', 'as_test_con_obj', $test_con_data );
-	}
-
-	public function load_styles_scripts() {
-		// load scripts on checkout page only
-		if( ! is_checkout() ) {
-			return;
-		}
-
-		$display_company_opt = $this->get_instance_option( 'display_company_opt' );
-		error_log($display_company_opt);
-
-		// if( ! empty( $display_company_opt ) && ( $display_company_opt != 'no_company' ) ) {
-			error_log('enqueue script');
-			// Register and load our styles and scripts
-			wp_enqueue_script( 'ss-shipping-checkout-frontend', SS_SHIPPING_PLUGIN_DIR_URL . '/assets/js/ss-shipping-checkout-frontend.js', array( 'jquery', 'wc-checkout' ), SS_SHIPPING_VERSION, true );
-			// wp_localize_script( 'ss-shipping-checkout-frontend', 'ss_shipping_checkout_frontend', $frontend_data);
-			// wp_enqueue_script( 'ss-shipping-checkout-frontend' );
-		// }
 	}
 
 	/**
@@ -237,6 +206,7 @@ class SS_Shipping_WC_Method extends WC_Shipping_Flat_Rate {
 		return ob_get_clean();
 	}
 
+
 	public function init_instance_form_fields() {
 		$wc_shipping = WC_Shipping::instance();
 		$wc_shipping_classes = $wc_shipping->get_shipping_classes();
@@ -313,21 +283,21 @@ class SS_Shipping_WC_Method extends WC_Shipping_Flat_Rate {
 				'type'              => 'checkbox',
 				'label'             => __( 'Enable', 'smart-send-shipping' ),
 				'default'           => 'no',
-				'description'       => __( 'Enable/disable advanced settings and click save to show/hide settings.', 'smart-send-shipping' ),
+				'description'       => __( 'Enable/disable advanced settings and to show/hide settings.', 'smart-send-shipping' ),
 				'desc_tip'          => false,
 			),
 			'display_shipping_class_opt'  => array(
-				'title'           => __( 'Display based on shipping classes', 'smart-send-shipping' ),
-				'type'            => 'radio',
+				'title'           => __( 'Display shipping method if...', 'smart-send-shipping' ),
+				'type'    		  => 'select',
+				'class'   		  => 'wc-enhanced-select',
 				'description'     => __( 'Select when to display the shipping method based on shipping class.', 'smart-send-shipping' ),
-				'class'			  => '',
-				'default'         => 'no_shipping_class',
+				'default'         => '',
 				'options' => array(
-					'no_shipping_class'		=> __( 'Does not depend on shipping class', 'smart-send-shipping' ),
-					'all_shipping_class'   	=> __( 'Display if ALL products belong to one of the shipping classes', 'smart-send-shipping' ),
-					'one_shipping_class' 	=> __( 'Display if at least ONE product belongs to one of the shipping classes', 'smart-send-shipping' ),
-					'nall_shipping_class'  	=> __( 'Do NOT display if ALL products belong to one of the shipping classes', 'smart-send-shipping' ),
-					'none_shipping_class' 	=> __( 'Do NOT display if at least ONE product belongs to one of the shipping classes', 'smart-send-shipping' )
+					'no_shipping_class'		=> __( 'N/A', 'smart-send-shipping' ),
+					'all_shipping_class'   	=> __( 'ALL products belong to one of the shipping classes', 'smart-send-shipping' ),
+					'one_shipping_class' 	=> __( 'At least ONE product belongs to one of the shipping classes', 'smart-send-shipping' ),
+					'nall_shipping_class'  	=> __( 'ALL products do NOT belong to one of the shipping classes', 'smart-send-shipping' ),
+					'none_shipping_class' 	=> __( 'At least ONE product does NOT belongs to one of the shipping classes', 'smart-send-shipping' )
 				),
 				'desc_tip'          => true,
 			),
@@ -535,8 +505,6 @@ class SS_Shipping_WC_Method extends WC_Shipping_Flat_Rate {
 		}
 
 		return $weight_costs;
-		// update_option( 'woocommerce_ss_shipping_weight_cost', $weight_costs );
-
 	}
 
 	/**
@@ -629,16 +597,22 @@ class SS_Shipping_WC_Method extends WC_Shipping_Flat_Rate {
 
 			if ( $weight_costs ) {
 				foreach ( $weight_costs as $weight_cost ) {
-					if ( ( $cart_weight >= $weight_cost['ss_min_weight'] ) && ( $cart_weight < $weight_cost['ss_max_weight'] ) ) {
-						if ( '' !== $weight_cost['ss_cost_weight'] ) {
 
-							$rate['cost'] = $this->evaluate_cost( $weight_cost['ss_cost_weight'], array(
-								'qty'  => $this->get_package_item_qty( $package ),
-								'cost' => $package['contents_cost'],
-							) );
+					// If empty ignore field and continue, otherwise check if equal or greater than
+					if ( empty( $weight_cost['ss_min_weight'] ) || ( $cart_weight >= $weight_cost['ss_min_weight'] ) ) {
+						// IF empty ignore field and contine, otherwise check if less than
+						if ( empty( $weight_cost['ss_max_weight'] ) || ( $cart_weight < $weight_cost['ss_max_weight'] ) ) {
+							// If cost NOT empty add a fee
+							if ( ! empty( $weight_cost['ss_cost_weight'] ) ) {
 
-							$this->add_rate( $rate );
-						}		
+								$rate['cost'] = $this->evaluate_cost( $weight_cost['ss_cost_weight'], array(
+									'qty'  => $this->get_package_item_qty( $package ),
+									'cost' => $package['contents_cost'],
+								) );
+
+								$this->add_rate( $rate );
+							}		
+						}
 					}
 				}
 			}
@@ -691,17 +665,12 @@ class SS_Shipping_WC_Method extends WC_Shipping_Flat_Rate {
 						} else {
 							$all_in_array = false;
 						}
-						// error_log(print_r($found_class,true));
 
 					}
 				}
 
 				$display_shipping_class_opt = $this->get_instance_option( 'display_shipping_class_opt' );
 
-				// $found_shipping_classes = $this->find_shipping_classes( $package );
-				// error_log(print_r($found_shipping_classes,true));
-
-				// array_intersect()
 				switch ( $display_shipping_class_opt ) {
 					case 'all_shipping_class' :
 						$is_available = $all_in_array;
@@ -755,7 +724,7 @@ class SS_Shipping_WC_Method extends WC_Shipping_Flat_Rate {
 
 		}
 
-		return $is_available;
+		return apply_filters( 'woocommerce_shipping_' . $this->id . '_is_available', $is_available, $package, $this );
 	}
 	
 	/**

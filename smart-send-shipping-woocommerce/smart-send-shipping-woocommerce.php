@@ -44,21 +44,8 @@ class SS_Shipping_WC {
 	 *
 	 * @var SS_Shipping_WC_Order
 	 */
-	public $shipping_as_order = null;
+	public $ss_shipping_wc_order = null;
 
-	/**
-	 * Smart Send Shipping Front-end
-	 *
-	 * @var SS_Shipping_Paket_Front_End
-	 */
-	protected $shipping_as_frontend = null;
-	
-	/**
-	 * Smart Send Shipping Product for label and tracking.
-	 *
-	 * @var SS_Shipping_WC_Product
-	 */
-	protected $shipping_as_product = null;
 
 	/**
 	 * Smart Send Shipping Order for label and tracking.
@@ -67,19 +54,13 @@ class SS_Shipping_WC {
 	 */
 	protected $logger = null;
 
-	private $payment_gateway_titles = array();
-
 	/**
 	* Construct the plugin.
 	*/
 	public function __construct() {
-		// add_action( 'init', array( $this, 'init' ) );
-		// add_action( 'plugins_loaded', array( $this, 'init' ) );
 		$this->define_constants();
 		$this->includes();
 		$this->init_hooks();
-		// create classes
-		// $this->init();
 	}
 
 	/**
@@ -124,11 +105,6 @@ class SS_Shipping_WC {
 	public function includes() {
 		// Auto loader class
 		include_once( 'includes/class-ss-shipping-autoloader.php' );
-		
-		// include_once( 'includes/class-ss-shipping-wc-method.php' );
-		// Load abstract classes
-		// include_once( 'includes/abstract-ss-shipping-wc-order.php' );
-		// include_once( 'includes/abstract-ss-shipping-wc-product.php' );
 	}
 
 	public function init_hooks() {
@@ -139,7 +115,7 @@ class SS_Shipping_WC {
 		add_filter( 'plugin_row_meta', array( $this, 'ss_shipping_plugin_row_meta'), 10, 2 );
 		
 		// add_action( 'admin_notices', array( $tif ( WC_PLUGIN_BASENAME == $file ) {
-		add_action( 'admin_enqueue_scripts', array( $this, 'ss_shipping_theme_enqueue_styles') );		
+		// add_action( 'admin_enqueue_scripts', array( $this, 'ss_shipping_theme_enqueue_styles') );		
 
 		// add_action( 'woocommerce_shipping_init', array( $this, 'includes' ) );
 		add_filter( 'woocommerce_shipping_methods', array( $this, 'add_shipping_method' ) );
@@ -244,7 +220,6 @@ class SS_Shipping_WC {
 		</div>
 	<?php
 	}
-
 
 	public function get_base_country() {
 		$origin_point = wc_get_base_location();

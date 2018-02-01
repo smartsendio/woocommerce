@@ -1,20 +1,31 @@
 jQuery(function($) {
-	function showDisplayTaxExempt(e) {
+	function showDisplayAdvancedSettings(e) {
 	    if( $('#woocommerce_smart_send_shipping_advanced_settings_enable').is(':checked')) {
-	    	console.log('is checked');
 	        $('#woocommerce_smart_send_shipping_advanced_settings_enable').closest('tr').nextAll().show();
 	        // $('.display-smart-send').show();
 
 	    } else {
-	    	console.log('is NOT checked');
 	        $('#woocommerce_smart_send_shipping_advanced_settings_enable').closest('tr').nextAll().hide();
-	        // $('.display-smart-send').hide();
+	    }
+	}
+
+	function showDisplayMinAmount(e) {
+		var shipping_requires = $('#woocommerce_smart_send_shipping_requires').val();
+	    if( ( shipping_requires == 'min_amount' ) || ( shipping_requires == 'either' ) || ( shipping_requires == 'both') ) {
+	        $('#woocommerce_smart_send_shipping_requires').closest('tr').next().show();
+
+	    } else {
+	        $('#woocommerce_smart_send_shipping_requires').closest('tr').next().hide();
 	    }
 	}
 
 	$( document ).ready(function() {
-		// Handler for .ready() called.
-		showDisplayTaxExempt();
-		$('#woocommerce_smart_send_shipping_advanced_settings_enable').on("click", showDisplayTaxExempt);
+		// Display or hide advanced settings
+		showDisplayAdvancedSettings();
+		$('#woocommerce_smart_send_shipping_advanced_settings_enable').on("click", showDisplayAdvancedSettings);
+
+		// Display or hide minimum amount
+		showDisplayMinAmount();
+		$('#woocommerce_smart_send_shipping_requires').on("change", showDisplayMinAmount);
 	});
 });
