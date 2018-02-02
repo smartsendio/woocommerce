@@ -176,7 +176,6 @@ class SS_Shipping_WC_Method extends WC_Shipping_Flat_Rate {
 	 */
 	public function generate_button_html( $key, $data ) {
 		$field    = $this->plugin_id . $this->id . '_' . $key;
-		// error_log($field);
 		$defaults = array(
 			'class'             => 'button-secondary',
 			'css'               => '',
@@ -518,8 +517,6 @@ class SS_Shipping_WC_Method extends WC_Shipping_Flat_Rate {
 	 */
 	public function generate_radio_html( $key, $data ) {
 		$field_key = $this->get_field_key( $key );
-		// error_log($key);
-		// error_log(print_r($data,true));
 		$defaults  = array(
 			'title'             => '',
 			'disabled'          => false,
@@ -534,7 +531,6 @@ class SS_Shipping_WC_Method extends WC_Shipping_Flat_Rate {
 		);
 
 		$data = wp_parse_args( $data, $defaults );
-		// error_log($this->get_option( $key ));
 
 		ob_start();
 		?>
@@ -575,8 +571,6 @@ class SS_Shipping_WC_Method extends WC_Shipping_Flat_Rate {
 	}
 
 	public function calculate_shipping( $package = array() ) {
-		// error_log('cacluate shipping');
-		// error_log(print_r($package,true));
 		$rate = array(
 			'id' 	=> $this->get_rate_id() . '_' . $this->get_instance_option( 'method' ),
 			'label'   => $this->title,
@@ -643,8 +637,6 @@ class SS_Shipping_WC_Method extends WC_Shipping_Flat_Rate {
 	}
 
 	public function is_available( $package ) {
-		error_log('is available');
-		// error_log(print_r($package,true));
 		$is_available = true;
 		$one_in_array = false;
 		$all_in_array = true;
@@ -653,7 +645,6 @@ class SS_Shipping_WC_Method extends WC_Shipping_Flat_Rate {
 			
 			// Display based on shipping class
 			$display_shipping_class = $this->get_instance_option( 'display_shipping_class' );
-			// error_log(print_r($display_shipping_class,true));
 			if( ! empty( $display_shipping_class ) ) {
 				
 				foreach ( $package['contents'] as $item_id => $values ) {
@@ -688,37 +679,9 @@ class SS_Shipping_WC_Method extends WC_Shipping_Flat_Rate {
 				}
 			}
 
-			// $package['destination']['com']
-			// $shipping_company = WC()->customer->get_shipping_company();
-			// error_log($shipping_company);
-			// error_log(print_r($_POST['post_data'],true));
-			/*
-			if ( WOOCOMMERCE_CHECKOUT && isset( $_POST['post_data'] ) ) {
-				$post_data = array();
-				parse_str($_POST['post_data'], $post_data);
-				
-				// Not billing only address OR not set to billing (different shipping address)
-				$shipping_company = wc_ship_to_billing_address_only() || ! isset( $post_data['ship_to_different_address'] ) ? wc_clean( $post_data['billing_company'] ) : wc_clean( $post_data['shipping_company'] );
-				
-				// error_log($shipping_company);
-				// Display if company name
-				$display_company_opt = $this->get_instance_option( 'display_company_opt' );
-				// error_log($display_company_opt);
-				switch ( $display_company_opt ) {
-					case 'only_company' :
-						$is_available = ! empty( $shipping_company );
-						break;
-					case 'not_company' :
-						$is_available = empty( $shipping_company );
-						break;
-				}
-			}*/
-
 			// Exclude customer roles
 			$customer_role = WC()->customer->get_role();
 			$exclude_roles = $this->get_instance_option( 'user_roles' );
-			// error_log(print_r($customer_role,true));
-			// error_log(print_r($exclude_roles,true));
 			if ( ! empty( $exclude_roles ) && in_array( $customer_role, $exclude_roles) ) {
 				$is_available = false;
 			}
