@@ -614,16 +614,13 @@ class SS_Shipping_WC_Method extends WC_Shipping_Flat_Rate {
 		}
 
 		/**
-		 * Developers can add additional flat rates based on this one via this action since @version 2.4.
-		 *
-		 * Previously there were (overly complex) options to add additional rates however this was not user.
-		 * friendly and goes against what Flat Rate Shipping was originally intended for.
+		 * Developers can add additional rates based on this one via this action
 		 *
 		 * This example shows how you can add an extra rate based on this flat rate via custom function:
 		 *
-		 * 		add_action( 'woocommerce_flat_rate_shipping_add_rate', 'add_another_custom_flat_rate', 10, 2 );
+		 * 		add_action( 'woocommerce_smart_send_shipping_shipping_add_rate', 'add_another_custom_rate', 10, 2 );
 		 *
-		 * 		function add_another_custom_flat_rate( $method, $rate ) {
+		 * 		function add_another_custom_rate( $method, $rate ) {
 		 * 			$new_rate          = $rate;
 		 * 			$new_rate['id']    .= ':' . 'custom_rate_name'; // Append a custom ID.
 		 * 			$new_rate['label'] = 'Rushed Shipping'; // Rename to 'Rushed Shipping'.
