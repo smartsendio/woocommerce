@@ -9,30 +9,31 @@ if ( ! class_exists( 'SS_Shipping_WC_Method' ) ) :
 
 class SS_Shipping_WC_Method extends WC_Shipping_Flat_Rate {
 
-	private $shipping_method = array( 'PostNord' 	=> 
-											array( 
-												'postnord_pickuppoint' 			=>	'PostNord: Pickup point',
-												'postnord_closestpickup'	 	=>	'PostNord: Closest pickup point',
-												'postnord_privatetohome'		=>	'PostNord: Private to home',
-												'postnord_commercial' 			=>	'PostNord: Commercial',
-												'postnord_valuemail' 			=>	'PostNord: Valuemail',
-												'postnord_valuemailsmall'		=>	'PostNord: Small Valuemail',
-											),
-										'GLS'		=>
-											array( 
-												'gls_pickuppoint' 				=>	'GLS: Pickup point',
-												'gls_closestpickup'	 			=>	'GLS: Closest pickup point',
-												'gls_privatetohome'				=>	'GLS: Private to home',
-												'gls_commercial' 				=>	'GLS: Commercial',
-											),
-										'Bring'		=>
-											array( 
-												'bring_pickuppoint' 			=>	'Bring: Pickup point',
-												'bring_closestpickup'	 		=>	'Bring: Closest pickup point',
-												'bring_privatetohome'			=>	'Bring: Private to home',
-												'bring_commercial' 				=>	'Bring: Commercial',
-											),
-								);
+	private $shipping_method = array(
+		'PostNord' 	=> 
+			array( 
+				'postnord_pickuppoint'		=> 'PostNord: Pickup point',
+				'postnord_closestpickup'	=> 'PostNord: Closest pickup point',
+				'postnord_privatetohome'	=> 'PostNord: Private to home',
+				'postnord_commercial'		=> 'PostNord: Commercial',
+				'postnord_valuemail' 		=> 'PostNord: Valuemail',
+				'postnord_valuemailsmall' 	=> 'PostNord: Small Valuemail',
+			),
+		'GLS'		=>
+			array( 
+				'gls_pickuppoint' 			=> 'GLS: Pickup point',
+				'gls_closestpickup'	 		=> 'GLS: Closest pickup point',
+				'gls_privatetohome'			=> 'GLS: Private to home',
+				'gls_commercial' 			=> 'GLS: Commercial',
+			),
+		'Bring'		=>
+			array( 
+				'bring_pickuppoint'			=> 'Bring: Pickup point',
+				'bring_closestpickup'		=> 'Bring: Closest pickup point',
+				'bring_privatetohome'		=> 'Bring: Private to home',
+				'bring_commercial'			=> 'Bring: Commercial',
+			),
+	);
 
 	/**
 	 * Init and hook in the integration.
