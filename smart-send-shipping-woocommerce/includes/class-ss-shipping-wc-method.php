@@ -227,7 +227,7 @@ class SS_Shipping_WC_Method extends WC_Shipping_Flat_Rate {
 				'title'           	=> __( 'Shipping Method', 'smart-send-shipping' ),
 				'type'            	=> 'selectopt',
 				'class' 	        => 'wc-enhanced-select',
-				'description'     	=> __( 'This controls the title which the user sees during checkout.', 'smart-send-shipping' ),
+				'description'     	=> __( 'This is the shipping method used when generating shipping labels.', 'smart-send-shipping' ),
 				'desc_tip'        	=> true,
 				'options'         	=> $this->shipping_method
 			),
@@ -269,7 +269,7 @@ class SS_Shipping_WC_Method extends WC_Shipping_Flat_Rate {
 				'title'       => __( 'Minimum order amount', 'smart-send-shipping' ),
 				'type'        => 'price',
 				'placeholder' => wc_format_localized_price( 0 ),
-				'description' => __( 'Users will need to spend this amount to get free shipping (if enabled above).', 'smart-send-shipping' ),
+				'description' => __( 'Users will need to spend at least this amount (including VAT) to get free shipping (if enabled above).', 'smart-send-shipping' ),
 				'default'     => '0',
 				'desc_tip'    => true,
 			),
@@ -419,8 +419,8 @@ class SS_Shipping_WC_Method extends WC_Shipping_Flat_Rate {
 					<thead>
 						<tr>
 							<th class="sort">&nbsp;</th>
-							<th><?php _e( 'Minimum [kg]', 'smart-send-shipping' ); ?><a class="tips" data-tip="<?php _e('Cart weight should be equal to or larger than this value for the shipping rate to be applicable', 'smart-send-shipping'); ?>">[?]</a></th>
-							<th><?php _e( 'Maximum [kg]', 'smart-send-shipping' ); ?><a class="tips" data-tip="<?php _e('Cart weight should be strictly less than this value for the shipping rate to be applicable', 'smart-send-shipping'); ?>">[?]</a></th>
+							<th><?php _e( 'Minimum', 'smart-send-shipping' ) ?> [<?php echo get_option('woocommerce_weight_unit'); ?>]<a class="tips" data-tip="<?php _e('Cart weight should be equal to or larger than this value for the shipping rate to be applicable', 'smart-send-shipping'); ?>">[?]</a></th>
+							<th><?php _e( 'Maximum', 'smart-send-shipping' ); ?> [<?php echo get_option('woocommerce_weight_unit'); ?>]<a class="tips" data-tip="<?php _e('Cart weight should be strictly less than this value for the shipping rate to be applicable', 'smart-send-shipping'); ?>">[?]</a></th>
 							<th><?php _e( 'Cost', 'smart-send-shipping' ); ?><a class="tips" data-tip="<?php echo $cost_desc; ?>">[?]</a></th>
 						</tr>
 					</thead>
@@ -457,6 +457,7 @@ class SS_Shipping_WC_Method extends WC_Shipping_Flat_Rate {
 						</tr>
 					</tfoot>
 				</table>
+                <p class="description"><?php _e( 'Enter the shipping cost excluding tax', 'smart-send-shipping' ); ?></p>
 				<script type="text/javascript">
 					jQuery(function() {
 						jQuery('#ss_cost_weight').on( 'click', 'a.add', function(){
