@@ -258,7 +258,8 @@ class SS_Shipping_WC_Method extends WC_Shipping_Flat_Rate {
 				'class'   => 'wc-enhanced-select',
 				'default' => '',
 				'options' => array(
-					''           => __( 'N/A', 'smart-send-shipping' ),
+					'disabled'   => __( 'Always disabled', 'smart-send-shipping' ),
+					'enabled'    => __( 'Always enabled', 'smart-send-shipping' ),
 					'coupon'     => __( 'A valid free shipping coupon', 'smart-send-shipping' ),
 					'min_amount' => __( 'A minimum order amount', 'smart-send-shipping' ),
 					'either'     => __( 'A minimum order amount OR a coupon', 'smart-send-shipping' ),
@@ -346,6 +347,15 @@ class SS_Shipping_WC_Method extends WC_Shipping_Flat_Rate {
 		*/
 	}
 	
+	public function validate_title_field( $key, $title ) {
+		
+		if( empty($title) ) {
+			throw new Exception( __('"Method Title" cannot be empty', 'smart-send-shipping') );
+		}
+
+		return $title;
+	}
+
 	public function generate_selectopt_html( $key, $data ) {
 		$field_key = $this->get_field_key( $key );
 		$defaults  = array(
@@ -493,7 +503,7 @@ class SS_Shipping_WC_Method extends WC_Shipping_Flat_Rate {
 			$ss_cost_weights = array_map( 'wc_clean', $_POST['ss_cost_weight'] );
 
 			foreach ( $ss_min_weights as $i => $name ) {
-				if ( ! isset( $ss_min_weights[ $i ] ) ) {
+				if ( empty( $ss_cost_weights[ $i ] ) ) {
 					continue;
 				}
 
@@ -678,10 +688,18 @@ class SS_Shipping_WC_Method extends WC_Shipping_Flat_Rate {
 			}
 
 			// Exclude customer roles
-			$customer_role = WC()->customer->get_role();
+			$user_meta = get_userdata( get_current_user_id() );
+			$customer_roles = $user_meta->roles; //array of roles the user is part of.
+
 			$exclude_roles = $this->get_instance_option( 'user_roles' );
-			if ( ! empty( $exclude_roles ) && in_array( $customer_role, $exclude_roles) ) {
-				$is_available = false;
+
+			if ( ! empty( $exclude_roles ) ) {
+				foreach ($customer_roles as $key => $customer_role) {
+					if ( in_array( $customer_role, $exclude_roles) ) {
+						$is_available = false;
+						break;
+					}
+				}
 			}
 
 		}
@@ -716,9 +734,9 @@ class SS_Shipping_WC_Method extends WC_Shipping_Flat_Rate {
 			$total = WC()->cart->get_displayed_subtotal();
 
 			if ( 'incl' === WC()->cart->tax_display_cart ) {
-				$total = round( $total - ( WC()->cart->get_discount_total() + WC()->cart->get_discount_tax() ), wc_get_price_decimals() );
+				$total = round( $total - ( WC()->cart->get_cart_discount_total() + WC()->cart->get_cart_discount_tax() ), wc_get_price_decimals() );
 			} else {
-				$total = round( $total - WC()->cart->get_discount_total(), wc_get_price_decimals() );
+				$total = round( $total - WC()->cart->get_cart_discount_total(), wc_get_price_decimals() );
 			}
 
 			if ( $total >= $min_amount ) {
@@ -739,11 +757,17 @@ class SS_Shipping_WC_Method extends WC_Shipping_Flat_Rate {
 			case 'either' :
 				$is_available = $has_met_min_amount || $has_coupon;
 				break;
-			default :
+			case 'enabled' :
 				$is_available = true;
 				break;
+			case 'disabled' :
+				$is_available = false;
+				break;
+			default :
+				$is_available = false;
+				break;
 		}
-
+		
 		return apply_filters( 'woocommerce_shipping_' . $this->id . '_is_free_shipping', $is_available, $package, $this );
 	}
 }
