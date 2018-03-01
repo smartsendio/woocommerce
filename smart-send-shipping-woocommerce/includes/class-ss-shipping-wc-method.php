@@ -238,7 +238,7 @@ class SS_Shipping_WC_Method extends WC_Shipping_Flat_Rate {
 				'title' 			=> __( 'Tax status', 'smart-send-shipping' ),
 				'type'	 			=> 'select',
 				'class' 	        => 'wc-enhanced-select',
-				'description'     => __( 'This controls the title which the user sees during checkout.', 'smart-send-shipping' ),
+				'description'     => __( 'Whether or not the shipping method is taxable.', 'smart-send-shipping' ),
 				'default' 			=> 'taxable',
 				'desc_tip'        	=> true,
 				'options'			=> array(
