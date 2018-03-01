@@ -99,17 +99,6 @@ class SS_Shipping_WC_Method extends WC_Shipping_Flat_Rate {
 				'type' 			=> 'title',
 				'description' 	=> __( 'Settings for general shipping labels','smart-send-shipping' ),
 			),
-			'combine_pdf_files' => array(
-				'title'    	=> __( 'Merge labels from multiple orders','smart-send-shipping'),
-				'desc'     	=> __( 'Generate PDF file containing all labels or create a single PDF file for each order','smart-send-shipping'),
-				'default' 	=> 'yes',
-				'type'    	=> 'radio',
-				'options' 	=> array(
-					'yes'     	=> __( 'Merged PDF file','smart-send-shipping'),
-					'no'      	=> __( 'Separate PDF files','smart-send-shipping'),
-				),
-				'desc_tip'        =>  true,
-			),
 			'order_status' => array(
 				'title'    	=> __( 'Set order status after label print','smart-send-shipping'),
 				'id'       	=> 'smartsend_logistics_order_status',
@@ -136,17 +125,6 @@ class SS_Shipping_WC_Method extends WC_Shipping_Flat_Rate {
 				'title'   		=> __( 'Pickup Points','smart-send-shipping'),
 				'type' 			=> 'title',
 				'description' 	=> __( 'Settings for displaying pickup points during checkout.','smart-send-shipping' ),
-			),
-			'dropdown_display_mode' => array(
-				'title'   	=> __( 'Pickup dropdown display place','smart-send-shipping'),
-				'desc'    	=> __( 'This controls the display postion of pick-up point dropdown on checkout page.','smart-send-shipping'),
-				'default' 	=> 'below_shipping',
-				'type'    	=> 'radio',
-				'options' 	=> array(
-					'below_shipping'   	=> __( 'Below the shipping method','smart-send-shipping'),
-					'custom_hook'     	=> __( 'User custom hook in theme: "do_action(\'smart_send_shipping_pickup_dropdown\')"','smart-send-shipping'),
-				),
-				'desc_tip'        =>  true,
 			),
 			'dropdown_display_format' => array(
 				'title'    	=> __( 'Dropdown format','smart-send-shipping'),
@@ -209,14 +187,19 @@ class SS_Shipping_WC_Method extends WC_Shipping_Flat_Rate {
 		return ob_get_clean();
 	}
 
+	private function get_guest_role() {
+		return array('guest' => 'Guest');
+	}
 
 	public function init_instance_form_fields() {
+		// Get list of shipping classes
 		$wc_shipping = WC_Shipping::instance();
 		$wc_shipping_classes = $wc_shipping->get_shipping_classes();
 		$shipping_classes = wp_list_pluck($wc_shipping_classes, 'name', 'slug');
 
+		// Get list of user roles, including guest (not logged in)
 		global $wp_roles;
-		$user_roles = $wp_roles->get_names();
+		$user_roles = $this->get_guest_role() + $wp_roles->get_names();
 
 		$this->instance_form_fields = array(
 			'title'            	=> array(
@@ -356,7 +339,7 @@ class SS_Shipping_WC_Method extends WC_Shipping_Flat_Rate {
 			throw new Exception( __('"Method Title" cannot be empty', 'smart-send-shipping') );
 		}
 
-		return $title;
+		return $this->validate_text_field($key, $title);
 	}
 
 	public function validate_method_field( $key, $method ) {
@@ -365,7 +348,7 @@ class SS_Shipping_WC_Method extends WC_Shipping_Flat_Rate {
 			throw new Exception( __('Select a "Shipping Method"', 'smart-send-shipping') );
 		}
 
-		return $method;
+		return $this->validate_select_field($key, $method);
 	}
 
 	public function generate_selectopt_html( $key, $data ) {
@@ -515,16 +498,21 @@ class SS_Shipping_WC_Method extends WC_Shipping_Flat_Rate {
 
 		$weight_costs = array();
 
-		if ( isset( $_POST['ss_min_weight'] ) ) {
+		if ( isset( $_POST['ss_cost_weight'] ) ) {
 
 			$ss_min_weights = array_map( 'wc_clean', $_POST['ss_min_weight'] );
 			$ss_max_weights = array_map( 'wc_clean', $_POST['ss_max_weight'] );
 			$ss_cost_weights = array_map( 'wc_clean', $_POST['ss_cost_weight'] );
 
 			foreach ( $ss_min_weights as $i => $name ) {
+
 				if ( empty( $ss_cost_weights[ $i ] ) ) {
 					continue;
 				}
+
+				$ss_min_weights[ $i ] = $this->validate_text_field( 'ss_min_weight', $ss_min_weights[ $i ] );
+				$ss_max_weights[ $i ] = $this->validate_text_field( 'ss_max_weight', $ss_max_weights[ $i ] );
+				$ss_cost_weights[ $i ] = $this->validate_text_field( 'ss_cost_weight', $ss_cost_weights[ $i ] );
 
 				$weight_costs[] = array(
 					'ss_min_weight'		=> $ss_min_weights[ $i ],
@@ -707,20 +695,25 @@ class SS_Shipping_WC_Method extends WC_Shipping_Flat_Rate {
 			}
 
 			// Exclude customer roles
-			$user_meta = get_userdata( get_current_user_id() );
-			$customer_roles = $user_meta->roles; //array of roles the user is part of.
-
 			$exclude_roles = $this->get_instance_option( 'user_roles' );
-
 			if ( ! empty( $exclude_roles ) ) {
+				
+				$user_id = get_current_user_id();
+				if ( empty( $user_id ) ) {
+					$customer_roles = $this->get_guest_role();
+				} else {
+					$user_meta = get_userdata( $user_id );
+					$customer_roles = $user_meta->roles; //array of roles the user is part of.
+				}
+				
 				foreach ($customer_roles as $key => $customer_role) {
+					$customer_role = strtolower($customer_role); // ensure all names are lowercase to compare keys correctly
 					if ( in_array( $customer_role, $exclude_roles) ) {
 						$is_available = false;
 						break;
 					}
 				}
 			}
-
 		}
 
 		return apply_filters( 'woocommerce_shipping_' . $this->id . '_is_available', $is_available, $package, $this );
@@ -751,9 +744,9 @@ class SS_Shipping_WC_Method extends WC_Shipping_Flat_Rate {
 
 		if ( in_array( $requires, array( 'min_amount', 'either', 'both' ) ) ) {
 			$total = WC()->cart->get_displayed_subtotal();
-
+			
 			if ( 'incl' === WC()->cart->tax_display_cart ) {
-				$total = round( $total - ( WC()->cart->get_cart_discount_total() + WC()->cart->get_cart_discount_tax() ), wc_get_price_decimals() );
+				$total = round( $total - ( WC()->cart->get_cart_discount_total() + WC()->cart->get_cart_discount_tax_total() ), wc_get_price_decimals() );
 			} else {
 				$total = round( $total - WC()->cart->get_cart_discount_total(), wc_get_price_decimals() );
 			}
