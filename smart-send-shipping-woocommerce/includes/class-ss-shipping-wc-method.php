@@ -9,31 +9,7 @@ if ( ! class_exists( 'SS_Shipping_WC_Method' ) ) :
 
 class SS_Shipping_WC_Method extends WC_Shipping_Flat_Rate {
 
-	private $shipping_method = array(
-		'PostNord' 	=> 
-			array( 
-				'postnord_pickuppoint'		=> 'PostNord: Pickup point',
-				'postnord_closestpickup'	=> 'PostNord: Closest pickup point',
-				'postnord_privatetohome'	=> 'PostNord: Private to home',
-				'postnord_commercial'		=> 'PostNord: Commercial',
-				'postnord_valuemail' 		=> 'PostNord: Valuemail',
-				'postnord_valuemailsmall' 	=> 'PostNord: Small Valuemail',
-			),
-		'GLS'		=>
-			array( 
-				'gls_pickuppoint' 			=> 'GLS: Pickup point',
-				'gls_closestpickup'	 		=> 'GLS: Closest pickup point',
-				'gls_privatetohome'			=> 'GLS: Private to home',
-				'gls_commercial' 			=> 'GLS: Commercial',
-			),
-		'Bring'		=>
-			array( 
-				'bring_pickuppoint'			=> 'Bring: Pickup point',
-				'bring_closestpickup'		=> 'Bring: Closest pickup point',
-				'bring_privatetohome'		=> 'Bring: Private to home',
-				'bring_commercial'			=> 'Bring: Commercial',
-			),
-	);
+	private $shipping_method = array();
 
 	/**
 	 * Init and hook in the integration.
@@ -48,6 +24,33 @@ class SS_Shipping_WC_Method extends WC_Shipping_Flat_Rate {
 			'settings',
 			'shipping-zones', // support shipping zones shipping method
 			'instance-settings',
+		);
+
+		$this->shipping_method = array(
+			'0' 		=> __('- Select Method -', 'smart-send-shipping'),
+			'PostNord' 	=> 
+				array( 
+					'postnord_pickuppoint'		=> 'PostNord: Pickup point',
+					'postnord_closestpickup'	=> 'PostNord: Closest pickup point',
+					'postnord_privatetohome'	=> 'PostNord: Private to home',
+					'postnord_commercial'		=> 'PostNord: Commercial',
+					'postnord_valuemail' 		=> 'PostNord: Valuemail',
+					'postnord_valuemailsmall' 	=> 'PostNord: Small Valuemail',
+				),
+			'GLS'		=>
+				array( 
+					'gls_pickuppoint' 			=> 'GLS: Pickup point',
+					'gls_closestpickup'	 		=> 'GLS: Closest pickup point',
+					'gls_privatetohome'			=> 'GLS: Private to home',
+					'gls_commercial' 			=> 'GLS: Commercial',
+				),
+			'Bring'		=>
+				array( 
+					'bring_pickuppoint'			=> 'Bring: Pickup point',
+					'bring_closestpickup'		=> 'Bring: Closest pickup point',
+					'bring_privatetohome'		=> 'Bring: Private to home',
+					'bring_commercial'			=> 'Bring: Commercial',
+				),
 		);
 
 		$this->init();
@@ -356,6 +359,15 @@ class SS_Shipping_WC_Method extends WC_Shipping_Flat_Rate {
 		return $title;
 	}
 
+	public function validate_method_field( $key, $method ) {
+		
+		if( empty($method) ) {
+			throw new Exception( __('Select a "Shipping Method"', 'smart-send-shipping') );
+		}
+
+		return $method;
+	}
+
 	public function generate_selectopt_html( $key, $data ) {
 		$field_key = $this->get_field_key( $key );
 		$defaults  = array(
@@ -387,14 +399,21 @@ class SS_Shipping_WC_Method extends WC_Shipping_Flat_Rate {
 
 						<?php foreach ( (array) $data['options'] as $optgroup_key => $optgroup_value ) : ?>
 
-							<?php echo '<optgroup label="' . esc_attr( $optgroup_key ) . '">'; ?>
-
-								<?php foreach ( (array) $optgroup_value as $option_key => $option_value ) : ?>
-								
-									<option value="<?php echo esc_attr( $option_key ); ?>" <?php selected( $option_key, esc_attr( $this->get_option( $key ) ) ); ?>><?php echo esc_attr( $option_value ); ?></option>
-
-								<?php endforeach; ?>
+								<?php if ( is_array( $optgroup_value ) ) : ?>
 									
+									<?php echo '<optgroup label="' . esc_attr( $optgroup_key ) . '">'; ?>
+
+									<?php foreach ( (array) $optgroup_value as $option_key => $option_value ) : ?>
+								
+										<option value="<?php echo esc_attr( $option_key ); ?>" <?php selected( $option_key, esc_attr( $this->get_option( $key ) ) ); ?>><?php echo esc_attr( $option_value ); ?></option>
+
+									<?php endforeach; ?>
+								<?php else: ?>
+									
+									<option value="<?php echo esc_attr( $optgroup_key ); ?>" <?php selected( $optgroup_key, esc_attr( $this->get_option( $key ) ) ); ?>><?php echo esc_attr( $optgroup_value ); ?></option>
+
+								<?php endif; ?>
+								
 							<?php echo '</optgroup>'; ?>
 
 						<?php endforeach; ?>
