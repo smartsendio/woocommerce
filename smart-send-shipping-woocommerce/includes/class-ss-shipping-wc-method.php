@@ -750,15 +750,12 @@ class SS_Shipping_WC_Method extends WC_Shipping_Flat_Rate {
 		}
 
 		if ( in_array( $requires, array( 'min_amount', 'either', 'both' ) ) ) {
-			$total = WC()->cart->get_displayed_subtotal();
-
-			if ( 'incl' === WC()->cart->tax_display_cart ) {
-				$total = round( $total - ( WC()->cart->get_cart_discount_total() + WC()->cart->get_cart_discount_tax() ), wc_get_price_decimals() );
-			} else {
-				$total = round( $total - WC()->cart->get_cart_discount_total(), wc_get_price_decimals() );
-			}
-
-			if ( $total >= $min_amount ) {
+            $subtotal_without_tax = WC()->cart->get_subtotal(); // returns the subtotal without tax
+            $subtotal_tax = WC()->cart->get_subtotal_tax(); // returns the subtotal tax
+            $subtotal_with_tax = $subtotal_without_tax + $subtotal_tax;
+            
+            // Check if the subtotal inc. tax is larger than or equal to the minimum amount required for free shipping
+			if ( $subtotal_with_tax >= $min_amount ) {
 				$has_met_min_amount = true;
 			}
 		}
