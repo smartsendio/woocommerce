@@ -686,10 +686,10 @@ class SS_Shipping_WC_Method extends WC_Shipping_Flat_Rate {
 						$is_available = $one_in_array;
 						break;
 					case 'nall_shipping_class' :
-						$is_available = ! $all_in_array;
+						$is_available = ! $one_in_array;
 						break;
 					case 'none_shipping_class' :
-						$is_available = ! $one_in_array;
+						$is_available = ! $all_in_array;
 						break;
 				}
 			}
