@@ -7,7 +7,10 @@
 	Author URI: http://www.smartsend.dk
 	Text Domain: smart-send-logistics
 	Domain Path: /lang
-	Version: 7.1.15
+	Version: 7.1.16
+	WC requires at least: 2.6.0
+	WC tested up to: 3.3
+
 
 	Copyright: (c) 2014 Smart Send ApS (email : kontakt@smartsend.dk)
 	License: GNU General Public License v3.0
