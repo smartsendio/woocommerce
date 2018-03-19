@@ -92,6 +92,7 @@ class SS_Shipping_WC_Method extends WC_Shipping_Flat_Rate {
 	 * @return void
 	 */
 	public function init_form_fields() {
+		$agents_address_format = SS_SHIPPING_WC()->get_agents_address_format();
 
 		$this->form_fields = array(
 			'title_labels'	=> array(
@@ -133,15 +134,15 @@ class SS_Shipping_WC_Method extends WC_Shipping_Flat_Rate {
 				'type'     	=> 'select',
 				'class'    	=> 'wc-enhanced-select',
 				'desc_tip' 	=> true,
-				'options'   => array(
-					'1' 		=> '#'.__('Company','smart-send-shipping').', #'.__('Street','smart-send-shipping'),
-					'2'    		=> '#'.__('Company','smart-send-shipping').', #'.__('Street','smart-send-shipping').', #'.__('Zipcode','smart-send-shipping'),
-					'3'    		=> '#'.__('Company','smart-send-shipping').', #'.__('Street','smart-send-shipping').', #'.__('City','smart-send-shipping'),
-					'4'    		=> '#'.__('Company','smart-send-shipping').', #'.__('Street','smart-send-shipping').', #'.__('Zipcode','smart-send-shipping').' #'.__('City','smart-send-shipping'),
-					'5'    		=> '#'.__('Company','smart-send-shipping').', #'.__('Zipcode','smart-send-shipping'),
-					'6'    		=> '#'.__('Company','smart-send-shipping').', #'.__('Zipcode','smart-send-shipping').', #'.__('City','smart-send-shipping'),
-					'7'    		=> '#'.__('Company','smart-send-shipping').', #'.__('City','smart-send-shipping'),
-				)
+				'options'   => $agents_address_format
+			),
+			'default_select_agent' => array(
+				'title'    	=> __( 'Select Default','smart-send-shipping'),
+				'label'    	=> __( 'Enable Select Default','smart-send-shipping'),
+				'description'	=> __('Select the first returned pickup point'),
+				'default' 	=> '',
+				'type'     	=> 'checkbox',
+				'desc_tip' 	=> true,
 			),
 		);
 	}
@@ -221,7 +222,7 @@ class SS_Shipping_WC_Method extends WC_Shipping_Flat_Rate {
 				'title' 			=> __( 'Tax status', 'smart-send-shipping' ),
 				'type'	 			=> 'select',
 				'class' 	        => 'wc-enhanced-select',
-				'description'     => __( 'Whether or not the shipping method is taxable.', 'smart-send-shipping' ),
+				'description'     => __( 'This controls the title which the user sees during checkout.', 'smart-send-shipping' ),
 				'default' 			=> 'taxable',
 				'desc_tip'        	=> true,
 				'options'			=> array(

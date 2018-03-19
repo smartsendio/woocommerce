@@ -1,0 +1,19 @@
+.ss-shipping-error {
+	color: #a00;
+}
+
+span.ss-shipping-error {
+	float:right;
+}
+
+.ss_connection_succeeded {
+	color: #008000;
+	margin-left: 10px;
+	margin-top: 10px;
+}
+
+.ss_connection_error {
+	color: #a00;
+	margin-left: 10px;
+	margin-top: 10px;
+}

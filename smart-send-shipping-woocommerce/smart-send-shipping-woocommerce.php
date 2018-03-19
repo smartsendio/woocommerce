@@ -46,15 +46,30 @@ class SS_Shipping_WC {
 	 *
 	 * @var SS_Shipping_WC_Order
 	 */
-	public $ss_shipping_wc_order = null;
+	public $ss_shipping_wc_order = null;/**
+	 
+	 * Smart Send Shipping Product
+	 *
+	 * @var SS_Shipping_WC_Order
+	 */
+	public $ss_shipping_wc_product = null;
 
-
+	/**
+	 * Smart Send Frontend
+	 *
+	 * @var SS_Shipping_Frontend
+	 */
+	protected $ss_shipping_frontend = null;
+	
 	/**
 	 * Smart Send Shipping Order for label and tracking.
 	 *
 	 * @var SS_Shipping_Logger
 	 */
 	protected $logger = null;
+
+
+	protected $agents_address_format = array();
 
 	/**
 	* Construct the plugin.
@@ -63,6 +78,16 @@ class SS_Shipping_WC {
 		$this->define_constants();
 		$this->includes();
 		$this->init_hooks();
+
+		$this->agents_address_format = array(
+					'1' 		=> __('#Company', 'smart-send-shipping') . ', ' . __('#Street','smart-send-shipping'),
+					'2'    		=> __('#Company', 'smart-send-shipping') . ', ' . __('#Street','smart-send-shipping') . ', ' .__('#Zipcode','smart-send-shipping'),
+					'3'    		=> __('#Company', 'smart-send-shipping') . ', ' . __('#Street','smart-send-shipping') . ', ' . __('#City','smart-send-shipping'),
+					'4'    		=> __('#Company', 'smart-send-shipping') . ', ' . __('#Street','smart-send-shipping') . ', ' .__('#Zipcode','smart-send-shipping').' ' . __('#City','smart-send-shipping'),
+					'5'    		=> __('#Company', 'smart-send-shipping') . ', ' .__('#Zipcode','smart-send-shipping'),
+					'6'    		=> __('#Company', 'smart-send-shipping') . ', ' .__('#Zipcode','smart-send-shipping') . ', ' . __('#City','smart-send-shipping'),
+					'7'    		=> __('#Company', 'smart-send-shipping') . ', ' . __('#City','smart-send-shipping'),
+				);
 	}
 
 	/**
@@ -107,6 +132,7 @@ class SS_Shipping_WC {
 	public function includes() {
 		// Auto loader class
 		include_once( 'includes/class-ss-shipping-autoloader.php' );
+		include_once( 'includes/lib/Smartsend/Api.php' );
 	}
 
 	public function init_hooks() {
@@ -117,7 +143,7 @@ class SS_Shipping_WC {
 		add_filter( 'plugin_row_meta', array( $this, 'ss_shipping_plugin_row_meta'), 10, 2 );
 		
 		// add_action( 'admin_notices', array( $tif ( WC_PLUGIN_BASENAME == $file ) {
-		// add_action( 'admin_enqueue_scripts', array( $this, 'ss_shipping_theme_enqueue_styles') );		
+		add_action( 'admin_enqueue_scripts', array( $this, 'ss_shipping_theme_enqueue_styles') );		
 
 		// add_action( 'woocommerce_shipping_init', array( $this, 'includes' ) );
 		add_filter( 'woocommerce_shipping_methods', array( $this, 'add_shipping_method' ) );
@@ -133,8 +159,9 @@ class SS_Shipping_WC {
 		
 		// Checks if WooCommerce 2.6 is installed.
 		if ( defined( 'WOOCOMMERCE_VERSION' ) && version_compare( WOOCOMMERCE_VERSION, '2.6', '>=' ) ) {
-			
-
+			$this->ss_shipping_frontend = new SS_Shipping_Frontend();
+			$this->ss_shipping_wc_order = new SS_Shipping_WC_Order();
+			$this->ss_shipping_wc_product = new SS_Shipping_WC_Product();
 		} else {
 			// Throw an admin error informing the user this plugin needs WooCommerce to function
 			add_action( 'admin_notices', array( $this, 'notice_wc_required' ) );
@@ -150,7 +177,7 @@ class SS_Shipping_WC {
 	}
 
 	public function ss_shipping_theme_enqueue_styles() {
-		// wp_enqueue_style( 'ss-shipping-admin-css', SS_SHIPPING_PLUGIN_DIR_URL . '/assets/css/ss-shipping-admin.css' );
+		wp_enqueue_style( 'ss-shipping-admin-css', SS_SHIPPING_PLUGIN_DIR_URL . '/assets/css/ss-shipping-admin.css' );
 	}
 
 	/**
@@ -228,7 +255,7 @@ class SS_Shipping_WC {
 		return $origin_point['country'];
 	}
 
-	public function get_shipping_as_settings( ) {
+	public function get_ss_shipping_settings( ) {
 		return get_option('woocommerce_' . SS_SHIPPING_METHOD_ID . '_settings');
 	}
 
@@ -297,6 +324,66 @@ class SS_Shipping_WC {
 		}
 	}
 
+	public function get_agents_address_format()	{
+		return $this->agents_address_format;
+	}
+
+	public function get_ss_shipping_wc_order() {
+		return $this->ss_shipping_wc_order;
+	}
+
+	public function get_shipping_method_carrier( $ship_method ) {
+		
+		$ship_method_parts = $this->get_shipping_method_part( $ship_method );
+
+		// Might be 2 parts or 3 because of 'free shipping' option
+		$arr_size = sizeof($ship_method_parts);
+
+		if ( $ship_method_parts[ $arr_size - 2 ] ) {
+			return $ship_method_parts[ $arr_size - 2 ];
+		}
+
+		return $ship_method;
+	}
+
+	public function get_shipping_method_type( $ship_method ) {
+		
+		$ship_method_parts = $this->get_shipping_method_part( $ship_method );
+
+		// Might be 2 parts or 3 because of 'free shipping' option
+		$arr_size = sizeof($ship_method_parts);
+
+		if ( $ship_method_parts[ $arr_size - 1 ] ) {
+			return $ship_method_parts[ $arr_size - 1 ];
+		}
+
+		return $ship_method;
+	}
+
+	public function get_shipping_method_part( $ship_method ) {
+		
+		if( empty( $ship_method ) ) {
+			return $ship_method;
+		}
+
+		// Assumes format 'name:instance_carrier_method' or 'instance_carrier_method'
+		// error_log($ship_method);
+		$new_ship_method = explode(':', $ship_method );
+		// error_log(print_r($new_ship_method,true));
+
+		// If no ':' included then will be 1 array and should explode that item
+		$arr_size = sizeof($new_ship_method);
+		// error_log($arr_size);
+
+		if ( isset($new_ship_method[ $arr_size - 1 ] ) ) {
+			// error_log('set val');
+			// error_log($new_ship_method[ $arr_size - 1 ]);
+			// Assumes format 'instance_carrier_method'
+			return explode('_', $new_ship_method[ $arr_size - 1 ] );
+		}
+
+		return $new_ship_method;
+	}
 }
 
 endif;
