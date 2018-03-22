@@ -3,41 +3,65 @@
 
 namespace Smartsend;
 
-require_once 'Exceptions/BadRequestException.php';
-require_once 'Exceptions/ApiErrorException.php';
-require_once 'Exceptions/NotFoundException.php';
-require_once 'Exceptions/UnexpectedException.php';
-require_once 'Exceptions/TimeoutErrorException.php';
+require_once 'Models/Error.php';
 
-use Smartsend\Exceptions\BadRequestException;
-use Smartsend\Exceptions\ApiErrorException;
-use Smartsend\Exceptions\NotFoundException;
-use Smartsend\Exceptions\UnexpectedException;
-use Smartsend\Exceptions\TimeoutErrorException;
+use Smartsend\Models\Error;
 
 class Client
 {
     const TIMEOUT = 10;
 
-    private $api_endpoint = 'http://smartsend-test.apigee.net/';
-    private $api_key;
-    public $request_endpoint;
-    public $request_headers;
-    public $request_body;
-    public $response_headers;
-    public $response_body;
-    public $response;
-    public $http_status_code;
-    public $content_type;
-    public $debug;
-    private $meta;
-    private $links;
-    private $data;
-    private $errors;
+    private $api_endpoint = 'https://dumbledore.smartsend.io/api/v1/';//'http://dumbledore-smartsend-io-pni3xjp2uc43.runscope.net/api/v1/';
+    private $api_token;
+    protected $request_endpoint;
+    protected $request_headers;
+    protected $request_body;
+    protected $response_headers;
+    protected $response_body;
+    protected $response;
+    protected $http_status_code;
+    protected $content_type;
+    protected $debug;
+    protected $meta;
+    protected $success;
+    protected $data;
+    protected $error;
 
-    public function __construct($apikey)
+    public function __construct($api_token)
     {
-        $this->api_key = $apikey;
+        $this->api_token = $api_token;
+    }
+
+    /**
+     * @return mixed
+     */
+    public function getData()
+    {
+        return $this->data;
+    }
+
+    /**
+     * @return mixed
+     */
+    public function getError()
+    {
+        return $this->error;
+    }
+
+    /**
+     * @return mixed
+     */
+    public function getDebug()
+    {
+        return $this->debug;
+    }
+
+    /**
+     * @param mixed $debug
+     */
+    public function setDebug($debug)
+    {
+        $this->debug = $debug;
     }
 
     /**
@@ -46,7 +70,7 @@ class Client
      */
     public function isSuccessful()
     {
-        return ( ((int) $this->http_status_code) >= 200 && ((int) $this->http_status_code) < 300 );
+        return $this->success;
     }
 
     /**
@@ -62,9 +86,9 @@ class Client
         $this->response_body = null;
         $this->response = null;
         $this->meta = null;
-        $this->links = null;
         $this->data = null;
-        $this->errors = null;
+        $this->error = null;
+        $this->success = null;
         $this->http_status_code = null;
         $this->content_type = null;
         $this->debug = null;
@@ -162,7 +186,7 @@ class Client
         }
 
         // Append API key to the headers
-        $headers[] = 'Authorization: apikey ' . $this->api_key;
+        $args['api_token'] = $this->api_token;
 
         // Clear request and response from previous API call
         $this->clearAll();
@@ -219,101 +243,92 @@ class Client
         $this->content_type = curl_getinfo($ch, CURLINFO_CONTENT_TYPE);
 
         if(curl_errno($ch)) {
-            $this->throwCurlError($ch);
-        }
-        //Throw UnexpectedError if response is not 2xx
-        if( !$this->isSuccessful() )
-        {
-            // If the cURL error did not cause an exception, then throw UnexpectedException
-            throw new UnexpectedException( 'Unexpected HTTP status code: '.$this->http_status_code );
-        }
+            $this->success = false;
 
-        //Throw UnexpectedError with cURL error if no body and request is not DELETE
-        if( $http_verb != 'delete' && !$this->response_body)
-        {
-            throw new UnexpectedException('No body from cURL');
-        }
+            $error = new stdClass();
+            $error->links = null;
+            $error->id = null;
+            $error->code = curl_errno($ch);
+            $error->message = curl_error($ch);
+            $error->errors = array();
 
+            $this->error = $error;
+            return $this->success;
+        }
         // close connection
         curl_close($ch);
 
-        //Return TRUE for DELETE with no BODY
-        if( $http_verb == 'delete' && !$this->response_body )
+        // If response is JSON, then json_decode
+        if(strpos($this->content_type, 'application/json') !== false || strpos($this->content_type, 'text/json') !== false) {
+            $this->response = json_decode($this->response_body);
+        }
+
+        //Error if response is not 2xx
+        if( $this->http_status_code < 200 || $this->http_status_code > 299 )
         {
-            return true;
-        }
-
-        // Save response (function that: save body, header and json_encoded)
-        $this->handleResponse();
-
-        if( $http_verb != 'delete' && empty($this->response->data))
-        {
-            throw new UnexpectedException('No data in body from cURL');
-        }
-
-        return $this->response->data;
-    }
-
-    private function throwCurlError($ch) {
-        $errno = curl_errno($ch);
-        $error = curl_error($ch);
-
-        switch ($errno) {
-            case 28:
-                throw new TimeoutErrorException('API response reached timeout limit');
-                break;
-            default:
-                throw new UnexpectedException('cURL error ('.$errno.'): '.$error);
-        }
-    }
-
-    private function endsWith($haystack, $needle)
-    {
-        $length = strlen($needle);
-
-        return $length === 0 ||
-            (substr($haystack, -$length) === $needle);
-    }
-
-    private function handleResponse()
-    {
-        if( strpos($this->content_type,'json') !== false ) {
-            $json_body = json_decode($this->response_body);
-
-            // If the response contains error, throw the first one
-            if(isset($json_body->errors[0]->code)) {
-                throw new ApiErrorException($json_body->errors[0]->code);
+            $this->success = false;
+            if(!empty($this->response->message)) {
+                $this->error = $this->response;
+            } elseif(empty($this->response_body)) {
+                $error = new Error();
+                $error->links = null;
+                $error->id = null;
+                $error->code = 'HTTP'.$this->http_status_code;
+                $error->message = 'No API response';
+                $error->errors = array();
+                $this->error = $error;
+            } elseif(empty($this->response)) {
+                $error = new Error();
+                $error->links = null;
+                $error->id = null;
+                $error->code = 'HTTP'.$this->http_status_code;
+                $error->message = $this->response;
+                $error->errors = array();
+                $this->error = $error;
+            } else {
+                $error = new Error();
+                $error->links = null;
+                $error->id = null;
+                $error->code = 'HTTP'.$this->http_status_code;
+                $error->message = 'Unknown API response';
+                $error->errors = array();
+                $this->error = $error;
             }
-
-            // If the response contains no data, throw an UnexpectedError
-            if(!isset($json_body->data)) {
-                throw new UnexpectedException('No data returned');
-            }
-
-            if(isset($json_body->links)) {
-                $this->links = $json_body->links;
-            }
-
-            $this->response = $json_body;
+            return $this->success;
         }
 
+        // if no response->data
+        if(empty($this->response->data)) {
+            if( $http_verb == 'delete') {
+                //Return TRUE for DELETE with no BODY
+                $this->success = true;
+            } elseif(!empty($this->response->message)) {
+                $this->error = $this->response;
+                $this->success = false;
+            } elseif(empty($this->response_body)) {
+                $error = new Error();
+                $error->links = null;
+                $error->id = null;
+                $error->code = 'HTTP'.$this->http_status_code;
+                $error->message = 'No API response';
+                $error->errors = array();
+                $this->error = $error;
+                $this->success = false;
+            } else {
+                $error = new Error();
+                $error->links = null;
+                $error->id = null;
+                $error->code = 'HTTP'.$this->http_status_code;
+                $error->message = $this->response_body;
+                $error->errors = array();
+                $this->error = $error;
+                $this->success = false;
+            }
+        } else {
+            $this->success = true;
+            $this->data = $this->response->data;
+        }
+        return $this->success;
     }
-
-    /**
-     * @return mixed
-     */
-    public function getDebug()
-    {
-        return $this->debug;
-    }
-
-    /**
-     * @param mixed $debug
-     */
-    public function setDebug($debug)
-    {
-        $this->debug = $debug;
-    }
-
 
 }

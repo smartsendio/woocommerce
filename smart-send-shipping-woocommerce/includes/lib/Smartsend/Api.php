@@ -8,10 +8,6 @@ require_once 'Models/Shipment.php';
 
 use Smartsend\Models\Agent;
 use Smartsend\Models\Shipment;
-use Smartsend\Exceptions\BadRequestException;
-use Smartsend\Exceptions\ApiErrorException;
-use Smartsend\Exceptions\NotFoundException;
-use Smartsend\Exceptions\UnexpectedException;
 
 class Api extends Client
 {
@@ -83,6 +79,32 @@ class Api extends Client
     {
         return $this->httpGet('agents/carrier/'.$carrier.'/country/'.$country.'/postalcode/'.$postal_code.'/street/'.$street);
     }
+    
+    /*
+     * Get agents located within an area
+     *
+     * @param string $carrier is the carrier for which to find agents
+     * @param string $country optionally country in which the agents should be located
+     * @param string $min_latitude Agents will be located an a latitude larger than this value
+     * @param string $max_latitude Agents will be located an a latitude lower than this value
+     * @param string $min_longitude Agents will be located an a longitude larger than this value
+     * @param string $max_longitude Agents will be located an a longitude lower than this value
+     *
+     * return TODO: Add return explenation
+     * return TODO: Add explenation about exceptions
+     */
+    public function getAgentsInArea($carrier, $country=null, $min_latitude, $max_latitude,$min_longitude, $max_longitude)
+    {
+    	if($country) {
+        	return $this->httpGet('agents/carrier/'.$carrier.'/country/'.$country
+        	.'/area/latitude/min/'.$min_latitude.'/max/'.$max_latitude
+        	.'/longitude/min/'.$min_longitude.'/max'.$max_longitude);
+        } else {
+        	return $this->httpGet('agents/carrier/'.$carrier
+        	.'/area/latitude/min/'.$min_latitude.'/max/'.$max_latitude
+        	.'/longitude/min/'.$min_longitude.'/max'.$max_longitude);
+        }
+    }
 
     /*
      * Find closest agents by postal code (not necessarily with exact match)
@@ -145,12 +167,12 @@ class Api extends Client
 
     public function createShipment(Shipment $shipment)
     {
-        return $this->httpPost('shipments', array(), array(), json_encode($shipment));
+        return $this->httpPost('shipments', array(), array(), $shipment);
     }
 
     public function updateShipment($id, Shipment $shipment)
     {
-        return $this->httpPut('shipments'.$id, array(), array(), json_encode($shipment));
+        return $this->httpPut('shipments'.$id, array(), array(), $shipment);
     }
 
     public function deleteShipment($id)
