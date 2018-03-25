@@ -169,7 +169,14 @@ class SS_Shipping_Frontend {
 		$formatted_address = str_replace( $place_holders, $place_holders_vals, $address_format );
 
 		if( !empty( $agent->distance ) ) {
-			$formatted_address = $agent->distance . __('km: ', 'smart-send-shipping') . $formatted_address;
+		    if($agent->distance < 1) {
+                $formatted_distance = number_format($agent->distance*1000, 0, '.', '')
+                    . __('m: ', 'smart-send-shipping');
+            } else {
+                $formatted_distance = number_format($agent->distance, 2, '.', '')
+                    . __('km: ', 'smart-send-shipping');
+            }
+            $formatted_address = $formatted_distance . $formatted_address;
 		}
 
 		return $formatted_address;
