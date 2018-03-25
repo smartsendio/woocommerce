@@ -11,7 +11,7 @@ class Client
 {
     const TIMEOUT = 10;
 
-    private $api_endpoint = 'https://dumbledore.smartsend.io/api/v1/';//'http://dumbledore-smartsend-io-pni3xjp2uc43.runscope.net/api/v1/';
+    private $api_endpoint = 'https://dumbledore.smartsend.io/api/v1/';
     private $api_token;
     protected $request_endpoint;
     protected $request_headers;
@@ -25,11 +25,16 @@ class Client
     protected $meta;
     protected $success;
     protected $data;
+    protected $links;
     protected $error;
 
     public function __construct($api_token)
     {
         $this->api_token = $api_token;
+    }
+
+    public function getApiEndpoint() {
+        return $this->api_endpoint;
     }
 
     /**
@@ -38,6 +43,14 @@ class Client
     public function getData()
     {
         return $this->data;
+    }
+
+    /**
+     * @return mixed
+     */
+    public function getLinks()
+    {
+        return $this->links;
     }
 
     /**
@@ -87,6 +100,7 @@ class Client
         $this->response = null;
         $this->meta = null;
         $this->data = null;
+        $this->links = null;
         $this->error = null;
         $this->success = null;
         $this->http_status_code = null;
@@ -101,7 +115,7 @@ class Client
      * @param   array $headers Assoc array of headers
      * @param   array $body Assoc array of body (will be converted to json)
      * @param   int $timeout Timeout limit for request in seconds
-     * @return  array|true|false   Assoc array of API response, decoded from JSON
+     * @return  object|true|false   Assoc array of API response, decoded from JSON
      */
     public function httpDelete($method, $args = array(), $headers = array(), $body=null, $timeout = self::TIMEOUT)
     {
@@ -114,7 +128,7 @@ class Client
      * @param   array $headers Assoc array of headers
      * @param   array $body Assoc array of body (will be converted to json)
      * @param   int $timeout Timeout limit for request in seconds
-     * @return  array|true|false   Assoc array of API response, decoded from JSON
+     * @return  object|true|false   Assoc array of API response, decoded from JSON
      */
     public function httpGet($method, $args = array(), $headers = array(), $body=null, $timeout = self::TIMEOUT)
     {
@@ -127,7 +141,7 @@ class Client
      * @param   array $headers Assoc array of headers
      * @param   array $body Assoc array of body (will be converted to json)
      * @param   int $timeout Timeout limit for request in seconds
-     * @return  array|true|false   Assoc array of API response, decoded from JSON
+     * @return  object|true|false   Assoc array of API response, decoded from JSON
      */
     public function httpPatch($method, $args = array(), $headers = array(), $body=null, $timeout = self::TIMEOUT)
     {
@@ -140,7 +154,7 @@ class Client
      * @param   array $headers Assoc array of headers
      * @param   array $body Assoc array of body (will be converted to json)
      * @param   int $timeout Timeout limit for request in seconds
-     * @return  array|true|false   Assoc array of API response, decoded from JSON
+     * @return  object|true|false   Assoc array of API response, decoded from JSON
      */
     public function httpPost($method, $args = array(), $headers = array(), $body=null, $timeout = self::TIMEOUT)
     {
@@ -153,7 +167,7 @@ class Client
      * @param   array $headers Assoc array of headers
      * @param   array $body Assoc array of body (will be converted to json)
      * @param   int $timeout Timeout limit for request in seconds
-     * @return  array|true|false   Assoc array of API response, decoded from JSON
+     * @return  object|true|false   Assoc array of API response, decoded from JSON
      */
     public function httpPut($method, $args = array(), $headers = array(), $body=null, $timeout = self::TIMEOUT)
     {
@@ -167,8 +181,7 @@ class Client
      * @param   array $headers Assoc array of headers
      * @param   array $body Assoc array of body (will be converted to json)
      * @param   int $timeout
-     * @return  array|true|false   Assoc array of API response, decoded from JSON
-     * @throws \Exception
+     * @return  object|true|false   Assoc array of API response, decoded from JSON
      */
     private function makeRequest($http_verb, $method, $args = array(), $headers=array(), $body=null, $timeout = self::TIMEOUT)
     {
@@ -193,7 +206,10 @@ class Client
 
         // Set URL (inc parameters $args)
         $this->request_endpoint = $this->api_endpoint.$method;
-        if(!empty($args)) {
+
+        if(!empty($args) && strpos($this->request_endpoint,'?') !== false) {
+            $this->request_endpoint .= '&'.http_build_query($args, '', '&');
+        } elseif(!empty($args)) {
             $this->request_endpoint .= '?'.http_build_query($args, '', '&');
         }
 
@@ -273,7 +289,7 @@ class Client
                 $error = new Error();
                 $error->links = null;
                 $error->id = null;
-                $error->code = 'HTTP'.$this->http_status_code;
+                $error->code = (int) $this->http_status_code;
                 $error->message = 'No API response';
                 $error->errors = array();
                 $this->error = $error;
@@ -281,7 +297,7 @@ class Client
                 $error = new Error();
                 $error->links = null;
                 $error->id = null;
-                $error->code = 'HTTP'.$this->http_status_code;
+                $error->code = (int) $this->http_status_code;
                 $error->message = $this->response;
                 $error->errors = array();
                 $this->error = $error;
@@ -289,7 +305,7 @@ class Client
                 $error = new Error();
                 $error->links = null;
                 $error->id = null;
-                $error->code = 'HTTP'.$this->http_status_code;
+                $error->code = (int) $this->http_status_code;
                 $error->message = 'Unknown API response';
                 $error->errors = array();
                 $this->error = $error;
@@ -309,8 +325,17 @@ class Client
                 $error = new Error();
                 $error->links = null;
                 $error->id = null;
-                $error->code = 'HTTP'.$this->http_status_code;
+                $error->code = 'HTTP' . $this->http_status_code;
                 $error->message = 'No API response';
+                $error->errors = array();
+                $this->error = $error;
+                $this->success = false;
+            } elseif(isset($this->response->data)) {
+                $error = new Error();
+                $error->links = null;
+                $error->id = null;
+                $error->code = 'NoResults';
+                $error->message = 'No results found';
                 $error->errors = array();
                 $this->error = $error;
                 $this->success = false;
@@ -325,6 +350,9 @@ class Client
                 $this->success = false;
             }
         } else {
+            if(isset($this->response->links)) {
+                $this->links = $this->response->links;
+            }
             $this->success = true;
             $this->data = $this->response->data;
         }

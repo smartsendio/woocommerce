@@ -18,9 +18,9 @@ class Api extends Client
         return $this->httpGet('agents/'.$id);
     }
 
-    public function getAgentByAgentNo($carrier, $agent_no)
+    public function getAgentByAgentNo($carrier, $country, $agent_no)
     {
-        return $this->httpGet('agents/carrier/'.$carrier.'/agentno/'.$agent_no);
+        return $this->httpGet('agents/carrier/'.$carrier.'/country/'.$country.'/agentno/'.$agent_no);
     }
 
     public function findFirstAgent($criteria)
@@ -44,6 +44,14 @@ class Api extends Client
         return $this->httpPost('agents/', array(), array(),$agent);
     }
 
+    /*
+     * Find  agents located in country
+     *
+     * @param string $carrier is the carrier code for which carrier to find agents
+     * @param string $country is the country code of the country in which the agents should be located
+     *
+     * return array of agent objects
+     */
     public function getAgentsByCountry($carrier, $country)
     {
         return $this->httpGet('agents/carrier/'.$carrier.'/country/'.$country);
@@ -56,8 +64,7 @@ class Api extends Client
      * @param string $country is the country in which the agents should be located
      * @param string $postal_code is the postal code to search for close agents from
      *
-     * return TODO: Add return explenation
-     * return TODO: Add explenation about exceptions
+     * return array of agent objects
      */
     public function getAgentsByPostalCode($carrier, $country, $postal_code)
     {
@@ -72,8 +79,7 @@ class Api extends Client
      * @param string $postal_code is the postal code which the agents should be located
      * @param string $street is the street name on which the agents should be located
      *
-     * return TODO: Add return explenation
-     * return TODO: Add explenation about exceptions
+     * return array of agent objects
      */
     public function getAgentsByAddress($carrier, $country, $postal_code, $street)
     {
@@ -90,19 +96,18 @@ class Api extends Client
      * @param string $min_longitude Agents will be located an a longitude larger than this value
      * @param string $max_longitude Agents will be located an a longitude lower than this value
      *
-     * return TODO: Add return explenation
-     * return TODO: Add explenation about exceptions
+     * return array of agent objects
      */
     public function getAgentsInArea($carrier, $country=null, $min_latitude, $max_latitude,$min_longitude, $max_longitude)
     {
     	if($country) {
         	return $this->httpGet('agents/carrier/'.$carrier.'/country/'.$country
         	.'/area/latitude/min/'.$min_latitude.'/max/'.$max_latitude
-        	.'/longitude/min/'.$min_longitude.'/max'.$max_longitude);
+        	.'/longitude/min/'.$min_longitude.'/max/'.$max_longitude);
         } else {
         	return $this->httpGet('agents/carrier/'.$carrier
         	.'/area/latitude/min/'.$min_latitude.'/max/'.$max_latitude
-        	.'/longitude/min/'.$min_longitude.'/max'.$max_longitude);
+        	.'/longitude/min/'.$min_longitude.'/max/'.$max_longitude);
         }
     }
 
@@ -113,8 +118,7 @@ class Api extends Client
      * @param string $country is the country in which the agents should be located
      * @param string $postal_code is the postal code to search for close agents from
      *
-     * return TODO: Add return explenation
-     * return TODO: Add explenation about exceptions
+     * return array of agent objects
      */
     public function findClosestAgentByPostalCode($carrier, $country, $postal_code)
     {
@@ -129,8 +133,7 @@ class Api extends Client
      * @param string $postal_code is the postal code to search for close agents from
      * @param string $street is the street name to search for close agents from
      *
-     * return TODO: Add return explenation
-     * return TODO: Add explenation about exceptions
+     * return array of agent objects
      */
     public function findClosestAgentByAddress($carrier, $country, $postal_code, $street)
     {
@@ -145,8 +148,7 @@ class Api extends Client
      * @param string $latitude is the latitude of the GPS coordinates to search for close agents from
      * @param string $longitude is the longitude of the GPS coordinates to search for close agents from
      *
-     * return TODO: Add return explenation
-     * return TODO: Add explenation about exceptions
+     * return array of agent objects
      */
     public function findClosestAgentByGpsCoordinates($carrier, $country, $latitude, $longitude)
     {
@@ -224,9 +226,17 @@ class Api extends Client
      */
     public function hasNextLink()
     {
-        // Todo: Fix problem: the link is private
-        return false;
-        //return !empty($this->links->next);
+        $links = $this->getLinks();
+        return (!empty($links->next));
+    }
+
+    /**
+     * Get API response contain link to next page of results
+     * @return  boolean
+     */
+    public function getNextLink()
+    {
+        return $this->getLinks()->next;
     }
 
     /**
@@ -235,9 +245,17 @@ class Api extends Client
      */
     public function hasPreviousLink()
     {
-        // Todo: Fix problem: the link is private
-        return false;
-        //return !empty($this->links->previous);
+        $links = $this->getLinks();
+        return (!empty($links->previous));
+    }
+
+    /**
+     * Get API response contain link to previous page of results
+     * @return  boolean
+     */
+    public function getPreviousLink()
+    {
+        return $this->getLinks()->previous;
     }
 
     /**
@@ -246,50 +264,60 @@ class Api extends Client
      */
     public function hasLastLink()
     {
-        // Todo: Fix problem: the link is private
-        return false;
-        //return !empty($this->links->last);
+        $links = $this->getLinks();
+        return (!empty($links->last));
     }
 
     /**
-     * Does API response contain link to next page of results
+     * Get API response contain link to last page of results
      * @return  boolean
-     * @throws NotFoundException
+     */
+    public function getLastLink()
+    {
+        return $this->getLinks()->last;
+    }
+
+    /**
+     * Get API response next page
+     * @return  object
+     * @throws \Exception
      */
     public function next()
     {
-        if($this->hasNextLink()) {
-            // TODO: load next
-        } else {
-            throw new NotFoundException('There are no next page');
-        }
+        return $this->httpGet( $this->stripEndpointFromLink($this->getNextLink()) );
     }
 
     /**
-     * Does API response contain link to next page of results
-     * @return  boolean
-     * @throws NotFoundException
+     * Get API response previous page
+     * @return  object
+     * @throws \Exception
      */
     public function previous()
     {
-        if($this->hasPreviousLink()) {
-            // TODO: load previous
-        } else {
-            throw new NotFoundException('There are no previous page');
-        }
+        return $this->httpGet( $this->stripEndpointFromLink($this->getPreviousLink()) );
     }
 
     /**
-     * Does API response contain link to next page of results
-     * @return  boolean
-     * @throws NotFoundException
+     * Get API response last page
+     * @return  object
+     * @throws \Exception
      */
     public function last()
     {
-        if($this->hasLastLink()) {
-            // TODO: load last
+        return $this->httpGet( $this->stripEndpointFromLink($this->getLastLink()) );
+    }
+
+    /**
+     * Remove the URL endpont from a link
+     * @url  string
+     * @return  string
+     */
+    private function stripEndpointFromLink($url) {
+        $api_endpoint = $this->getApiEndpoint();
+        if (substr($url, 0, strlen($api_endpoint)) == $api_endpoint) {
+            return substr($url, strlen($api_endpoint));
         } else {
-            throw new NotFoundException('There are no last page');
+            return $url;
         }
     }
 }
