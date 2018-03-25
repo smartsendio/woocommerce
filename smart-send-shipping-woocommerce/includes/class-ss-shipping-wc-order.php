@@ -261,9 +261,7 @@ class SS_Shipping_WC_Order {
 	}
 
 	protected function get_tracking_link( $new_shipment ) {
-		// if( empty( $tracking_num ) ) {
-			// return '';
-		// }
+		// TODO: Each parcel will have a tracking number. All these tracking numbers muct be saved instead of just saving one
 
 		$label_url = $this->save_label_file( $new_shipment->parcels[0]->parcel_internal_id, $new_shipment->parcels[0]->pdf->base_64_encoded );
 		$tracking_number = $new_shipment->parcels[0]->tracking_code;
