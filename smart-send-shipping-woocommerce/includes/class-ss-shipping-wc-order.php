@@ -691,6 +691,8 @@ class SS_Shipping_WC_Order {
 					// Ensure the selected orders have a label created, otherwise don't create handover
 					foreach ( $order_ids as $order_id ) {
 
+					    // TODO: Only create shipment for orders with a Smart Send shipping method (or free shipping). Add an error for other orders
+
                         $args = $this->set_label_args( $order_id );
 
 					    if( $this->api_handle->createShipmentAndLabels( $this->shipment ) ) {
@@ -704,6 +706,7 @@ class SS_Shipping_WC_Order {
 							$this->set_order_status_label( $order_id );
 
 							$message = __( 'Smart Shipping Labels Created', 'smart-send-shipping');
+							// TODO: Insert success message with link to PDF label for each order
 						} else {
 					        $error = $this->api_handle->getError();
 							$message = $error->message . __( ' - Smart Shipping Labels NOT Created', 'smart-send-shipping');
