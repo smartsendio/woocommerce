@@ -193,37 +193,24 @@ class SS_Shipping_WC_Order {
 
 		$ss_shipping_agent_no = wc_clean( $_POST[ 'ss_shipping_agent_no' ] );
 		$saved_ss_shipping_agent_no = $this->get_ss_shipping_order_agent_no( $post_id );
-		// error_log($saved_ss_shipping_agent_no);
-		// error_log($ss_shipping_agent_no);
+
 		if ( ! empty( $ss_shipping_agent_no ) && ( $ss_shipping_agent_no != $saved_ss_shipping_agent_no ) ){
-			
-			try {
-				
-				// API call to get agent info by agent no.
-				// $carrier = SS_SHIPPING_WC()->get_shipping_method_carrier( $full_method_id );
-				$ss_shipping_method_id = $this->get_smart_send_method_id( $post_id );
+            // API call to get agent info by agent no.
+            // $carrier = SS_SHIPPING_WC()->get_shipping_method_carrier( $full_method_id );
+            $ss_shipping_method_id = $this->get_smart_send_method_id( $post_id );
 
-				if( !empty($ss_shipping_method_id) ) {
-				
-					$shipping_method_carrier = SS_SHIPPING_WC()->get_shipping_method_carrier( $ss_shipping_method_id );
-			
-					$ss_shipping_agent = $this->api_handle->getAgentByAgentNo($shipping_method_carrier, $ss_shipping_agent_no);
-					// error_log(print_r($ss_shipping_agent,true));
-					// $this->save_ss_shipping_order_agent( $post_id, $ss_shipping_agent );
+            if( !empty($ss_shipping_method_id) ) {
 
-					$this->save_ss_shipping_order_agent_no( $post_id, $ss_shipping_agent_no );
-					$this->save_ss_shipping_order_agent( $post_id, $ss_shipping_agent );
-				}
+                $shipping_method_carrier = SS_SHIPPING_WC()->get_shipping_method_carrier( $ss_shipping_method_id );
 
-			} catch (Exception $e) {
-				$debug = $e->getMessage();
-				// $debug = $this->api_handle->getDebug();
-				// error_log(print_r($debug,true));
-			}
-			
+                if( $this->api_handle->getAgentByAgentNo($shipping_method_carrier, $ss_shipping_agent_no) ) {
+                    $this->save_ss_shipping_order_agent_no( $post_id, $ss_shipping_agent_no );
+                    $this->save_ss_shipping_order_agent( $post_id, $this->api_handle->getData() );
+                } else {
+                    //TODO: Add error that it was not possible to find the agent
+                }
+            }
 		}
-
-		// return $args;
 	}
 
 	/**
@@ -704,15 +691,12 @@ class SS_Shipping_WC_Order {
 
 					// Ensure the selected orders have a label created, otherwise don't create handover
 					foreach ( $order_ids as $order_id ) {
-						try {
 
-							$args = $this->set_label_args( $order_id );
+                        $args = $this->set_label_args( $order_id );
 
-						    $new_shipment = $this->api_handle->createShipmentAndLabels( $this->shipment );
-						    
-						    // error_log(print_r($new_shipment,true));
-						    
-							$tracking_note = $this->get_tracking_link( $new_shipment );
+					    if( $this->api_handle->createShipmentAndLabels( $this->shipment ) ) {
+
+							$tracking_note = $this->get_tracking_link( $this->api_handle->getData() );
 
 							// CREATE ORDER NOTE HERE
 							$order = wc_get_order( $order_id );
@@ -721,11 +705,10 @@ class SS_Shipping_WC_Order {
 							$this->set_order_status_label( $order_id );
 
 							$message = __( 'Smart Shipping Labels Created', 'smart-send-shipping');
-						} catch ( Exception $e ) {
-							// $debug = $this->api_handle->getDebug();
-							$debug = $e->getMessage();
-							// error_log(print_r($debug,true));
-							$message = $debug . __( ' - Smart Shipping Labels NOT Created', 'smart-send-shipping');
+						} else {
+					        $error = $this->api_handle->getError();
+							$message = $error->message . __( ' - Smart Shipping Labels NOT Created', 'smart-send-shipping');
+							// TODO: We need to show a more detailed error message with all the strings from the $errors array
 							$is_error = true;
 						}
 					}
