@@ -237,17 +237,12 @@ class SS_Shipping_WC_Order {
 
 		// Save inputted data first
 		$this->save_meta_box( $order_id );
-		
-		try {
 
-			$args = $this->set_label_args( $order_id );
+        $args = $this->set_label_args( $order_id );
 
-			// error_log(print_r($this->shipment,true));
-		    $new_shipment = $this->api_handle->createShipmentAndLabels( $this->shipment );
-		    // error_log(print_r($new_shipment,true));
+        if($this->api_handle->createShipmentAndLabels($this->shipment)) {
 
-			$tracking_note = $this->get_tracking_link( $new_shipment );
-			// $tracking_note = 'label created';
+			$tracking_note = $this->get_tracking_link( $this->api_handle->getData() );
 			$agent_address = $this->get_ss_shipping_order_agent( $order_id );
 			$agent_address_formatted =  $this->get_formatted_address( $agent_address );
 
@@ -260,13 +255,9 @@ class SS_Shipping_WC_Order {
 				'agent_address'	  => $agent_address_formatted
 			) );
 
-		} catch ( Exception $e ) {
-			// $debug = $this->api_handle->getDebug();
-			$debug = $e->getMessage();
-
-			// error_log(print_r($debug,true));
-			wp_send_json( array( 'error' => $debug ) );
-		}
+        } else {
+            wp_send_json( array( 'error' => $this->api_handle->getError() ) );
+        }
 		
 		wp_die();
 	}

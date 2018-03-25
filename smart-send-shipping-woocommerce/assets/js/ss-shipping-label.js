@@ -31,7 +31,16 @@ jQuery( function( $ ) {
 			$.post( woocommerce_admin_meta_boxes.ajax_url, data, function( response ) {
 				$( '#ss-shipping-label-form' ).unblock();
 				if ( response.error ) {
-					$( '#ss-shipping-label-form' ).append('<p class="ss-shipping-error">' + response.error + '</p>');
+					$( '#ss-shipping-label-form' ).append('<div id="ss-shipping-error" class="ss-shipping-error">' + response.error.message + '</div>');
+					if(response.error.errors) {
+                        $('#ss-shipping-error').append("<ul id='ss-shipping-error-list'></ul>");
+                        $.each(response.error.errors, function( index, value ) {
+                            $( '#ss-shipping-error-list' ).append('<li class="' + index +'">' + value + '</li>');
+                        });
+					}
+					if(response.id) {
+                        $( '#ss-shipping-error' ).append('<p id="ss-shipping-error-id">Unique error id: ' + response.error.id + '</p>');
+					}
 				} else {
 					// console.log(response);
 					$( '.ss_agent_address' ).html(response.agent_address);					
