@@ -609,7 +609,7 @@ class SS_Shipping_WC_Order {
 		    ->setInternalReference( $order_num )
 		    ->setShippingCarrier( $shipping_method_carrier )
 		    ->setShippingMethod( $shipping_method_type )
-		    ->setShippingDate( date(DateTime::ISO8601) )
+		    ->setShippingDate( date('Y-m-d') )
 		    ->setParcels( $parcels ) // Alternatively add each parcel using $shipment->addParcel(Parcel $parcel);
 		    // ->setServices( $services )
 		    ->setSubTotalPriceExcludingTax( $order_subtotal_excl )
