@@ -560,7 +560,7 @@ class SS_Shipping_WC_Order {
 			    ->setHeight(null)
 			    ->setWidth(null)
 			    ->setLength(null)
-			    ->setFreetext1( $order_note )
+			     
 			    ->setFreetext2(null)
 			    ->setFreetext3(null)
 			    ->setItems( $items ) // Alternatively add each item using $parcel->addItem(Item $item)
