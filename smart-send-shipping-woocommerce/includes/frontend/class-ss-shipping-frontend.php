@@ -89,8 +89,7 @@ class SS_Shipping_Frontend {
                     ?>
                     <select name="ss_shipping_store_pickup">
                         <?php
-
-                            if ( isset( $ss_setting['default_select_agent'] ) && $ss_setting['default_select_agent'] == 'no' ) {
+                            if ( !isset( $ss_setting['default_select_agent'] ) || $ss_setting['default_select_agent'] == 'no' ) {
                                 echo '<option value="0">' . __('- Select Pickup Point -', 'smart-send-shipping') . '</option>';
                             }
 
