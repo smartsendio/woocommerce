@@ -114,7 +114,7 @@ class SS_Shipping_WC_Order {
 					'id'          		=> 'ss_shipping_agent_no',
 					'label'       		=> __( 'Agent No.', 'smart-send-shipping' ),
 					'placeholder' 		=> '',
-					'description'		=> sprintf( __( 'Search for an "Agent No." <a href="%s" target="_blank">here</a>', 'smart-send-shipping' ), esc_url( '/' ) ),
+					'description'		=> sprintf( __( 'Search for an "Agent No." <a href="%s" target="_blank">here</a>', 'smart-send-shipping' ), esc_url( 'https://smartsend.io/pick-up-points' ) ),
 					'value'       		=> $ss_shipping_order_agent->agent_no,
 					'class'				=> '',
 					'type'				=> 'number'
@@ -148,7 +148,7 @@ class SS_Shipping_WC_Order {
 			return '';
 		}
 
-		return '<p class="ss_agent_address">' . __('Agent: ', 'smart-send-shipping') . $ss_shipping_order_agent->company . '</br>' . $ss_shipping_order_agent->address_line1 . '</br>' . $ss_shipping_order_agent->postal_code . ' ' . $ss_shipping_order_agent->city . '</p>';
+		return '<p class="ss_agent_address">' . $ss_shipping_order_agent->company . '</br>' . $ss_shipping_order_agent->address_line1 . '</br>' . $ss_shipping_order_agent->postal_code . ' ' . $ss_shipping_order_agent->city . '</p>';
 	}
 
 	protected function get_smart_send_method_id( $order_id ) {
