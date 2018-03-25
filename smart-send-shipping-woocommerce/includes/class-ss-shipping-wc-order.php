@@ -291,7 +291,7 @@ class SS_Shipping_WC_Order {
 		$tracking_number = $new_shipment->parcels[0]->tracking_code;
 		$tracking_link = $new_shipment->parcels[0]->tracking_link;
 
-		$tracking_note = sprintf( __( '<label>Smart Send Label: </label><a href="%s" target="_blank">Download Label</a><br/><label>Smart Send: </label><a href="%s" target="_blank">%s</a>', 'smart-send-shipping' ), $label_url, $tracking_link, $tracking_number);
+		$tracking_note = sprintf( __( '<label>Shipping label: </label><a href="%s" target="_blank">Download Label</a><br/><label>Tracking number: </label><a href="%s" target="_blank">%s</a>', 'smart-send-shipping' ), $label_url, $tracking_link, $tracking_number);
 		
 		return $tracking_note;
 	}
