@@ -417,8 +417,9 @@ class SS_Shipping_WC_Order {
 		if ( ! empty( $ss_agent ) ) {
 			// Add an agent (pickup point) to the shipment
 			$agent = new Smartsend\Models\Shipment\Agent();
-			$agent->setInternalId( $ss_agent->agent_no )
-			    ->setInternalReference( $ss_agent->agent_no )
+			$agent->setInternalId( $ss_agent->id )
+			    ->setInternalReference( $ss_agent->id )
+                ->setAgentNo( $ss_agent->agent_no )
 			    ->setCompany( $ss_agent->company )
 			    // ->setNameLine1(null)
 			    // ->setNameLine2(null)
