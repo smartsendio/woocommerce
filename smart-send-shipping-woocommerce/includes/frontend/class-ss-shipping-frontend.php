@@ -73,65 +73,38 @@ class SS_Shipping_Frontend {
 		if( $method_id == 'smart_send_shipping' &&
 			$chosen_shipping ==  $full_method_id &&
 			(stripos($full_method_id, '_pickuppoint') !== false) ) {
-			
-			error_log('found selected shipping method');
 
 			if ( isset( $_POST['s_country'] ) && isset( $_POST['s_postcode'] ) && isset( $_POST['s_address'] ) ) {
 				$country = wc_clean( $_POST['s_country'] );
 				$postal_code = wc_clean( $_POST['s_postcode'] );
 				$street = wc_clean( $_POST['s_address'] );
-				// error_log($country);
-				// error_log($postal_code);
-				// error_log($street);
 
 				$carrier = SS_SHIPPING_WC()->get_shipping_method_carrier( $full_method_id );
-				// error_log($carrier);
-				// error_log($method->get_id());
 				// Is street necessary?  If street changed on frontend this function is not called.
-				try {
-					
-					$ss_agents = $this->api_handle->findClosestAgentByAddress( $carrier, $country, $postal_code, $street );
-					// $ss_agents = $this->api_handle->findClosestAgentByAddress($carrier='gls', $country='dk', $postal_code='2100', $street='classensgade');
-					// $ss_agents = $this->api_handle->findClosestAgentByAddress($carrier='gls', $country='2100', $postal_code='dk', $street='classensgade');
-					// error_log(print_r($ss_agents,true));
-					WC()->session->set( 'ss_shipping_agents' , $ss_agents );
+                if ( $this->api_handle->findClosestAgentByAddress( $carrier, $country, $postal_code, $street ) ) {
+                    $ss_agents = $this->api_handle->getData();
+                    WC()->session->set( 'ss_shipping_agents' , $ss_agents );
+                    $ss_setting = SS_SHIPPING_WC()->get_ss_shipping_settings();
 
-					if ( $ss_agents ) {
-						
-						$ss_setting = SS_SHIPPING_WC()->get_ss_shipping_settings();
-						$default_select_agent = $ss_setting['default_select_agent'];
-						
-						?>
-						<select name="ss_shipping_store_pickup">
-							<?php 
+                    ?>
+                    <select name="ss_shipping_store_pickup">
+                        <?php
 
-								if ( isset( $ss_setting['default_select_agent'] ) && $ss_setting['default_select_agent'] == 'no' ) {
-									echo '<option value="0">' . __('- Select Pickup Point -', 'smart-send-shipping') . '</option>';		
-								}
+                            if ( isset( $ss_setting['default_select_agent'] ) && $ss_setting['default_select_agent'] == 'no' ) {
+                                echo '<option value="0">' . __('- Select Pickup Point -', 'smart-send-shipping') . '</option>';
+                            }
 
-								foreach ($ss_agents as $key => $agent) { 
-									$formatted_address = $this->get_formatted_address( $agent );
-								// $formatted_address_val = $this->get_formatted_address( $agent, 4 );
-								// error_log($formatted_address);
-								// echo $agent->agent_no . ':' . $formatted_address_val;
-							?>
-									<option value="<?php echo $agent->agent_no; ?>"><?php echo $formatted_address ?></option>
-							<?php } ?>
-								
-						</select>
-						<?php
-					} else {
-						$debug = $this->api_handle->getDebug();
-						error_log(print_r($debug,true));
-						echo __('Shipping to closest pickup point', 'smart-send-shipping');
-					}
+                            foreach ($ss_agents as $key => $agent) {
+                                $formatted_address = $this->get_formatted_address( $agent );
+                        ?>
+                                <option value="<?php echo $agent->agent_no; ?>"><?php echo $formatted_address ?></option>
+                        <?php } ?>
 
-				} catch (Exception $e) {
-					// throw $e;
-					$debug = $this->api_handle->getDebug();
-						error_log(print_r($debug,true));
-					echo __('Shipping to closest pickup point', 'smart-send-shipping');
-				}
+                    </select>
+                    <?php
+                } else {
+                    echo __('Shipping to closest pickup point', 'smart-send-shipping');
+                }
 			}
 		}
 	}
