@@ -49,8 +49,8 @@ class Shipment implements \JsonSerializable
         if(isset($shipment['shipping_method'])) {
             $this->setShippingMethod($shipment['shipping_method']);
         }
-        if(isset($parcel['shipping_date'])) {
-            $this->setShippingDate($parcel['shipping_date']);
+        if(isset($shipment['shipping_date'])) {
+            $this->setShippingDate($shipment['shipping_date']);
         }
         if(isset($shipment['sender'])) {
             $this->setSender($shipment['sender']);

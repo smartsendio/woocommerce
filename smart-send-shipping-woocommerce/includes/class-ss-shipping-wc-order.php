@@ -114,7 +114,7 @@ class SS_Shipping_WC_Order {
 					'id'          		=> 'ss_shipping_agent_no',
 					'label'       		=> __( 'Agent No.', 'smart-send-shipping' ),
 					'placeholder' 		=> '',
-					'description'		=> sprintf( __( 'Search for an "Agent No." <a href="%s" target="_blank">here</a>', 'smart-send-shipping' ), esc_url( '/' ) ),
+					'description'		=> sprintf( __( 'Search for an "Agent No." <a href="%s" target="_blank">here</a>', 'smart-send-shipping' ), esc_url( 'https://smartsend.io/pick-up-points' ) ),
 					'value'       		=> $ss_shipping_order_agent->agent_no,
 					'class'				=> '',
 					'type'				=> 'number'
@@ -148,7 +148,7 @@ class SS_Shipping_WC_Order {
 			return '';
 		}
 
-		return '<p class="ss_agent_address">' . __('Agent: ', 'smart-send-shipping') . $ss_shipping_order_agent->company . '</br>' . $ss_shipping_order_agent->address_line1 . '</br>' . $ss_shipping_order_agent->postal_code . ' ' . $ss_shipping_order_agent->city . '</p>';
+		return '<p class="ss_agent_address">' . $ss_shipping_order_agent->company . '</br>' . $ss_shipping_order_agent->address_line1 . '</br>' . $ss_shipping_order_agent->postal_code . ' ' . $ss_shipping_order_agent->city . '</p>';
 	}
 
 	protected function get_smart_send_method_id( $order_id ) {
@@ -193,37 +193,24 @@ class SS_Shipping_WC_Order {
 
 		$ss_shipping_agent_no = wc_clean( $_POST[ 'ss_shipping_agent_no' ] );
 		$saved_ss_shipping_agent_no = $this->get_ss_shipping_order_agent_no( $post_id );
-		// error_log($saved_ss_shipping_agent_no);
-		// error_log($ss_shipping_agent_no);
+
 		if ( ! empty( $ss_shipping_agent_no ) && ( $ss_shipping_agent_no != $saved_ss_shipping_agent_no ) ){
-			
-			try {
-				
-				// API call to get agent info by agent no.
-				// $carrier = SS_SHIPPING_WC()->get_shipping_method_carrier( $full_method_id );
-				$ss_shipping_method_id = $this->get_smart_send_method_id( $post_id );
+            // API call to get agent info by agent no.
+            // $carrier = SS_SHIPPING_WC()->get_shipping_method_carrier( $full_method_id );
+            $ss_shipping_method_id = $this->get_smart_send_method_id( $post_id );
 
-				if( !empty($ss_shipping_method_id) ) {
-				
-					$shipping_method_carrier = SS_SHIPPING_WC()->get_shipping_method_carrier( $ss_shipping_method_id );
-			
-					$ss_shipping_agent = $this->api_handle->getAgentByAgentNo($shipping_method_carrier, $ss_shipping_agent_no);
-					// error_log(print_r($ss_shipping_agent,true));
-					// $this->save_ss_shipping_order_agent( $post_id, $ss_shipping_agent );
+            if( !empty($ss_shipping_method_id) ) {
 
-					$this->save_ss_shipping_order_agent_no( $post_id, $ss_shipping_agent_no );
-					$this->save_ss_shipping_order_agent( $post_id, $ss_shipping_agent );
-				}
+                $shipping_method_carrier = SS_SHIPPING_WC()->get_shipping_method_carrier( $ss_shipping_method_id );
 
-			} catch (Exception $e) {
-				$debug = $e->getMessage();
-				// $debug = $this->api_handle->getDebug();
-				// error_log(print_r($debug,true));
-			}
-			
+                if( $this->api_handle->getAgentByAgentNo($shipping_method_carrier, $ss_shipping_agent_no) ) {
+                    $this->save_ss_shipping_order_agent_no( $post_id, $ss_shipping_agent_no );
+                    $this->save_ss_shipping_order_agent( $post_id, $this->api_handle->getData() );
+                } else {
+                    //TODO: Add error that it was not possible to find the agent
+                }
+            }
 		}
-
-		// return $args;
 	}
 
 	/**
@@ -237,17 +224,12 @@ class SS_Shipping_WC_Order {
 
 		// Save inputted data first
 		$this->save_meta_box( $order_id );
-		
-		try {
 
-			$args = $this->set_label_args( $order_id );
+        $args = $this->set_label_args( $order_id );
 
-			// error_log(print_r($this->shipment,true));
-		    $new_shipment = $this->api_handle->createShipmentAndLabels( $this->shipment );
-		    // error_log(print_r($new_shipment,true));
+        if($this->api_handle->createShipmentAndLabels($this->shipment)) {
 
-			$tracking_note = $this->get_tracking_link( $new_shipment );
-			// $tracking_note = 'label created';
+			$tracking_note = $this->get_tracking_link( $this->api_handle->getData() );
 			$agent_address = $this->get_ss_shipping_order_agent( $order_id );
 			$agent_address_formatted =  $this->get_formatted_address( $agent_address );
 
@@ -260,13 +242,9 @@ class SS_Shipping_WC_Order {
 				'agent_address'	  => $agent_address_formatted
 			) );
 
-		} catch ( Exception $e ) {
-			// $debug = $this->api_handle->getDebug();
-			$debug = $e->getMessage();
-
-			// error_log(print_r($debug,true));
-			wp_send_json( array( 'error' => $debug ) );
-		}
+        } else {
+            wp_send_json( array( 'error' => $this->api_handle->getError() ) );
+        }
 		
 		wp_die();
 	}
@@ -283,15 +261,13 @@ class SS_Shipping_WC_Order {
 	}
 
 	protected function get_tracking_link( $new_shipment ) {
-		// if( empty( $tracking_num ) ) {
-			// return '';
-		// }
+		// TODO: Each parcel will have a tracking number. All these tracking numbers muct be saved instead of just saving one
 
 		$label_url = $this->save_label_file( $new_shipment->parcels[0]->parcel_internal_id, $new_shipment->parcels[0]->pdf->base_64_encoded );
 		$tracking_number = $new_shipment->parcels[0]->tracking_code;
 		$tracking_link = $new_shipment->parcels[0]->tracking_link;
 
-		$tracking_note = sprintf( __( '<label>Smart Send Label: </label><a href="%s" target="_blank">Download Label</a><br/><label>Smart Send: </label><a href="%s" target="_blank">%s</a>', 'smart-send-shipping' ), $label_url, $tracking_link, $tracking_number);
+		$tracking_note = sprintf( __( '<label>Shipping label: </label><a href="%s" target="_blank">Download Label</a><br/><label>Tracking number: </label><a href="%s" target="_blank">%s</a>', 'smart-send-shipping' ), $label_url, $tracking_link, $tracking_number);
 		
 		return $tracking_note;
 	}
@@ -441,8 +417,9 @@ class SS_Shipping_WC_Order {
 		if ( ! empty( $ss_agent ) ) {
 			// Add an agent (pickup point) to the shipment
 			$agent = new Smartsend\Models\Shipment\Agent();
-			$agent->setInternalId( $ss_agent->agent_no )
-			    ->setInternalReference( $ss_agent->agent_no )
+			$agent->setInternalId( $ss_agent->id )
+			    ->setInternalReference( $ss_agent->id )
+                ->setAgentNo( $ss_agent->agent_no )
 			    ->setCompany( $ss_agent->company )
 			    // ->setNameLine1(null)
 			    // ->setNameLine2(null)
@@ -532,10 +509,10 @@ class SS_Shipping_WC_Order {
 				    ->setInternalReference( $product_id )
 				    ->setSku( $product_sku )
 				    ->setName( $product->get_title() )
-				    ->setDescription( $product_description )
+				    ->setDescription( null ) //$product_description can be used, but is often to long (255)
 				    ->setHsCode( $hs_code )
 				    ->setImageUrl( $product_img_url )
-				    ->setUnitWeight( $product_weight )
+				    ->setUnitWeight( $product_weight > 0 ? $product_weight : null )
 				    ->setUnitPriceExcludingTax( $product_val )
 				    ->setUnitPriceIncludingTax( $product_val_tax )
 				    ->setQuantity( $item['qty'] )
@@ -580,13 +557,13 @@ class SS_Shipping_WC_Order {
 			$parcels[0] = new \Smartsend\Models\Shipment\Parcel();
 			$parcels[0]->setInternalId( $order_id )
 			    ->setInternalReference( $order_num )
-			    ->setWeight($weight_total)
+			    ->setWeight($weight_total > 0 ? $weight_total : null)
 			    ->setHeight(null)
 			    ->setWidth(null)
 			    ->setLength(null)
-			    ->setFreetext1( $order_note )
-			    ->setFreetext2('')
-			    ->setFreetext3('')
+			    ->setFreetext1( $order_note )//TODO: whether or not to insert the order note, should be determined by the setting "Include order comment on label" and should be filtered.
+			    ->setFreetext2(null)
+			    ->setFreetext3(null)
 			    ->setItems( $items ) // Alternatively add each item using $parcel->addItem(Item $item)
 			    ->setTotalPriceExcludingTax( $order_subtotal_excl )
 			    ->setTotalPriceIncludingTax( $order_subtotal )
@@ -609,7 +586,7 @@ class SS_Shipping_WC_Order {
 		    ->setInternalReference( $order_num )
 		    ->setShippingCarrier( $shipping_method_carrier )
 		    ->setShippingMethod( $shipping_method_type )
-		    ->setShippingDate( date(DateTime::ISO8601) )
+		    ->setShippingDate( date('Y-m-d') )
 		    ->setParcels( $parcels ) // Alternatively add each parcel using $shipment->addParcel(Parcel $parcel);
 		    // ->setServices( $services )
 		    ->setSubTotalPriceExcludingTax( $order_subtotal_excl )
@@ -713,15 +690,14 @@ class SS_Shipping_WC_Order {
 
 					// Ensure the selected orders have a label created, otherwise don't create handover
 					foreach ( $order_ids as $order_id ) {
-						try {
 
-							$args = $this->set_label_args( $order_id );
+					    // TODO: Only create shipment for orders with a Smart Send shipping method (or free shipping). Add an error for other orders
 
-						    $new_shipment = $this->api_handle->createShipmentAndLabels( $this->shipment );
-						    
-						    // error_log(print_r($new_shipment,true));
-						    
-							$tracking_note = $this->get_tracking_link( $new_shipment );
+                        $args = $this->set_label_args( $order_id );
+
+					    if( $this->api_handle->createShipmentAndLabels( $this->shipment ) ) {
+
+							$tracking_note = $this->get_tracking_link( $this->api_handle->getData() );
 
 							// CREATE ORDER NOTE HERE
 							$order = wc_get_order( $order_id );
@@ -730,11 +706,11 @@ class SS_Shipping_WC_Order {
 							$this->set_order_status_label( $order_id );
 
 							$message = __( 'Smart Shipping Labels Created', 'smart-send-shipping');
-						} catch ( Exception $e ) {
-							// $debug = $this->api_handle->getDebug();
-							$debug = $e->getMessage();
-							// error_log(print_r($debug,true));
-							$message = $debug . __( ' - Smart Shipping Labels NOT Created', 'smart-send-shipping');
+							// TODO: Insert success message with link to PDF label for each order
+						} else {
+					        $error = $this->api_handle->getError();
+							$message = $error->message . __( ' - Smart Shipping Labels NOT Created', 'smart-send-shipping');
+							// TODO: We need to show a more detailed error message with all the strings from the $errors array
 							$is_error = true;
 						}
 					}

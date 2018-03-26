@@ -140,7 +140,7 @@ class SS_Shipping_WC_Method extends WC_Shipping_Flat_Rate {
 				'title'    	=> __( 'Select Default','smart-send-shipping'),
 				'label'    	=> __( 'Enable Select Default','smart-send-shipping'),
 				'description'	=> __('Select the first returned pickup point'),
-				'default' 	=> '',
+				'default' 	=> 'no',
 				'type'     	=> 'checkbox',
 				'desc_tip' 	=> true,
 			),

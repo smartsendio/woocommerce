@@ -260,6 +260,7 @@ class SS_Shipping_WC {
 	}
 
 	public function ss_shipping_test_connection_callback() {
+        // Is this used? And why do we have a try/catch here?
 		check_ajax_referer( 'ss-shipping-test-con', 'test_con_nonce' );
 		try {
 
@@ -291,7 +292,7 @@ class SS_Shipping_WC {
 	}
 
 	public function log_msg( $msg )	{
-		
+		// Why do we have a try/catch here?
 		try {
 			$shipping_as_settings = $this->get_shipping_as_settings();
 			$as_debug = isset( $shipping_as_settings['as_debug'] ) ? $shipping_as_settings['as_debug'] : 'yes';
@@ -308,7 +309,7 @@ class SS_Shipping_WC {
 	}
 
 	public function get_log_url( )	{
-
+        // Why do we have a try/catch here?
 		try {
 			$shipping_as_settings = $this->get_shipping_as_settings();
 			$as_debug = isset( $shipping_as_settings['as_debug'] ) ? $shipping_as_settings['as_debug'] : 'yes';
