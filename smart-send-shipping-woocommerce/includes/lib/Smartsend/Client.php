@@ -11,7 +11,7 @@ class Client
 {
     const TIMEOUT = 10;
 
-    private $api_endpoint = 'https://dumbledore.smartsend.io/api/v1/';
+    private $api_endpoint = 'http://smartsend-test.apigee.net/api/v1/';
     private $api_token;
     protected $request_endpoint;
     protected $request_headers;
@@ -218,12 +218,21 @@ class Client
             $this->request_body = ($body ? json_encode($body) : null);
         }
 
+        // Find plugin version number
+        $path = dirname(__FILE__);
+        $path = preg_replace('/includes\/lib\/Smartsend$/', '', $path);
+        $plugin_data = get_plugin_data( $path.'/smart-send-shipping-woocommerce.php' );
+
+        // Find referer
+        $webshop_url = parse_url(get_permalink( wc_get_page_id( 'shop' ) ), PHP_URL_HOST);
+
         // Make request
         $ch = curl_init();
         curl_setopt($ch, CURLOPT_URL, $this->request_endpoint);
 
         curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
-        curl_setopt($ch, CURLOPT_USERAGENT, 'Smartsend-API/0.1');
+        curl_setopt($ch, CURLOPT_USERAGENT, 'WooCommerce/'.$plugin_data['Version']);
+        curl_setopt($ch, CURLOPT_REFERER, $webshop_url);
         curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
         curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
         curl_setopt($ch, CURLOPT_TIMEOUT, $timeout);
