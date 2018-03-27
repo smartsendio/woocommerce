@@ -41,7 +41,7 @@ class SS_Shipping_WC_Order {
 
 	public function init_hooks() {
 		add_action( 'add_meta_boxes', array( $this, 'add_meta_box' ), 20 );
-		// add_action( 'woocommerce_process_shop_order_meta', array( $this, 'save_meta_box' ), 0, 2 );
+		add_action( 'woocommerce_process_shop_order_meta', array( $this, 'save_meta_box' ), 0, 2 );
 
 		// Order page metabox actions
 		add_action( 'wp_ajax_ss_shipping_generate_label', array( $this, 'save_meta_box_ajax' ) );
@@ -202,12 +202,18 @@ class SS_Shipping_WC_Order {
             if( !empty($ss_shipping_method_id) ) {
 
                 $shipping_method_carrier = SS_SHIPPING_WC()->get_shipping_method_carrier( $ss_shipping_method_id );
+                
+                $order = wc_get_order( $post_id );
+                $shipping_address = $order->get_address( 'shipping' );
 
-                if( $this->api_handle->getAgentByAgentNo($shipping_method_carrier, $ss_shipping_agent_no) ) {
-                    $this->save_ss_shipping_order_agent_no( $post_id, $ss_shipping_agent_no );
-                    $this->save_ss_shipping_order_agent( $post_id, $this->api_handle->getData() );
-                } else {
-                    //TODO: Add error that it was not possible to find the agent
+                if( ! empty( $shipping_method_carrier ) && ! empty( $shipping_address['country'] ) ) {
+                	
+	                if( $this->api_handle->getAgentByAgentNo($shipping_method_carrier, $shipping_address['country'], $ss_shipping_agent_no) ) {
+	                    $this->save_ss_shipping_order_agent_no( $post_id, $ss_shipping_agent_no );
+	                    $this->save_ss_shipping_order_agent( $post_id, $this->api_handle->getData() );
+	                } else {
+	                    //TODO: Add error that it was not possible to find the agent
+	                }
                 }
             }
 		}
@@ -536,6 +542,8 @@ class SS_Shipping_WC_Order {
 				}
 				$order_currency = $order->get_order_currency();
 			}
+
+			$order_note = apply_filters( 'smart_send_order_note', $order_note, $order );
 
 			// Order totals
 			$order_total = $order->get_total();
