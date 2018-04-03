@@ -72,7 +72,15 @@ class SS_Shipping_WC_Order {
 	 * @access public
 	 */
 	public function add_meta_box() {
-		add_meta_box( 'woocommerce-ss-shipping-label', __( 'Smart Send Shipping', 'smart-send-shipping' ), array( $this, 'meta_box' ), 'shop_order', 'side', 'default' );
+		global $woocommerce, $post;
+		$order_id = $post->ID;
+
+		$ss_shipping_method_id = $this->get_smart_send_method_id( $order_id );
+
+		if( !empty($ss_shipping_method_id) ) {
+			
+			add_meta_box( 'woocommerce-ss-shipping-label', __( 'Smart Send Shipping', 'smart-send-shipping' ), array( $this, 'meta_box' ), 'shop_order', 'side', 'default' );
+		}
 	}
 
 	/**
@@ -82,61 +90,55 @@ class SS_Shipping_WC_Order {
 	 */
 	public function meta_box() {
 		global $woocommerce, $post;
-		
 		$order_id = $post->ID;
-		
-		// Get saved label input fields or set default values
-		$ss_shipping_order_agent = $this->get_ss_shipping_order_agent( $order_id );
 		
 		$ss_shipping_method_id = $this->get_smart_send_method_id( $order_id );
 
+		// Get saved label input fields or set default values
+		$ss_shipping_order_agent = $this->get_ss_shipping_order_agent( $order_id );
+		
 		echo '<div id="ss-shipping-label-form">';
 
-		if( !empty($ss_shipping_method_id) ) {
-			// use to output esc_html_e!!!
-			woocommerce_wp_hidden_input( array(
-				'id'    => 'ss_shipping_label_nonce',
-				'value' => wp_create_nonce( 'create-ss-shipping-label' )
+		// use to output esc_html_e!!!
+		woocommerce_wp_hidden_input( array(
+			'id'    => 'ss_shipping_label_nonce',
+			'value' => wp_create_nonce( 'create-ss-shipping-label' )
+		) );
+		
+		$shipping_method_carrier = ucfirst( SS_SHIPPING_WC()->get_shipping_method_carrier( $ss_shipping_method_id ) );
+		$shipping_method_type = ucfirst( SS_SHIPPING_WC()->get_shipping_method_type( $ss_shipping_method_id ) );
+
+		echo '<h3>' . __('Shipping Method', 'smart-send-shipping') . '</h3>';
+		echo '<p>'. $shipping_method_carrier . ' - ' . $shipping_method_type. '</p>';
+		
+		// $ss_shipping_options = $this->get_ss_shipping_order_options( $order_id );
+
+		if( !empty( $ss_shipping_order_agent ) ) {
+			echo '<h3>' . __('Pickup Point', 'smart-send-shipping') . '</h3>';
+
+			woocommerce_wp_text_input( array(
+				'id'          		=> 'ss_shipping_agent_no',
+				'label'       		=> __( 'Agent No.', 'smart-send-shipping' ),
+				'placeholder' 		=> '',
+				'description'		=> sprintf( __( 'Search for an "Agent No." <a href="%s" target="_blank">here</a>', 'smart-send-shipping' ), esc_url( 'https://smartsend.io/pick-up-points' ) ),
+				'value'       		=> $ss_shipping_order_agent->agent_no,
+				'class'				=> '',
+				'type'				=> 'number'
 			) );
 			
-			$shipping_method_carrier = ucfirst( SS_SHIPPING_WC()->get_shipping_method_carrier( $ss_shipping_method_id ) );
-			$shipping_method_type = ucfirst( SS_SHIPPING_WC()->get_shipping_method_type( $ss_shipping_method_id ) );
-
-			echo '<h3>' . __('Shipping Method', 'smart-send-shipping') . '</h3>';
-			echo '<p>'. $shipping_method_carrier . ' - ' . $shipping_method_type. '</p>';
-			
-			// $ss_shipping_options = $this->get_ss_shipping_order_options( $order_id );
-
-			if( !empty( $ss_shipping_order_agent ) ) {
-				echo '<h3>' . __('Pickup Point', 'smart-send-shipping') . '</h3>';
-
-				woocommerce_wp_text_input( array(
-					'id'          		=> 'ss_shipping_agent_no',
-					'label'       		=> __( 'Agent No.', 'smart-send-shipping' ),
-					'placeholder' 		=> '',
-					'description'		=> sprintf( __( 'Search for an "Agent No." <a href="%s" target="_blank">here</a>', 'smart-send-shipping' ), esc_url( 'https://smartsend.io/pick-up-points' ) ),
-					'value'       		=> $ss_shipping_order_agent->agent_no,
-					'class'				=> '',
-					'type'				=> 'number'
-				) );
-				
-				// error_log(print_r($ss_shipping_order_agent,true));
-				echo $this->get_formatted_address( $ss_shipping_order_agent );
-			}
-
-			echo '<hr>';
-			// echo wc_help_tip( $ss_shipping_method_id );
-			echo '</p>';
-			
-
-			echo '<button id="ss-shipping-label-button" class="button button-primary button-save-form">' . SS_SHIPPING_BUTTON_LABEL_GEN . '</button>';
-
-			wp_enqueue_script( 'ss-shipping-label-js', SS_SHIPPING_PLUGIN_DIR_URL . '/assets/js/ss-shipping-label.js', array(), SS_SHIPPING_VERSION );
-			// wp_localize_script( 'ss-shipping-label-js', 'ss_shipping_label_data', $ss_shipping_label_data );
-			
-		} else {
-			// echo '<p class="ss-shipping-error">' . __('There are no services available for the destination country!', 'smart-send-shipping') . '</p>';
+			// error_log(print_r($ss_shipping_order_agent,true));
+			echo $this->get_formatted_address( $ss_shipping_order_agent );
 		}
+
+		echo '<hr>';
+		// echo wc_help_tip( $ss_shipping_method_id );
+		echo '</p>';
+		
+
+		echo '<button id="ss-shipping-label-button" class="button button-primary button-save-form">' . SS_SHIPPING_BUTTON_LABEL_GEN . '</button>';
+
+		wp_enqueue_script( 'ss-shipping-label-js', SS_SHIPPING_PLUGIN_DIR_URL . '/assets/js/ss-shipping-label.js', array(), SS_SHIPPING_VERSION );
+		// wp_localize_script( 'ss-shipping-label-js', 'ss_shipping_label_data', $ss_shipping_label_data );
 		
 		echo '</div>';
 		
@@ -212,7 +214,7 @@ class SS_Shipping_WC_Order {
 	                    $this->save_ss_shipping_order_agent_no( $post_id, $ss_shipping_agent_no );
 	                    $this->save_ss_shipping_order_agent( $post_id, $this->api_handle->getData() );
 	                } else {
-	                    //TODO: Add error that it was not possible to find the agent
+	                    WC_Admin_Meta_Boxes::add_error( sprintf( __( 'The agent number entered, %s, was not found.', 'smart-send-shipping' ), $ss_shipping_agent_no ) );
 	                }
                 }
             }
@@ -232,7 +234,7 @@ class SS_Shipping_WC_Order {
 		$this->save_meta_box( $order_id );
 
         $args = $this->set_label_args( $order_id );
-
+        error_log(print_r($this->shipment,true));
         if($this->api_handle->createShipmentAndLabels($this->shipment)) {
 
 			$tracking_note = $this->get_tracking_link( $this->api_handle->getData() );
@@ -249,6 +251,7 @@ class SS_Shipping_WC_Order {
 			) );
 
         } else {
+        	error_log(print_r($this->api_handle->getError(),true));
             wp_send_json( array( 'error' => $this->api_handle->getError() ) );
         }
 		
@@ -529,7 +532,7 @@ class SS_Shipping_WC_Order {
 				$index++;
 			}
 			
-			$order_note = '';
+			$order_note = null;
 				// Create the parcels array
 			if ( defined( 'WOOCOMMERCE_VERSION' ) && version_compare( WOOCOMMERCE_VERSION, '3.0', '>=' ) ) {
 				if( $ss_settings['include_order_comment'] == 'yes' ) {
@@ -569,7 +572,7 @@ class SS_Shipping_WC_Order {
 			    ->setHeight(null)
 			    ->setWidth(null)
 			    ->setLength(null)
-			    ->setFreetext1( $order_note )//TODO: whether or not to insert the order note, should be determined by the setting "Include order comment on label" and should be filtered.
+			    ->setFreetext1( $order_note )
 			    ->setFreetext2(null)
 			    ->setFreetext3(null)
 			    ->setItems( $items ) // Alternatively add each item using $parcel->addItem(Item $item)
@@ -657,6 +660,7 @@ class SS_Shipping_WC_Order {
 
 	public function process_orders_bulk_actions() {
 		global $typenow;
+		$array_messages = array( 'msg_user_id' => get_current_user_id() );
 
 		if ( 'shop_order' === $typenow ) {
 
@@ -699,35 +703,54 @@ class SS_Shipping_WC_Order {
 					// Ensure the selected orders have a label created, otherwise don't create handover
 					foreach ( $order_ids as $order_id ) {
 
-					    // TODO: Only create shipment for orders with a Smart Send shipping method (or free shipping). Add an error for other orders
+						$ss_shipping_method_id = $this->get_smart_send_method_id( $order_id );
 
-                        $args = $this->set_label_args( $order_id );
+						if( !empty($ss_shipping_method_id) ) {
 
-					    if( $this->api_handle->createShipmentAndLabels( $this->shipment ) ) {
+	                        $args = $this->set_label_args( $order_id );
+	                        error_log(print_r($this->shipment,true));
+						    if( $this->api_handle->createShipmentAndLabels( $this->shipment ) ) {
 
-							$tracking_note = $this->get_tracking_link( $this->api_handle->getData() );
+								$tracking_note = $this->get_tracking_link( $this->api_handle->getData() );
 
-							// CREATE ORDER NOTE HERE
-							$order = wc_get_order( $order_id );
-							$order->add_order_note( $tracking_note, 0, true );
+								$order = wc_get_order( $order_id );
 
-							$this->set_order_status_label( $order_id );
+								$order->add_order_note( $tracking_note, 0, true );
 
-							$message = __( 'Smart Shipping Labels Created', 'smart-send-shipping');
-							// TODO: Insert success message with link to PDF label for each order
+								$this->set_order_status_label( $order_id );
+
+								$message = sprintf( __( 'Order #%s: Smart Shipping Label Created', 'smart-send-shipping'), $order_id );
+								$is_error = false;
+								// TODO: Insert success message with link to PDF label for each order
+
+								$arr_message = array( 'message' => $message, 'is_error' => $is_error );
+								array_push($array_messages, $arr_message);
+							} else {
+						        $error = $this->api_handle->getError();
+
+								$message = sprintf( __( 'Order #%s: %s', 'smart-send-shipping'), $order_id, $error->message );
+
+								error_log(print_r($error,true));
+								foreach ($error->errors as $error_key => $error_value) {
+									$message .= '<br/> - ' . $error_value[0];
+								}
+
+								$is_error = true;
+
+								$arr_message = array( 'message' => $message, 'is_error' => $is_error );
+								array_push($array_messages, $arr_message);
+							}
 						} else {
-					        $error = $this->api_handle->getError();
-							$message = $error->message . __( ' - Smart Shipping Labels NOT Created', 'smart-send-shipping');
-							// TODO: We need to show a more detailed error message with all the strings from the $errors array
+							$message = sprintf( __( 'Order #%s: The selected order did not include a Send Smart shipping method', 'smart-send-shipping'), $order_id );
 							$is_error = true;
+							$arr_message = array( 'message' => $message, 'is_error' => $is_error );
+							array_push($array_messages, $arr_message);
 						}
 					}
-
-						
 				}
 
 				/* @see render_messages() */
-				update_option( '_ss_shipping_bulk_action_confirmation', array( get_current_user_id() => $message, 'is_error' => $is_error ) );
+				update_option( '_ss_shipping_bulk_action_confirmation', $array_messages);
 
 			}
 			
@@ -746,19 +769,24 @@ class SS_Shipping_WC_Order {
 
 			if ( ( $bulk_action_message_opt ) && is_array( $bulk_action_message_opt ) ) {
 
-				$user_id = key( $bulk_action_message_opt );
-
+				// $user_id = key( $bulk_action_message_opt );
+				// remove first element from array and verify if it is the user id
+				$user_id = array_shift( $bulk_action_message_opt );
+				// error_log($user_id);
 				if ( get_current_user_id() !== (int) $user_id ) {
 					return;
 				}
 
-				$message = wp_kses_post( current( $bulk_action_message_opt ) );
-				$is_error = wp_kses_post( next( $bulk_action_message_opt ) );
-				
-				if( $is_error ) {
-					echo '<div class="error"><ul><li>' . $message . '</li></ul></div>';
-				} else {
-					echo '<div id="wp-admin-message-handler-message"  class="updated"><ul><li><strong>' . $message . '</strong></li></ul></div>';
+				foreach ($bulk_action_message_opt as $key => $value) {
+					// error_log(print_r($value,true));
+					$message = wp_kses_post( $value['message'] );
+					$is_error = wp_kses_post( $value['is_error'] );
+					
+					if( $is_error ) {
+						echo '<div class="error"><ul><li>' . $message . '</li></ul></div>';
+					} else {
+						echo '<div id="wp-admin-message-handler-message"  class="updated"><ul><li><strong>' . $message . '</strong></li></ul></div>';
+					}
 				}
 
 				delete_option( '_ss_shipping_bulk_action_confirmation' );

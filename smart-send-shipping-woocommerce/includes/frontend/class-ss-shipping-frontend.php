@@ -236,19 +236,23 @@ class SS_Shipping_Frontend {
 
 		// global $order;
 		$ordered_agent_no = SS_SHIPPING_WC()->get_ss_shipping_wc_order()->get_ss_shipping_order_agent_no( $order_id );
-		$ordered_agent = SS_SHIPPING_WC()->get_ss_shipping_wc_order()->get_ss_shipping_order_agent( $order_id );
 
-		$formatted_address = $this->get_formatted_address($ordered_agent);
-		// Display in block instead of one line
-		$formatted_address = str_replace(',', '<br/>', $formatted_address);
-		?>
+		if ( $ordered_agent_no ) {
+			
+			$ordered_agent = SS_SHIPPING_WC()->get_ss_shipping_wc_order()->get_ss_shipping_order_agent( $order_id );
 
-		<h2><?php _e( 'Pickup Point', 'woocommerce' ); ?></h2>
-		<address>
-			<?php echo $formatted_address; ?>
-		</address>
-		
-		<?php		
+			$formatted_address = $this->get_formatted_address($ordered_agent);
+			// Display in block instead of one line
+			$formatted_address = str_replace(',', '<br/>', $formatted_address);
+			?>
+
+			<h2><?php _e( 'Pickup Point', 'woocommerce' ); ?></h2>
+			<address>
+				<?php echo $formatted_address; ?>
+			</address>
+			
+			<?php		
+		}
 	}
 }
 
