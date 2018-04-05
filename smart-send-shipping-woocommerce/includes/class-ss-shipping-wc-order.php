@@ -804,7 +804,7 @@ class SS_Shipping_WC_Order {
 					$arr_message = array( 'message' => $message, 'is_error' => $is_error );
 					array_push($array_messages, $arr_message);
 				} elseif ( $orders_count > 8 ) {
-					$message = __( 'At most 8 order can be selected, please select 8 orders and try again.', 'smart-send-shipping' );
+					$message = __( 'At most 8 order can be selected, please select 8 orders or less and try again.', 'smart-send-shipping' );
 					$is_error = true;
 
 					$arr_message = array( 'message' => $message, 'is_error' => $is_error );
