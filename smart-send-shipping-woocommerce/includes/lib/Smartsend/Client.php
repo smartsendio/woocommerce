@@ -221,7 +221,7 @@ class Client
         // Find plugin version number
         $path = dirname(__FILE__);
         $path = preg_replace('/includes\/lib\/Smartsend$/', '', $path);
-        $plugin_data = get_plugin_data( $path.'/smart-send-shipping-woocommerce.php' );
+        // $plugin_data = get_plugin_data( $path.'/smart-send-shipping-woocommerce.php' );
 
         // Find referer
         $webshop_url = parse_url(get_permalink( wc_get_page_id( 'shop' ) ), PHP_URL_HOST);
@@ -231,7 +231,7 @@ class Client
         curl_setopt($ch, CURLOPT_URL, $this->request_endpoint);
 
         curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
-        curl_setopt($ch, CURLOPT_USERAGENT, 'WooCommerce/'.$plugin_data['Version']);
+        curl_setopt($ch, CURLOPT_USERAGENT, 'WooCommerce/'. SS_SHIPPING_VERSION);
         curl_setopt($ch, CURLOPT_REFERER, $webshop_url);
         curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
         curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);

@@ -66,8 +66,13 @@ class SS_Shipping_Frontend {
 		// error_log(print_r($chosen_methods,true));
  		$chosen_shipping = $chosen_methods[0]; 
 		// error_log($index);
- 		$method_id = $method->get_method_id();
- 		$full_method_id = $method->get_id();
+ 		if ( defined( 'WOOCOMMERCE_VERSION' ) && version_compare( WOOCOMMERCE_VERSION, '3.0', '>=' ) ) {
+ 			$method_id = $method->get_method_id();
+ 			$full_method_id = $method->get_id();
+ 		} else {
+ 			$method_id = $method->method_id;
+ 			$full_method_id = $method->id;
+ 		}
 
 		// error_log(print_r($method,true));
 		if( $method_id == 'smart_send_shipping' &&

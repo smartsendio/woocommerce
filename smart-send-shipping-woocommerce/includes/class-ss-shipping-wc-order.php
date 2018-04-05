@@ -156,6 +156,10 @@ class SS_Shipping_WC_Order {
 	protected function get_smart_send_method_id( $order_id ) {
 		$order = wc_get_order( $order_id );
 		
+		if( ! $order ) {
+			return '';
+		}
+
 		// Get shipping id to make sure it's SS
 		$order_shipping_methods = $order->get_shipping_methods();
 		// error_log(print_r($order_shipping_methods,true));
@@ -237,7 +241,20 @@ class SS_Shipping_WC_Order {
         error_log(print_r($this->shipment,true));
         if($this->api_handle->createShipmentAndLabels($this->shipment)) {
 
-			$tracking_note = $this->get_tracking_link( $this->api_handle->getData() );
+			$tracking_note = $this->get_tracking_link( $order_id, $this->api_handle->getData() );
+			
+			$shipment_tracking_details = $this->get_tracking_details( $this->api_handle->getData() );
+			foreach($shipment_tracking_details as $parcel_tracking_details) {
+                $this->save_tracking_in_shipment_tracking($order_id, $parcel_tracking_details['tracking_code'], $parcel_tracking_details['tracking_link'], $parcel_tracking_details['carrier_name'],$date_shipped=null);
+            }
+
+			$agent_address = $this->get_ss_shipping_order_agent( $order_id );
+			$agent_address_formatted =  $this->get_formatted_address( $agent_address );
+
+			$this->set_order_status_label( $order_id );
+
+
+
 			$agent_address = $this->get_ss_shipping_order_agent( $order_id );
 			$agent_address_formatted =  $this->get_formatted_address( $agent_address );
 
@@ -247,7 +264,8 @@ class SS_Shipping_WC_Order {
 
 			wp_send_json( array( 
 				'tracking_note'	  => $tracking_note,
-				'agent_address'	  => $agent_address_formatted
+				'agent_address'	  => $agent_address_formatted,
+				'label_link'	  => $this->get_ss_shipping_label_link( $order_id )
 			) );
 
         } else {
@@ -282,10 +300,10 @@ class SS_Shipping_WC_Order {
         return $tracking_array;
     }
 
-	protected function get_tracking_link( $new_shipment ) {
+	protected function get_tracking_link( $order_id, $new_shipment ) {
 		// TODO: Each parcel will have a tracking number. All these tracking numbers muct be saved instead of just saving one
 
-		$label_url = $this->save_label_file( $new_shipment->parcels[0]->parcel_internal_id, $new_shipment->parcels[0]->pdf->base_64_encoded );
+		$label_url = $this->save_label_file( $order_id, $new_shipment->parcels[0]->parcel_internal_id, $new_shipment->parcels[0]->pdf->base_64_encoded );
 		$tracking_number = $new_shipment->parcels[0]->tracking_code;
 		$tracking_link = $new_shipment->parcels[0]->tracking_link;
 
@@ -294,7 +312,7 @@ class SS_Shipping_WC_Order {
 		return $tracking_note;
 	}
 
-	protected function save_label_file( $label_id, $label_data ) {
+	protected function save_label_file( $order_id, $label_id, $label_data ) {
 		
 		if ( empty($label_id) ) {
 			throw new Exception( __('Label id is empty', 'smart-send-shipping' ) );
@@ -319,6 +337,8 @@ class SS_Shipping_WC_Order {
 		if( empty( $file_ret ) ) {
 			throw new Exception( __('Label file cannot be saved', 'smart-send-shipping' ) );
 		}
+
+		$this->save_ss_shipping_label( $order_id, $label_url );
 
 		return $label_url;
 	}
@@ -368,6 +388,41 @@ class SS_Shipping_WC_Order {
 	public function get_ss_shipping_order_agent( $order_id ) {
 		return get_post_meta( $order_id, '_ss_shipping_order_agent', true );
 	}
+
+	/**
+	 * Saves the label to post_meta.
+	 *
+	 * @param int   $order_id       Order ID
+	 * @param string $label_url 	Label URL
+	 *
+	 * @return void
+	 */
+	public function save_ss_shipping_label( $order_id, $label_url ) {
+		update_post_meta( $order_id, '_ss_shipping_label', $label_url );
+	}
+
+	/*
+	 * Gets all label the post meta array for an order
+	 *
+	 * @param int  $order_id  Order ID
+	 *
+	 * @return Label URL
+	 */
+	public function get_ss_shipping_label( $order_id ) {
+		return get_post_meta( $order_id, '_ss_shipping_label', true );
+	}
+
+	/*
+	 * Get label link 
+	 *
+	 * @param int  $order_id  Order ID
+	 *
+	 * @return Label URL link
+	 */
+	public function get_ss_shipping_label_link( $order_id ) {
+		return '<a href="' . $this->get_ss_shipping_label( $order_id ) . '" target="_blank">' . __('Download Shipping Label', 'smart-send-shipping') . '</a>';
+	}
+
 
     /*
      * Save tracking number in Shipment Tracking
@@ -487,6 +542,9 @@ class SS_Shipping_WC_Order {
 			foreach ($ordered_items as $key => $item) {
 				$product = wc_get_product( $item['product_id'] );
 			
+				// error_log(print_r($product,true));
+				error_log(print_r($item,true));
+
 				if( ! empty( $item['variation_id'] ) ) {
 					$product_variation = wc_get_product( $item['variation_id'] );
 					// Ensure id is string and not int
@@ -507,10 +565,21 @@ class SS_Shipping_WC_Order {
 
 				// WC 3.0 code!
 				if ( defined( 'WOOCOMMERCE_VERSION' ) && version_compare( WOOCOMMERCE_VERSION, '3.0', '>=' ) ) {
-					$product_val_tax = wc_get_price_including_tax( $product_variation );
+					// $product_val_tax = wc_get_price_including_tax( $product_variation );
+					// $args['qty'] = $item['qty'];
+					// $product_val_tax_total = wc_get_price_including_tax( $product_variation, $args );
+					
+					// Total w/o tax and individual w/o tax
+					$product_val_total = $item->get_subtotal();
+					$product_val = $product_val_total / $item['qty'];
+					
+					// Total tax
+					$product_tax_total = $item->get_subtotal_tax();
 
-					$args['qty'] = $item['qty'];
-					$product_val_tax_total = wc_get_price_including_tax( $product_variation, $args );
+					// Total w/ tax and indivdual w/ tax
+					$product_val_tax_total = $product_val_total + $product_tax_total;
+					$product_val_tax = $product_val_tax_total / $item['qty'];
+
 
 					if( ! empty( $product->get_short_description() ) ) {
 						$product_description = $product->get_short_description();
@@ -519,24 +588,29 @@ class SS_Shipping_WC_Order {
 					}
 
 				} else {
-					$product_val_tax = $product_variation->get_price_including_tax();
-					$product_val_tax_total = $product_variation->get_price_including_tax( $item['qty'] );
+					// Total w/o tax and individual w/o tax
+					$product_val_total = $item['line_subtotal'];
+					$product_val = $product_val_total / $item['qty'];
 					
+					// Total tax
+					$product_tax_total = $item['line_tax'];
+
+					// Total w/ tax and indivdual w/ tax
+					$product_val_tax_total = $product_val_total + $product_tax_total;
+					$product_val_tax = $product_val_tax_total / $item['qty'];
+
 					if( ! empty( $product->post->post_excerpt ) ) {
 						$product_description = $product->post->post_excerpt;
 					} elseif ( ! empty( $product->post->post_content ) ) {
 						$product_description = $product->post->post_content;
 					}
+
 				}
 				
 				$product_weight = $product_variation->get_weight();
 				if( $product_weight ) {
 					$weight_total += ( $item['qty'] * $product_weight );
 				}
-
-				$product_val = $product_variation->get_price();
-				$product_val_total = $product_val * $item['qty'];
-				$product_tax_total = $product_val_tax_total - $product_val_total;
 
 				$product_img_id = $product->get_image_id();
 				$product_img_url = wp_get_attachment_url( $product_img_id );
@@ -603,7 +677,7 @@ class SS_Shipping_WC_Order {
 			    ->setHeight(null)
 			    ->setWidth(null)
 			    ->setLength(null)
-			    ->setFreetext1( $order_note ?: null )
+			    ->setFreetext1( $order_note ) // TEST SENDING "null"
 			    ->setFreetext2(null)
 			    ->setFreetext3(null)
 			    ->setItems( $items ) // Alternatively add each item using $parcel->addItem(Item $item)
@@ -748,7 +822,7 @@ class SS_Shipping_WC_Order {
 	                        error_log(print_r($this->shipment,true));
 						    if( $this->api_handle->createShipmentAndLabels( $this->shipment ) ) {
 
-								$tracking_note = $this->get_tracking_link( $this->api_handle->getData() );
+								$tracking_note = $this->get_tracking_link( $order_id, $this->api_handle->getData() );
 
 								$order = wc_get_order( $order_id );
 
@@ -762,7 +836,7 @@ class SS_Shipping_WC_Order {
 
 								$this->set_order_status_label( $order_id );
 
-								$message = sprintf( __( 'Order #%s: Smart Shipping Label Created', 'smart-send-shipping'), $order_id );
+								$message = sprintf( __( 'Order #%s: Smart Shipping Label Created, %s', 'smart-send-shipping'), $order_id, $this->get_ss_shipping_label_link( $order_id ) );
 								$is_error = false;
 								// TODO: Insert success message with link to PDF label for each order
 

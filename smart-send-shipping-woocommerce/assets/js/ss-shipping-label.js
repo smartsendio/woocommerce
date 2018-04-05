@@ -11,6 +11,7 @@ jQuery(function ($) {
             // console.log(ss_shipping_label_data);
             // Remove any errors from last attempt to create label
             $('#ss-shipping-label-form .ss-shipping-error').remove();
+            $('#ss-shipping-label-form .ss_label_created').remove();
 
             $('#ss-shipping-label-form').block({
                 message: null,
@@ -43,6 +44,7 @@ jQuery(function ($) {
                 } else {
                     // console.log(response);
                     $('.ss_agent_address').html(response.agent_address);
+                    $('#ss-shipping-label-form').append('<div class="ss_label_created">' + response.label_link + '</div>');
 
                     if (response.tracking_note) {
 

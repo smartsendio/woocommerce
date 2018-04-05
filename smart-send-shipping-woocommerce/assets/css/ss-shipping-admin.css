@@ -6,14 +6,10 @@ span.ss-shipping-error {
 	float:right;
 }
 
-.ss_connection_succeeded {
-	color: #008000;
-	margin-left: 10px;
+.ss_label_created {
 	margin-top: 10px;
 }
 
-.ss_connection_error {
-	color: #a00;
-	margin-left: 10px;
-	margin-top: 10px;
+.ss_label_created a {
+	color: #008000;
 }
