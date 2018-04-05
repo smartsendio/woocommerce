@@ -442,6 +442,7 @@ class SS_Shipping_WC_Order {
         }
     }
 
+    // TODO: Test if this function is used at all?
 	protected function calculate_order_weight( $order_id ) {
 		$order = wc_get_order( $order_id );
 
@@ -456,7 +457,7 @@ class SS_Shipping_WC_Order {
 				$product = wc_get_product( $item['product_id'] );
 			}
 			
-			$product_weight = $product->get_weight();
+			$product_weight = round(wc_get_weight($product->get_weight(), 'kg'),2);
 			if( $product_weight ) {
 				$total_weight += ( $item['qty'] * $product_weight );
 			}
@@ -607,7 +608,7 @@ class SS_Shipping_WC_Order {
 
 				}
 				
-				$product_weight = $product_variation->get_weight();
+				$product_weight = round(wc_get_weight($product_variation->get_weight(), 'kg'),2);
 				if( $product_weight ) {
 					$weight_total += ( $item['qty'] * $product_weight );
 				}
