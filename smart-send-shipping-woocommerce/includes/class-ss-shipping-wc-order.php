@@ -726,9 +726,15 @@ class SS_Shipping_WC_Order {
 				if ( $orders_count < 1 ) {
 					$message = __( 'No orders selected, please select the orders to create label(s).', 'smart-send-shipping' );
 					$is_error = true;
+
+					$arr_message = array( 'message' => $message, 'is_error' => $is_error );
+					array_push($array_messages, $arr_message);
 				} elseif ( $orders_count > 8 ) {
 					$message = __( 'At most 8 order can be selected, please select 8 orders and try again.', 'smart-send-shipping' );
 					$is_error = true;
+
+					$arr_message = array( 'message' => $message, 'is_error' => $is_error );
+					array_push($array_messages, $arr_message);
 				} else {
 
 					// Ensure the selected orders have a label created, otherwise don't create handover
