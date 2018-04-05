@@ -571,11 +571,11 @@ class SS_Shipping_WC_Order {
 					// $product_val_tax_total = wc_get_price_including_tax( $product_variation, $args );
 					
 					// Total w/o tax and individual w/o tax
-					$product_val_total = $item->get_subtotal();
+					$product_val_total = (float) $item->get_subtotal();
 					$product_val = $product_val_total / $item['qty'];
 					
 					// Total tax
-					$product_tax_total = $item->get_subtotal_tax();
+					$product_tax_total = (float) $item->get_subtotal_tax();
 
 					// Total w/ tax and indivdual w/ tax
 					$product_val_tax_total = $product_val_total + $product_tax_total;
@@ -590,11 +590,11 @@ class SS_Shipping_WC_Order {
 
 				} else {
 					// Total w/o tax and individual w/o tax
-					$product_val_total = $item['line_subtotal'];
+					$product_val_total = (float) $item['line_subtotal'];
 					$product_val = $product_val_total / $item['qty'];
 					
 					// Total tax
-					$product_tax_total = $item['line_tax'];
+					$product_tax_total = (float) $item['line_tax'];
 
 					// Total w/ tax and indivdual w/ tax
 					$product_val_tax_total = $product_val_total + $product_tax_total;
