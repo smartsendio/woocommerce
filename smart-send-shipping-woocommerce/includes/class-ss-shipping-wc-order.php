@@ -356,7 +356,7 @@ class SS_Shipping_WC_Order {
 	}
 
 	/*
-	 * Gets all label itesm fron the post meta array for an order
+	 * Gets all label items from the post meta array for an order
 	 *
 	 * @param int  $order_id  Order ID
 	 *
@@ -490,17 +490,17 @@ class SS_Shipping_WC_Order {
 		// Make receiver object.
 		$receiver = new \Smartsend\Models\Shipment\Receiver();
 		$receiver->setInternalId( $order_id )
-		    ->setInternalReference( $order_id )
-		    ->setCompany( $shipping_address['company'] )
-		    ->setNameLine1( $shipping_address['first_name'])
-		    ->setNameLine2( $shipping_address['last_name'] )
-		    ->setAddressLine1( $shipping_address['address_1'] )
-		    ->setAddressLine2( $shipping_address['address_2'] )
-		    ->setPostalCode( $shipping_address['postcode'] )
-		    ->setCity( $shipping_address['city'] )
-		    ->setCountry( $shipping_address['country'] )
-		    ->setSms( $shipping_address['phone'] )
-		    ->setEmail( $shipping_address['email'] );
+		    ->setInternalReference( $order_id ?: null )
+		    ->setCompany( $shipping_address['company'] ?: null )
+		    ->setNameLine1( $shipping_address['first_name'] ?: null )
+		    ->setNameLine2( $shipping_address['last_name'] ?: null )
+		    ->setAddressLine1( $shipping_address['address_1'] ?: null )
+		    ->setAddressLine2( $shipping_address['address_2'] ?: null )
+		    ->setPostalCode( $shipping_address['postcode'] ?: null )
+		    ->setCity( $shipping_address['city'] ?: null )
+		    ->setCountry( $shipping_address['country'] ?: null )
+		    ->setSms( $shipping_address['phone'] ?: null )
+		    ->setEmail( $shipping_address['email'] ?: null );
 
 		// Add the receiver to the shipment
 		$this->shipment->setReceiver($receiver);
@@ -513,17 +513,17 @@ class SS_Shipping_WC_Order {
 		if ( ! empty( $ss_agent ) ) {
 			// Add an agent (pickup point) to the shipment
 			$agent = new Smartsend\Models\Shipment\Agent();
-			$agent->setInternalId( $ss_agent->id )
-			    ->setInternalReference( $ss_agent->id )
-                ->setAgentNo( $ss_agent->agent_no )
-			    ->setCompany( $ss_agent->company )
+			$agent->setInternalId( $ss_agent->id ?: null )
+			    ->setInternalReference( $ss_agent->id ?: null )
+                ->setAgentNo( $ss_agent->agent_no ?: null )
+			    ->setCompany( $ss_agent->company ?: null )
 			    // ->setNameLine1(null)
 			    // ->setNameLine2(null)
-			    ->setAddressLine1( $ss_agent->address_line1 )
-			    ->setAddressLine2( $ss_agent->address_line2 )
-			    ->setPostalCode( $ss_agent->postal_code )
-			    ->setCity( $ss_agent->city )
-			    ->setCountry( $ss_agent->country );
+			    ->setAddressLine1( $ss_agent->address_line1 ?: null )
+			    ->setAddressLine2( $ss_agent->address_line2 ?: null )
+			    ->setPostalCode( $ss_agent->postal_code ?: null )
+			    ->setCity( $ss_agent->city ?: null )
+			    ->setCountry( $ss_agent->country ?: null );
 			    // ->setSms('30274735')
 			    // ->setEmail('email@example.com');
 
@@ -620,20 +620,20 @@ class SS_Shipping_WC_Order {
 				$hs_code = get_post_meta( $item['product_id'], '_ss_hs_code', true );
 
 				$items[ $index ] = new \Smartsend\Models\Shipment\Item();
-				$items[ $index ]->setInternalId( $product_id )
-				    ->setInternalReference( $product_id )
-				    ->setSku( $product_sku )
-				    ->setName( $product->get_title() )
+				$items[ $index ]->setInternalId( $product_id ?: null )
+				    ->setInternalReference( $product_id ?: null )
+				    ->setSku( $product_sku ?: null )
+				    ->setName( $product->get_title() ?: null )
 				    ->setDescription( null ) //$product_description can be used, but is often to long (255)
-				    ->setHsCode( $hs_code )
-				    ->setImageUrl( $product_img_url )
+				    ->setHsCode( $hs_code ?: null )
+				    ->setImageUrl( $product_img_url ?: null )
 				    ->setUnitWeight( $product_weight > 0 ? $product_weight : null )
-				    ->setUnitPriceExcludingTax( $product_val )
-				    ->setUnitPriceIncludingTax( $product_val_tax )
-				    ->setQuantity( $item['qty'] )
-				    ->setTotalPriceExcludingTax( $product_val_total )
-				    ->setTotalPriceIncludingTax( $product_val_tax_total )
-				    ->setTotalTaxAmount( $product_tax_total );
+				    ->setUnitPriceExcludingTax( $product_val ?: null )
+				    ->setUnitPriceIncludingTax( $product_val_tax ?: null )
+				    ->setQuantity( $item['qty'] ?: null )
+				    ->setTotalPriceExcludingTax( $product_val_total ?: null )
+				    ->setTotalPriceIncludingTax( $product_val_tax_total ?: null )
+				    ->setTotalTaxAmount( $product_tax_total ?: null );
 
 				$index++;
 			}
@@ -672,19 +672,19 @@ class SS_Shipping_WC_Order {
 			$parcels = array();
 			// Create a parcel containing the items just defined
 			$parcels[0] = new \Smartsend\Models\Shipment\Parcel();
-			$parcels[0]->setInternalId( $order_id )
-			    ->setInternalReference( $order_num )
-			    ->setWeight($weight_total > 0 ? $weight_total : null)
+			$parcels[0]->setInternalId( $order_id ?: null )
+			    ->setInternalReference( $order_num ?: null )
+			    ->setWeight($weight_total ?: null)
 			    ->setHeight(null)
 			    ->setWidth(null)
 			    ->setLength(null)
-			    ->setFreetext1( $order_note ) // TEST SENDING "null"
+			    ->setFreetext1( $order_note ?: null )
 			    ->setFreetext2(null)
 			    ->setFreetext3(null)
 			    ->setItems( $items ) // Alternatively add each item using $parcel->addItem(Item $item)
-			    ->setTotalPriceExcludingTax( $order_subtotal_excl )
-			    ->setTotalPriceIncludingTax( $order_subtotal )
-			    ->setTotalTaxAmount( $order_subtotal_tax );
+			    ->setTotalPriceExcludingTax( $order_subtotal_excl ?: null )
+			    ->setTotalPriceIncludingTax( $order_subtotal ?: null )
+			    ->setTotalTaxAmount( $order_subtotal_tax ?: null );
 		}
 		
 		// Create services
@@ -699,21 +699,21 @@ class SS_Shipping_WC_Order {
 		
 
 		// Add final parameters to shipment
-		$this->shipment->setInternalId( $order_id )
-		    ->setInternalReference( $order_num )
-		    ->setShippingCarrier( $shipping_method_carrier )
-		    ->setShippingMethod( $shipping_method_type )
+		$this->shipment->setInternalId( $order_id ?: null )
+		    ->setInternalReference( $order_num ?: null )
+		    ->setShippingCarrier( $shipping_method_carrier ?: null )
+		    ->setShippingMethod( $shipping_method_type ?: null )
 		    ->setShippingDate( date('Y-m-d') )
 		    ->setParcels( $parcels ) // Alternatively add each parcel using $shipment->addParcel(Parcel $parcel);
 		    // ->setServices( $services )
-		    ->setSubTotalPriceExcludingTax( $order_subtotal_excl )
-		    ->setSubTotalPriceIncludingTax( $order_subtotal )
-		    ->setTotalPriceExcludingTax( $order_total_excl )
-		    ->setTotalPriceIncludingTax( $order_total )
-		    ->setShippingPriceExcludingTax( $order_shipping_excl )
-		    ->setShippingPriceIncludingTax( $order_shipping )
-		    ->setTotalTaxAmount( $order_total_tax )
-		    ->setCurrency( $order_currency );
+		    ->setSubTotalPriceExcludingTax( $order_subtotal_excl ?: null )
+		    ->setSubTotalPriceIncludingTax( $order_subtotal ?: null )
+		    ->setTotalPriceExcludingTax( $order_total_excl ?: null )
+		    ->setTotalPriceIncludingTax( $order_total ?: null )
+		    ->setShippingPriceExcludingTax( $order_shipping_excl ?: null )
+		    ->setShippingPriceIncludingTax( $order_shipping ?: null )
+		    ->setTotalTaxAmount( $order_total_tax ?: null )
+		    ->setCurrency( $order_currency ?: null );
 
 		// Send the shipment object. The new object will be almost identical, but will have 'id' and 'type' fields
 	}
