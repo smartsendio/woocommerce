@@ -269,6 +269,19 @@ class SS_Shipping_WC_Order {
 		}
 	}
 
+	protected function get_tracking_details( $shipment ) {
+	    $tracking_array = array();
+	    foreach($shipment->parcels as $parcel) {
+            $tracking_array[$parcel->parcel_internal_id] = array(
+                    'carrier_code' => $parcel->carrier_code,
+                    'carrier_name' => $parcel->carrier_name,
+                    'tracking_code' => $parcel->tracking_code,
+                    'tracking_link' => apply_filters( 'smart_send_tracking_url', $parcel->tracking_link, $parcel->carrier_code ),
+            );
+        }
+        return $tracking_array;
+    }
+
 	protected function get_tracking_link( $new_shipment ) {
 		// TODO: Each parcel will have a tracking number. All these tracking numbers muct be saved instead of just saving one
 
@@ -355,6 +368,24 @@ class SS_Shipping_WC_Order {
 	public function get_ss_shipping_order_agent( $order_id ) {
 		return get_post_meta( $order_id, '_ss_shipping_order_agent', true );
 	}
+
+    /*
+     * Save tracking number in Shipment Tracking
+     *
+     * @param int  $order_id  Order ID
+     *
+     * @return void
+     */
+    public function save_tracking_in_shipment_tracking( $order_id, $tracking_number, $tracking_url, $provider='Smart Send',$date_shipped=null ) {
+
+        if(!$date_shipped) {
+            $date_shipped = date("Y-m-d");
+        }
+
+        if ( function_exists( 'wc_st_add_tracking_number' ) ) {
+            wc_st_add_tracking_number( $order_id, $tracking_number, $provider, $date_shipped, $tracking_url );
+        }
+    }
 
 	protected function calculate_order_weight( $order_id ) {
 		$order = wc_get_order( $order_id );
@@ -716,6 +747,12 @@ class SS_Shipping_WC_Order {
 								$order = wc_get_order( $order_id );
 
 								$order->add_order_note( $tracking_note, 0, true );
+
+								// Add tracking information to Shipment Tracking
+								$shipment_tracking_details = $this->get_tracking_details( $this->api_handle->getData() );
+								foreach($shipment_tracking_details as $parcel_tracking_details) {
+                                    $this->save_tracking_in_shipment_tracking($order_id, $parcel_tracking_details['tracking_code'], $parcel_tracking_details['tracking_link'], $parcel_tracking_details['carrier_name'],$date_shipped=null);
+                                }
 
 								$this->set_order_status_label( $order_id );
 
