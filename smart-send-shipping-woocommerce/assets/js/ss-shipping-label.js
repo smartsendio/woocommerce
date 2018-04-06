@@ -8,10 +8,9 @@ jQuery(function ($) {
         },
 
         save_ss_shipping_label: function () {
-            // console.log(ss_shipping_label_data);
             // Remove any errors from last attempt to create label
-            $('#ss-shipping-label-form .ss-shipping-error').remove();
-            $('#ss-shipping-label-form .ss_label_created').remove();
+            $('#ss-shipping-label-form .error').remove();
+            $('#ss-shipping-label-form .updated').remove();
 
             $('#ss-shipping-label-form').block({
                 message: null,
@@ -30,21 +29,22 @@ jQuery(function ($) {
 
             $.post(woocommerce_admin_meta_boxes.ajax_url, data, function (response) {
                 $('#ss-shipping-label-form').unblock();
+
                 if (response.error) {
-                    $('#ss-shipping-label-form').append('<div id="ss-shipping-error" class="ss-shipping-error">' + response.error.message + '</div>');
+                    $('#ss-shipping-label-form').append('<div id="ss-shipping-error" class="error ss-meta-message">' + response.error.message + '</div>');
                     if (response.error.errors) {
-                        $('#ss-shipping-error').append("<ul id='ss-shipping-error-list'></ul>");
+                        $('#ss-shipping-error').append('<ul id="ss-shipping-error-list" class="error ss-meta-message"></ul>');
                         $.each(response.error.errors, function (index, value) {
-                            $('#ss-shipping-error-list').append('<li class="' + index + '">' + value + '</li>');
+                            $('#ss-shipping-error-list').append('<li class="' + index + ' error ss-meta-message">' + value + '</li>');
                         });
                     }
                     if (response.id) {
-                        $('#ss-shipping-error').append('<p id="ss-shipping-error-id">Unique error id: ' + response.error.id + '</p>');
+                        $('#ss-shipping-error').append('<p id="ss-shipping-error-id" class="error ss-meta-message">Unique error id: ' + response.error.id + '</p>');
                     }
                 } else {
-                    // console.log(response);
+                    
                     $('.ss_agent_address').html(response.agent_address);
-                    $('#ss-shipping-label-form').append('<div class="ss_label_created">' + response.label_link + '</div>');
+                    $('#ss-shipping-label-form').append('<div id="ss-label-created" class="updated ss-meta-message">' + response.label_link + '</div>');
 
                     if (response.tracking_note) {
 

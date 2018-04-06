@@ -58,14 +58,9 @@ class SS_Shipping_Frontend {
 			return;
 		}
 
-		// error_log(print_r($_POST,true));
-		// error_log(print_r(WC()->customer,true));
-
-		// error_log('display_ss_pickup_points');
 		$chosen_methods = WC()->session->get( 'chosen_shipping_methods' );
-		// error_log(print_r($chosen_methods,true));
  		$chosen_shipping = $chosen_methods[0]; 
-		// error_log($index);
+
  		if ( defined( 'WOOCOMMERCE_VERSION' ) && version_compare( WOOCOMMERCE_VERSION, '3.0', '>=' ) ) {
  			$method_id = $method->get_method_id();
  			$full_method_id = $method->get_id();
@@ -74,7 +69,6 @@ class SS_Shipping_Frontend {
  			$full_method_id = $method->id;
  		}
 
-		// error_log(print_r($method,true));
 		if( $method_id == 'smart_send_shipping' &&
 			$chosen_shipping ==  $full_method_id &&
 			(stripos($full_method_id, '_pickuppoint') !== false) ) {
@@ -114,7 +108,6 @@ class SS_Shipping_Frontend {
 	}
 
 	protected function get_formatted_address( $agent, $format_id = 0 ) {
-		// error_log(print_r($agent,true));
 		// $place_holders = '#'.__('Company','smart-send-shipping').', #'.__('Street','smart-send-shipping').', #'.__('City','smart-send-shipping'),
 		// #'.__('Zipcode','smart-send-shipping')
 
@@ -124,10 +117,7 @@ class SS_Shipping_Frontend {
 		}
 
 		$agents_address_format = SS_SHIPPING_WC()->get_agents_address_format();
-		// error_log(print_r($agents_address_format,true));
-		// error_log(print_r($ss_setting,true));
 		$address_format = $agents_address_format[ $format_id ];
-		// error_log(print_r($address_format,true));
 
 		$place_holders = array( 
 								__('#Company', 'smart-send-shipping'),
@@ -166,20 +156,17 @@ class SS_Shipping_Frontend {
 		if ( ! isset( $_POST ) ) {
 			return;
 		}
-		// error_log(print_r($_POST, true));
 		
 		if( empty( $_POST[ 'ss_shipping_store_pickup' ] ) ) {
 			return;
 		}
 
 		$ss_shipping_store_pickup = wc_clean( $_POST[ 'ss_shipping_store_pickup' ] );
-		// error_log($ss_shipping_store_pickup);
 		$retrive_data = WC()->session->get( 'ss_shipping_agents' );
 
 		$selected_agent_no = 0;
 		if ( $retrive_data ) {
 			foreach ($retrive_data as $agent_key => $agent_value) {
-				// error_log($agent_value->agent_no);
 				if( $agent_value->agent_no == $ss_shipping_store_pickup ) {
 					// $selected_agent['selected_agent'] = $agent_value;
 					$selected_agent_no = $agent_value->agent_no;
@@ -189,57 +176,16 @@ class SS_Shipping_Frontend {
 				}
 			}
 		}
-		// error_log('retrive_data');
-		// error_log(print_r($retrive_data,true));
-		// $ss_shipping_store_address = $this->ss_agents[ $ss_shipping_store_pickup ];
-		// $ss_shipping_agent = explode(':', $ss_shipping_store_pickup);
-
-		// $formatted_address = $this->get_formatted_address( $ss_shipping_store_address, 4 );
-
-		// if ( ! empty( $ss_shipping_agent[0] )) {
-		// 	// update_post_meta( $order_id, 'ss_shipping_agent_id', $ss_shipping_agent[0] );
-		// 	$ss_shipping_order_options['ss_shipping_agent_id'] = $ss_shipping_agent[0];
-		// }
-
-		// if ( ! empty( $ss_shipping_agent[1] )) {
-		// 	$ss_shipping_order_options['ss_shipping_agent_address'] = $ss_shipping_agent[1];
-		// 	// update_post_meta( $order_id, '_ss_shipping_agent_address', $ss_shipping_agent[1] );
-		// }
-		// error_log(print_r($selected_agent,true));
+		
 		if( ! empty( $selected_agent_no ) ) {
 			SS_SHIPPING_WC()->get_ss_shipping_wc_order()->save_ss_shipping_order_agent_no( $order_id, $selected_agent_no );
 			SS_SHIPPING_WC()->get_ss_shipping_wc_order()->save_ss_shipping_order_agent( $order_id, $selected_agent );
 		}
 	}
-	/*
-	private function get_shipping_carrier( $ship_method ) {
-		
-		if( empty( $ship_method ) ) {
-			return $ship_method;
-		}
-
-		// Assumes format 'name:instance_carrier_method'
-		$new_ship_method = explode(':', $ship_method );
-		
-		if ( isset($new_ship_method[1] ) ) {
-			// Assumes format 'instance_carrier_method'
-			$ship_carrier = explode('_', $new_ship_method[1] );
-	
-			// if has 3 parts
-			if ( sizeof($ship_carrier) == 3 ) {
-				return $ship_carrier[1]; // second value is the carrier
-			}
-		}
-
-		return $ship_method;
-	}*/
 
 	public function display_ss_shipping_agent( $order ) {
 
-		// Might need to change for WC 3.0
-		$order_id = $order->get_order_number(); // WHAT HAPPENS WHEN SEQUENCIAL ORDER ID PLUGIN IS INSTALLED?
-
-		// global $order;
+		$order_id = $order->get_order_number();
 		$ordered_agent_no = SS_SHIPPING_WC()->get_ss_shipping_wc_order()->get_ss_shipping_order_agent_no( $order_id );
 
 		if ( $ordered_agent_no ) {

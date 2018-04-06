@@ -126,7 +126,6 @@ class SS_Shipping_WC_Order {
 				'type'				=> 'number'
 			) );
 			
-			// error_log(print_r($ss_shipping_order_agent,true));
 			echo $this->get_formatted_address( $ss_shipping_order_agent );
 		}
 
@@ -162,7 +161,6 @@ class SS_Shipping_WC_Order {
 
 		// Get shipping id to make sure it's SS
 		$order_shipping_methods = $order->get_shipping_methods();
-		// error_log(print_r($order_shipping_methods,true));
 
 		// $is_smart_send_shipping = false;
 		if( !empty($order_shipping_methods) ) {
@@ -191,10 +189,10 @@ class SS_Shipping_WC_Order {
 		return '';
 	}
 
-	public function save_meta_box( $post_id, $post = null ) {
-		// error_log('save meta box');
+	public function save_meta_box( $post_id, $post = null, $doing_ajax = false ) {
+
 		if( ! isset( $_POST[ 'ss_shipping_agent_no' ] ) ) {
-			return;
+			return false;
 		}
 
 		$ss_shipping_agent_no = wc_clean( $_POST[ 'ss_shipping_agent_no' ] );
@@ -218,11 +216,19 @@ class SS_Shipping_WC_Order {
 	                    $this->save_ss_shipping_order_agent_no( $post_id, $ss_shipping_agent_no );
 	                    $this->save_ss_shipping_order_agent( $post_id, $this->api_handle->getData() );
 	                } else {
-	                    WC_Admin_Meta_Boxes::add_error( sprintf( __( 'The agent number entered, %s, was not found.', 'smart-send-shipping' ), $ss_shipping_agent_no ) );
+	                	$error_msg = sprintf( __( 'The agent number entered, %s, was not found.', 'smart-send-shipping' ), $ss_shipping_agent_no );
+	                    
+	                    if( $doing_ajax ) {
+	                    	return $error_msg;
+	                    } else {
+	                    	WC_Admin_Meta_Boxes::add_error( $error_msg );
+	                    }
 	                }
                 }
             }
 		}
+
+		return false;
 	}
 
 	/**
@@ -235,10 +241,12 @@ class SS_Shipping_WC_Order {
 		$order_id = wc_clean( $_POST[ 'order_id' ] );
 
 		// Save inputted data first
-		$this->save_meta_box( $order_id );
+		if( $msg = $this->save_meta_box( $order_id, null, true ) ) {
+			wp_send_json( array( 'error' => array( 'message' => $msg ) ) );
+			wp_die();
+		}
 
         $args = $this->set_label_args( $order_id );
-        error_log(print_r($this->shipment,true));
         if($this->api_handle->createShipmentAndLabels($this->shipment)) {
 
 			$tracking_note = $this->get_tracking_link( $order_id, $this->api_handle->getData() );
@@ -269,8 +277,7 @@ class SS_Shipping_WC_Order {
 			) );
 
         } else {
-        	error_log(print_r($this->api_handle->getError(),true));
-            wp_send_json( array( 'error' => $this->api_handle->getError() ) );
+            wp_send_json( array( 'error' => array( 'message' => $this->api_handle->getError() ) ) );
         }
 		
 		wp_die();
@@ -442,29 +449,6 @@ class SS_Shipping_WC_Order {
         }
     }
 
-    // TODO: Test if this function is used at all?
-	protected function calculate_order_weight( $order_id ) {
-		$order = wc_get_order( $order_id );
-
-		$ordered_items = $order->get_items( );
-
-		$total_weight = 0;
-		foreach ($ordered_items as $key => $item) {
-					
-			if( ! empty( $item['variation_id'] ) ) {
-				$product = wc_get_product($item['variation_id']);
-			} else {
-				$product = wc_get_product( $item['product_id'] );
-			}
-			
-			$product_weight = round(wc_get_weight($product->get_weight(), 'kg'),2);
-			if( $product_weight ) {
-				$total_weight += ( $item['qty'] * $product_weight );
-			}
-		}
-
-		return $total_weight;
-	}
 
 	protected function set_label_args( $order_id ) {
 		// Get settings from child implementation
@@ -534,7 +518,6 @@ class SS_Shipping_WC_Order {
 		// Get order item specific data
 		$ordered_items = $order->get_items( );
 		$args['items'] = array();
-		// error_log(print_r($ordered_items,true));
 
 		if ( !empty( $ordered_items ) ) {
 			$items = array();
@@ -542,9 +525,6 @@ class SS_Shipping_WC_Order {
 			$weight_total = 0;
 			foreach ($ordered_items as $key => $item) {
 				$product = wc_get_product( $item['product_id'] );
-			
-				// error_log(print_r($product,true));
-				error_log(print_r($item,true));
 
 				if( ! empty( $item['variation_id'] ) ) {
 					$product_variation = wc_get_product( $item['variation_id'] );
@@ -615,7 +595,6 @@ class SS_Shipping_WC_Order {
 
 				$product_img_id = $product->get_image_id();
 				$product_img_url = wp_get_attachment_url( $product_img_id );
-				// error_log(print_r($product_img,true));
 				
 				$hs_code = get_post_meta( $item['product_id'], '_ss_hs_code', true );
 
@@ -820,7 +799,7 @@ class SS_Shipping_WC_Order {
 						if( !empty($ss_shipping_method_id) ) {
 
 	                        $args = $this->set_label_args( $order_id );
-	                        error_log(print_r($this->shipment,true));
+
 						    if( $this->api_handle->createShipmentAndLabels( $this->shipment ) ) {
 
 								$tracking_note = $this->get_tracking_link( $order_id, $this->api_handle->getData() );
@@ -839,31 +818,24 @@ class SS_Shipping_WC_Order {
 
 								$message = sprintf( __( 'Order #%s: Smart Shipping Label Created, %s', 'smart-send-shipping'), $order_id, $this->get_ss_shipping_label_link( $order_id ) );
 								$is_error = false;
-								// TODO: Insert success message with link to PDF label for each order
-
-								$arr_message = array( 'message' => $message, 'is_error' => $is_error );
-								array_push($array_messages, $arr_message);
 							} else {
 						        $error = $this->api_handle->getError();
 
 								$message = sprintf( __( 'Order #%s: %s', 'smart-send-shipping'), $order_id, $error->message );
 
-								error_log(print_r($error,true));
 								foreach ($error->errors as $error_key => $error_value) {
 									$message .= '<br/> - ' . $error_value[0];
 								}
 
 								$is_error = true;
-
-								$arr_message = array( 'message' => $message, 'is_error' => $is_error );
-								array_push($array_messages, $arr_message);
 							}
 						} else {
 							$message = sprintf( __( 'Order #%s: The selected order did not include a Send Smart shipping method', 'smart-send-shipping'), $order_id );
 							$is_error = true;
-							$arr_message = array( 'message' => $message, 'is_error' => $is_error );
-							array_push($array_messages, $arr_message);
 						}
+						
+						$arr_message = array( 'message' => $message, 'is_error' => $is_error );
+						array_push($array_messages, $arr_message);
 					}
 				}
 
@@ -871,7 +843,6 @@ class SS_Shipping_WC_Order {
 				update_option( '_ss_shipping_bulk_action_confirmation', $array_messages);
 
 			}
-			
  		}
 	}
 
@@ -890,13 +861,11 @@ class SS_Shipping_WC_Order {
 				// $user_id = key( $bulk_action_message_opt );
 				// remove first element from array and verify if it is the user id
 				$user_id = array_shift( $bulk_action_message_opt );
-				// error_log($user_id);
 				if ( get_current_user_id() !== (int) $user_id ) {
 					return;
 				}
 
 				foreach ($bulk_action_message_opt as $key => $value) {
-					// error_log(print_r($value,true));
 					$message = wp_kses_post( $value['message'] );
 					$is_error = wp_kses_post( $value['is_error'] );
 					

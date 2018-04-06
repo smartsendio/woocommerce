@@ -6,10 +6,6 @@ span.ss-shipping-error {
 	float:right;
 }
 
-.ss_label_created {
-	margin-top: 10px;
-}
-
-.ss_label_created a {
-	color: #008000;
+.ss-meta-message {
+	margin-top: 15px !important;
 }

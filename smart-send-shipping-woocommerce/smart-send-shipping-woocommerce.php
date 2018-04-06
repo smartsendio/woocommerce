@@ -368,17 +368,12 @@ class SS_Shipping_WC {
 		}
 
 		// Assumes format 'name:instance_carrier_method' or 'instance_carrier_method'
-		// error_log($ship_method);
 		$new_ship_method = explode(':', $ship_method );
-		// error_log(print_r($new_ship_method,true));
 
 		// If no ':' included then will be 1 array and should explode that item
 		$arr_size = sizeof($new_ship_method);
-		// error_log($arr_size);
 
 		if ( isset($new_ship_method[ $arr_size - 1 ] ) ) {
-			// error_log('set val');
-			// error_log($new_ship_method[ $arr_size - 1 ]);
 			// Assumes format 'instance_carrier_method'
 			return explode('_', $new_ship_method[ $arr_size - 1 ] );
 		}
