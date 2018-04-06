@@ -277,7 +277,11 @@ class SS_Shipping_WC_Order {
 			) );
 
         } else {
-            wp_send_json( array( 'error' => array( 'message' => $this->api_handle->getError() ) ) );
+            $error = $this->api_handle->getError();
+            wp_send_json( array('error' => array(
+                    'message' => $error->message,
+                    'errors' => $error->errors,
+            ) ) );
         }
 		
 		wp_die();

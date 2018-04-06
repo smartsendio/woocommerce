@@ -9,3 +9,11 @@ span.ss-shipping-error {
 .ss-meta-message {
 	margin-top: 15px !important;
 }
+
+.error .ss-meta-message {
+	list-style-type: disc;
+}
+
+.error .ss-meta-message, li {
+	margin-left: 10px;
+}

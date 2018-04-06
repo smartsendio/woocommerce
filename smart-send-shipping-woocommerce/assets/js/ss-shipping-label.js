@@ -31,7 +31,7 @@ jQuery(function ($) {
                 $('#ss-shipping-label-form').unblock();
 
                 if (response.error) {
-                    $('#ss-shipping-label-form').append('<div id="ss-shipping-error" class="error ss-meta-message">' + response.error.message + '</div>');
+                    $('#ss-shipping-label-form').append('<div id="ss-shipping-error" class="error ss-meta-message"><strong>' + response.error.message + '</strong></div>');
                     if (response.error.errors) {
                         $('#ss-shipping-error').append('<ul id="ss-shipping-error-list" class="error ss-meta-message"></ul>');
                         $.each(response.error.errors, function (index, value) {
