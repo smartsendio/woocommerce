@@ -30,8 +30,8 @@ class SS_Shipping_WC_Method extends WC_Shipping_Flat_Rate {
 			'0' 		=> __('- Select Method -', 'smart-send-shipping'),
 			'PostNord' 	=> 
 				array( 
-					'postnord_pickuppoint'		=> 'PostNord: Pickup point',
-					'postnord_closestpickup'	=> 'PostNord: Closest pickup point',
+					'postnord_pickuppoint'		=> 'PostNord: Pick-up point',
+					'postnord_closestpickup'	=> 'PostNord: Closest pick-up point',
 					'postnord_privatetohome'	=> 'PostNord: Private to home',
 					'postnord_commercial'		=> 'PostNord: Commercial',
 					'postnord_valuemail' 		=> 'PostNord: Valuemail',
@@ -39,15 +39,15 @@ class SS_Shipping_WC_Method extends WC_Shipping_Flat_Rate {
 				),
 			'GLS'		=>
 				array( 
-					'gls_pickuppoint' 			=> 'GLS: Pickup point',
-					'gls_closestpickup'	 		=> 'GLS: Closest pickup point',
+					'gls_pickuppoint' 			=> 'GLS: Pick-up point',
+					'gls_closestpickup'	 		=> 'GLS: Closest pick-up point',
 					'gls_privatetohome'			=> 'GLS: Private to home',
 					'gls_commercial' 			=> 'GLS: Commercial',
 				),
 			'Bring'		=>
 				array( 
-					'bring_pickuppoint'			=> 'Bring: Pickup point',
-					'bring_closestpickup'		=> 'Bring: Closest pickup point',
+					'bring_pickuppoint'			=> 'Bring: Pick-up point',
+					'bring_closestpickup'		=> 'Bring: Closest pick-up point',
 					'bring_privatetohome'		=> 'Bring: Private to home',
 					'bring_commercial'			=> 'Bring: Commercial',
 				),
@@ -123,13 +123,13 @@ class SS_Shipping_WC_Method extends WC_Shipping_Flat_Rate {
 				'desc_tip'        =>  false,
 			),
 			'title_pickup'	=> array(
-				'title'   		=> __( 'Pickup Points','smart-send-shipping'),
+				'title'   		=> __( 'Pick-up Points','smart-send-shipping'),
 				'type' 			=> 'title',
-				'description' 	=> __( 'Settings for displaying pickup points during checkout.','smart-send-shipping' ),
+				'description' 	=> __( 'Settings for displaying pick-up points during checkout.','smart-send-shipping' ),
 			),
 			'dropdown_display_format' => array(
 				'title'    	=> __( 'Dropdown format','smart-send-shipping'),
-				'desc'		=> __('How the pickup points are listed during checkout','smart-send-shipping'),
+				'desc'		=> __('How the pick-up points are listed during checkout','smart-send-shipping'),
 				'default'  	=> '4',
 				'type'     	=> 'select',
 				'class'    	=> 'wc-enhanced-select',
@@ -139,7 +139,7 @@ class SS_Shipping_WC_Method extends WC_Shipping_Flat_Rate {
 			'default_select_agent' => array(
 				'title'    	=> __( 'Select Default','smart-send-shipping'),
 				'label'    	=> __( 'Enable Select Default','smart-send-shipping'),
-				'description'	=> __('Select the first returned pickup point'),
+				'description'	=> __('Select the first returned pick-up point'),
 				'default' 	=> 'no',
 				'type'     	=> 'checkbox',
 				'desc_tip' 	=> true,

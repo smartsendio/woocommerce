@@ -40,7 +40,7 @@ class SS_Shipping_Frontend {
 	}
 
 	/**
-	 * Display the pickup points next to the Smart Send method
+	 * Display the pick-up points next to the Smart Send method
 	 */
 	public function display_ss_pickup_points($method, $index) {
 
@@ -86,9 +86,9 @@ class SS_Shipping_Frontend {
                     ?>
                     <select name="ss_shipping_store_pickup">
                         <?php
-                        	// Select the closest pickup point by default or have the customer select one
+                        	// Select the closest pick-up point by default or have the customer select one
                             if ( !isset( $ss_setting['default_select_agent'] ) || $ss_setting['default_select_agent'] == 'no' ) {
-                                echo '<option value="0">' . __('- Select Pickup Point -', 'smart-send-shipping') . '</option>';
+                                echo '<option value="0">' . __('- Select Pick-up Point -', 'smart-send-shipping') . '</option>';
                             }
 
                             foreach ($ss_agents as $key => $agent) {
@@ -100,7 +100,7 @@ class SS_Shipping_Frontend {
                     </select>
                     <?php
                 } else {
-                    echo __('Shipping to closest pickup point', 'smart-send-shipping');
+                    echo '<p>' . __('Shipping to closest pick-up point', 'smart-send-shipping') . '</p>';
                 }
 			}
 		}
@@ -186,7 +186,7 @@ class SS_Shipping_Frontend {
 	}
 
 	/**
-	* Display the Smart Sent Pickup Point on Thank You order details
+	* Display the Smart Sent Pick-up Point on Thank You order details
 	*/
 	public function display_ss_shipping_agent( $order ) {
 
@@ -202,7 +202,7 @@ class SS_Shipping_Frontend {
 			$formatted_address = str_replace(',', '<br/>', $formatted_address);
 			?>
 
-			<h2><?php _e( 'Pickup Point', 'woocommerce' ); ?></h2>
+			<h2><?php _e( 'Pick-up Point', 'woocommerce' ); ?></h2>
 			<address>
 				<?php echo $formatted_address; ?>
 			</address>

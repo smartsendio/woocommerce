@@ -112,7 +112,7 @@ class SS_Shipping_WC_Order {
 		// Display Agent No. field if pickup-point shipping method selected
 		if( stripos($shipping_method_type, 'pickuppoint') !== false ) {
 
-			echo '<h3>' . __('Pickup Point', 'smart-send-shipping') . '</h3>';
+			echo '<h3>' . __('Pick-up Point', 'smart-send-shipping') . '</h3>';
 
 			woocommerce_wp_text_input( array(
 				'id'          		=> 'ss_shipping_agent_no',
@@ -517,7 +517,7 @@ class SS_Shipping_WC_Order {
 		$ss_agent = $this->get_ss_shipping_order_agent( $order_id );
 
 		if ( ! empty( $ss_agent ) ) {
-			// Add an agent (pickup point) to the shipment
+			// Add an agent (pick-up point) to the shipment
 			$agent = new Smartsend\Models\Shipment\Agent();
 			$agent->setInternalId( $ss_agent->id ?: null )
 			    ->setInternalReference( $ss_agent->id ?: null )
