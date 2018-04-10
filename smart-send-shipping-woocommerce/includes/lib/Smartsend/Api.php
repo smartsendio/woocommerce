@@ -11,6 +11,13 @@ use Smartsend\Models\Shipment;
 
 class Api extends Client
 {
+    // User API
+
+    public function getAuthenticatedUser()
+    {
+        return $this->httpGet('user');
+    }
+
     // Agent API
 
     public function getAgent($id)
