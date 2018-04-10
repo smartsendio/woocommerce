@@ -5,21 +5,17 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 /**
- * WooCommerce Smart Send Shipping Order.
+ * WooCommerce Smart Send Shipping Frontend.
  *
- * @package  SS_SHIPPING_WC_Order
+ * @package  SS_Shipping_Frontend
  * @category Shipping
  * @author   Shadi Manna
  */
-
-// require_once '../../lib/Smartsend/Api.php';
 
 if ( ! class_exists( 'SS_Shipping_Frontend' ) ) :
 
 class SS_Shipping_Frontend {
 	
-	// protected $ss_agents = array();
-
 	protected $api_handle = null;
 
 	/**
@@ -34,18 +30,18 @@ class SS_Shipping_Frontend {
 		$this->init_hooks();
 	}
 
+	/**
+	 * Init hooks
+	 */
 	public function init_hooks() {
-		// add_action( 'wp_enqueue_scripts', array( $this, 'load_styles_scripts' ) );
-		// add_action( 'woocommerce_review_order_after_shipping', array( $this, 'add_preferred_fields' ) );
-		// add_action( 'woocommerce_cart_calculate_fees', array( $this, 'add_cart_fees' ) );
-		
 		add_action( 'woocommerce_after_shipping_rate', array( $this, 'display_ss_pickup_points' ), 10, 2 );
 		add_action( 'woocommerce_checkout_order_processed', array( $this, 'process_ss_pickup_points' ), 10, 2 );
-		// add_filter( 'woocommerce_get_order_item_totals', array( $this, 'display_ss_shipping_agent' ), 10, 2 );
 		add_filter( 'woocommerce_order_details_after_order_table', array( $this, 'display_ss_shipping_agent') ) ;
-
 	}
 
+	/**
+	 * Display the pickup points next to the Smart Send method
+	 */
 	public function display_ss_pickup_points($method, $index) {
 
 		// Only display agents on checkout
@@ -81,13 +77,16 @@ class SS_Shipping_Frontend {
 				$carrier = SS_SHIPPING_WC()->get_shipping_method_carrier( $full_method_id );
 				// Is street necessary?  If street changed on frontend this function is not called.
                 if ( $this->api_handle->findClosestAgentByAddress( $carrier, $country, $postal_code, $street ) ) {
+
                     $ss_agents = $this->api_handle->getData();
+                    // Save all of the agents in sessions
                     WC()->session->set( 'ss_shipping_agents' , $ss_agents );
                     $ss_setting = SS_SHIPPING_WC()->get_ss_shipping_settings();
 
                     ?>
                     <select name="ss_shipping_store_pickup">
                         <?php
+                        	// Select the closest pickup point by default or have the customer select one
                             if ( !isset( $ss_setting['default_select_agent'] ) || $ss_setting['default_select_agent'] == 'no' ) {
                                 echo '<option value="0">' . __('- Select Pickup Point -', 'smart-send-shipping') . '</option>';
                             }
@@ -107,10 +106,10 @@ class SS_Shipping_Frontend {
 		}
 	}
 
+	/**
+	 * Get the formatted address to display on the frontend
+	 */
 	protected function get_formatted_address( $agent, $format_id = 0 ) {
-		// $place_holders = '#'.__('Company','smart-send-shipping').', #'.__('Street','smart-send-shipping').', #'.__('City','smart-send-shipping'),
-		// #'.__('Zipcode','smart-send-shipping')
-
 		if ( empty($format_id) ) {
 			$ss_setting = SS_SHIPPING_WC()->get_ss_shipping_settings();
 			$format_id = $ss_setting['dropdown_display_format'];
@@ -147,11 +146,12 @@ class SS_Shipping_Frontend {
 		}
 
 		return $formatted_address;
-		// return str_replace( array_keys($place_holders), array_values($place_holders), $address_format );
 	}
 
+	/**
+	* Save the posted preferences to the order so can be used when generating label	
+	*/
 	public function process_ss_pickup_points( $order_id, $posted ) {
-		// save the posted preferences to the order so can be used when generating label
 		
 		if ( ! isset( $_POST ) ) {
 			return;
@@ -167,8 +167,9 @@ class SS_Shipping_Frontend {
 		$selected_agent_no = 0;
 		if ( $retrive_data ) {
 			foreach ($retrive_data as $agent_key => $agent_value) {
+				// If agent selected for the order, save it
 				if( $agent_value->agent_no == $ss_shipping_store_pickup ) {
-					// $selected_agent['selected_agent'] = $agent_value;
+					
 					$selected_agent_no = $agent_value->agent_no;
 					$selected_agent = $agent_value;
 					// $retrive_data = WC()->session->delete( 'ss_shipping_agents' );
@@ -177,12 +178,16 @@ class SS_Shipping_Frontend {
 			}
 		}
 		
+		// Saving posted agent information
 		if( ! empty( $selected_agent_no ) ) {
 			SS_SHIPPING_WC()->get_ss_shipping_wc_order()->save_ss_shipping_order_agent_no( $order_id, $selected_agent_no );
 			SS_SHIPPING_WC()->get_ss_shipping_wc_order()->save_ss_shipping_order_agent( $order_id, $selected_agent );
 		}
 	}
 
+	/**
+	* Display the Smart Sent Pickup Point on Thank You order details
+	*/
 	public function display_ss_shipping_agent( $order ) {
 
 		$order_id = $order->get_order_number();

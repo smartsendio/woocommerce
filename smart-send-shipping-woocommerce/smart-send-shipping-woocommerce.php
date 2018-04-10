@@ -118,12 +118,8 @@ class SS_Shipping_WC {
 		$this->define( 'SS_SHIPPING_PLUGIN_DIR_PATH', untrailingslashit( plugin_dir_path( __FILE__ ) ) );
 		$this->define( 'SS_SHIPPING_PLUGIN_DIR_URL', untrailingslashit( plugins_url( '/', __FILE__ ) ) );
 		$this->define( 'SS_SHIPPING_VERSION', $this->version );
-
 		$this->define( 'SS_SHIPPING_LOG_DIR', $upload_dir['basedir'] . '/wc-logs/' );
-		$this->define( 'SS_SHIPPING_BUTTON_TEST_CONNECTION', __( 'Test Connection', 'smart-send-shipping' ) );
-
 		$this->define( 'SS_SHIPPING_METHOD_ID', 'smart_send_shipping' );
-
 	}
 	
 	/**
@@ -142,13 +138,8 @@ class SS_Shipping_WC {
 		add_filter( 'plugin_action_links_' . SS_SHIPPING_PLUGIN_BASENAME, array( $this, 'plugin_action_links' ) );
 		add_filter( 'plugin_row_meta', array( $this, 'ss_shipping_plugin_row_meta'), 10, 2 );
 		
-		// add_action( 'admin_notices', array( $tif ( WC_PLUGIN_BASENAME == $file ) {
 		add_action( 'admin_enqueue_scripts', array( $this, 'ss_shipping_theme_enqueue_styles') );		
-
-		// add_action( 'woocommerce_shipping_init', array( $this, 'includes' ) );
 		add_filter( 'woocommerce_shipping_methods', array( $this, 'add_shipping_method' ) );
-		// Test connection
-		add_action( 'wp_ajax_test_as_connection', array( $this, 'ss_shipping_test_connection_callback' ) );
 	}
 
 
@@ -176,6 +167,9 @@ class SS_Shipping_WC {
 		load_plugin_textdomain( 'smart-send-shipping', false, dirname( plugin_basename(__FILE__) ) . '/lang/' );
 	}
 
+	/**
+	 * Load Admin CSS 
+	 */
 	public function ss_shipping_theme_enqueue_styles() {
 		wp_enqueue_style( 'ss-shipping-admin-css', SS_SHIPPING_PLUGIN_DIR_URL . '/assets/css/ss-shipping-admin.css' );
 	}
@@ -250,89 +244,58 @@ class SS_Shipping_WC {
 	<?php
 	}
 
-	public function get_base_country() {
-		$origin_point = wc_get_base_location();
-		return $origin_point['country'];
-	}
-
+	/**
+	 * Get Smart Send Shipping settings
+	 */
 	public function get_ss_shipping_settings( ) {
 		return get_option('woocommerce_' . SS_SHIPPING_METHOD_ID . '_settings');
 	}
 
-	public function ss_shipping_test_connection_callback() {
-        // Is this used? And why do we have a try/catch here?
-		check_ajax_referer( 'ss-shipping-test-con', 'test_con_nonce' );
-		try {
-
-			$shipping_as_settings = $this->get_shipping_as_settings();
-		
-			$api_user = $shipping_as_settings['as_api_user']; 
-			$api_pwd = $shipping_as_settings['as_api_pwd'];
-		
-			$connection = $as_obj->as_test_connection( $api_user, $api_pwd );
-				
-			$connection_msg = __('Connection Successful!', 'smart-send-shipping');
-			$this->log_msg( $connection_msg );
-
-			wp_send_json( array( 
-				'connection_success' 	=> $connection_msg,
-				'button_txt'			=> SS_SHIPPING_BUTTON_TEST_CONNECTION
-				) );
-
-		} catch (Exception $e) {
-			$this->log_msg($e->getMessage());
-
-			wp_send_json( array( 
-				'connection_error' => sprintf( __('Connected Failed: %s Make sure to save the settings before testing the connection. ', 'smart-send-shipping'), $e->getMessage() ),
-				'button_txt'			=> SS_SHIPPING_BUTTON_TEST_CONNECTION
-				 ) );
-		}
-
-		wp_die();
-	}
-
+	/**
+	 * Log debug message
+	 */
 	public function log_msg( $msg )	{
-		// Why do we have a try/catch here?
-		try {
-			$shipping_as_settings = $this->get_shipping_as_settings();
-			$as_debug = isset( $shipping_as_settings['as_debug'] ) ? $shipping_as_settings['as_debug'] : 'yes';
+		$shipping_as_settings = $this->get_shipping_as_settings();
+		$as_debug = isset( $shipping_as_settings['as_debug'] ) ? $shipping_as_settings['as_debug'] : 'yes';
 			
-			if( ! $this->logger ) {
-				$this->logger = new SS_Shipping_Logger( $as_debug );
-			}
-
-			$this->logger->write( $msg );
-			
-		} catch (Exception $e) {
-			// do nothing
+		if( ! $this->logger ) {
+			$this->logger = new SS_Shipping_Logger( $as_debug );
 		}
+
+		$this->logger->write( $msg );		
 	}
 
+	/**
+	 * Get debug log file URL
+	 */
 	public function get_log_url( )	{
-        // Why do we have a try/catch here?
-		try {
-			$shipping_as_settings = $this->get_shipping_as_settings();
-			$as_debug = isset( $shipping_as_settings['as_debug'] ) ? $shipping_as_settings['as_debug'] : 'yes';
-			
-			if( ! $this->logger ) {
-				$this->logger = new SS_Shipping_Logger( $as_debug );
-			}
-			
-			return $this->logger->get_log_url( );
-			
-		} catch (Exception $e) {
-			throw $e;
+      	$shipping_as_settings = $this->get_shipping_as_settings();
+		$as_debug = isset( $shipping_as_settings['as_debug'] ) ? $shipping_as_settings['as_debug'] : 'yes';
+		
+		if( ! $this->logger ) {
+			$this->logger = new SS_Shipping_Logger( $as_debug );
 		}
+		
+		return $this->logger->get_log_url( );		
 	}
 
+	/**
+	 * Get Agent Address Format
+	 */
 	public function get_agents_address_format()	{
 		return $this->agents_address_format;
 	}
 
+	/**
+	 * Get Smart Shipping Order Object
+	 */
 	public function get_ss_shipping_wc_order() {
 		return $this->ss_shipping_wc_order;
 	}
 
+	/**
+	 * Return Shipping Method Carrier
+	 */
 	public function get_shipping_method_carrier( $ship_method ) {
 		
 		$ship_method_parts = $this->get_shipping_method_part( $ship_method );
@@ -347,6 +310,9 @@ class SS_Shipping_WC {
 		return $ship_method;
 	}
 
+	/**
+	 * Return Shipping Method Type
+	 */
 	public function get_shipping_method_type( $ship_method ) {
 		
 		$ship_method_parts = $this->get_shipping_method_part( $ship_method );
@@ -361,7 +327,10 @@ class SS_Shipping_WC {
 		return $ship_method;
 	}
 
-	public function get_shipping_method_part( $ship_method ) {
+	/**
+	 * Shipping Method helper function
+	 */
+	protected function get_shipping_method_part( $ship_method ) {
 		
 		if( empty( $ship_method ) ) {
 			return $ship_method;

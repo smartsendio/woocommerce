@@ -34,21 +34,24 @@ class SS_Shipping_WC_Order {
 		$this->init_hooks();
 	}
 
+	/**
+	 * Define constants
+	 */
 	protected function define_constants() {
 		SS_SHIPPING_WC()->define( 'SS_SHIPPING_BUTTON_LABEL_GEN', __( 'Generate Label', 'smart-send-shipping' ) );
-		SS_SHIPPING_WC()->define( 'SS_SHIPPING_BUTTON_LABEL_PRINT', __( 'Download Label', 'smart-send-shipping' ) );
 	}
 
+	/**
+	 * Init hooks
+	 */
 	public function init_hooks() {
-		add_action( 'add_meta_boxes', array( $this, 'add_meta_box' ), 20 );
-		add_action( 'woocommerce_process_shop_order_meta', array( $this, 'save_meta_box' ), 0, 2 );
 
 		// Order page metabox actions
+		add_action( 'add_meta_boxes', array( $this, 'add_meta_box' ), 20 );
+		add_action( 'woocommerce_process_shop_order_meta', array( $this, 'save_meta_box' ), 0, 2 );
 		add_action( 'wp_ajax_ss_shipping_generate_label', array( $this, 'save_meta_box_ajax' ) );
-		add_action( 'wp_ajax_ss_shipping_delete_label', array( $this, 'delete_label_ajax' ) );		
 
 		$subs_version = class_exists( 'WC_Subscriptions' ) && ! empty( WC_Subscriptions::$version ) ? WC_Subscriptions::$version : null;
-
 		// Prevent data being copied to subscriptions
 		if ( null !== $subs_version && version_compare( $subs_version, '2.0.0', '>=' ) ) {
 			add_filter( 'wcs_renewal_order_meta_query', array( $this, 'woocommerce_subscriptions_renewal_order_meta_query' ), 10 );
@@ -68,15 +71,13 @@ class SS_Shipping_WC_Order {
 
 	/**
 	 * Add the meta box for shipment info on the order page
-	 *
-	 * @access public
 	 */
 	public function add_meta_box() {
 		global $woocommerce, $post;
 		$order_id = $post->ID;
 
 		$ss_shipping_method_id = $this->get_smart_send_method_id( $order_id );
-
+		// Only display Smart Shipping (SS) meta box is SS selected as shipping method OR free shipping is set to SS method
 		if( !empty($ss_shipping_method_id) ) {
 			
 			add_meta_box( 'woocommerce-ss-shipping-label', __( 'Smart Send Shipping', 'smart-send-shipping' ), array( $this, 'meta_box' ), 'shop_order', 'side', 'default' );
@@ -85,8 +86,6 @@ class SS_Shipping_WC_Order {
 
 	/**
 	 * Show the meta box for shipment info on the order page
-	 *
-	 * @access public
 	 */
 	public function meta_box() {
 		global $woocommerce, $post;
@@ -94,12 +93,11 @@ class SS_Shipping_WC_Order {
 		
 		$ss_shipping_method_id = $this->get_smart_send_method_id( $order_id );
 
-		// Get saved label input fields or set default values
+		// Get order agent object
 		$ss_shipping_order_agent = $this->get_ss_shipping_order_agent( $order_id );
 		
 		echo '<div id="ss-shipping-label-form">';
 
-		// use to output esc_html_e!!!
 		woocommerce_wp_hidden_input( array(
 			'id'    => 'ss_shipping_label_nonce',
 			'value' => wp_create_nonce( 'create-ss-shipping-label' )
@@ -109,11 +107,11 @@ class SS_Shipping_WC_Order {
 		$shipping_method_type = ucfirst( SS_SHIPPING_WC()->get_shipping_method_type( $ss_shipping_method_id ) );
 
 		echo '<h3>' . __('Shipping Method', 'smart-send-shipping') . '</h3>';
-		echo '<p>'. $shipping_method_carrier . ' - ' . $shipping_method_type. '</p>';
+		echo '<p>'. $shipping_method_carrier . ' - ' . $shipping_method_type . '</p>';
 		
-		// $ss_shipping_options = $this->get_ss_shipping_order_options( $order_id );
+		// Display Agent No. field if pickup-point shipping method selected
+		if( stripos($shipping_method_type, 'pickuppoint') !== false ) {
 
-		if( !empty( $ss_shipping_order_agent ) ) {
 			echo '<h3>' . __('Pickup Point', 'smart-send-shipping') . '</h3>';
 
 			woocommerce_wp_text_input( array(
@@ -130,19 +128,21 @@ class SS_Shipping_WC_Order {
 		}
 
 		echo '<hr>';
-		// echo wc_help_tip( $ss_shipping_method_id );
 		echo '</p>';
 		
 
 		echo '<button id="ss-shipping-label-button" class="button button-primary button-save-form">' . SS_SHIPPING_BUTTON_LABEL_GEN . '</button>';
 
+		// Load JS for AJAX calls
 		wp_enqueue_script( 'ss-shipping-label-js', SS_SHIPPING_PLUGIN_DIR_URL . '/assets/js/ss-shipping-label.js', array(), SS_SHIPPING_VERSION );
-		// wp_localize_script( 'ss-shipping-label-js', 'ss_shipping_label_data', $ss_shipping_label_data );
 		
 		echo '</div>';
 		
 	}
 	
+	/**
+	 * Return formatted agent address
+	 */
 	protected function get_formatted_address( $ss_shipping_order_agent ) {
 
 		if ( empty($ss_shipping_order_agent) ) {
@@ -152,6 +152,9 @@ class SS_Shipping_WC_Order {
 		return '<p class="ss_agent_address">' . $ss_shipping_order_agent->company . '</br>' . $ss_shipping_order_agent->address_line1 . '</br>' . $ss_shipping_order_agent->postal_code . ' ' . $ss_shipping_order_agent->city . '</p>';
 	}
 
+	/**
+	 * Return ordered Smart Send shipping method, OR Free Shipping linked to Smart Send shipping method, otherwise empty string
+	 */
 	protected function get_smart_send_method_id( $order_id ) {
 		$order = wc_get_order( $order_id );
 		
@@ -162,17 +165,14 @@ class SS_Shipping_WC_Order {
 		// Get shipping id to make sure it's SS
 		$order_shipping_methods = $order->get_shipping_methods();
 
-		// $is_smart_send_shipping = false;
 		if( !empty($order_shipping_methods) ) {
+
 			foreach ( $order_shipping_methods as $item_id => $item ) {
 				$shipping_method_id = ! empty( $item['method_id'] ) ? esc_html( $item['method_id'] ) : null;
-				// $shipping_method =  ! empty( $item['name'] ) ? esc_html( $item['name'] ) : null;
 
+				// If Smart Send found, return id
 				if ( stripos($shipping_method_id, 'smart_send_shipping') !== false ) {
 					return $shipping_method_id;
-					// $shipping_method_id_parts = explode(':', $shipping_method_id);
-					// $shipping_method_ss = $shipping_method_id_parts[1];
-					// break;
 				} else {
 					// If free shipping and setting to set free shipping to Send Smart
 					if ( stripos($shipping_method_id, 'free_shipping') !== false ) {
@@ -189,8 +189,12 @@ class SS_Shipping_WC_Order {
 		return '';
 	}
 
+	/**
+	 * Save meta box; used by WP hook and AJAX save
+	 */
 	public function save_meta_box( $post_id, $post = null, $doing_ajax = false ) {
 
+		// If no agent no. passed, there is nothing to save
 		if( ! isset( $_POST[ 'ss_shipping_agent_no' ] ) ) {
 			return false;
 		}
@@ -198,13 +202,11 @@ class SS_Shipping_WC_Order {
 		$ss_shipping_agent_no = wc_clean( $_POST[ 'ss_shipping_agent_no' ] );
 		$saved_ss_shipping_agent_no = $this->get_ss_shipping_order_agent_no( $post_id );
 
+		// Make API call ONLY IF shipping agent is different
 		if ( ! empty( $ss_shipping_agent_no ) && ( $ss_shipping_agent_no != $saved_ss_shipping_agent_no ) ){
-            // API call to get agent info by agent no.
-            // $carrier = SS_SHIPPING_WC()->get_shipping_method_carrier( $full_method_id );
             $ss_shipping_method_id = $this->get_smart_send_method_id( $post_id );
 
             if( !empty($ss_shipping_method_id) ) {
-
                 $shipping_method_carrier = SS_SHIPPING_WC()->get_shipping_method_carrier( $ss_shipping_method_id );
                 
                 $order = wc_get_order( $post_id );
@@ -212,6 +214,7 @@ class SS_Shipping_WC_Order {
 
                 if( ! empty( $shipping_method_carrier ) && ! empty( $shipping_address['country'] ) ) {
                 	
+            		// API call to get agent info by agent no.
 	                if( $this->api_handle->getAgentByAgentNo($shipping_method_carrier, $shipping_address['country'], $ss_shipping_agent_no) ) {
 	                    $this->save_ss_shipping_order_agent_no( $post_id, $ss_shipping_agent_no );
 	                    $this->save_ss_shipping_order_agent( $post_id, $this->api_handle->getData() );
@@ -232,44 +235,43 @@ class SS_Shipping_WC_Order {
 	}
 
 	/**
-	 * Order Tracking Save AJAX
-	 *
-	 * Function for saving tracking items
+	 * Save Agent No. and Generate Label
 	 */
 	public function save_meta_box_ajax( ) {
 		check_ajax_referer( 'create-ss-shipping-label', 'ss_shipping_label_nonce' );
 		$order_id = wc_clean( $_POST[ 'order_id' ] );
 
-		// Save inputted data first
+		// Save inputted data first, if a message was returned there was an error
 		if( $msg = $this->save_meta_box( $order_id, null, true ) ) {
 			wp_send_json( array( 'error' => array( 'message' => $msg ) ) );
 			wp_die();
 		}
 
-        $args = $this->set_label_args( $order_id );
-        if($this->api_handle->createShipmentAndLabels($this->shipment)) {
+        $this->set_label_args( $order_id );
 
+        // Generate Label
+        if( $this->api_handle->createShipmentAndLabels($this->shipment) ) {
+
+        	// Get tracking lik
 			$tracking_note = $this->get_tracking_link( $order_id, $this->api_handle->getData() );
 			
+			// Add tracking info to "WooCommerce Shipment Tracking" plugin
 			$shipment_tracking_details = $this->get_tracking_details( $this->api_handle->getData() );
 			foreach($shipment_tracking_details as $parcel_tracking_details) {
                 $this->save_tracking_in_shipment_tracking($order_id, $parcel_tracking_details['tracking_code'], $parcel_tracking_details['tracking_link'], $parcel_tracking_details['carrier_name'],$date_shipped=null);
             }
 
+            // Get shipping agent object
 			$agent_address = $this->get_ss_shipping_order_agent( $order_id );
+			// Get formatted address
 			$agent_address_formatted =  $this->get_formatted_address( $agent_address );
-
+			// Set order status after label generation
 			$this->set_order_status_label( $order_id );
 
-
-
-			$agent_address = $this->get_ss_shipping_order_agent( $order_id );
-			$agent_address_formatted =  $this->get_formatted_address( $agent_address );
-
-			$this->set_order_status_label( $order_id );
-
+			// Action label created for order id
 			do_action( 'ss_shipping_label_created', $order_id );
 
+			// AJAX return tracking note, agent address and lable download link
 			wp_send_json( array( 
 				'tracking_note'	  => $tracking_note,
 				'agent_address'	  => $agent_address_formatted,
@@ -277,6 +279,7 @@ class SS_Shipping_WC_Order {
 			) );
 
         } else {
+        	// AJAX return error
             $error = $this->api_handle->getError();
             wp_send_json( array('error' => array(
                     'message' => $error->message,
@@ -287,6 +290,9 @@ class SS_Shipping_WC_Order {
 		wp_die();
 	}
 
+	/**
+	 * If set to change order after order generated, update order status
+	 */
 	protected function set_order_status_label( $order_id ) {
 
 		$ss_settings = SS_SHIPPING_WC()->get_ss_shipping_settings();
@@ -298,6 +304,9 @@ class SS_Shipping_WC_Order {
 		}
 	}
 
+	/**
+	 * Get tracking details from returned shipment details
+	 */
 	protected function get_tracking_details( $shipment ) {
 	    $tracking_array = array();
 	    foreach($shipment->parcels as $parcel) {
@@ -311,6 +320,9 @@ class SS_Shipping_WC_Order {
         return $tracking_array;
     }
 
+    /**
+	 * Get tracking note
+	 */
 	protected function get_tracking_link( $order_id, $new_shipment ) {
 		// TODO: Each parcel will have a tracking number. All these tracking numbers muct be saved instead of just saving one
 
@@ -323,6 +335,9 @@ class SS_Shipping_WC_Order {
 		return $tracking_note;
 	}
 
+	/**
+	 * Save label file in "uploads" folder
+	 */
 	protected function save_label_file( $order_id, $label_id, $label_data ) {
 		
 		if ( empty($label_id) ) {
@@ -355,7 +370,7 @@ class SS_Shipping_WC_Order {
 	}
 
 	/**
-	 * Saves the label items array to post_meta.
+	 * Saves the label agent no to post_meta.
 	 *
 	 * @param int   $order_id       Order ID
 	 * @param array $agent_no 		Agent No.
@@ -367,7 +382,7 @@ class SS_Shipping_WC_Order {
 	}
 
 	/*
-	 * Gets all label items from the post meta array for an order
+	 * Gets agent no from the post meta array for an order
 	 *
 	 * @param int  $order_id  Order ID
 	 *
@@ -378,7 +393,7 @@ class SS_Shipping_WC_Order {
 	}
 
 	/**
-	 * Saves the label items array to post_meta.
+	 * Saves the agent object to post_meta.
 	 *
 	 * @param int   $order_id       Order ID
 	 * @param array $agent 			Agent Object
@@ -390,7 +405,7 @@ class SS_Shipping_WC_Order {
 	}
 
 	/*
-	 * Gets all label itesm fron the post meta array for an order
+	 * Gets agent object from the post meta array for an order
 	 *
 	 * @param int  $order_id  Order ID
 	 *
@@ -401,7 +416,7 @@ class SS_Shipping_WC_Order {
 	}
 
 	/**
-	 * Saves the label to post_meta.
+	 * Saves the label URL to post_meta.
 	 *
 	 * @param int   $order_id       Order ID
 	 * @param string $label_url 	Label URL
@@ -413,7 +428,7 @@ class SS_Shipping_WC_Order {
 	}
 
 	/*
-	 * Gets all label the post meta array for an order
+	 * Gets label URL post meta array for an order
 	 *
 	 * @param int  $order_id  Order ID
 	 *
@@ -453,9 +468,12 @@ class SS_Shipping_WC_Order {
         }
     }
 
-
+    /*
+    * Set the create shipment and label API args
+    *
+    * @param int  $order_id  Order ID
+    */
 	protected function set_label_args( $order_id ) {
-		// Get settings from child implementation
 		$ss_settings = SS_SHIPPING_WC()->get_ss_shipping_settings();		
 		
 		$order = wc_get_order( $order_id );
@@ -521,7 +539,6 @@ class SS_Shipping_WC_Order {
 
 		// Get order item specific data
 		$ordered_items = $order->get_items( );
-		$args['items'] = array();
 
 		if ( !empty( $ordered_items ) ) {
 			$items = array();
@@ -679,8 +696,6 @@ class SS_Shipping_WC_Order {
 		$shipping_method_carrier = SS_SHIPPING_WC()->get_shipping_method_carrier( $ss_shipping_method_id );
 		$shipping_method_type = SS_SHIPPING_WC()->get_shipping_method_type( $ss_shipping_method_id );
 
-		
-
 		// Add final parameters to shipment
 		$this->shipment->setInternalId( $order_id ?: null )
 		    ->setInternalReference( $order_num ?: null )
@@ -710,7 +725,9 @@ class SS_Shipping_WC_Order {
 		return $order_meta_query;
 	}
 
-	// BULK FUNCTIONS
+	/**
+	 * Add Smart Send bulk actions
+	 */
 	public function add_order_bulk_actions() {
 		global $post_type, $post_status;
 
@@ -734,6 +751,9 @@ class SS_Shipping_WC_Order {
 		endif;
 	}
 
+	/**
+	 * Return Smart Send bulk actions
+	 */
 	public function get_bulk_actions() {
 
 		$shop_manager_actions = array();
@@ -747,6 +767,9 @@ class SS_Shipping_WC_Order {
 		return $shop_manager_actions;
 	}
 
+	/**
+	 * Process bulk actions
+	 */
 	public function process_orders_bulk_actions() {
 		global $typenow;
 		$array_messages = array( 'msg_user_id' => get_current_user_id() );
@@ -767,17 +790,11 @@ class SS_Shipping_WC_Order {
 				$order_ids = array_map( 'absint', $_REQUEST['post'] );
 			}
 
- 			// Return if there are no orders to print
- 			// if ( ! $order_ids ) {
-				// return;
- 			// }
-
 			$redirect_url  = admin_url( 'edit.php?post_type=shop_order' );
 
 			if ( 'ss_shipping_label_bulk' === $action || 'ss_shipping_return_bulk' === $action || 'ss_shipping_label_return_bulk' === $action ) {
 				
 				// Trigger an admin notice to have the user manually open a print window
-				// $message = $this->get_print_confirmation_message( $order_ids, $redirect_url );
 				$is_error = false;
 				$orders_count = count( $order_ids );
 
@@ -802,14 +819,13 @@ class SS_Shipping_WC_Order {
 
 						if( !empty($ss_shipping_method_id) ) {
 
-	                        $args = $this->set_label_args( $order_id );
+	                        $this->set_label_args( $order_id );
 
 						    if( $this->api_handle->createShipmentAndLabels( $this->shipment ) ) {
 
 								$tracking_note = $this->get_tracking_link( $order_id, $this->api_handle->getData() );
 
 								$order = wc_get_order( $order_id );
-
 								$order->add_order_note( $tracking_note, 0, true );
 
 								// Add tracking information to Shipment Tracking
@@ -824,7 +840,6 @@ class SS_Shipping_WC_Order {
 								$is_error = false;
 							} else {
 						        $error = $this->api_handle->getError();
-
 								$message = sprintf( __( 'Order #%s: %s', 'smart-send-shipping'), $order_id, $error->message );
 
 								foreach ($error->errors as $error_key => $error_value) {
@@ -850,7 +865,9 @@ class SS_Shipping_WC_Order {
  		}
 	}
 
-	
+	/**
+	 * Display messages on order view screen
+	 */	
 	public function render_messages( $current_screen = null ) {
 		if ( ! $current_screen instanceof WP_Screen ) {
 			$current_screen = get_current_screen();

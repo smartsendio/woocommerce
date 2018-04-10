@@ -27,8 +27,6 @@ class SS_Shipping_WC_Product {
 
 	/**
 	 * Add the meta box for shipment info on the order page
-	 *
-	 * @access public
 	 */
 	public function additional_product_shipping_options() {
 	    global $thepostid, $post;
