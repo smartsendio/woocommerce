@@ -67,7 +67,7 @@ class SS_Shipping_Frontend {
 
 		if( $method_id == 'smart_send_shipping' &&
 			$chosen_shipping ==  $full_method_id &&
-			(stripos($full_method_id, '_pickuppoint') !== false) ) {
+			(stripos($full_method_id, 'agent') !== false) ) {
 
 			if ( isset( $_POST['s_country'] ) && isset( $_POST['s_postcode'] ) && isset( $_POST['s_address'] ) ) {
 				$country = wc_clean( $_POST['s_country'] );

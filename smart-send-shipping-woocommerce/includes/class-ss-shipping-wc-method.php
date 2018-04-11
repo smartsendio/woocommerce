@@ -30,7 +30,7 @@ class SS_Shipping_WC_Method extends WC_Shipping_Flat_Rate {
 			'0' 		=> __('- Select Method -', 'smart-send-shipping'),
 			'PostNord' 	=> 
 				array( 
-					'postnord_pickuppoint'		    => __( 'PostNord: Select pick-up point (MyPack Collect)', 'smart-send-shipping' ),
+					'postnord_agent'		        => __( 'PostNord: Select pick-up point (MyPack Collect)', 'smart-send-shipping' ),
 					'postnord_collect'	            => __( 'PostNord: Closest pick-up point (MyPack Collect)', 'smart-send-shipping' ),
 					'postnord_homedelivery'	        => __( 'PostNord: Private delivery to address (MyPack Home)', 'smart-send-shipping' ),
                     'postnord_homedeliveryeconomy'	=> __( 'PostNord: Private economy delivery to address (MyPack Home Economy)', 'smart-send-shipping' ),
@@ -45,7 +45,7 @@ class SS_Shipping_WC_Method extends WC_Shipping_Flat_Rate {
 				),
 			'GLS'		=>
 				array( 
-					'gls_pickuppoint' 			    => __( 'GLS: Select pick-up point (ParcelShop)', 'smart-send-shipping' ),
+					'gls_agent' 			        => __( 'GLS: Select pick-up point (ParcelShop)', 'smart-send-shipping' ),
 					'gls_collect'	 		        => __( 'GLS: Closest pick-up point (ParcelShop)', 'smart-send-shipping' ),
                     'gls_homedelivery' 			    => __( 'GLS: Private delivery to address (PrivateDelivery)', 'smart-send-shipping' ),
 					'gls_doorstep'			        => __( 'GLS: Leave at door (DepositService)', 'smart-send-shipping' ),
@@ -54,7 +54,7 @@ class SS_Shipping_WC_Method extends WC_Shipping_Flat_Rate {
 				),
 			'Bring'		=>
 				array( 
-					'bring_pickuppoint'			    => __( 'Bring: Select pick-up point (PickUp Parcel / Serviceparcel)', 'smart-send-shipping' ),
+					'bring_agent'			        => __( 'Bring: Select pick-up point (PickUp Parcel / Serviceparcel)', 'smart-send-shipping' ),
 					'bring_bulkagent'               => __( 'Bring: Select pick-up point, send as bulk (PickUp Parcel Bulk)', 'smart-send-shipping' ),
 					'bring_collect'		            => __( 'Bring: Closest pick-up point (PickUp Parcel / Serviceparcel)', 'smart-send-shipping' ),
 					'bring_bulkcollect'             => __( 'Bring: Closest pick-up point, send as bulk (PickUp Parcel Bulk)', 'smart-send-shipping' ),

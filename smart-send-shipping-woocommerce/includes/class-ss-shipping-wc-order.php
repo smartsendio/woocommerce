@@ -110,7 +110,7 @@ class SS_Shipping_WC_Order {
 		echo '<p>'. $shipping_method_carrier . ' - ' . $shipping_method_type . '</p>';
 		
 		// Display Agent No. field if pickup-point shipping method selected
-		if( stripos($shipping_method_type, 'pickuppoint') !== false ) {
+		if( stripos($shipping_method_type, 'agent') !== false ) {
 
 			echo '<h3>' . __('Pick-up Point', 'smart-send-shipping') . '</h3>';
 
