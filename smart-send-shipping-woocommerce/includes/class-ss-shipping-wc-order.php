@@ -119,7 +119,7 @@ class SS_Shipping_WC_Order {
 				'label'       		=> __( 'Agent No.', 'smart-send-shipping' ),
 				'placeholder' 		=> '',
 				'description'		=> sprintf( __( 'Search for an "Agent No." <a href="%s" target="_blank">here</a>', 'smart-send-shipping' ), esc_url( 'https://smartsend.io/pick-up-points' ) ),
-				'value'       		=> $ss_shipping_order_agent->agent_no,
+				'value'       		=> isset($ss_shipping_order_agent->agent_no) ? $ss_shipping_order_agent->agent_no : null,
 				'class'				=> '',
 				'type'				=> 'number'
 			) );
