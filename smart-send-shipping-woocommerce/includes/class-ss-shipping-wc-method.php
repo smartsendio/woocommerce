@@ -100,6 +100,13 @@ class SS_Shipping_WC_Method extends WC_Shipping_Flat_Rate {
 
 		wp_enqueue_script( 'smart-send-shipping-admin-js', SS_SHIPPING_PLUGIN_DIR_URL . '/assets/js/ss-shipping-admin.js', array('jquery'), SS_SHIPPING_VERSION );
 
+		$test_con_data = array( 
+    					'ajax_url' => admin_url( 'admin-ajax.php' ),
+    					'test_con_nonce' => wp_create_nonce( 'ss-dhl-test-con' ) 
+    				);
+
+		wp_enqueue_script( 'smart-send-test-connection', SS_SHIPPING_PLUGIN_DIR_URL . '/assets/js/ss-shipping-test-connection.js', array('jquery'), SS_SHIPPING_VERSION );
+		wp_localize_script( 'smart-send-test-connection', 'ss_test_con_obj', $test_con_data );
 	}
 
 	/**
@@ -111,10 +118,25 @@ class SS_Shipping_WC_Method extends WC_Shipping_Flat_Rate {
 		$agents_address_format = SS_SHIPPING_WC()->get_agents_address_format();
 
 		$this->form_fields = array(
+			'api_token'            	=> array(
+				'title'           	=> __( 'API Token', 'smart-send-shipping' ),
+				'type'            	=> 'text',
+				'description'     	=> sprintf( __( 'Sign up for a Smart Send account <a href="%s" target="_blank">here</a>.', 'smart-send-shipping' ), esc_url( 'https://smartsend.io/' ) ),
+				'desc_tip'        	=> false
+			),
+			'api_token_validate' => array(
+				'title'             => SS_BUTTON_TEST_CONNECTION,
+				'type'              => 'button',
+				'custom_attributes' => array(
+					'onclick' => "ssTestConnection('#woocommerce_smart_send_shipping_api_token_validate');",
+				),
+				'description'       => __( 'To validate the API token, save the settings then click the button.', 'smart-send-shipping' ),
+				'desc_tip'          => true,
+			),
 			'title_labels'	=> array(
 				'title'   		=> __( 'Shipping Labels','smart-send-shipping'),
 				'type' 			=> 'title',
-				'description' 	=> __( 'Settings for general shipping labels','smart-send-shipping' ),
+				'description' 	=> __( 'Settings for general shipping labels.','smart-send-shipping' ),
 			),
 			'order_status' => array(
 				'title'    	=> __( 'Set order status after label print','smart-send-shipping'),
@@ -145,7 +167,7 @@ class SS_Shipping_WC_Method extends WC_Shipping_Flat_Rate {
 			),
 			'dropdown_display_format' => array(
 				'title'    	=> __( 'Dropdown format','smart-send-shipping'),
-				'desc'		=> __('How the pick-up points are listed during checkout','smart-send-shipping'),
+				'desc'		=> __('How the pick-up points are listed during checkout.','smart-send-shipping'),
 				'default'  	=> '4',
 				'type'     	=> 'select',
 				'class'    	=> 'wc-enhanced-select',
@@ -155,7 +177,7 @@ class SS_Shipping_WC_Method extends WC_Shipping_Flat_Rate {
 			'default_select_agent' => array(
 				'title'    	=> __( 'Select Default','smart-send-shipping'),
 				'label'    	=> __( 'Enable Select Default','smart-send-shipping'),
-				'description'	=> __('Select the first returned pick-up point'),
+				'description'	=> __('Select the first returned pick-up point.'),
 				'default' 	=> 'no',
 				'type'     	=> 'checkbox',
 				'desc_tip' 	=> true,

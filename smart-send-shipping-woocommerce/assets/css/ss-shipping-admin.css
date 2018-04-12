@@ -9,3 +9,9 @@
 .error .ss-meta-message, li {
 	margin-left: 10px;
 }
+
+.ss-connection {
+	display: inline-block;
+	margin-top: 5px !important;
+	margin-left: 5px !important;
+}

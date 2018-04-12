@@ -16,15 +16,12 @@ if ( ! class_exists( 'SS_Shipping_WC_Order' ) ) :
 
 class SS_Shipping_WC_Order {
 	
-	protected $api_handle = null;
 	protected $shipment = null;
 
 	/**
 	 * Init and hook in the integration.
 	 */
 	public function __construct( ) {
-		// Initiate an API handle with the login credentials.
-		$this->api_handle = new \Smartsend\Api('API_KEY');
 
 		//New shipment model
 		$this->shipment = new \Smartsend\Models\Shipment();
@@ -214,10 +211,20 @@ class SS_Shipping_WC_Order {
 
                 if( ! empty( $shipping_method_carrier ) && ! empty( $shipping_address['country'] ) ) {
                 	
+                	if( ! SS_SHIPPING_WC()->validate_api_token() ) {
+                		$error_msg = __( 'The API Token is not valid.', 'smart-send-shipping' );
+                		
+                		if( $doing_ajax ) {
+	                    	return $error_msg;
+	                    } else {
+	                    	WC_Admin_Meta_Boxes::add_error( $error_msg );
+	                    }
+                	}
+
             		// API call to get agent info by agent no.
-	                if( $this->api_handle->getAgentByAgentNo($shipping_method_carrier, $shipping_address['country'], $ss_shipping_agent_no) ) {
+	                if( SS_SHIPPING_WC()->get_api_handle()->getAgentByAgentNo($shipping_method_carrier, $shipping_address['country'], $ss_shipping_agent_no) ) {
 	                    $this->save_ss_shipping_order_agent_no( $post_id, $ss_shipping_agent_no );
-	                    $this->save_ss_shipping_order_agent( $post_id, $this->api_handle->getData() );
+	                    $this->save_ss_shipping_order_agent( $post_id, SS_SHIPPING_WC()->get_api_handle()->getData() );
 	                } else {
 	                	$error_msg = sprintf( __( 'The agent number entered, %s, was not found.', 'smart-send-shipping' ), $ss_shipping_agent_no );
 	                    
@@ -241,6 +248,12 @@ class SS_Shipping_WC_Order {
 		check_ajax_referer( 'create-ss-shipping-label', 'ss_shipping_label_nonce' );
 		$order_id = wc_clean( $_POST[ 'order_id' ] );
 
+		if( ! SS_SHIPPING_WC()->validate_api_token() ) {
+    		$msg = __( 'The API Token is not valid.', 'smart-send-shipping' );
+    		wp_send_json( array( 'error' => array( 'message' => $msg ) ) );
+			wp_die();
+    	}
+
 		// Save inputted data first, if a message was returned there was an error
 		if( $msg = $this->save_meta_box( $order_id, null, true ) ) {
 			wp_send_json( array( 'error' => array( 'message' => $msg ) ) );
@@ -250,13 +263,13 @@ class SS_Shipping_WC_Order {
         $this->set_label_args( $order_id );
 
         // Generate Label
-        if( $this->api_handle->createShipmentAndLabels($this->shipment) ) {
+        if( SS_SHIPPING_WC()->get_api_handle()->createShipmentAndLabels($this->shipment) ) {
 
         	// Get tracking lik
-			$tracking_note = $this->get_tracking_link( $order_id, $this->api_handle->getData() );
+			$tracking_note = $this->get_tracking_link( $order_id, SS_SHIPPING_WC()->get_api_handle()->getData() );
 			
 			// Add tracking info to "WooCommerce Shipment Tracking" plugin
-			$shipment_tracking_details = $this->get_tracking_details( $this->api_handle->getData() );
+			$shipment_tracking_details = $this->get_tracking_details( SS_SHIPPING_WC()->get_api_handle()->getData() );
 			foreach($shipment_tracking_details as $parcel_tracking_details) {
                 $this->save_tracking_in_shipment_tracking($order_id, $parcel_tracking_details['tracking_code'], $parcel_tracking_details['tracking_link'], $parcel_tracking_details['carrier_name'],$date_shipped=null);
             }
@@ -280,7 +293,7 @@ class SS_Shipping_WC_Order {
 
         } else {
         	// AJAX return error
-            $error = $this->api_handle->getError();
+            $error = SS_SHIPPING_WC()->get_api_handle()->getError();
             wp_send_json( array('error' => array(
                     'message' => $error->message,
                     'errors' => $error->errors,
@@ -821,15 +834,15 @@ class SS_Shipping_WC_Order {
 
 	                        $this->set_label_args( $order_id );
 
-						    if( $this->api_handle->createShipmentAndLabels( $this->shipment ) ) {
+						    if( SS_SHIPPING_WC()->get_api_handle()->createShipmentAndLabels( $this->shipment ) ) {
 
-								$tracking_note = $this->get_tracking_link( $order_id, $this->api_handle->getData() );
+								$tracking_note = $this->get_tracking_link( $order_id, SS_SHIPPING_WC()->get_api_handle()->getData() );
 
 								$order = wc_get_order( $order_id );
 								$order->add_order_note( $tracking_note, 0, true );
 
 								// Add tracking information to Shipment Tracking
-								$shipment_tracking_details = $this->get_tracking_details( $this->api_handle->getData() );
+								$shipment_tracking_details = $this->get_tracking_details( SS_SHIPPING_WC()->get_api_handle()->getData() );
 								foreach($shipment_tracking_details as $parcel_tracking_details) {
                                     $this->save_tracking_in_shipment_tracking($order_id, $parcel_tracking_details['tracking_code'], $parcel_tracking_details['tracking_link'], $parcel_tracking_details['carrier_name'],$date_shipped=null);
                                 }
@@ -839,7 +852,7 @@ class SS_Shipping_WC_Order {
 								$message = sprintf( __( 'Order #%s: Smart Shipping Label Created, %s', 'smart-send-shipping'), $order_id, $this->get_ss_shipping_label_link( $order_id ) );
 								$is_error = false;
 							} else {
-						        $error = $this->api_handle->getError();
+						        $error = SS_SHIPPING_WC()->get_api_handle()->getError();
 								$message = sprintf( __( 'Order #%s: %s', 'smart-send-shipping'), $order_id, $error->message );
 
 								foreach ($error->errors as $error_key => $error_value) {

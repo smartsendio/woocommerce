@@ -9,7 +9,7 @@ function ssTestConnection( btn_id ) {
 	btn.nextAll().remove();
 
 	btn.attr("disabled", true);
-	btn.text('Testing Connection...');
+	btn.text('Validating Connection...');
 
 	var loaderContainer = jQuery( '<span/>', {
         'class': 'loader-image-container'
@@ -21,33 +21,31 @@ function ssTestConnection( btn_id ) {
     }).appendTo( loaderContainer );
 
 	var data = {
-		'action': 'test_ss_connection',
+		'action': 'ss_test_connection',
 		'test_con_nonce': ss_test_con_obj.test_con_nonce
 	};
 
-	console.log(data);
-	console.log(as_test_con_obj);
+	// console.log(data);
+	// console.log(ss_test_con_obj);
 
-	// We can also pass the url value separately from ajaxurl for front end AJAX implementations
 	jQuery.post(ss_test_con_obj.ajax_url, data, function(response) {
+		// console.log(response);
 		btn.attr("disabled", false);
 		btn.text( response.button_txt );
 		loaderContainer.remove();
 
-		if ( response.connection_success ) {
-			var test_connection_class = 'ss_connection_succeeded';
-			var test_connection_text = response.connection_success;
+		if ( response.error ) {
+			var test_connection_class = 'error ss-connection';
 		} else {
-			var test_connection_class = 'ss_connection_error';
-			var test_connection_text = response.connection_error;
+			var test_connection_class = 'updated ss-connection';
 		}
-		// alert(test_connection_text);
-		loaderContainer = jQuery( '<span/>', {
+		
+		var test_connection_text = response.message;
+
+		loaderContainer = jQuery( '<div/>', {
 	        'class': test_connection_class
 	    }).insertAfter( btn );
 
 		loaderContainer.append( test_connection_text );
-	    // jQuery( ).appendTo( loaderContainer );
-		// location.reload();
 	});
 }

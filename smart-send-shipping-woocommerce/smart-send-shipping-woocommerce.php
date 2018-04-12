@@ -68,8 +68,19 @@ class SS_Shipping_WC {
 	 */
 	protected $logger = null;
 
-
+	/**
+	 * Smart Send agent address formats
+	 *
+	 * @var array
+	 */
 	protected $agents_address_format = array();
+
+	/**
+	 * Smart Send api handle
+	 *
+	 * @var object
+	 */
+	protected $api_handle = null;
 
 	/**
 	* Construct the plugin.
@@ -120,6 +131,7 @@ class SS_Shipping_WC {
 		$this->define( 'SS_SHIPPING_VERSION', $this->version );
 		$this->define( 'SS_SHIPPING_LOG_DIR', $upload_dir['basedir'] . '/wc-logs/' );
 		$this->define( 'SS_SHIPPING_METHOD_ID', 'smart_send_shipping' );
+		$this->define( 'SS_BUTTON_TEST_CONNECTION', __('Validate API Token', 'smart-send-shipping' ) );
 	}
 	
 	/**
@@ -140,6 +152,9 @@ class SS_Shipping_WC {
 		
 		add_action( 'admin_enqueue_scripts', array( $this, 'ss_shipping_theme_enqueue_styles') );		
 		add_filter( 'woocommerce_shipping_methods', array( $this, 'add_shipping_method' ) );
+
+		// Test connection
+        add_action( 'wp_ajax_ss_test_connection', array( $this, 'ss_test_connection_callback' ) );
 	}
 
 
@@ -255,7 +270,7 @@ class SS_Shipping_WC {
 	 * Log debug message
 	 */
 	public function log_msg( $msg )	{
-		$shipping_as_settings = $this->get_shipping_as_settings();
+		$shipping_as_settings = $this->get_ss_shipping_settings();
 		$as_debug = isset( $shipping_as_settings['as_debug'] ) ? $shipping_as_settings['as_debug'] : 'yes';
 			
 		if( ! $this->logger ) {
@@ -348,6 +363,61 @@ class SS_Shipping_WC {
 		}
 
 		return $new_ship_method;
+	}
+
+	public function get_api_handle() {
+		
+		if( ! $this->api_handle ) {
+			$ss_shipping_settings = $this->get_ss_shipping_settings();
+
+			if( ! empty( $ss_shipping_settings['api_token'] ) ) {
+				// Initiate an API handle with the login credentials.
+				$this->api_handle = new \Smartsend\Api( $ss_shipping_settings['api_token'] );
+			} else {
+				return false;
+			}
+
+		}
+
+		return $this->api_handle;
+	}
+
+	public function validate_api_token() {
+
+		if ( $this->get_api_handle() ) {
+			if( $this->api_handle->getAuthenticatedUser() ) {
+				return true;
+			} else {
+				return false;
+			}
+		} else {
+			return false;
+		}
+	}
+
+	/**
+	 * Test connection AJAX call
+	 */
+	public function ss_test_connection_callback() {
+		check_ajax_referer( 'ss-dhl-test-con', 'test_con_nonce' );
+
+		if( $this->validate_api_token() ) {
+			$connection_msg = __(' Connection Successful!', 'smart-send-shipping');
+			$error = 0;
+		} else {
+			$connection_msg = __(' Validation Failed: Make sure to save the settings before testing the connection.', 'smart-send-shipping');
+			$error = 1;
+		}
+
+		$this->log_msg( $connection_msg );
+
+		wp_send_json( array( 
+			'message' 			=> $connection_msg,
+			'error' 			=> $error,
+			'button_txt'		=> SS_BUTTON_TEST_CONNECTION
+			) );
+
+		wp_die();
 	}
 }
 
