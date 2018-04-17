@@ -270,11 +270,11 @@ class SS_Shipping_WC {
 	 * Log debug message
 	 */
 	public function log_msg( $msg )	{
-		$shipping_as_settings = $this->get_ss_shipping_settings();
-		$as_debug = isset( $shipping_as_settings['as_debug'] ) ? $shipping_as_settings['as_debug'] : 'yes';
+		$shipping_ss_settings = $this->get_ss_shipping_settings();
+		$ss_debug = isset( $shipping_ss_settings['ss_debug'] ) ? $shipping_ss_settings['ss_debug'] : 'yes';
 			
 		if( ! $this->logger ) {
-			$this->logger = new SS_Shipping_Logger( $as_debug );
+			$this->logger = new SS_Shipping_Logger( $ss_debug );
 		}
 
 		$this->logger->write( $msg );		
@@ -284,11 +284,11 @@ class SS_Shipping_WC {
 	 * Get debug log file URL
 	 */
 	public function get_log_url( )	{
-      	$shipping_as_settings = $this->get_shipping_as_settings();
-		$as_debug = isset( $shipping_as_settings['as_debug'] ) ? $shipping_as_settings['as_debug'] : 'yes';
+      	$shipping_ss_settings = $this->get_ss_shipping_settings();
+		$ss_debug = isset( $shipping_ss_settings['ss_debug'] ) ? $shipping_ss_settings['ss_debug'] : 'yes';
 		
 		if( ! $this->logger ) {
-			$this->logger = new SS_Shipping_Logger( $as_debug );
+			$this->logger = new SS_Shipping_Logger( $ss_debug );
 		}
 		
 		return $this->logger->get_log_url( );		

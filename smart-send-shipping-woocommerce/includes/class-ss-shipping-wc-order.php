@@ -221,11 +221,18 @@ class SS_Shipping_WC_Order {
 	                    }
                 	}
 
+                	SS_SHIPPING_WC()->log_msg( 'Called "getAgentByAgentNo" with carrier = ' . $shipping_method_carrier . ', country = '. $shipping_address['country'] . ', ss_shipping_agent_no = ' . $ss_shipping_agent_no );
             		// API call to get agent info by agent no.
 	                if( SS_SHIPPING_WC()->get_api_handle()->getAgentByAgentNo($shipping_method_carrier, $shipping_address['country'], $ss_shipping_agent_no) ) {
+	                	
+	                	SS_SHIPPING_WC()->log_msg( 'Agent found and saved.' );
+
 	                    $this->save_ss_shipping_order_agent_no( $post_id, $ss_shipping_agent_no );
 	                    $this->save_ss_shipping_order_agent( $post_id, SS_SHIPPING_WC()->get_api_handle()->getData() );
 	                } else {
+	                	
+	                	SS_SHIPPING_WC()->log_msg( 'Agent NOT found.' );
+
 	                	$error_msg = sprintf( __( 'The agent number entered, %s, was not found.', 'smart-send-shipping' ), $ss_shipping_agent_no );
 	                    
 	                    if( $doing_ajax ) {
@@ -262,8 +269,11 @@ class SS_Shipping_WC_Order {
 
         $this->set_label_args( $order_id );
 
+        SS_SHIPPING_WC()->log_msg( 'Called "createShipmentAndLabels" with arguments: ' . print_r($this->shipment, true) );
         // Generate Label
         if( SS_SHIPPING_WC()->get_api_handle()->createShipmentAndLabels($this->shipment) ) {
+
+        	SS_SHIPPING_WC()->log_msg( 'Response from "createShipmentAndLabels" : ' . print_r(SS_SHIPPING_WC()->get_api_handle()->getData(), true) );
 
         	// Get tracking lik
 			$tracking_note = $this->get_tracking_link( $order_id, SS_SHIPPING_WC()->get_api_handle()->getData() );
@@ -292,6 +302,9 @@ class SS_Shipping_WC_Order {
 			) );
 
         } else {
+
+        	SS_SHIPPING_WC()->log_msg( 'Error response from "createShipmentAndLabels" : ' . print_r(SS_SHIPPING_WC()->get_api_handle()->getError(), true) );
+        	
         	// AJAX return error
             $error = SS_SHIPPING_WC()->get_api_handle()->getError();
             wp_send_json( array('error' => $error ));

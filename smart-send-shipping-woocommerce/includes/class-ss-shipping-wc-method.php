@@ -115,6 +115,7 @@ class SS_Shipping_WC_Method extends WC_Shipping_Flat_Rate {
 	 * @return void
 	 */
 	public function init_form_fields() {
+		$log_path = SS_SHIPPING_WC()->get_log_url();
 		$agents_address_format = SS_SHIPPING_WC()->get_agents_address_format();
 
 		$this->form_fields = array(
@@ -132,6 +133,13 @@ class SS_Shipping_WC_Method extends WC_Shipping_Flat_Rate {
 				),
 				'description'       => __( 'To validate the API token, save the settings then click the button.', 'smart-send-shipping' ),
 				'desc_tip'          => true,
+			),
+			'ss_debug' => array(
+				'title'             => __( 'Debug Log', 'pr-shipping-dhl' ),
+				'type'              => 'checkbox',
+				'label'             => __( 'Enable logging', 'pr-shipping-dhl' ),
+				'default'           => 'yes',
+				'description'       => sprintf( __( 'A log file containing the communication to the Smart Send server will be maintained if this option is checked. This can be used in case of technical issues and can be found %shere%s.', 'smart-send-shipping' ), '<a href="' . $log_path . '" target = "_blank">', '</a>' )
 			),
 			'title_labels'	=> array(
 				'title'   		=> __( 'Shipping Labels','smart-send-shipping'),
@@ -663,6 +671,8 @@ class SS_Shipping_WC_Method extends WC_Shipping_Flat_Rate {
 								) );
 
 								$this->add_rate( $rate );
+
+								SS_SHIPPING_WC()->log_msg( 'Shipping rate added: ' . print_r( $rate, true ) );
 							}		
 						}
 					}
@@ -720,16 +730,32 @@ class SS_Shipping_WC_Method extends WC_Shipping_Flat_Rate {
 				switch ( $display_shipping_class_opt ) {
 					case 'all_shipping_class' :
 						$is_available = $all_in_array;
+
+						$class_log_message = ', because ALL products belong to one of the shipping classes';
 						break;
 					case 'one_shipping_class' :
 						$is_available = $one_in_array;
+
+						$class_log_message = ', because at least ONE product belongs to one of the shipping classes';
 						break;
 					case 'nall_shipping_class' :
 						$is_available = ! $one_in_array;
+
+						$class_log_message = ', because ALL products do NOT belong to one of the shipping classes';
 						break;
 					case 'none_shipping_class' :
 						$is_available = ! $all_in_array;
+
+						$class_log_message = ', because at least ONE product does NOT belongs to one of the shipping classes';
 						break;
+				}
+			}
+
+			if( $class_log_message ) {
+				if ( $is_available ) {
+					SS_SHIPPING_WC()->log_msg( 'Shipping method IS available' . $class_log_message );
+				} else {
+					SS_SHIPPING_WC()->log_msg( 'Shipping method is NOT available' . $class_log_message );
 				}
 			}
 
@@ -749,6 +775,8 @@ class SS_Shipping_WC_Method extends WC_Shipping_Flat_Rate {
 					$customer_role = strtolower($customer_role); // ensure all names are lowercase to compare keys correctly
 					if ( in_array( $customer_role, $exclude_roles) ) {
 						$is_available = false;
+
+						SS_SHIPPING_WC()->log_msg( 'Shipping method available NOT available, because customer role "' . $customer_role . '"is being excluded.' );
 						break;
 					}
 				}
@@ -798,25 +826,47 @@ class SS_Shipping_WC_Method extends WC_Shipping_Flat_Rate {
 		switch ( $requires ) {
 			case 'min_amount' :
 				$is_available = $has_met_min_amount;
+
+				$free_log_message = ', because the total is ' . $total . 'a minimum order amount of '. $min_amount . ' is needed.';
 				break;
 			case 'coupon' :
 				$is_available = $has_coupon;
+				
+				$free_log_message = ', because a coupon is needed.';
 				break;
 			case 'both' :
 				$is_available = $has_met_min_amount && $has_coupon;
+
+				$free_log_message = ', because the total is ' . $total . 'a minimum order amount of '. $min_amount . ' is needed AND a coupon is needed.';
 				break;
 			case 'either' :
 				$is_available = $has_met_min_amount || $has_coupon;
+
+				$free_log_message = ', because the total is ' . $total . 'a minimum order amount of '. $min_amount . ' is needed OR a coupon is needed.';
 				break;
 			case 'enabled' :
 				$is_available = true;
+
+				$free_log_message = ', because it is always enabled.';
 				break;
 			case 'disabled' :
 				$is_available = false;
+
+				$free_log_message = ', because it is always disabled.';
 				break;
 			default :
 				$is_available = false;
+				
+				$free_log_message = ', because it is not available.';
 				break;
+		}
+
+		if( $free_log_message ) {
+			if ( $is_available ) {
+				SS_SHIPPING_WC()->log_msg( 'Free shipping IS available' . $free_log_message );
+			} else {
+				SS_SHIPPING_WC()->log_msg( 'Free shipping is NOT available' . $free_log_message );
+			}
 		}
 		
 		return apply_filters( 'woocommerce_shipping_' . $this->id . '_is_free_shipping', $is_available, $package, $this );

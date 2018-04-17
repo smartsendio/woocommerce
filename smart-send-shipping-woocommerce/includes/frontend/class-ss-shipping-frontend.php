@@ -76,9 +76,13 @@ class SS_Shipping_Frontend {
 
 				$carrier = SS_SHIPPING_WC()->get_shipping_method_carrier( $full_method_id );
 				// Is street necessary?  If street changed on frontend this function is not called.
+
+				SS_SHIPPING_WC()->log_msg( 'Called "findClosestAgentByAddress" with carrier = "' . $carrier .'", country = "'. $country . '", postcode = "' . $postal_code . '", street = "' . $street . '"' );
                 if ( $this->api_handle->findClosestAgentByAddress( $carrier, $country, $postal_code, $street ) ) {
 
                     $ss_agents = $this->api_handle->getData();
+
+                    SS_SHIPPING_WC()->log_msg( 'Response from "findClosestAgentByAddress": ' . print_r($ss_agents, true) );
                     // Save all of the agents in sessions
                     WC()->session->set( 'ss_shipping_agents' , $ss_agents );
                     $ss_setting = SS_SHIPPING_WC()->get_ss_shipping_settings();
@@ -100,6 +104,9 @@ class SS_Shipping_Frontend {
                     </select>
                     <?php
                 } else {
+                	
+                	SS_SHIPPING_WC()->log_msg( 'Response from "findClosestAgentByAddress": No agent found' );
+
                     echo '<p>' . __('Shipping to closest pick-up point', 'smart-send-shipping') . '</p>';
                 }
 			}
