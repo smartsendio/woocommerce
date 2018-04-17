@@ -294,10 +294,7 @@ class SS_Shipping_WC_Order {
         } else {
         	// AJAX return error
             $error = SS_SHIPPING_WC()->get_api_handle()->getError();
-            wp_send_json( array('error' => array(
-                    'message' => $error->message,
-                    'errors' => $error->errors,
-            ) ) );
+            wp_send_json( array('error' => $error ));
         }
 		
 		wp_die();
@@ -852,14 +849,30 @@ class SS_Shipping_WC_Order {
 								$message = sprintf( __( 'Order #%s: Smart Shipping Label Created, %s', 'smart-send-shipping'), $order_id, $this->get_ss_shipping_label_link( $order_id ) );
 								$is_error = false;
 							} else {
+                                //fetch error:
 						        $error = SS_SHIPPING_WC()->get_api_handle()->getError();
-								$message = sprintf( __( 'Order #%s: %s', 'smart-send-shipping'), $order_id, $error->message );
 
-								foreach ($error->errors as $error_key => $error_value) {
-									$message .= '<br/> - ' . $error_value[0];
-								}
+                                // Print error message
+                                $message = sprintf( __( 'Order #%s: %s', 'smart-send-shipping'), $order_id, $error->message );
+                                // Print 'Read more here' link to error explanation
+                                if(isset($error->links->about)) {
+                                    $message .= '<br><a href="' . $error->links->about . '" target="_blank">' . __('Read more here', 'smart-send-shipping') .'</a>';
+                                }
+                                // Print unique error ID if one exists
+                                if(isset($error->id)) {
+                                    $message .= '<br>' . __('Unique ID', 'smart-send-shipping') . ': ' . $error->id;
+                                }
+                                // Print each error
+                                if(isset($error->errors)) {
+                                    foreach($error->errors as $error_details) {
+                                        foreach($error_details as $error_description) {
+                                            $message .= '<br/> - ' . $error_description;
+                                        }
+                                    }
+                                }
 
-								$is_error = true;
+
+                                $is_error = true;
 							}
 						} else {
 							$message = sprintf( __( 'Order #%s: The selected order did not include a Send Smart shipping method', 'smart-send-shipping'), $order_id );

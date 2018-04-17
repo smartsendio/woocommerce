@@ -31,16 +31,24 @@ jQuery(function ($) {
                 $('#ss-shipping-label-form').unblock();
 
                 if (response.error) {
+                    // Print error message
                     $('#ss-shipping-label-form').append('<div id="ss-shipping-error" class="error ss-meta-message"><strong>' + response.error.message + '</strong></div>');
+                    // Print 'Read more here' link to error explanation
+                    if (response.error.links.about) {
+                        $('#ss-shipping-error').append('<p id="ss-shipping-error-link" class="error ss-meta-message"><a href="' + response.error.links.about + '" target="_blank">Read more</a></p>');
+                    }
+                    // Print unique error ID if one exists
+                    if (response.id) {
+                        $('#ss-shipping-error').append('<p id="ss-shipping-error-id" class="error ss-meta-message">Unique error id: ' + response.error.id + '</p>');
+                    }
+                    // Print each error
                     if (response.error.errors) {
                         $('#ss-shipping-error').append('<ul id="ss-shipping-error-list" class="error ss-meta-message"></ul>');
                         $.each(response.error.errors, function (index, value) {
                             $('#ss-shipping-error-list').append('<li class="' + index + ' error ss-meta-message">' + value + '</li>');
                         });
                     }
-                    if (response.id) {
-                        $('#ss-shipping-error').append('<p id="ss-shipping-error-id" class="error ss-meta-message">Unique error id: ' + response.error.id + '</p>');
-                    }
+
                 } else {
                     
                     $('.ss_agent_address').html(response.agent_address);

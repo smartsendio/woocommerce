@@ -62,6 +62,34 @@ class Client
     }
 
     /**
+     * @return void
+     */
+    public function printError()
+    {
+        //fetch error:
+        $error = $this->getError();
+
+        // Print error message
+        echo $error->message;
+        // Print 'Read more here' link to error explenation
+        if(isset($error->links->about)) {
+            echo "<br>- <a href='".$error->links->about."'>Read more here</a>";
+        }
+        // Print unique error ID if one exists
+        if(isset($error->id)) {
+            echo "<br>Unique ID: ".$error->id;
+        }
+        // Print each error
+        if(isset($error->errors)) {
+            foreach($error->errors as $error_details) {
+                foreach($error_details as $error_description) {
+                    echo "<br>- ".$error_description;
+                }
+            }
+        }
+    }
+
+    /**
      * @return mixed
      */
     public function getDebug()
