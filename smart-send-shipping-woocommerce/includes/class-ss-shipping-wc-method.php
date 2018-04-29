@@ -644,11 +644,16 @@ class SS_Shipping_WC_Method extends WC_Shipping_Flat_Rate {
 			'package' => $package,
 		);
 
+		// write id of shipping method to log
+        SS_SHIPPING_WC()->log_msg( 'Handling shipping rate <' . $rate['id'] . '> with title: ' . $rate['label'] );
+
 		// Check if free shipping, otherwise claculate based on weight and evaluate formulas
 		if( $this->is_free_shipping( $package ) ) {
 
 			$rate[ 'taxes' ] = false;
 			$this->add_rate( $rate );
+            // write to log, that shipping rate is added
+            SS_SHIPPING_WC()->log_msg( 'Free shipping rate added (json decode for details): ' . json_encode( $rate) );
 
 		} else {
 			$cart_weight = WC()->cart->get_cart_contents_weight();
@@ -672,8 +677,8 @@ class SS_Shipping_WC_Method extends WC_Shipping_Flat_Rate {
 								) );
 
 								$this->add_rate( $rate );
-
-								SS_SHIPPING_WC()->log_msg( 'Shipping rate added: ' . print_r( $rate, true ) );
+                                // write to log, that shipping rate is added
+                                SS_SHIPPING_WC()->log_msg( 'Weight based shipping rate added (json decode for details): ' . json_encode( $rate) );
 							}		
 						}
 					}
