@@ -827,7 +827,7 @@ class SS_Shipping_WC_Method extends WC_Shipping_Flat_Rate {
 			case 'min_amount' :
 				$is_available = $has_met_min_amount;
 
-				$free_log_message = ', because the total is ' . $total . 'a minimum order amount of '. $min_amount . ' is needed.';
+				$free_log_message = ', because the total is ' . $total . ' a minimum order amount of '. $min_amount . ' is needed.';
 				break;
 			case 'coupon' :
 				$is_available = $has_coupon;
@@ -837,12 +837,12 @@ class SS_Shipping_WC_Method extends WC_Shipping_Flat_Rate {
 			case 'both' :
 				$is_available = $has_met_min_amount && $has_coupon;
 
-				$free_log_message = ', because the total is ' . $total . 'a minimum order amount of '. $min_amount . ' is needed AND a coupon is needed.';
+				$free_log_message = ', because the total is ' . $total . ' a minimum order amount of '. $min_amount . ' is needed AND a coupon is needed.';
 				break;
 			case 'either' :
 				$is_available = $has_met_min_amount || $has_coupon;
 
-				$free_log_message = ', because the total is ' . $total . 'a minimum order amount of '. $min_amount . ' is needed OR a coupon is needed.';
+				$free_log_message = ', because the total is ' . $total . ' a minimum order amount of '. $min_amount . ' is needed OR a coupon is needed.';
 				break;
 			case 'enabled' :
 				$is_available = true;
