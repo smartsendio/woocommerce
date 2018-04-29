@@ -25,7 +25,8 @@ class SS_Shipping_Frontend {
 		// $this->define_constants();
 
 		// Initiate an API handle with the login credentials.
-		$this->api_handle = new \Smartsend\Api('API_KEY');
+        $ss_setting = SS_SHIPPING_WC()->get_ss_shipping_settings();
+		$this->api_handle = new \Smartsend\Api($ss_setting['api_token']);
 
 		$this->init_hooks();
 	}
