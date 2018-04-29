@@ -122,6 +122,7 @@ class SS_Shipping_WC_Method extends WC_Shipping_Flat_Rate {
 			'api_token'            	=> array(
 				'title'           	=> __( 'API Token', 'smart-send-shipping' ),
 				'type'            	=> 'text',
+                'default'           => '',
 				'description'     	=> sprintf( __( 'Sign up for a Smart Send account <a href="%s" target="_blank">here</a>.', 'smart-send-shipping' ), esc_url( 'https://smartsend.io/' ) ),
 				'desc_tip'        	=> false
 			),
@@ -138,7 +139,7 @@ class SS_Shipping_WC_Method extends WC_Shipping_Flat_Rate {
 				'title'             => __( 'Debug Log', 'pr-shipping-dhl' ),
 				'type'              => 'checkbox',
 				'label'             => __( 'Enable logging', 'pr-shipping-dhl' ),
-				'default'           => 'yes',
+				'default'           => 'no',
 				'description'       => sprintf( __( 'A log file containing the communication to the Smart Send server will be maintained if this option is checked. This can be used in case of technical issues and can be found %shere%s.', 'smart-send-shipping' ), '<a href="' . $log_path . '" target = "_blank">', '</a>' )
 			),
 			'title_labels'	=> array(
