@@ -298,7 +298,7 @@ class Client
         if(curl_errno($ch)) {
             $this->success = false;
 
-            $error = new stdClass();
+            $error = new Error();
             $error->links = null;
             $error->id = null;
             $error->code = curl_errno($ch);
