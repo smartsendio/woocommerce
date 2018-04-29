@@ -11,7 +11,7 @@ class Client
 {
     const TIMEOUT = 10;
 
-    private $api_endpoint = 'http://smartsend-test.apigee.net/api/v1/';
+    private $api_endpoint = 'http://smartsend-prod.apigee.net/api/v1/';
     private $api_token;
     protected $request_endpoint;
     protected $request_headers;
