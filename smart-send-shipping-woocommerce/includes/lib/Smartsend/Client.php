@@ -252,7 +252,7 @@ class Client
         // $plugin_data = get_plugin_data( $path.'/smart-send-shipping-woocommerce.php' );
 
         // Find referer
-        $webshop_url = parse_url(get_permalink( wc_get_page_id( 'shop' ) ), PHP_URL_HOST);
+        $webshop_url = parse_url(get_site_url(),PHP_URL_HOST) . parse_url(get_site_url(),PHP_URL_PATH);
 
         // Make request
         $ch = curl_init();
