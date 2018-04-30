@@ -49,18 +49,13 @@ class SS_Shipping_Logger {
 			$wc_logger = new WC_Logger();
 
 			// Add to logger
-			$wc_logger->add( 'SS_Shipping_', $message );
+			$wc_logger->add( 'Smart_Send', $message );
 		}
 
 	}
 
 	public function get_log_url() {
-		$log_path = wc_get_log_file_path( 'SS_Shipping_' );
-		$upload_path = wp_upload_dir();
-
-		$log_url = str_replace( $upload_path['basedir'], $upload_path['baseurl'], $log_path );
-
-		return $log_url;
+		return admin_url('admin.php?page=wc-status&tab=logs');
 	}
 
 }

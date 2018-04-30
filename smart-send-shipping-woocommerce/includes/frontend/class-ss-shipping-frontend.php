@@ -16,18 +16,10 @@ if ( ! class_exists( 'SS_Shipping_Frontend' ) ) :
 
 class SS_Shipping_Frontend {
 	
-	protected $api_handle = null;
-
 	/**
 	 * Init and hook in the integration.
 	 */
 	public function __construct( ) {
-		// $this->define_constants();
-
-		// Initiate an API handle with the login credentials.
-        $ss_setting = SS_SHIPPING_WC()->get_ss_shipping_settings();
-		$this->api_handle = new \Smartsend\Api($ss_setting['api_token']);
-
 		$this->init_hooks();
 	}
 
@@ -79,9 +71,9 @@ class SS_Shipping_Frontend {
 				// Is street necessary?  If street changed on frontend this function is not called.
 
 				SS_SHIPPING_WC()->log_msg( 'Called "findClosestAgentByAddress" with carrier = "' . $carrier .'", country = "'. $country . '", postcode = "' . $postal_code . '", street = "' . $street . '"' );
-                if ( $this->api_handle->findClosestAgentByAddress( $carrier, $country, $postal_code, $street ) ) {
+                if ( SS_SHIPPING_WC()->get_api_handle()->findClosestAgentByAddress( $carrier, $country, $postal_code, $street ) ) {
 
-                    $ss_agents = $this->api_handle->getData();
+                    $ss_agents = SS_SHIPPING_WC()->get_api_handle()->getData();
 
                     SS_SHIPPING_WC()->log_msg( 'Response from "findClosestAgentByAddress": ' . print_r($ss_agents, true) );
                     // Save all of the agents in sessions
