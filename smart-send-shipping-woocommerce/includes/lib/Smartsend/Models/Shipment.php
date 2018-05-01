@@ -26,8 +26,8 @@ class Shipment implements \JsonSerializable
     private $agent;
     private $parcels;
     private $services;
-    private $sub_total_price_excluding_tax;
-    private $sub_total_price_including_tax;
+    private $subtotal_price_excluding_tax;
+    private $subtotal_price_including_tax;
     private $shipping_price_excluding_tax;
     private $shipping_price_including_tax;
     private $total_price_excluding_tax;
@@ -67,11 +67,11 @@ class Shipment implements \JsonSerializable
         if(isset($shipment['services'])) {
             $this->setServices($shipment['services']);
         }
-        if(isset($shipment['sub_total_price_excluding_tax'])) {
-            $this->setSubTotalPriceExcludingTax($shipment['sub_total_price_excluding_tax']);
+        if(isset($shipment['subtotal_price_excluding_tax'])) {
+            $this->setSubtotalPriceExcludingTax($shipment['subtotal_price_excluding_tax']);
         }
-        if(isset($shipment['sub_total_price_including_tax'])) {
-            $this->setSubTotalPriceIncludingTax($shipment['sub_total_price_including_tax']);
+        if(isset($shipment['subtotal_price_including_tax'])) {
+            $this->setSubtotalPriceIncludingTax($shipment['subtotal_price_including_tax']);
         }
         if(isset($shipment['shipping_price_excluding_tax'])) {
             $this->setShippingPriceExcludingTax($shipment['shipping_price_excluding_tax']);
@@ -291,36 +291,36 @@ class Shipment implements \JsonSerializable
     /**
      * @return mixed
      */
-    public function getSubTotalPriceExcludingTax()
+    public function getSubtotalPriceExcludingTax()
     {
-        return $this->sub_total_price_excluding_tax;
+        return $this->subtotal_price_excluding_tax;
     }
 
     /**
-     * @param mixed $sub_total_price_excluding_tax
+     * @param mixed $subtotal_price_excluding_tax
      * @return Shipment
      */
-    public function setSubTotalPriceExcludingTax($sub_total_price_excluding_tax)
+    public function setSubtotalPriceExcludingTax($subtotal_price_excluding_tax)
     {
-        $this->sub_total_price_excluding_tax = $sub_total_price_excluding_tax;
+        $this->subtotal_price_excluding_tax = $subtotal_price_excluding_tax;
         return $this;
     }
 
     /**
      * @return mixed
      */
-    public function getSubTotalPriceIncludingTax()
+    public function getSubtotalPriceIncludingTax()
     {
-        return $this->sub_total_price_including_tax;
+        return $this->subtotal_price_including_tax;
     }
 
     /**
-     * @param mixed $sub_total_price_including_tax
+     * @param mixed $subtotal_price_including_tax
      * @return Shipment
      */
-    public function setSubTotalPriceIncludingTax($sub_total_price_including_tax)
+    public function setSubtotalPriceIncludingTax($subtotal_price_including_tax)
     {
-        $this->sub_total_price_including_tax = $sub_total_price_including_tax;
+        $this->subtotal_price_including_tax = $subtotal_price_including_tax;
         return $this;
     }
 

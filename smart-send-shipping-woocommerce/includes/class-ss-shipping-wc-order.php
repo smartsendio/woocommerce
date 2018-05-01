@@ -727,8 +727,8 @@ class SS_Shipping_WC_Order {
 		    ->setShippingDate( date('Y-m-d') )
 		    ->setParcels( $parcels ) // Alternatively add each parcel using $shipment->addParcel(Parcel $parcel);
 		    // ->setServices( $services )
-		    ->setSubTotalPriceExcludingTax( $order_subtotal_excl ?: null )
-		    ->setSubTotalPriceIncludingTax( $order_subtotal ?: null )
+		    ->setSubtotalPriceExcludingTax( $order_subtotal_excl ?: null )
+		    ->setSubtotalPriceIncludingTax( $order_subtotal ?: null )
 		    ->setTotalPriceExcludingTax( $order_total_excl ?: null )
 		    ->setTotalPriceIncludingTax( $order_total ?: null )
 		    ->setShippingPriceExcludingTax( $order_shipping_excl ?: null )
