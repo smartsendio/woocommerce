@@ -210,16 +210,6 @@ class SS_Shipping_WC_Order {
                 $shipping_address = $order->get_address( 'shipping' );
 
                 if( ! empty( $shipping_method_carrier ) && ! empty( $shipping_address['country'] ) ) {
-                	
-                	if( ! SS_SHIPPING_WC()->validate_api_token() ) {
-                		$error_msg = __( 'The API Token is not valid.', 'smart-send-shipping' );
-                		
-                		if( $doing_ajax ) {
-	                    	return $error_msg;
-	                    } else {
-	                    	WC_Admin_Meta_Boxes::add_error( $error_msg );
-	                    }
-                	}
 
                 	SS_SHIPPING_WC()->log_msg( 'Called "getAgentByAgentNo" with carrier = ' . $shipping_method_carrier . ', country = '. $shipping_address['country'] . ', ss_shipping_agent_no = ' . $ss_shipping_agent_no );
             		// API call to get agent info by agent no.
@@ -254,12 +244,6 @@ class SS_Shipping_WC_Order {
 	public function save_meta_box_ajax( ) {
 		check_ajax_referer( 'create-ss-shipping-label', 'ss_shipping_label_nonce' );
 		$order_id = wc_clean( $_POST[ 'order_id' ] );
-
-		if( ! SS_SHIPPING_WC()->validate_api_token() ) {
-    		$msg = __( 'The API Token is not valid.', 'smart-send-shipping' );
-    		wp_send_json( array( 'error' => array( 'message' => $msg ) ) );
-			wp_die();
-    	}
 
 		// Save inputted data first, if a message was returned there was an error
 		if( $msg = $this->save_meta_box( $order_id, null, true ) ) {
