@@ -768,7 +768,6 @@ class SS_Shipping_WC_Order {
 		$shop_manager_actions = array(
 			'ss_shipping_label_bulk'      => __( 'Smart Send - Generate Labels', 'smart-send-shipping' ),
 			'ss_shipping_return_bulk'      => __( 'Smart Send - Generate Return Labels', 'smart-send-shipping' ),
-			'ss_shipping_label_return_bulk'      => __( 'Smart Send - Generate Normal and Return Labels', 'smart-send-shipping' )
 		);
 
 		return $shop_manager_actions;
@@ -799,7 +798,7 @@ class SS_Shipping_WC_Order {
 
 			$redirect_url  = admin_url( 'edit.php?post_type=shop_order' );
 
-			if ( 'ss_shipping_label_bulk' === $action || 'ss_shipping_return_bulk' === $action || 'ss_shipping_label_return_bulk' === $action ) {
+			if ( 'ss_shipping_label_bulk' === $action || 'ss_shipping_return_bulk' === $action ) {
 				
 				// Trigger an admin notice to have the user manually open a print window
 				$is_error = false;
