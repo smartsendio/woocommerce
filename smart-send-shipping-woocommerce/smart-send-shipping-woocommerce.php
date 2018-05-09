@@ -402,10 +402,10 @@ class SS_Shipping_WC {
 		check_ajax_referer( 'ss-dhl-test-con', 'test_con_nonce' );
 
 		if( $this->validate_api_token() ) {
-			$connection_msg = __(' Connection Successful!', 'smart-send-shipping');
+			$connection_msg = __(' API Token verified: Connected to Smart Send.', 'smart-send-shipping');
 			$error = 0;
 		} else {
-			$connection_msg = __(' Validation Failed: Make sure to save the settings before testing the connection.', 'smart-send-shipping');
+			$connection_msg = __(' API Token validation failed: Make sure to save the settings before testing the connection.', 'smart-send-shipping');
 			$error = 1;
 		}
 
