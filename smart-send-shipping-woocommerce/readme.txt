@@ -1,10 +1,10 @@
 === Smart Send Logistics ===
 Contributors: SmartSend
-Donate link: http://www.SmartSend.dk/
+Donate link: https://www.SmartSend.io/
 Tags: shipping, pickup, pakkeboks, pakkeshop, hente selv, døgnboks, post danmark, gls, swipbox, bring, carrier, pacsoft, yourgls, mybring, postage, shipping method, your-gls, my-bring, pacosft-online, pacsoftonline, denmark, sweeden, posten, norway, post 
 Requires at least: 3.0.1
-Tested up to: 4.9
-Stable tag: 7.1.16
+Tested up to: 5.0
+Stable tag: 8.0.0
 License: GNU General Public License v3.0
 License URI: http://www.gnu.org/licenses/gpl-3.0.html
 WC requires at least: 2.6.0
@@ -36,27 +36,28 @@ Table rate settings enables multiple shipping methods to be easily configured in
 
 Calculate shipping rate based on:
 
-* Shipping address
+* Shipping address (Shipping Zone)
 * Order weight
 * Order subtotal
 * Shipping class
+* User role
 
 = Services =
 Enable services for shipping methods:
 
 * Customer notification by email
 * Customer notification by SMS
-* Pickup point (collect the parcel at a shop near the customer)
+* Pick-up point (collect the parcel at a shop near the customer)
 * Flex delivery (leave parcel at specified location)
 * Home delivery
 * Handling of special good, eg food
 * TAX handling
 * Enable free delivery based on condition
 
-= Pickup point =
-Let the customer choose a close by pickup point during checkout. The package will be delivered to that pickup point. The customer can collect the package at selected pickup point at convenience.
+= Pick-up point =
+Let the customer choose a close by pick-up point during checkout. The package will be delivered to that pickup point. The customer can collect the package at selected pickup point at convenience.
 
-* Nearest pickup points based on customer address
+* Nearest pick-up points based on customer address
 * Automatically updated list
 * User friendly dropdown list
 * One step/page checkout compatible
@@ -115,6 +116,14 @@ To install a plugin manually, follow the process:
 5. Services for each carrier is easily setup in WooCommerce backend.
 
 == Changelog ==
+
+= 8.0.0 =
+* Completely refactoring of plugin
+* Using Shipping Zones instead of WooCommerce legacy shipping API
+* Plugin is not backwards compatible. All settings must be setup from scratch
+* Separates standard settings from the more advanced settings for simplicity
+* Includes more information about pick-up points in checkout page
+* Limit shipping methods by weight, price, user role, shipping zone, shipping class and much more
 
 = 7.1.16 =
 * Minor fixes
