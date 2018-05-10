@@ -69,6 +69,24 @@ class SS_Shipping_WC_Method extends WC_Shipping_Flat_Rate {
 				),
 		);
 
+        $this->return_shipping_method = array(
+            '0' 		=> __('- Select Method -', 'smart-send-shipping'),
+            'PostNord' 	=>
+                array(
+                    'postnord_returndropoff'		=> __( 'Return from pick-up point (Return Drop Off)', 'smart-send-shipping' ),
+                    'postnord_returnpickup'	        => __( 'PostNord: Return from address (Return Pickup)', 'smart-send-shipping' ),
+                ),
+            'GLS'		=>
+                array(
+                    'gls_returndropoff' 		    => __( 'GLS: Return from pick-up point (ShopReturn)', 'smart-send-shipping' ),
+                ),
+            'Bring'		=>
+                array(
+                    'bring_returndropoff'		    => __( 'Bring: Return from pick-up point (PickUp Parcel Return)', 'smart-send-shipping' ),
+                    'bring_returnpickup'		    => __( 'Bring: Return from from address (Parcel Return)', 'smart-send-shipping' ),
+                ),
+        );
+
 		$this->init();
 	}
 
@@ -365,6 +383,28 @@ class SS_Shipping_WC_Method extends WC_Shipping_Flat_Rate {
 				'desc_tip'        	=> false,
 				'options'			=> $user_roles,
 			),
+            'return_title'     => array(
+                'title'           => __( 'Return shipping', 'smart-send-shipping' ),
+                'type'            => 'title',
+                'description'     => __( 'Configure how to handle return shipping.', 'smart-send-shipping' ),
+                'class'			  => '',
+            ),
+            'return_method'       => array(
+                'title'           	=> __( 'Return Shipping Method', 'smart-send-shipping' ),
+                'type'            	=> 'selectopt',
+                'class' 	        => 'wc-enhanced-select',
+                'description'     	=> __( 'This is the shipping method used when generating a return shipping labels.', 'smart-send-shipping' ),
+                'desc_tip'        	=> true,
+                'options'         	=> $this->return_shipping_method,
+            ),
+            'automatic_return_label' => array(
+                'title'             => __( 'Autogenerate return label', 'smart-send-shipping' ),
+                'type'              => 'checkbox',
+                'label'             => __( 'Enable', 'smart-send-shipping' ),
+                'default'           => 'no',
+                'description'       => __( 'Should a return label automatically be generated whenever a normal shipping labels is generated.', 'smart-send-shipping' ),
+                'desc_tip'          => false,
+            ),
 		);
 
 		/*
