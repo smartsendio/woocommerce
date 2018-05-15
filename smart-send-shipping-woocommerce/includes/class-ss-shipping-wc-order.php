@@ -365,13 +365,13 @@ class SS_Shipping_WC_Order {
 			throw new Exception( __('Label data empty', 'smart-send-shipping' ) );
 		}
 
-		$label_name = 'smart-send-label-' . $label_id . '.pdf';
+		$label_name = 'smart-send-label-' . $label_id . '-' . md5($label_data) . '.pdf';
 		$upload_path = wp_upload_dir();
 		$label_path = $upload_path['path'] . '/'. $label_name;
 		$label_url = $upload_path['url'] . '/'. $label_name;
 
 		if( validate_file($label_path) > 0 ) {
-			throw new Exception( __('Invalid file path!', 'smart-send-shipping' ) );
+			throw new Exception( __('Invalid file path', 'smart-send-shipping' ) );
 		}
 
 		$label_data_decoded = base64_decode($label_data);
