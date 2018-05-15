@@ -1,6 +1,6 @@
 /**
 /**
- * Ajax call to sync orders!
+ * Ajax call to test connection to Smart Send
  */
 function ssTestConnection( btn_id ) {
 	var btn = jQuery( btn_id );
@@ -22,14 +22,10 @@ function ssTestConnection( btn_id ) {
 
 	var data = {
 		'action': 'ss_test_connection',
-		'test_con_nonce': ss_test_con_obj.test_con_nonce
+		'test_connection_nonce': ss_test_connection_obj.test_connection_nonce
 	};
 
-	// console.log(data);
-	// console.log(ss_test_con_obj);
-
-	jQuery.post(ss_test_con_obj.ajax_url, data, function(response) {
-		// console.log(response);
+	jQuery.post(ss_test_connection_obj.ajax_url, data, function(response) {
 		btn.attr("disabled", false);
 		btn.text( response.button_txt );
 		loaderContainer.remove();

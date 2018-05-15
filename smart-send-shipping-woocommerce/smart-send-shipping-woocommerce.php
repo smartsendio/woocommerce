@@ -399,7 +399,7 @@ class SS_Shipping_WC {
 	 * Test connection AJAX call
 	 */
 	public function ss_test_connection_callback() {
-		check_ajax_referer( 'ss-dhl-test-con', 'test_con_nonce' );
+		check_ajax_referer( 'ss-test-connection', 'test_connection_nonce' );
 
 		if( $this->validate_api_token() ) {
 			$connection_msg = __(' API Token verified: Connected to Smart Send.', 'smart-send-shipping');

@@ -102,11 +102,11 @@ class SS_Shipping_WC_Method extends WC_Shipping_Flat_Rate {
 
 		$test_con_data = array( 
     					'ajax_url' => admin_url( 'admin-ajax.php' ),
-    					'test_con_nonce' => wp_create_nonce( 'ss-dhl-test-con' ) 
+    					'test_connection_nonce' => wp_create_nonce( 'ss-test-connection' )
     				);
 
 		wp_enqueue_script( 'smart-send-test-connection', SS_SHIPPING_PLUGIN_DIR_URL . '/assets/js/ss-shipping-test-connection.js', array('jquery'), SS_SHIPPING_VERSION );
-		wp_localize_script( 'smart-send-test-connection', 'ss_test_con_obj', $test_con_data );
+		wp_localize_script( 'smart-send-test-connection', 'ss_test_connection_obj', $test_con_data );
 	}
 
 	/**
