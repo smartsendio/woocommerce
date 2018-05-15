@@ -333,17 +333,21 @@ class SS_Shipping_WC_Order {
      *
      * @param int  $order_id  Order ID
      * @param mixed $new_shipment response for API call
+     * @param boolean $return true for return labels and false for normal labels (default)
      *
      * @return string HTML formatted note
      */
-	protected function get_formatted_order_note_with_label_and_tracking( $order_id, $new_shipment ) {
+	protected function get_formatted_order_note_with_label_and_tracking( $order_id, $new_shipment, $return=false ) {
 		// TODO: Each parcel will have a tracking number. All these tracking numbers muct be saved instead of just saving one
 
 		$label_url = $this->save_label_file( $order_id, $new_shipment->parcels[0]->parcel_internal_id, $new_shipment->parcels[0]->pdf->base_64_encoded );
 		$tracking_number = $new_shipment->parcels[0]->tracking_code;
 		$tracking_link = $new_shipment->parcels[0]->tracking_link;
 
-		$tracking_note = sprintf( __( '<label>Shipping label: </label><a href="%s" target="_blank">Download Label</a><br/><label>Tracking number: </label><a href="%s" target="_blank">%s</a>', 'smart-send-shipping' ), $label_url, $tracking_link, $tracking_number);
+        $tracking_note = '<label>' . ($return ? __('Return shipping label','smart-send-shipping') : __('Shipping label','smart-send-shipping')) . ': </label>'
+            . '<a href="'.$label_url.'" target="_blank">' . __('Download label','smart-send-shipping') . '</a><br/>'
+            . '<label>' . __('Tracking number','smart-send-shipping') . ': </label>'
+            . '<a href="' . $tracking_link . '" target="_blank">' . $tracking_number . '</a>';
 		
 		return $tracking_note;
 	}
@@ -485,8 +489,9 @@ class SS_Shipping_WC_Order {
     * Set the create shipment and label API args
     *
     * @param int  $order_id  Order ID
+    * @param boolean  $return true for return labels and false for normal labels (default)
     */
-	protected function set_label_args( $order_id ) {
+	protected function set_label_args( $order_id, $return=false ) {
 		$ss_settings = SS_SHIPPING_WC()->get_ss_shipping_settings();		
 		
 		$order = wc_get_order( $order_id );
@@ -705,9 +710,16 @@ class SS_Shipping_WC_Order {
 		// $services->setSmsNotification('3027 4735')
 		    // ->setEmailNotification('notify-me@example.com');
 
-		$ss_shipping_method_id = $this->get_smart_send_method_id( $order_id );			
-		$shipping_method_carrier = SS_SHIPPING_WC()->get_shipping_method_carrier( $ss_shipping_method_id );
-		$shipping_method_type = SS_SHIPPING_WC()->get_shipping_method_type( $ss_shipping_method_id );
+		$ss_shipping_method_id = $this->get_smart_send_method_id( $order_id );
+		if($return) {
+		    // Determine shipping method and carrier from return settings
+            $shipping_method_carrier = SS_SHIPPING_WC()->get_shipping_method_return_carrier( $ss_shipping_method_id );
+            $shipping_method_type = SS_SHIPPING_WC()->get_shipping_method_return_type( $ss_shipping_method_id );
+        } else {
+		    // Use the shipping method and carrier from shipping method id (not a return label)
+            $shipping_method_carrier = SS_SHIPPING_WC()->get_shipping_method_carrier( $ss_shipping_method_id );
+            $shipping_method_type = SS_SHIPPING_WC()->get_shipping_method_type( $ss_shipping_method_id );
+        }
 
 		// Add final parameters to shipment
 		$this->shipment->setInternalId( $order_id ?: null )
@@ -805,6 +817,9 @@ class SS_Shipping_WC_Order {
 			$redirect_url  = admin_url( 'edit.php?post_type=shop_order' );
 
 			if ( 'ss_shipping_label_bulk' === $action || 'ss_shipping_return_bulk' === $action ) {
+
+			    // Determine if the request is for a return label
+                $return = ('ss_shipping_return_bulk' === $action);
 				
 				// Trigger an admin notice to have the user manually open a print window
 				$is_error = false;
@@ -831,25 +846,29 @@ class SS_Shipping_WC_Order {
 
 						if( !empty($ss_shipping_method_id) ) {
 
-	                        $this->set_label_args( $order_id );
+	                        $this->set_label_args( $order_id, $return );
 
 						    if( SS_SHIPPING_WC()->get_api_handle()->createShipmentAndLabels( $this->shipment ) ) {
 
                                 // Get formatted order comment
-                                $tracking_note = $this->get_formatted_order_note_with_label_and_tracking( $order_id, SS_SHIPPING_WC()->get_api_handle()->getData() );
+                                $tracking_note = $this->get_formatted_order_note_with_label_and_tracking( $order_id, SS_SHIPPING_WC()->get_api_handle()->getData(), $return );
 
 								$order = wc_get_order( $order_id );
 								$order->add_order_note( $tracking_note, 0, true );
 
-								// Add tracking information to Shipment Tracking
-								$shipment_tracking_details = $this->get_tracking_details( SS_SHIPPING_WC()->get_api_handle()->getData() );
-								foreach($shipment_tracking_details as $parcel_tracking_details) {
-                                    $this->save_tracking_in_shipment_tracking($order_id, $parcel_tracking_details['tracking_code'], $parcel_tracking_details['tracking_link'], $parcel_tracking_details['carrier_name'],$date_shipped=null);
+								if($return) {
+                                    $message = sprintf( __( 'Order #%s: Return shipping label created by Smart Send: %s', 'smart-send-shipping'), $order_id, $this->get_ss_shipping_label_link( $order_id ) );
+                                } else {
+                                    // Add tracking information to Shipment Tracking
+                                    $shipment_tracking_details = $this->get_tracking_details( SS_SHIPPING_WC()->get_api_handle()->getData() );
+                                    foreach($shipment_tracking_details as $parcel_tracking_details) {
+                                        $this->save_tracking_in_shipment_tracking($order_id, $parcel_tracking_details['tracking_code'], $parcel_tracking_details['tracking_link'], $parcel_tracking_details['carrier_name'],$date_shipped=null);
+                                    }
+
+                                    $this->set_order_status_label( $order_id );
+
+                                    $message = sprintf( __( 'Order #%s: Shipping label created by Smart Send: %s', 'smart-send-shipping'), $order_id, $this->get_ss_shipping_label_link( $order_id ) );
                                 }
-
-								$this->set_order_status_label( $order_id );
-
-								$message = sprintf( __( 'Order #%s: Smart Shipping Label Created, %s', 'smart-send-shipping'), $order_id, $this->get_ss_shipping_label_link( $order_id ) );
 								$is_error = false;
 							} else {
                                 //fetch error:
