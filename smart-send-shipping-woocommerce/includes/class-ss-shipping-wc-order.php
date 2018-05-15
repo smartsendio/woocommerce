@@ -259,8 +259,8 @@ class SS_Shipping_WC_Order {
 
         	SS_SHIPPING_WC()->log_msg( 'Response from "createShipmentAndLabels" : ' . print_r(SS_SHIPPING_WC()->get_api_handle()->getData(), true) );
 
-        	// Get tracking lik
-			$tracking_note = $this->get_tracking_link( $order_id, SS_SHIPPING_WC()->get_api_handle()->getData() );
+        	// Get formatted order comment
+			$tracking_note = $this->get_formatted_order_note_with_label_and_tracking( $order_id, SS_SHIPPING_WC()->get_api_handle()->getData() );
 			
 			// Add tracking info to "WooCommerce Shipment Tracking" plugin
 			$shipment_tracking_details = $this->get_tracking_details( SS_SHIPPING_WC()->get_api_handle()->getData() );
@@ -328,9 +328,15 @@ class SS_Shipping_WC_Order {
     }
 
     /**
-	 * Get tracking note
-	 */
-	protected function get_tracking_link( $order_id, $new_shipment ) {
+	 * Get a formatted string containing link to PDF label, tracking code and tracking link.
+     * This note is inserted in the order comment.
+     *
+     * @param int  $order_id  Order ID
+     * @param mixed $new_shipment response for API call
+     *
+     * @return string HTML formatted note
+     */
+	protected function get_formatted_order_note_with_label_and_tracking( $order_id, $new_shipment ) {
 		// TODO: Each parcel will have a tracking number. All these tracking numbers muct be saved instead of just saving one
 
 		$label_url = $this->save_label_file( $order_id, $new_shipment->parcels[0]->parcel_internal_id, $new_shipment->parcels[0]->pdf->base_64_encoded );
@@ -829,7 +835,8 @@ class SS_Shipping_WC_Order {
 
 						    if( SS_SHIPPING_WC()->get_api_handle()->createShipmentAndLabels( $this->shipment ) ) {
 
-								$tracking_note = $this->get_tracking_link( $order_id, SS_SHIPPING_WC()->get_api_handle()->getData() );
+                                // Get formatted order comment
+                                $tracking_note = $this->get_formatted_order_note_with_label_and_tracking( $order_id, SS_SHIPPING_WC()->get_api_handle()->getData() );
 
 								$order = wc_get_order( $order_id );
 								$order->add_order_note( $tracking_note, 0, true );
