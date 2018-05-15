@@ -35,11 +35,11 @@ jQuery(function ($) {
                     $('#ss-shipping-label-form').append('<div id="ss-shipping-error" class="error ss-meta-message"><strong>' + response.error.message + '</strong></div>');
                     // Print 'Read more here' link to error explanation
                     if (response.error.links.about) {
-                        $('#ss-shipping-error').append('<p id="ss-shipping-error-link" class="error ss-meta-message"><a href="' + response.error.links.about + '" target="_blank">Read more</a></p>');
+                        $('#ss-shipping-error').append('<p id="ss-shipping-error-link" class="error ss-meta-message"><a href="' + response.error.links.about + '" target="_blank">Read more</a></p>');//TODO: Add translation
                     }
                     // Print unique error ID if one exists
                     if (response.id) {
-                        $('#ss-shipping-error').append('<p id="ss-shipping-error-id" class="error ss-meta-message">Unique error id: ' + response.error.id + '</p>');
+                        $('#ss-shipping-error').append('<p id="ss-shipping-error-id" class="error ss-meta-message">Unique error id: ' + response.error.id + '</p>');//TODO: Add translation
                     }
                     // Print each error
                     if (response.error.errors) {

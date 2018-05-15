@@ -278,7 +278,7 @@ class SS_Shipping_WC_Order {
 			// Action label created for order id
 			do_action( 'ss_shipping_label_created', $order_id );
 
-			// AJAX return tracking note, agent address and lable download link
+			// AJAX return tracking note, agent address and label download link
 			wp_send_json( array( 
 				'tracking_note'	  => $tracking_note,
 				'agent_address'	  => $agent_address_formatted,
