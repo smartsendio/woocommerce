@@ -548,8 +548,8 @@ class SS_Shipping_WC_Order {
 			    ->setPostalCode( $ss_agent->postal_code ?: null )
 			    ->setCity( $ss_agent->city ?: null )
 			    ->setCountry( $ss_agent->country ?: null );
-			    // ->setSms('30274735')
-			    // ->setEmail('email@example.com');
+			    // ->setSms(null)
+			    // ->setEmail(null);
 
 			// Add the agent to the shipment
 			$this->shipment->setAgent($agent);
@@ -706,9 +706,9 @@ class SS_Shipping_WC_Order {
 		}
 		
 		// Create services
-		// $services = new \Smartsend\Models\Shipment\Services();
-		// $services->setSmsNotification('3027 4735')
-		    // ->setEmailNotification('notify-me@example.com');
+		$services = new \Smartsend\Models\Shipment\Services();
+		$services->setSmsNotification( $receiver->getSms() ) //Always enable SMS notification
+            ->setEmailNotification( $receiver->getEmail() ); //Always enable Email notification
 
 		$ss_shipping_method_id = $this->get_smart_send_method_id( $order_id );
 		if($return) {
@@ -728,7 +728,7 @@ class SS_Shipping_WC_Order {
 		    ->setShippingMethod( $shipping_method_type ?: null )
 		    ->setShippingDate( date('Y-m-d') )
 		    ->setParcels( $parcels ) // Alternatively add each parcel using $shipment->addParcel(Parcel $parcel);
-		    // ->setServices( $services )
+		    ->setServices( $services )
 		    ->setSubtotalPriceExcludingTax( $order_subtotal_excl ?: null )
 		    ->setSubtotalPriceIncludingTax( $order_subtotal ?: null )
 		    ->setTotalPriceExcludingTax( $order_total_excl ?: null )
