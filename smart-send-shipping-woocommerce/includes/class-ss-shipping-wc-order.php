@@ -318,10 +318,10 @@ class SS_Shipping_WC_Order {
 	    $tracking_array = array();
 	    foreach($shipment->parcels as $parcel) {
             $tracking_array[$parcel->parcel_internal_id] = array(
-                    'carrier_code' => $parcel->carrier_code,
-                    'carrier_name' => $parcel->carrier_name,
+                    'carrier_code' => $shipment->carrier_code,
+                    'carrier_name' => $shipment->carrier_name,
                     'tracking_code' => $parcel->tracking_code,
-                    'tracking_link' => apply_filters( 'smart_send_tracking_url', $parcel->tracking_link, $parcel->carrier_code ),
+                    'tracking_link' => apply_filters( 'smart_send_tracking_url', $parcel->tracking_link, $shipment->carrier_code ),
             );
         }
         return $tracking_array;
