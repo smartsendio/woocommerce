@@ -17,6 +17,7 @@ if ( ! class_exists( 'SS_Shipping_WC_Order' ) ) :
 class SS_Shipping_WC_Order {
 	
 	protected $shipment = null;
+	protected $label_prefix = 'smart-send-label-';
 
 	/**
 	 * Init and hook in the integration.
@@ -25,7 +26,6 @@ class SS_Shipping_WC_Order {
 
 		//New shipment model
 		$this->shipment = new \Smartsend\Models\Shipment();
-
 
 		$this->define_constants();
 		$this->init_hooks();
@@ -340,9 +340,9 @@ class SS_Shipping_WC_Order {
 	protected function get_formatted_order_note_with_label_and_tracking( $order_id, $new_shipment, $return=false ) {
 		// TODO: Each parcel will have a tracking number. All these tracking numbers muct be saved instead of just saving one
 
-		$label_url = $this->save_label_file( $order_id, $new_shipment->parcels[0]->parcel_internal_id, $new_shipment->parcels[0]->pdf->base_64_encoded );
-		$tracking_number = $new_shipment->parcels[0]->tracking_code;
-		$tracking_link = $new_shipment->parcels[0]->tracking_link;
+		$label_url = $this->save_label_file( $order_id, $new_shipment->shipment_id, $new_shipment->pdf->base_64_encoded,$return );
+		$tracking_number = $new_shipment->parcels[0]->tracking_code; //TODO: Currently only saving tracking number from the first parcel, save for all parcels
+		$tracking_link = $new_shipment->parcels[0]->tracking_link; //TODO: Currently only saving tracking number from the first parcel, save for all parcels
 
         $tracking_note = '<label>' . ($return ? __('Return shipping label','smart-send-shipping') : __('Shipping label','smart-send-shipping')) . ': </label>'
             . '<a href="'.$label_url.'" target="_blank">' . __('Download label','smart-send-shipping') . '</a><br/>'
@@ -355,36 +355,52 @@ class SS_Shipping_WC_Order {
 	/**
 	 * Save label file in "uploads" folder
 	 */
-	protected function save_label_file( $order_id, $label_id, $label_data ) {
+	protected function save_label_file( $order_id, $shipment_id, $label_data, $return ) {
 		
-		if ( empty($label_id) ) {
-			throw new Exception( __('Label id is empty', 'smart-send-shipping' ) );
+		if ( empty($shipment_id) ) {
+			throw new Exception( __('Shipment id is empty', 'smart-send-shipping' ) );
 		}
 
 		if ( empty($label_data) ) {
 			throw new Exception( __('Label data empty', 'smart-send-shipping' ) );
 		}
 
-		$label_name = 'smart-send-label-' . $label_id . '-' . md5($label_data) . '.pdf';
-		$upload_path = wp_upload_dir();
-		$label_path = $upload_path['path'] . '/'. $label_name;
-		$label_url = $upload_path['url'] . '/'. $label_name;
+		$label_path = $this->get_label_path($shipment_id);
+		$label_url = $this->get_label_url($shipment_id);
+		error_log($label_path);
+        error_log($label_url);
 
 		if( validate_file($label_path) > 0 ) {
-			throw new Exception( __('Invalid file path', 'smart-send-shipping' ) );
+			throw new Exception( __('Invalid file path', 'smart-send-shipping' ) ); //This exception is not caught
 		}
 
 		$label_data_decoded = base64_decode($label_data);
 		$file_ret = file_put_contents( $label_path, $label_data_decoded );
 		
 		if( empty( $file_ret ) ) {
-			throw new Exception( __('Label file cannot be saved', 'smart-send-shipping' ) );
+			throw new Exception( __('Label file cannot be saved', 'smart-send-shipping' ) ); //This exception is not caught
 		}
 
-		$this->save_ss_shipping_label( $order_id, $label_url );
+		$this->save_ss_shipment_id_in_order_meta( $order_id, $shipment_id, $return );
 
 		return $label_url;
 	}
+
+	protected function get_label_url($shipment_id) {
+        if($this->label_prefix) {
+            $shipment_id = $this->label_prefix . $shipment_id;
+        }
+        $upload_path = wp_upload_dir();
+        return $upload_path['url'] . '/'. $shipment_id . '.pdf';
+    }
+
+    protected function get_label_path($shipment_id) {
+	    if($this->label_prefix) {
+            $shipment_id = $this->label_prefix . $shipment_id;
+        }
+        $upload_path = wp_upload_dir();
+        return $upload_path['path'] . '/'. $shipment_id . '.pdf';
+    }
 
 	/**
 	 * Saves the label agent no to post_meta.
@@ -433,15 +449,20 @@ class SS_Shipping_WC_Order {
 	}
 
 	/**
-	 * Saves the label URL to post_meta.
+	 * Saves the Shipment ID to post_meta.
 	 *
 	 * @param int   $order_id       Order ID
-	 * @param string $label_url 	Label URL
+	 * @param string $shipment_id 	Shipment ID
+     * @param boolean $return 	Whether or not the label is return (true) or normal (false)
 	 *
 	 * @return void
 	 */
-	public function save_ss_shipping_label( $order_id, $label_url ) {
-		update_post_meta( $order_id, '_ss_shipping_label', $label_url );
+	public function save_ss_shipment_id_in_order_meta( $order_id, $shipment_id, $return ) {
+		if($return) {
+            update_post_meta( $order_id, '_ss_shipping_return_label_id', $shipment_id );
+        } else {
+            update_post_meta( $order_id, '_ss_shipping_label_id', $shipment_id );
+        }
 	}
 
 	/*
@@ -452,7 +473,8 @@ class SS_Shipping_WC_Order {
 	 * @return Label URL
 	 */
 	public function get_ss_shipping_label( $order_id ) {
-		return get_post_meta( $order_id, '_ss_shipping_label', true );
+		$shipment_id = get_post_meta( $order_id, '_ss_shipping_label_id', true );
+		return $this->get_label_url($shipment_id);
 	}
 
 	/*
