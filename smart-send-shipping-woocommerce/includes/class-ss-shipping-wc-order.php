@@ -242,7 +242,7 @@ class SS_Shipping_WC_Order {
 	 * Save Agent No. and Generate Label
 	 */
 	public function save_meta_box_ajax( ) {
-		check_ajax_referer( 'create-ss-shipping-label', 'ss_shipping_label_nonce' );
+		check_ajax_referer( 'create-ss-shipping-label', 'ss_shipping_label_nonce' ); //This function dies if the referer is not correct
 		$order_id = wc_clean( $_POST[ 'order_id' ] );
 
 		// Save inputted data first, if a message was returned there was an error
@@ -278,7 +278,7 @@ class SS_Shipping_WC_Order {
 			// Action label created for order id
 			do_action( 'ss_shipping_label_created', $order_id );
 
-			// AJAX return tracking note, agent address and lable download link
+			// AJAX return tracking note, agent address and label download link
 			wp_send_json( array( 
 				'tracking_note'	  => $tracking_note,
 				'agent_address'	  => $agent_address_formatted,
@@ -475,10 +475,6 @@ class SS_Shipping_WC_Order {
      * @return void
      */
     public function save_tracking_in_shipment_tracking( $order_id, $tracking_number, $tracking_url, $provider='Smart Send',$date_shipped=null ) {
-
-        if(!$date_shipped) {
-            $date_shipped = date("Y-m-d");
-        }
 
         if ( function_exists( 'wc_st_add_tracking_number' ) ) {
             wc_st_add_tracking_number( $order_id, $tracking_number, $provider, $date_shipped, $tracking_url );
