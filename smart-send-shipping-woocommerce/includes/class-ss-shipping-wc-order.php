@@ -243,6 +243,7 @@ class SS_Shipping_WC_Order {
 	 */
 	public function save_meta_box_ajax( ) {
 		check_ajax_referer( 'create-ss-shipping-label', 'ss_shipping_label_nonce' ); //This function dies if the referer is not correct
+        // TODO: Add return label action
 		$order_id = wc_clean( $_POST[ 'order_id' ] );
 
 		// Save inputted data first, if a message was returned there was an error
@@ -251,62 +252,91 @@ class SS_Shipping_WC_Order {
 			wp_die();
 		}
 
-        $this->set_label_args( $order_id );
+        $response = $this->create_label_for_single_order($order_id,false, false); // TODO: Add return label action
 
-        SS_SHIPPING_WC()->log_msg( 'Called "createShipmentAndLabels" with arguments: ' . print_r($this->shipment, true) );
-        // Generate Label
-        if( SS_SHIPPING_WC()->get_api_handle()->createShipmentAndLabels($this->shipment) ) {
+        // return the WooCommerce part of the response (that the plugin added before)
+        if(isset($response['success']->woocommerce)) {
+            wp_send_json( array('success' => $response['success']->woocommerce) );
+        } else {
+            wp_send_json( $response );
+        }
+        wp_die();
+	}
 
-        	SS_SHIPPING_WC()->log_msg( 'Response from "createShipmentAndLabels" : ' . print_r(SS_SHIPPING_WC()->get_api_handle()->getData(), true) );
+    /*
+     * Create label for a single WooCommerce order
+     *
+     * @param int  $order_id  Order ID
+     * @param boolean $return Whether or not the label is return (true) or normal (false)
+     *
+     * @return Agent Object
+     */
+    public function create_label_for_single_order($order_id, $return=false, $setting_save_order_note=true) {
+        // Load WC Order
+        $order = wc_get_order( $order_id );
 
-        	// Get formatted order comment
-			$tracking_note = $this->get_formatted_order_note_with_label_and_tracking( $order_id, SS_SHIPPING_WC()->get_api_handle()->getData() );
-			
-			// Add tracking info to "WooCommerce Shipment Tracking" plugin
-			$shipment_tracking_details = $this->get_tracking_details( SS_SHIPPING_WC()->get_api_handle()->getData() );
-			foreach($shipment_tracking_details as $parcel_tracking_details) {
-                $this->save_tracking_in_shipment_tracking($order_id, $parcel_tracking_details['tracking_code'], $parcel_tracking_details['tracking_link'], $parcel_tracking_details['carrier_name'],$date_shipped=null);
+        // Create API payload
+        $this->make_single_shipment_api_payload($order, $return);
+        // Make API Request (returns the API handler)
+        $this->make_single_shipment_api_request();
+
+        if (SS_SHIPPING_WC()->get_api_handle()->isSuccessful()) {
+
+            //The request was successful, lets update WooCommerce
+            $response = SS_SHIPPING_WC()->get_api_handle()->getData();
+
+            // Save the PDF file and save order meta data
+            $this->save_label_file_and_order_meta_data( $order_id, $response->shipment_id, $response->pdf->base_64_encoded, $return );
+
+            // Get formatted order comment
+            $response->woocommerce['label_link'] = $this->get_label_url_from_shipment_id($response->shipment_id);
+            $response->woocommerce['order_note'] = $this->get_formatted_order_note_with_label_and_tracking( $order_id, $response, $return );
+
+            // Set order status after label generation
+            if (!$return) {
+                $this->set_order_status_after_label_generated( $order );
             }
 
-            // Get shipping agent object
-			$agent_address = $this->get_ss_shipping_order_agent( $order_id );
-			// Get formatted address
-			$agent_address_formatted =  $this->get_formatted_address( $agent_address );
-			// Set order status after label generation
-			$this->set_order_status_label( $order_id );
+            // Save order note
+            if ($setting_save_order_note) {
+                $order->add_order_note( $response->woocommerce['order_note'], 0, true );
+            }
 
-			// Action label created for order id
-			do_action( 'ss_shipping_label_created', $order_id );
+            // Add tracking info to "WooCommerce Shipment Tracking" plugin
+            foreach($response->parcels as $parcel) {
+                $this->save_tracking_in_shipment_tracking($order_id, $parcel->tracking_code, $parcel->tracking_link, $response->carrier_name,$date_shipped=null);
+            }
 
-			// AJAX return tracking note, agent address and label download link
-			wp_send_json( array( 
-				'tracking_note'	  => $tracking_note,
-				'agent_address'	  => $agent_address_formatted,
-				'label_link'	  => $this->get_ss_shipping_label_link( $order_id )
-			) );
+            // Action label created for order id
+            do_action( 'ss_shipping_label_created', $order_id );
 
+            // return the success data
+            return array('success' => $response);
         } else {
-
-        	SS_SHIPPING_WC()->log_msg( 'Error response from "createShipmentAndLabels" : ' . print_r(SS_SHIPPING_WC()->get_api_handle()->getError(), true) );
-        	
-        	// AJAX return error
-            $error = SS_SHIPPING_WC()->get_api_handle()->getError();
-            wp_send_json( array('error' => $error ));
+            // Something failed. Let's return them, so the error can be shown to the user
+            return array('error' => SS_SHIPPING_WC()->get_api_handle()->getError());
         }
-		
-		wp_die();
-	}
+    }
+
+    protected function make_single_shipment_api_request() {
+        SS_SHIPPING_WC()->log_msg( 'Called "createShipmentAndLabels" with arguments: ' . print_r($this->shipment, true) );
+        SS_SHIPPING_WC()->get_api_handle()->createShipmentAndLabels($this->shipment);
+        // Show the response
+        if (SS_SHIPPING_WC()->get_api_handle()->isSuccessful()) {
+            SS_SHIPPING_WC()->log_msg( 'Response from "createShipmentAndLabels" : ' . print_r(SS_SHIPPING_WC()->get_api_handle()->getData(), true) );
+        } else {
+            SS_SHIPPING_WC()->log_msg( 'Error response from "createShipmentAndLabels" : ' . print_r(SS_SHIPPING_WC()->get_api_handle()->getError(), true) );
+        }
+    }
 
 	/**
 	 * If set to change order after order generated, update order status
 	 */
-	protected function set_order_status_label( $order_id ) {
+	protected function set_order_status_after_label_generated( $order ) {
 
 		$ss_settings = SS_SHIPPING_WC()->get_ss_shipping_settings();
 		
-		if( ! empty( $ss_settings['order_status'] ) ) {		
-			$order = wc_get_order( $order_id );
-
+		if( ! empty( $ss_settings['order_status'] ) ) {
 			$order->update_status( $ss_settings['order_status'] );
 		}
 	}
@@ -332,22 +362,20 @@ class SS_Shipping_WC_Order {
      * This note is inserted in the order comment.
      *
      * @param int  $order_id  Order ID
-     * @param mixed $new_shipment response for API call
+     * @param mixed $api_shipment_response response for API call
      * @param boolean $return true for return labels and false for normal labels (default)
      *
      * @return string HTML formatted note
      */
-	protected function get_formatted_order_note_with_label_and_tracking( $order_id, $new_shipment, $return=false ) {
-		// TODO: Each parcel will have a tracking number. All these tracking numbers muct be saved instead of just saving one
-
-		$label_url = $this->save_label_file( $order_id, $new_shipment->shipment_id, $new_shipment->pdf->base_64_encoded,$return );
-		$tracking_number = $new_shipment->parcels[0]->tracking_code; //TODO: Currently only saving tracking number from the first parcel, save for all parcels
-		$tracking_link = $new_shipment->parcels[0]->tracking_link; //TODO: Currently only saving tracking number from the first parcel, save for all parcels
+	protected function get_formatted_order_note_with_label_and_tracking( $order_id, $api_shipment_response, $return ) {
 
         $tracking_note = '<label>' . ($return ? __('Return shipping label','smart-send-shipping') : __('Shipping label','smart-send-shipping')) . ': </label>'
-            . '<a href="'.$label_url.'" target="_blank">' . __('Download label','smart-send-shipping') . '</a><br/>'
-            . '<label>' . __('Tracking number','smart-send-shipping') . ': </label>'
-            . '<a href="' . $tracking_link . '" target="_blank">' . $tracking_number . '</a>';
+            . '<a href="'.$api_shipment_response->woocommerce['label_link'].'" target="_blank">' . __('Download label','smart-send-shipping') . '</a>';
+
+        foreach($api_shipment_response->parcels as $parcel) {
+            $tracking_note .= '<br><label>' . __('Tracking number','smart-send-shipping') . ': </label>'
+                . '<a href="' . $parcel->tracking_link . '" target="_blank">' . $parcel->tracking_code . '</a>';
+        }
 		
 		return $tracking_note;
 	}
@@ -355,7 +383,7 @@ class SS_Shipping_WC_Order {
 	/**
 	 * Save label file in "uploads" folder
 	 */
-	protected function save_label_file( $order_id, $shipment_id, $label_data, $return ) {
+	protected function save_label_file_and_order_meta_data( $order_id, $shipment_id, $label_data, $return ) {
 		
 		if ( empty($shipment_id) ) {
 			throw new Exception( __('Shipment id is empty', 'smart-send-shipping' ) );
@@ -365,10 +393,8 @@ class SS_Shipping_WC_Order {
 			throw new Exception( __('Label data empty', 'smart-send-shipping' ) );
 		}
 
-		$label_path = $this->get_label_path($shipment_id);
-		$label_url = $this->get_label_url($shipment_id);
-		error_log($label_path);
-        error_log($label_url);
+		$label_path = $this->get_label_path_from_shipment_id($shipment_id);
+		$label_url = $this->get_label_url_from_shipment_id($shipment_id);
 
 		if( validate_file($label_path) > 0 ) {
 			throw new Exception( __('Invalid file path', 'smart-send-shipping' ) ); //This exception is not caught
@@ -386,7 +412,7 @@ class SS_Shipping_WC_Order {
 		return $label_url;
 	}
 
-	protected function get_label_url($shipment_id) {
+	protected function get_label_url_from_shipment_id($shipment_id) {
         if($this->label_prefix) {
             $shipment_id = $this->label_prefix . $shipment_id;
         }
@@ -394,7 +420,7 @@ class SS_Shipping_WC_Order {
         return $upload_path['url'] . '/'. $shipment_id . '.pdf';
     }
 
-    protected function get_label_path($shipment_id) {
+    protected function get_label_path_from_shipment_id($shipment_id) {
 	    if($this->label_prefix) {
             $shipment_id = $this->label_prefix . $shipment_id;
         }
@@ -472,9 +498,9 @@ class SS_Shipping_WC_Order {
 	 *
 	 * @return Label URL
 	 */
-	public function get_ss_shipping_label( $order_id ) {
+	public function get_label_url_from_order_id( $order_id ) {
 		$shipment_id = get_post_meta( $order_id, '_ss_shipping_label_id', true );
-		return $this->get_label_url($shipment_id);
+		return $this->get_label_url_from_shipment_id($shipment_id);
 	}
 
 	/*
@@ -485,7 +511,7 @@ class SS_Shipping_WC_Order {
 	 * @return Label URL link
 	 */
 	public function get_ss_shipping_label_link( $order_id ) {
-		return '<a href="' . $this->get_ss_shipping_label( $order_id ) . '" target="_blank">' . __('Download Shipping Label', 'smart-send-shipping') . '</a>';
+		return '<a href="' . $this->get_label_url_from_order_id( $order_id ) . '" target="_blank">' . __('Download Shipping Label', 'smart-send-shipping') . '</a>';
 	}
 
 
@@ -504,15 +530,14 @@ class SS_Shipping_WC_Order {
     }
 
     /*
-    * Set the create shipment and label API args
+    * Create Payload for API request and save this as $this->shipment
     *
     * @param int  $order_id  Order ID
     * @param boolean  $return true for return labels and false for normal labels (default)
     */
-	protected function set_label_args( $order_id, $return=false ) {
+	protected function make_single_shipment_api_payload( $order, $return ) {
 		$ss_settings = SS_SHIPPING_WC()->get_ss_shipping_settings();		
-		
-		$order = wc_get_order( $order_id );
+
 		$order_num = $order->get_order_number();
 
 		// Get address related information 
@@ -531,8 +556,8 @@ class SS_Shipping_WC_Order {
 
 		// Make receiver object.
 		$receiver = new \Smartsend\Models\Shipment\Receiver();
-		$receiver->setInternalId( $order_id )
-		    ->setInternalReference( $order_id ?: null )
+		$receiver->setInternalId( $order->get_id() )
+		    ->setInternalReference( $order->get_id() ?: null )
 		    ->setCompany( $shipping_address['company'] ?: null )
 		    ->setNameLine1( $shipping_address['first_name'] ?: null )
 		    ->setNameLine2( $shipping_address['last_name'] ?: null )
@@ -550,7 +575,7 @@ class SS_Shipping_WC_Order {
 		// Add the sender to the shipment (we use the system default for now)
 		//$this->shipment->setSender(Sender $sender);
 
-		$ss_agent = $this->get_ss_shipping_order_agent( $order_id );
+		$ss_agent = $this->get_ss_shipping_order_agent( $order->get_id() );
 
 		if ( ! empty( $ss_agent ) ) {
 			// Add an agent (pick-up point) to the shipment
@@ -708,7 +733,7 @@ class SS_Shipping_WC_Order {
 			$parcels = array();
 			// Create a parcel containing the items just defined
 			$parcels[0] = new \Smartsend\Models\Shipment\Parcel();
-			$parcels[0]->setInternalId( $order_id ?: null )
+			$parcels[0]->setInternalId( $order->get_id() ?: null )
 			    ->setInternalReference( $order_num ?: null )
 			    ->setWeight($weight_total ?: null)
 			    ->setHeight(null)
@@ -728,7 +753,7 @@ class SS_Shipping_WC_Order {
 		$services->setSmsNotification( $receiver->getSms() ) //Always enable SMS notification
             ->setEmailNotification( $receiver->getEmail() ); //Always enable Email notification
 
-		$ss_shipping_method_id = $this->get_smart_send_method_id( $order_id );
+		$ss_shipping_method_id = $this->get_smart_send_method_id( $order->get_id() );
 		if($return) {
 		    // Determine shipping method and carrier from return settings
             $shipping_method_carrier = SS_SHIPPING_WC()->get_shipping_method_return_carrier( $ss_shipping_method_id );
@@ -740,7 +765,7 @@ class SS_Shipping_WC_Order {
         }
 
 		// Add final parameters to shipment
-		$this->shipment->setInternalId( $order_id ?: null )
+		$this->shipment->setInternalId( $order->get_id() ?: null )
 		    ->setInternalReference( $order_num ?: null )
 		    ->setShippingCarrier( $shipping_method_carrier ?: null )
 		    ->setShippingMethod( $shipping_method_type ?: null )
@@ -844,26 +869,58 @@ class SS_Shipping_WC_Order {
 				$orders_count = count( $order_ids );
 
 				if ( $orders_count < 1 ) {
-					$message = __( 'No orders selected, please select the orders to create label(s).', 'smart-send-shipping' );
-					$is_error = true;
-
-					$arr_message = array( 'message' => $message, 'is_error' => $is_error );
-					array_push($array_messages, $arr_message);
+                    array_push($array_messages, array(
+                        'message' => __( 'No orders selected, please select the orders to create label(s).', 'smart-send-shipping' ),
+                        'type' => 'error',
+                    ));
 				} elseif ( $orders_count > 8 ) {
-					$message = __( 'At most 8 order can be selected, please select 8 orders or less and try again.', 'smart-send-shipping' );
-					$is_error = true;
-
-					$arr_message = array( 'message' => $message, 'is_error' => $is_error );
-					array_push($array_messages, $arr_message);
+                    array_push($array_messages, array(
+                        'message' =>__( 'At most 8 order can be selected, please select 8 orders or less and try again.', 'smart-send-shipping' ),
+                        'type' => 'error',
+                    ));
 				} else {
 
-					// Ensure the selected orders have a label created, otherwise don't create handover
+					// Ensure the selected orders have a Smart Send Shipping method
 					foreach ( $order_ids as $order_id ) {
 
 						$ss_shipping_method_id = $this->get_smart_send_method_id( $order_id );
 
 						if( !empty($ss_shipping_method_id) ) {
 
+                            $response = $this->create_label_for_single_order($order_id, $return, true);
+
+                            if(isset($response['success'])) {
+                                array_push($array_messages, array(
+                                    'message' => sprintf( __( 'Order #%s: Shipping label created by Smart Send: %s', 'smart-send-shipping'), $order_id, $this->get_ss_shipping_label_link( $order_id ) ),
+                                    'type' => 'success',
+                                ));
+                            } else {
+                                // Print error message
+                                $message = sprintf( __( 'Order #%s: %s', 'smart-send-shipping'), $order_id, $response['error']->message );
+                                // Print 'Read more here' link to error explanation
+                                if(isset($response['error']->links->about)) {
+                                    $message .= '<br><a href="' . $response['error']->links->about . '" target="_blank">' . __('Read more here', 'smart-send-shipping') .'</a>';
+                                }
+                                // Print unique error ID if one exists
+                                if(isset($response['error']->id)) {
+                                    $message .= '<br>' . __('Unique ID', 'smart-send-shipping') . ': ' . $response['error']->id;
+                                }
+                                // Print each error
+                                if(isset($response['error']->errors)) {
+                                    foreach($response['error']->errors as $error_details) {
+                                        // TODO: This kan be an array of key/values, just an array or a string
+                                        foreach($error_details as $error_description) {
+                                            $message .= '<br/> - ' . $error_description;
+                                        }
+                                    }
+                                }
+                                array_push($array_messages, array(
+                                    'message' => $message,
+                                    'type' => 'error',
+                                ));
+                            }
+
+                            /*
 	                        $this->set_label_args( $order_id, $return );
 
 						    if( SS_SHIPPING_WC()->get_api_handle()->createShipmentAndLabels( $this->shipment ) ) {
@@ -885,7 +942,7 @@ class SS_Shipping_WC_Order {
 
                                     $this->set_order_status_label( $order_id );
 
-                                    $message = sprintf( __( 'Order #%s: Shipping label created by Smart Send: %s', 'smart-send-shipping'), $order_id, $this->get_ss_shipping_label_link( $order_id ) );
+
                                 }
 								$is_error = false;
 							} else {
@@ -914,13 +971,13 @@ class SS_Shipping_WC_Order {
 
                                 $is_error = true;
 							}
+                            */
 						} else {
-							$message = sprintf( __( 'Order #%s: The selected order did not include a Send Smart shipping method', 'smart-send-shipping'), $order_id );
-							$is_error = true;
+                            array_push($array_messages, array(
+                                'message' => sprintf( __( 'Order #%s: The selected order did not include a Send Smart shipping method', 'smart-send-shipping'), $order_id),
+                                'type' => 'error',
+                            ));
 						}
-						
-						$arr_message = array( 'message' => $message, 'is_error' => $is_error );
-						array_push($array_messages, $arr_message);
 					}
 				}
 
@@ -954,13 +1011,18 @@ class SS_Shipping_WC_Order {
 
 				foreach ($bulk_action_message_opt as $key => $value) {
 					$message = wp_kses_post( $value['message'] );
-					$is_error = wp_kses_post( $value['is_error'] );
-					
-					if( $is_error ) {
-						echo '<div class="error"><ul><li>' . $message . '</li></ul></div>';
-					} else {
-						echo '<div id="wp-admin-message-handler-message"  class="updated"><ul><li><strong>' . $message . '</strong></li></ul></div>';
-					}
+					$type = wp_kses_post( $value['type'] );
+
+					switch ($type) {
+                        case 'error':
+                            echo '<div class="notice notice-error"><ul><li>' . $message . '</li></ul></div>';
+                            break;
+                        case 'success':
+                            echo '<div class="notice notice-success"><ul><li><strong>' . $message . '</strong></li></ul></div>';
+                            break;
+                        default:
+                            echo '<div class="notice notice-warning"><ul><li><strong>' . $message . '</strong></li></ul></div>';
+                    }
 				}
 
 				delete_option( '_ss_shipping_bulk_action_confirmation' );
