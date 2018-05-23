@@ -397,6 +397,7 @@ class SS_Shipping_WC_Method extends WC_Shipping_Flat_Rate {
                 'desc_tip'        	=> true,
                 'options'         	=> $this->return_shipping_method,
             ),
+            /*
             'automatic_return_label' => array(
                 'title'             => __( 'Autogenerate return label', 'smart-send-shipping' ),
                 'type'              => 'checkbox',
@@ -404,7 +405,7 @@ class SS_Shipping_WC_Method extends WC_Shipping_Flat_Rate {
                 'default'           => 'no',
                 'description'       => __( 'Should a return label automatically be generated whenever a normal shipping labels is generated.', 'smart-send-shipping' ),
                 'desc_tip'          => false,
-            ),
+            ),*/
 		);
 
 		/*
