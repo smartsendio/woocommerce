@@ -35,7 +35,8 @@ class SS_Shipping_WC_Order {
 	 * Define constants
 	 */
 	protected function define_constants() {
-		SS_SHIPPING_WC()->define( 'SS_SHIPPING_BUTTON_LABEL_GEN', __( 'Generate Label', 'smart-send-shipping' ) );
+		SS_SHIPPING_WC()->define( 'SS_SHIPPING_BUTTON_LABEL_GEN', __( 'Generate label', 'smart-send-shipping' ) );
+        SS_SHIPPING_WC()->define( 'SS_SHIPPING_BUTTON_RETURN_LABEL_GEN', __( 'Generate return label', 'smart-send-shipping' ) );
 	}
 
 	/**
@@ -128,7 +129,8 @@ class SS_Shipping_WC_Order {
 		echo '</p>';
 		
 
-		echo '<button id="ss-shipping-label-button" class="button button-primary button-save-form">' . SS_SHIPPING_BUTTON_LABEL_GEN . '</button>';
+		echo '<button id="ss-shipping-label-button" class="button button-primary button-save-form">' . SS_SHIPPING_BUTTON_LABEL_GEN . '</button><br><br>';
+        echo '<button id="ss-shipping-return-label-button" class="button button-save-form">' . SS_SHIPPING_BUTTON_RETURN_LABEL_GEN . '</button>';
 
 		// Load JS for AJAX calls
 		wp_enqueue_script( 'ss-shipping-label-js', SS_SHIPPING_PLUGIN_DIR_URL . '/assets/js/ss-shipping-label.js', array(), SS_SHIPPING_VERSION );
@@ -243,8 +245,8 @@ class SS_Shipping_WC_Order {
 	 */
 	public function save_meta_box_ajax( ) {
 		check_ajax_referer( 'create-ss-shipping-label', 'ss_shipping_label_nonce' ); //This function dies if the referer is not correct
-        // TODO: Add return label action
 		$order_id = wc_clean( $_POST[ 'order_id' ] );
+        $return = boolval( $_POST[ 'return_label' ] );
 
 		// Save inputted data first, if a message was returned there was an error
 		if( $msg = $this->save_meta_box( $order_id, null, true ) ) {
@@ -252,7 +254,7 @@ class SS_Shipping_WC_Order {
 			wp_die();
 		}
 
-        $response = $this->create_label_for_single_order($order_id,false, false); // TODO: Add return label action
+        $response = $this->create_label_for_single_order($order_id, $return, false);
 
         // return the WooCommerce part of the response (that the plugin added before)
         if(isset($response['success']->woocommerce)) {

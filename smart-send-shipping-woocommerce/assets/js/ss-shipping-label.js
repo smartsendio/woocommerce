@@ -4,10 +4,12 @@ jQuery(function ($) {
         // init Class
         init: function () {
             $('#ss-shipping-label-form')
-                .on('click', '#ss-shipping-label-button', this.save_ss_shipping_label);
+                .on('click', '#ss-shipping-label-button', {return_label: 0}, this.save_ss_shipping_label);
+            $('#ss-shipping-label-form')
+                .on('click', '#ss-shipping-return-label-button', {return_label: 1}, this.save_ss_shipping_label);
         },
 
-        save_ss_shipping_label: function () {
+        save_ss_shipping_label: function (event) {
             // Remove any errors from last attempt to create label
             $('#ss-shipping-label-form .error').remove();
             $('#ss-shipping-label-form .updated').remove();
@@ -23,6 +25,7 @@ jQuery(function ($) {
             var data = {
                 action: 'ss_shipping_generate_label',
                 order_id: woocommerce_admin_meta_boxes.post_id,
+                return_label: event.data.return_label,
                 ss_shipping_agent_no: $('#ss_shipping_agent_no').val(),
                 ss_shipping_label_nonce: $('#ss_shipping_label_nonce').val()
             };
