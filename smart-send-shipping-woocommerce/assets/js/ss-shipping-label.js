@@ -4,10 +4,12 @@ jQuery(function ($) {
         // init Class
         init: function () {
             $('#ss-shipping-label-form')
-                .on('click', '#ss-shipping-label-button', this.save_ss_shipping_label);
+                .on('click', '#ss-shipping-label-button', {return_label: 0}, this.save_ss_shipping_label);
+            $('#ss-shipping-label-form')
+                .on('click', '#ss-shipping-return-label-button', {return_label: 1}, this.save_ss_shipping_label);
         },
 
-        save_ss_shipping_label: function () {
+        save_ss_shipping_label: function (event) {
             // Remove any errors from last attempt to create label
             $('#ss-shipping-label-form .error').remove();
             $('#ss-shipping-label-form .updated').remove();
@@ -23,6 +25,7 @@ jQuery(function ($) {
             var data = {
                 action: 'ss_shipping_generate_label',
                 order_id: woocommerce_admin_meta_boxes.post_id,
+                return_label: event.data.return_label,
                 ss_shipping_agent_no: $('#ss_shipping_agent_no').val(),
                 ss_shipping_label_nonce: $('#ss_shipping_label_nonce').val()
             };
@@ -35,26 +38,25 @@ jQuery(function ($) {
                     $('#ss-shipping-label-form').append('<div id="ss-shipping-error" class="error ss-meta-message"><strong>' + response.error.message + '</strong></div>');
                     // Print 'Read more here' link to error explanation
                     if (response.error.links.about) {
-                        $('#ss-shipping-error').append('<p id="ss-shipping-error-link" class="error ss-meta-message"><a href="' + response.error.links.about + '" target="_blank">Read more</a></p>');//TODO: Add translation
+                        $('#ss-shipping-error').append('<p id="ss-shipping-error-link" class="error ss-meta-message"><a href="' + response.error.links.about + '" target="_blank">Read more</a></p>'); //TODO: Add translation
                     }
                     // Print unique error ID if one exists
                     if (response.id) {
-                        $('#ss-shipping-error').append('<p id="ss-shipping-error-id" class="error ss-meta-message">Unique error id: ' + response.error.id + '</p>');//TODO: Add translation
+                        $('#ss-shipping-error').append('<p id="ss-shipping-error-id" class="error ss-meta-message">Unique error id: ' + response.error.id + '</p>'); //TODO: Add translation
                     }
                     // Print each error
                     if (response.error.errors) {
                         $('#ss-shipping-error').append('<ul id="ss-shipping-error-list" class="error ss-meta-message"></ul>');
+                        // TODO: This kan be an array of key/values, just an array or a string
                         $.each(response.error.errors, function (index, value) {
                             $('#ss-shipping-error-list').append('<li class="' + index + ' error ss-meta-message">' + value + '</li>');
                         });
                     }
 
-                } else {
-                    
-                    $('.ss_agent_address').html(response.agent_address);
-                    $('#ss-shipping-label-form').append('<div id="ss-label-created" class="updated ss-meta-message">' + response.label_link + '</div>');
-
-                    if (response.tracking_note) {
+                } else if (response.success) {
+                    //$('.ss_agent_address').html(response.success.agent_address);
+                    $('#ss-shipping-label-form').append('<div id="ss-label-created" class="updated ss-meta-message"><a href="' + response.success.label_link + '" target="_blank">Download label</a></div>'); //TODO: Add translation
+                    if (response.success.order_note) {
 
                         $('#woocommerce-order-notes').block({
                             message: null,
@@ -68,7 +70,7 @@ jQuery(function ($) {
                             action: 'woocommerce_add_order_note',
                             post_id: woocommerce_admin_meta_boxes.post_id,
                             note_type: '',
-                            note: response.tracking_note,
+                            note: response.success.order_note,
                             security: woocommerce_admin_meta_boxes.add_order_note_nonce
                         };
 
@@ -80,6 +82,9 @@ jQuery(function ($) {
                         });
                     }
 
+                } else {
+                    // Print error message
+                    $('#ss-shipping-label-form').append('<div id="ss-shipping-error" class="error ss-meta-message"><strong>Unexpected error</strong></div>'); //TODO: Add translation
                 }
             });
 
