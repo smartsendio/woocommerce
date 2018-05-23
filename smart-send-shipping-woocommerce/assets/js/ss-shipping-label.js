@@ -47,9 +47,15 @@ jQuery(function ($) {
                     // Print each error
                     if (response.error.errors) {
                         $('#ss-shipping-error').append('<ul id="ss-shipping-error-list" class="error ss-meta-message"></ul>');
-                        // TODO: This kan be an array of key/values, just an array or a string
-                        $.each(response.error.errors, function (index, value) {
-                            $('#ss-shipping-error-list').append('<li class="' + index + ' error ss-meta-message">' + value + '</li>');
+                        $.each(response.error.errors, function (index, value) { //each() iterates both object and array
+                            if($.isArray(value)) { // If there are more errors for each field, then show each of them
+                                $.each(value, function(index2,value2) {
+                                    $('#ss-shipping-error-list').append('<li class="' + index2 + ' error ss-meta-message">' + value2 + '</li>');
+                                    }
+                                );
+                            } else { // otherwise just show the single error
+                                $('#ss-shipping-error-list').append('<li class="' + index + ' error ss-meta-message">' + value + '</li>');
+                            }
                         });
                     }
 

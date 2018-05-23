@@ -908,11 +908,16 @@ class SS_Shipping_WC_Order {
                                     $message .= '<br>' . __('Unique ID', 'smart-send-shipping') . ': ' . $response['error']->id;
                                 }
                                 // Print each error
-                                if(isset($response['error']->errors)) {
-                                    foreach($response['error']->errors as $error_details) {
-                                        // TODO: This kan be an array of key/values, just an array or a string
-                                        foreach($error_details as $error_description) {
-                                            $message .= '<br/> - ' . $error_description;
+                                if($response['error']->errors) {
+                                    foreach($response['error']->errors as $error) {
+                                        // If there are more errors for each field, then show each of them
+                                        if (is_array($error)) {
+                                            foreach($error as $error_description) {
+                                                $message .= '<br/> - ' . $error_description;
+                                            }
+                                        } // otherwise just show the single error
+                                        else {
+                                            $message .= '<br/> - ' . $error;
                                         }
                                     }
                                 }
