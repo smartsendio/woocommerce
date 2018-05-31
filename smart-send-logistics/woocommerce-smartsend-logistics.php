@@ -7,7 +7,7 @@
 	Author URI: http://www.smartsend.dk
 	Text Domain: smart-send-logistics
 	Domain Path: /lang
-	Version: 7.1.16
+	Version: 7.1.17
 	WC requires at least: 2.6.0
 	WC tested up to: 3.3
 
@@ -644,6 +644,26 @@ if ( in_array( 'woocommerce/woocommerce.php', apply_filters( 'active_plugins', g
 				<p>$message</p>
 			</div>"; 
 	}
+
+    /*-----------------------------------------------------------------------------------------------------------------------
+    * 					Fix for method_id for WooCommerce 3.4.x
+    *----------------------------------------------------------------------------------------------------------------------*/
+
+    // Accepting two arguments (three possible).
+    function smartsend_logistics_woocommerce_package_rates_fix_woo_34( $rates, $package ) {
+        if( WC()->version > '3.3.5' ) {
+            foreach($rates as $rate) {
+                if( substr($rate->get_method_id(), 0, strlen('smartsend_')) === 'smartsend_' &&
+                    substr($rate->get_id(), 0, strlen('smartsend_')) === 'smartsend_' &&
+                    $rate->get_method_id() != $rate->get_id() ) {
+
+                    $rate->set_method_id($rate->get_id());
+                }
+            }
+        }
+        return $rates;
+    }
+    add_filter( 'woocommerce_package_rates', 'smartsend_logistics_woocommerce_package_rates_fix_woo_34', 10, 2 );
 
 /*-----------------------------------------------------------------------------------------------------------------------
 * 					Add carriers
