@@ -73,7 +73,7 @@ class SS_Shipping_WC_Method extends WC_Shipping_Flat_Rate {
             '0' 		=> __('- Select Method -', 'smart-send-shipping'),
             'PostNord' 	=>
                 array(
-                    'postnord_returndropoff'		=> __( 'Return from pick-up point (Return Drop Off)', 'smart-send-shipping' ),
+                    'postnord_returndropoff'		=> __( 'PostNord: Return from pick-up point (Return Drop Off)', 'smart-send-shipping' ),
                     'postnord_returnpickup'	        => __( 'PostNord: Return from address (Return Pickup)', 'smart-send-shipping' ),
                 ),
             'GLS'		=>
