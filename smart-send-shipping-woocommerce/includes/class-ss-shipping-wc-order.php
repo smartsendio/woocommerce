@@ -167,11 +167,12 @@ class SS_Shipping_WC_Order {
 		if( !empty($order_shipping_methods) ) {
 
 			foreach ( $order_shipping_methods as $item_id => $item ) {
+				// Array access on 'WC_Order_Item_Shipping' works because it implements backwards compatibility 
 				$shipping_method_id = ! empty( $item['method_id'] ) ? esc_html( $item['method_id'] ) : null;
 
 				// If Smart Send found, return id
 				if ( stripos($shipping_method_id, 'smart_send_shipping') !== false ) {
-					return $shipping_method_id;
+					return $item['smartsend_method'];
 				} else {
 					// If free shipping and setting to set free shipping to Send Smart
 					if ( stripos($shipping_method_id, 'free_shipping') !== false ) {

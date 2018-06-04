@@ -328,11 +328,10 @@ class SS_Shipping_WC {
 		
 		$ship_method_parts = $this->get_shipping_method_part( $ship_method );
 
-		// Might be 2 parts or 3 because of 'free shipping' option
 		$arr_size = sizeof($ship_method_parts);
 
-		if ( $ship_method_parts[ $arr_size - 2 ] ) {
-			return $ship_method_parts[ $arr_size - 2 ];
+		if ( isset( $ship_method_parts[0] ) ) {
+			return $ship_method_parts[0];
 		}
 
 		return $ship_method;
@@ -345,11 +344,10 @@ class SS_Shipping_WC {
 		
 		$ship_method_parts = $this->get_shipping_method_part( $ship_method );
 
-		// Might be 2 parts or 3 because of 'free shipping' option
 		$arr_size = sizeof($ship_method_parts);
 
-		if ( $ship_method_parts[ $arr_size - 1 ] ) {
-			return $ship_method_parts[ $arr_size - 1 ];
+		if ( isset( $ship_method_parts[1] ) ) {
+			return $ship_method_parts[1];
 		}
 
 		return $ship_method;
@@ -407,16 +405,8 @@ class SS_Shipping_WC {
 			return $ship_method;
 		}
 
-		// Assumes format 'name:instance_carrier_method' or 'instance_carrier_method'
-		$new_ship_method = explode(':', $ship_method );
-
-		// If no ':' included then will be 1 array and should explode that item
-		$arr_size = sizeof($new_ship_method);
-
-		if ( isset($new_ship_method[ $arr_size - 1 ] ) ) {
-			// Assumes format 'instance_carrier_method'
-			return explode('_', $new_ship_method[ $arr_size - 1 ] );
-		}
+		// Assumes format 'carrier_type'
+		$new_ship_method = explode('_', $ship_method );
 
 		return $new_ship_method;
 	}

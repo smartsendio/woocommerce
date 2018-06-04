@@ -52,23 +52,24 @@ class SS_Shipping_Frontend {
 
  		if ( defined( 'WOOCOMMERCE_VERSION' ) && version_compare( WOOCOMMERCE_VERSION, '3.0', '>=' ) ) {
  			$method_id = $method->get_method_id();
- 			$full_method_id = $method->get_id();
+ 			$shipping_id = $method->get_id();
  		} else {
  			$method_id = $method->method_id;
- 			$full_method_id = $method->id;
+ 			$shipping_id = $method->id;
  		}
+ 		
+ 		$meta_data = $method->get_meta_data();
 
-		if( $method_id == 'smart_send_shipping' &&
-			$chosen_shipping ==  $full_method_id &&
-			(stripos($full_method_id, 'agent') !== false) ) {
+		if( ( $method_id == 'smart_send_shipping' ) &&
+			( $chosen_shipping == $shipping_id ) &&
+			( stripos($meta_data['smartsend_method'], 'agent') !== false) ) {
 
 			if ( isset( $_POST['s_country'] ) && isset( $_POST['s_postcode'] ) && isset( $_POST['s_address'] ) ) {
 				$country = wc_clean( $_POST['s_country'] );
 				$postal_code = wc_clean( $_POST['s_postcode'] );
 				$street = wc_clean( $_POST['s_address'] );
 
-				$carrier = SS_SHIPPING_WC()->get_shipping_method_carrier( $full_method_id );
-				// Is street necessary?  If street changed on frontend this function is not called.
+				$carrier = SS_SHIPPING_WC()->get_shipping_method_carrier( $meta_data['smartsend_method'] );
 
 				SS_SHIPPING_WC()->log_msg( 'Called "findClosestAgentByAddress" with carrier = "' . $carrier .'", country = "'. $country . '", postcode = "' . $postal_code . '", street = "' . $street . '"' );
                 if ( SS_SHIPPING_WC()->get_api_handle()->findClosestAgentByAddress( $carrier, $country, $postal_code, $street ) ) {

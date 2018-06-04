@@ -679,9 +679,10 @@ class SS_Shipping_WC_Method extends WC_Shipping_Flat_Rate {
 
 	public function calculate_shipping( $package = array() ) {
 		$rate = array(
-			'id' 	=> $this->get_rate_id() . '_' . $this->get_instance_option( 'method' ),
+			'id' 	=> $this->get_rate_id(),
 			'label'   => $this->title,
 			'cost'    => 0,
+			'meta_data' => array( 'smartsend_method' => $this->get_instance_option( 'method' ) ),
 			'package' => $package,
 		);
 
