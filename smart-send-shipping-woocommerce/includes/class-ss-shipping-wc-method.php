@@ -682,7 +682,10 @@ class SS_Shipping_WC_Method extends WC_Shipping_Flat_Rate {
 			'id' 	=> $this->get_rate_id(),
 			'label'   => $this->title,
 			'cost'    => 0,
-			'meta_data' => array( 'smartsend_method' => $this->get_instance_option( 'method' ) ),
+			'meta_data' => array( 
+								'smartsend_method' => $this->get_instance_option( 'method' ), 
+								'smartsend_return_method' => $this->get_instance_option( 'return_method' ) 
+							),
 			'package' => $package,
 		);
 
