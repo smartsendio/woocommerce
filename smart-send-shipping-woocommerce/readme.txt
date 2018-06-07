@@ -38,10 +38,8 @@ Supports worldwide shipping from these countries:
 * Finland
 * Norway
 
-= Table rates =
-Table rate settings enables multiple shipping methods to be easily configured in one table. Determine the shipping price for each method based on multiple condition.
-
-Calculate shipping rate based on:
+= Shipping method =
+Shipping methods are setup in WooCommerce Shipping Zones and can the shipping cost can be calculated based on a range of criteria:
 
 * Shipping address
 * Order weight
@@ -112,6 +110,18 @@ See our written guide on our [Smart Send website](https://smartsend.io/woocommer
 5. Enter the API Token you received in your welcome email and click save. Signup [here](https://smartsend.io/woocommerce/api-token/) to get an API Token.
 6. Once the API Token is saved, press 'Validate API Token' to connect your WooCommerce store to Smart Send.
 
+== Developers ==
+
+The plugin implements a number of useful hooks and filters that can be used to extend the functionality of the plugin:
+
+* woocommerce_smart_send_shipping_shipping_add_rate: An action that allows 3rd parties to add rates after the Smart Send rate is added.
+* woocommerce_shipping_smart_send_shipping_is_available: A filter that allows 3rd parties to disable this shipping method
+* woocommerce_shipping_smart_send_shipping_is_free_shipping: A filter that allows 3rd parties to disable free shipping for this method
+
+ The following filters are inherited from WooCommerce and can be used as well:
+
+ * woocommerce_settings_api_form_fields_smart_send_shipping: A filter to override the main setting fields.
+ * woocommerce_shipping_instance_form_fields_smart_send_shipping: A filter to override zone fields for the shipping method.
 
 == Screenshots ==
 
@@ -321,4 +331,4 @@ See our written guide on our [Smart Send website](https://smartsend.io/woocommer
 == Upgrade Notice ==
 
 = 8.0.0 =
-Complete redesign of plugin and moved to Shipping Zones. OBS: Require completely new configuration.
+8.0 is a major update. All functionality if moved to WooCommerce Shipping Zones. Make a full site backup, and [review update best practices](https://docs.woocommerce.com/document/how-to-update-your-site) before upgrading.
