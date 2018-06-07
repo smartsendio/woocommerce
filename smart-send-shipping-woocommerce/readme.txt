@@ -1,11 +1,11 @@
 === Smart Send Logistics ===
 Contributors: SmartSend
 Donate link: https://www.smartsend.io/
-Author: Smart Send
+Author: SmartSend
 Author URI: https://smartsend.io/
-Developer: Smart Send
+Developer: SmartSend
 Developer URI: https://smartsend.io/
-Tags: shipping, pickup, pakkeboks, pakkeshop, hente selv, døgnboks, post danmark, gls, swipbox, bring, carrier, pacsoft, yourgls, mybring, postage, shipping method, your-gls, my-bring, pacosft-online, pacsoftonline, denmark, sweeden, posten, norway, post 
+Tags: smartsend, smart send, shipping, pickup, pakkeboks, pakkeshop, hente selv, døgnboks, post danmark, gls, swipbox, bring, carrier, pacsoft, yourgls, mybring, postage, shipping method, your-gls, my-bring, pacosft-online, pacsoftonline, denmark, sweeden, posten, norway, post 
 Requires at least: 3.0.1
 Tested up to: 5.0
 Stable tag: 8.0.0
