@@ -13,12 +13,15 @@ License: GNU General Public License v3.0
 License URI: http://www.gnu.org/licenses/gpl-3.0.html
 WC requires at least: 2.6.0
 WC tested up to: 3.4
+Requires PHP: 5.6.0
 
 Complete WooCommerce shipping solution for PostNord, GLS and Bring.
 
 == Description ==
 
-Complete shipping solution for PostNord, GLS and Bring. Setup shipping methods with rates calculated based on products, shipping address, weight, subtotal and much more. Show pickup points to the customer during checkout and create shipping labels directly from the WooCommerce admin panel.
+Complete shipping solution for PostNord, GLS and Bring. Setup shipping methods with rates calculated based on products, shipping address, weight, subtotal, user roles, shipping classes and much more. Show pick-up points to the customer during checkout and create shipping labels directly from the WooCommerce admin panel.
+
+From now on, everything is incorporated directly into your WooCommerce store.
 
 Supported carriers:
 
@@ -40,11 +43,12 @@ Table rate settings enables multiple shipping methods to be easily configured in
 
 Calculate shipping rate based on:
 
-* Shipping address (Shipping Zone)
+* Shipping address
 * Order weight
 * Order subtotal
 * Shipping class
 * User role
+* Shipping Zone
 
 = Services =
 Enable services for shipping methods:
@@ -59,12 +63,14 @@ Enable services for shipping methods:
 * Enable free delivery based on condition
 
 = Pick-up point =
-Let the customer choose a close by pick-up point during checkout. The package will be delivered to that pickup point. The customer can collect the package at selected pickup point at convenience.
+Let the customer choose a pick-up point close to them during checkout. The package will be delivered to the selected pick-up point, where the customer can collect the package at their own convenience.
 
-* Nearest pick-up points based on customer address
+* Nearest pick-up points based on entered shipping address
 * Automatically updated list
 * User friendly dropdown list
 * One step/page checkout compatible
+
+Shipping to pickup points are the most widely used shipping method due to it's flexibility and the reduced shipping cost.
 
 = Shipping labels =
 Create shipping labels directly from the backend by a single click. The information is automatically formatted and send to the carrier for processing. A PDF label is immediately shown and ready to print. Tracking information is automatically saved in the system and can be included in customer emails or can be sendt by text message.
@@ -81,10 +87,7 @@ This plugin replaces the two previous modules “Smart Send Labelgenerator” an
 
 == Installation ==
 
-= Automatic installation (recommended) =
-Automatic installing a Plugin using WordPress Plugin Search is the easiest option as WordPress handles the file transfer and no FTP access is required. This installation method is therefore the recommended method.
-
-To install a plugin automatically using the WordPress Plugin Search, follow the process:
+See our online installation guide at [SmartSend.io](https://smartsend.io/woocommerce/configuration), or follow these steps:
 
 1. Log in to the WordPress dashboard
 2. Navigate to the Plugin menu
@@ -94,21 +97,20 @@ To install a plugin automatically using the WordPress Plugin Search, follow the 
 6. Once the plugin is installed, click the 'Activate Plugin' link to active the plugin
 7. The plugin is installed, activated and ready to use once you see the succes message 'Plugin activated' at the top of the plugin page
 
-= Manual installation =
+= Connect plugin to Smart Send using API Token =
 
-The manual installation requires that the plugin is downloaded, extracted and transfered to the server hosting the WordPress site. This is usually done using an FTP client like FileZilla.
+The plugin must be connected to Smart Send for all functions to work properly. You can create a [Smart Send account here](https://smartsend.io/signup)
 
-To install a plugin manually, follow the process:
+[youtube https://www.youtube.com/embed/wyJYbwwI0h8]
 
-1. Download the plugin either from [WordPress](https://wordpress.org/plugins/smart-send-logistics/) or from the [Smart Send website](http://smartsend.dk/woocommerce/).
-2. Extract the plugin using appropriate software (WinRAR, TheUnarchiver...)
-3. Open FTP client eg FileZilla
-4. Connect to WordPress site
-5. Move to folder 'wp-content/plugins/'
-6. Transfer the folder 'smart-send-logistics' to the remote folder 'wp-content/plugins/'
-7. The plugin should now be installed and can be seen in the WordPress plugin page
-8. Once the plugin is installed, click the 'Activate Plugin' link at the plugin page to active the plugin
-9. The plugin is installed, activated and ready to use once you see the succes message 'Plugin activated' at the top of the plugin page
+See our written guide on our [Smart Send website](https://smartsend.io/woocommerce/api-token/) or followed these steps:
+
+1. Log in to the WordPress dashboard
+2. Choose 'WooCommerce' in the menu to the left and select 'Settings'
+3. Choose the 'Shipping' tab in the top menu bar
+4. Click on 'Smart Send' in the list under the tabs
+5. Enter the API Token you received in your welcome email and click save. Signup [here](https://smartsend.io/woocommerce/api-token/) to get an API Token.
+6. Once the API Token is saved, press 'Validate API Token' to connect your WooCommerce store to Smart Send.
 
 
 == Screenshots ==
@@ -128,6 +130,9 @@ To install a plugin manually, follow the process:
 * Separates standard settings from the more advanced settings for simplicity
 * Includes more information about pick-up points in checkout page
 * Limit shipping methods by weight, price, user role, shipping zone, shipping class and much more
+
+= 7.1.17 =
+* Fix breaking change in WooCommerce 3.4.x: Shipping Rate method_id is used instead of the id when saving shipping methods.
 
 = 7.1.16 =
 * Minor fixes
@@ -312,3 +317,8 @@ To install a plugin manually, follow the process:
 
 = 7.0.3 =
 * Initial release for Wordpress.org
+
+== Upgrade Notice ==
+
+= 8.0.0 =
+Complete redesign of plugin and moved to Shipping Zones. OBS: Require completely new configuration.
