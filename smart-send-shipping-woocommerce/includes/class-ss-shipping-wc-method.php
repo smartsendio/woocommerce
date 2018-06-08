@@ -177,7 +177,7 @@ class SS_Shipping_WC_Method extends WC_Shipping_Flat_Rate {
 				'title'    	=> __( 'Shipping method used for WooCommerce method Free Shipping','smart-send-shipping'),
 				'type'     	=> 'selectopt',
 				'class'    	=> 'wc-enhanced-select',
-				'description' => __( 'This controls the title which the user sees during checkout.', 'smart-send-shipping' ),
+				'description' => __( 'Selecting a shipping method will make it possible to make shipping labels for order places with WooCommerces native Free Shipping method.', 'smart-send-shipping' ),
 				'desc_tip' 	=> true,
 				'options'         	=> $this->shipping_method
 			),
@@ -287,7 +287,7 @@ class SS_Shipping_WC_Method extends WC_Shipping_Flat_Rate {
 				'title' 			=> __( 'Tax status', 'smart-send-shipping' ),
 				'type'	 			=> 'select',
 				'class' 	        => 'wc-enhanced-select',
-				'description'     => __( 'This controls the title which the user sees during checkout.', 'smart-send-shipping' ),
+				'description'     => __( 'Determines if the shipping cost is taxable. Remember to set a shipping tax in WooCommerce.', 'smart-send-shipping' ),
 				'default' 			=> 'taxable',
 				'desc_tip'        	=> true,
 				'options'			=> array(
@@ -427,6 +427,10 @@ class SS_Shipping_WC_Method extends WC_Shipping_Flat_Rate {
 		if( empty($title) ) {
 			throw new Exception( __('"Method Title" cannot be empty', 'smart-send-shipping') );
 		}
+
+        if( $title == $this->method_title ) {
+            throw new Exception( __('Change the "Method Title" field to something human readable. This is what your customers see at checkout.', 'smart-send-shipping') );
+        }
 
 		return $this->validate_text_field($key, $title);
 	}
