@@ -363,38 +363,6 @@ class SS_Shipping_WC {
         return $SS_Shipping_WC_Method->get_instance_option( 'return_method' );
     }
 
-    /**
-     * Shipping Method Carrier for returns
-     */
-    public function get_shipping_method_return_carrier( $ship_method ) {
-
-        $return_method = $this->get_shipping_method_return_option( $ship_method );
-
-        $return_method = explode("_",$return_method);
-
-        if(empty($return_method[0])) {
-            return false;
-        } else {
-            return $return_method[0];
-        }
-    }
-
-    /**
-     * Shipping Method for returns
-     */
-    public function get_shipping_method_return_type( $ship_method ) {
-
-        $return_method = $this->get_shipping_method_return_option( $ship_method );
-
-        $return_method = explode("_",$return_method);
-
-        if(empty($return_method[1])) {
-            return false;
-        } else {
-            return $return_method[1];
-        }
-    }
-
 	/**
 	 * Shipping Method helper function
 	 */

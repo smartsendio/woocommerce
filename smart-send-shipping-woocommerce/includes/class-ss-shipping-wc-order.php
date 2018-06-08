@@ -154,7 +154,7 @@ class SS_Shipping_WC_Order {
 	/**
 	 * Return ordered Smart Send shipping method, OR Free Shipping linked to Smart Send shipping method, otherwise empty string
 	 */
-	protected function get_smart_send_method_id( $order_id ) {
+	protected function get_smart_send_method_id( $order_id, $return=false ) {
 		$order = wc_get_order( $order_id );
 		
 		if( ! $order ) {
@@ -172,7 +172,11 @@ class SS_Shipping_WC_Order {
 
 				// If Smart Send found, return id
 				if ( stripos($shipping_method_id, 'smart_send_shipping') !== false ) {
-					return $item['smartsend_method'];
+				    if($return) {
+                        return $item['smartsend_return_method'];
+                    } else {
+                        return $item['smartsend_method'];
+                    }
 				} else {
 					// If free shipping and setting to set free shipping to Send Smart
 					if ( stripos($shipping_method_id, 'free_shipping') !== false ) {
@@ -756,16 +760,11 @@ class SS_Shipping_WC_Order {
 		$services->setSmsNotification( $receiver->getSms() ) //Always enable SMS notification
             ->setEmailNotification( $receiver->getEmail() ); //Always enable Email notification
 
-		$ss_shipping_method_id = $this->get_smart_send_method_id( $order->get_id() );
-		if($return) {
-		    // Determine shipping method and carrier from return settings
-            $shipping_method_carrier = SS_SHIPPING_WC()->get_shipping_method_return_carrier( $ss_shipping_method_id );
-            $shipping_method_type = SS_SHIPPING_WC()->get_shipping_method_return_type( $ss_shipping_method_id );
-        } else {
-		    // Use the shipping method and carrier from shipping method id (not a return label)
-            $shipping_method_carrier = SS_SHIPPING_WC()->get_shipping_method_carrier( $ss_shipping_method_id );
-            $shipping_method_type = SS_SHIPPING_WC()->get_shipping_method_type( $ss_shipping_method_id );
-        }
+        $ss_shipping_method_id = $this->get_smart_send_method_id( $order->get_id(), $return );
+
+        // Determine shipping method and carrier from return settings
+        $shipping_method_carrier = SS_SHIPPING_WC()->get_shipping_method_carrier( $ss_shipping_method_id );
+        $shipping_method_type = SS_SHIPPING_WC()->get_shipping_method_type( $ss_shipping_method_id );
 
 		// Add final parameters to shipment
 		$this->shipment->setInternalId( $order->get_id() ?: null )
