@@ -3,12 +3,12 @@ Contributors: SmartSend
 Donate link: http://www.SmartSend.dk/
 Tags: shipping, pickup, pakkeboks, pakkeshop, hente selv, døgnboks, post danmark, gls, swipbox, bring, carrier, pacsoft, yourgls, mybring, postage, shipping method, your-gls, my-bring, pacosft-online, pacsoftonline, denmark, sweeden, posten, norway, post 
 Requires at least: 3.0.1
-Tested up to: 4.9
-Stable tag: 7.1.17
+Tested up to: 5.0
+Stable tag: 7.1.18
 License: GNU General Public License v3.0
 License URI: http://www.gnu.org/licenses/gpl-3.0.html
 WC requires at least: 2.6.0
-WC tested up to: 3.3
+WC tested up to: 3.4
 
 Complete WooCommerce shipping solution for PostNord, GLS and Bring.
 
