@@ -395,14 +395,23 @@ class Smartsend_Logistics_Order {
 			$carrier = 'posten';
 			
 	// vConnect All-in-1 module shipping methods
-		} elseif(strpos($shipping_string,'vconnect_postnord_dk') !== false) {
-			$carrier = 'postdanmark';
-		} elseif(strpos($shipping_string,'vconnect_postnord_se') !== false) {
-			$carrier = 'posten';
-		} elseif(strpos($shipping_string,'vconnect_postnord_no') !== false) {
-			$carrier = 'postnordnorway';
-		} elseif(strpos($shipping_string,'vconnect_postnord_fi') !== false) {
-			$carrier = 'postnordfinland';
+		} elseif(strpos($shipping_string,'vconnect_postnord_') !== false) {
+			$shop_origin = strtoupper(get_option('vc_aino_shop_origin'));
+
+  			if($shop_origin == 'DEFAULT' || $shop_origin == '') {
+   				$shop_origin = strtoupper(wc_get_base_location()['country']);
+  			}
+  			
+  			switch ($shop_origin) {
+				case 'DK':
+					$carrier = 'postdanmark';
+					break;
+				case 'SE':
+					$carrier = 'posten';
+					break;
+				default:
+					throw new Exception( $this->_errors[2305] .': '. $shipping_string . ' (' . strtoupper($shop_origin) . ')' );
+			}
 			
 	// Old vConnect shipping methods
 		} elseif(strpos($shipping_string,'vconnect_postdanmark') !== false || strpos($shipping_string,'vc_postdanmark') !== false || strpos($shipping_string,'vc_allinone_vconnectpostdanmark') !== false) {

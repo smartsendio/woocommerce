@@ -116,6 +116,9 @@ To install a plugin manually, follow the process:
 
 == Changelog ==
 
+= 7.1.18 =
+* Fix for international delivery with vConnect All in 1 plugin to PostNord
+
 = 7.1.17 =
 * Fix breaking change in WooCommerce 3.4.x: Shipping Rate method_id is used instead of the id when saving shipping methods.
 
