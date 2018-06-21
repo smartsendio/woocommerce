@@ -9,7 +9,7 @@ function ssTestConnection( btn_id ) {
 	btn.nextAll().remove();
 
 	btn.attr("disabled", true);
-	btn.text('Validating Connection...');//TODO: Add translation
+	btn.text( ss_test_connection_obj.validating_connection );
 
 	var loaderContainer = jQuery( '<span/>', {
         'class': 'loader-image-container'

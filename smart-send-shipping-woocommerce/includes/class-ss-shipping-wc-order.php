@@ -16,16 +16,12 @@ if ( ! class_exists( 'SS_Shipping_WC_Order' ) ) :
 
 class SS_Shipping_WC_Order {
 	
-	protected $shipment = null;
 	protected $label_prefix = 'smart-send-label-';
 
 	/**
 	 * Init and hook in the integration.
 	 */
 	public function __construct( ) {
-
-		//New shipment model
-		$this->shipment = new \Smartsend\Models\Shipment();
 
 		$this->define_constants();
 		$this->init_hooks();
@@ -133,7 +129,14 @@ class SS_Shipping_WC_Order {
         echo '<button id="ss-shipping-return-label-button" class="button button-save-form">' . SS_SHIPPING_BUTTON_RETURN_LABEL_GEN . '</button>';
 
 		// Load JS for AJAX calls
+		$ss_label_data = array(
+			'read_more' => __('Read more', 'smart-send-shipping'),
+			'unique_error_id' => __('Unique error id: ', 'smart-send-shipping'),
+			'download_label' => __('Download label', 'smart-send-shipping'),
+			'unexpected_error' => __('Unexpected error', 'smart-send-shipping'),
+		);
 		wp_enqueue_script( 'ss-shipping-label-js', SS_SHIPPING_PLUGIN_DIR_URL . '/assets/js/ss-shipping-label.js', array(), SS_SHIPPING_VERSION );
+		wp_localize_script( 'ss-shipping-label-js', 'ss_label_data', $ss_label_data );
 		
 		echo '</div>';
 		
@@ -283,9 +286,9 @@ class SS_Shipping_WC_Order {
         $order = wc_get_order( $order_id );
 
         // Create API payload
-        $this->make_single_shipment_api_payload($order, $return);
+        $shipment = $this->make_single_shipment_api_payload($order, $return);
         // Make API Request (returns the API handler)
-        $this->make_single_shipment_api_request();
+        $this->make_single_shipment_api_request( $shipment );
 
         if (SS_SHIPPING_WC()->get_api_handle()->isSuccessful()) {
 
@@ -325,9 +328,9 @@ class SS_Shipping_WC_Order {
         }
     }
 
-    protected function make_single_shipment_api_request() {
-        SS_SHIPPING_WC()->log_msg( 'Called "createShipmentAndLabels" with arguments: ' . print_r($this->shipment, true) );
-        SS_SHIPPING_WC()->get_api_handle()->createShipmentAndLabels($this->shipment);
+    protected function make_single_shipment_api_request( $shipment ) {
+        SS_SHIPPING_WC()->log_msg( 'Called "createShipmentAndLabels" with arguments: ' . print_r($shipment, true) );
+        SS_SHIPPING_WC()->get_api_handle()->createShipmentAndLabels($shipment);
         // Show the response
         if (SS_SHIPPING_WC()->get_api_handle()->isSuccessful()) {
             SS_SHIPPING_WC()->log_msg( 'Response from "createShipmentAndLabels" : ' . print_r(SS_SHIPPING_WC()->get_api_handle()->getData(), true) );
@@ -537,7 +540,7 @@ class SS_Shipping_WC_Order {
     }
 
     /*
-    * Create Payload for API request and save this as $this->shipment
+    * Create Payload for API request and return this as 'shipment'
     *
     * @param int  $order_id  Order ID
     * @param boolean  $return true for return labels and false for normal labels (default)
@@ -576,11 +579,14 @@ class SS_Shipping_WC_Order {
 		    ->setSms( $shipping_address['phone'] ?: null )
 		    ->setEmail( $shipping_address['email'] ?: null );
 
+		//New shipment model
+		$shipment = new \Smartsend\Models\Shipment();
+
 		// Add the receiver to the shipment
-		$this->shipment->setReceiver($receiver);
+		$shipment->setReceiver($receiver);
 
 		// Add the sender to the shipment (we use the system default for now)
-		//$this->shipment->setSender(Sender $sender);
+		//$shipment->setSender(Sender $sender);
 
 		$ss_agent = $this->get_ss_shipping_order_agent( $order->get_id() );
 
@@ -602,7 +608,7 @@ class SS_Shipping_WC_Order {
 			    // ->setEmail(null);
 
 			// Add the agent to the shipment
-			$this->shipment->setAgent($agent);
+			$shipment->setAgent($agent);
 		}
 
 		// Get order item specific data
@@ -767,7 +773,7 @@ class SS_Shipping_WC_Order {
         $shipping_method_type = SS_SHIPPING_WC()->get_shipping_method_type( $ss_shipping_method_id );
 
 		// Add final parameters to shipment
-		$this->shipment->setInternalId( $order->get_id() ?: null )
+		$shipment->setInternalId( $order->get_id() ?: null )
 		    ->setInternalReference( $order_num ?: null )
 		    ->setShippingCarrier( $shipping_method_carrier ?: null )
 		    ->setShippingMethod( $shipping_method_type ?: null )
@@ -784,6 +790,7 @@ class SS_Shipping_WC_Order {
 		    ->setCurrency( $order_currency ?: null );
 
 		// Send the shipment object. The new object will be almost identical, but will have 'id' and 'type' fields
+		return $shipment;
 	}
 
 	/**
@@ -884,6 +891,7 @@ class SS_Shipping_WC_Order {
 
 					// Ensure the selected orders have a Smart Send Shipping method
 					foreach ( $order_ids as $order_id ) {
+						$order = wc_get_order( $order_id );
 
 						$ss_shipping_method_id = $this->get_smart_send_method_id( $order_id );
 
@@ -893,12 +901,12 @@ class SS_Shipping_WC_Order {
 
                             if(isset($response['success'])) {
                                 array_push($array_messages, array(
-                                    'message' => sprintf( __( 'Order #%s: Shipping label created by Smart Send: %s', 'smart-send-shipping'), $order_id, $this->get_ss_shipping_label_link( $order_id ) ),
+                                    'message' => sprintf( __( 'Order #%s: Shipping label created by Smart Send: %s', 'smart-send-shipping'), $order->get_order_number(), $this->get_ss_shipping_label_link( $order_id ) ),
                                     'type' => 'success',
                                 ));
                             } else {
                                 // Print error message
-                                $message = sprintf( __( 'Order #%s: %s', 'smart-send-shipping'), $order_id, $response['error']->message );
+                                $message = sprintf( __( 'Order #%s: %s', 'smart-send-shipping'), $order->get_order_number(), $response['error']->message );
                                 // Print 'Read more here' link to error explanation
                                 if(isset($response['error']->links->about)) {
                                     $message .= '<br><a href="' . $response['error']->links->about . '" target="_blank">' . __('Read more here', 'smart-send-shipping') .'</a>';
@@ -908,7 +916,7 @@ class SS_Shipping_WC_Order {
                                     $message .= '<br>' . __('Unique ID', 'smart-send-shipping') . ': ' . $response['error']->id;
                                 }
                                 // Print each error
-                                if($response['error']->errors) {
+                                if(isset($response['error']->errors)) {
                                     foreach($response['error']->errors as $error) {
                                         // If there are more errors for each field, then show each of them
                                         if (is_array($error)) {
@@ -981,7 +989,7 @@ class SS_Shipping_WC_Order {
                             */
 						} else {
                             array_push($array_messages, array(
-                                'message' => sprintf( __( 'Order #%s: The selected order did not include a Send Smart shipping method', 'smart-send-shipping'), $order_id),
+                                'message' => sprintf( __( 'Order #%s: The selected order did not include a Send Smart shipping method', 'smart-send-shipping'), $order->get_order_number()),
                                 'type' => 'error',
                             ));
 						}

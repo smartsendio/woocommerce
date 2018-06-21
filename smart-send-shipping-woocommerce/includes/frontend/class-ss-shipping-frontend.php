@@ -28,6 +28,7 @@ class SS_Shipping_Frontend {
 	 */
 	public function init_hooks() {
 		add_action( 'woocommerce_after_shipping_rate', array( $this, 'display_ss_pickup_points' ), 10, 2 );
+		add_action( 'woocommerce_checkout_process', array( $this, 'validate_agent_selected' ) );
 		add_action( 'woocommerce_checkout_order_processed', array( $this, 'process_ss_pickup_points' ), 10, 2 );
 		add_filter( 'woocommerce_order_details_after_order_table', array( $this, 'display_ss_shipping_agent') ) ;
 	}
@@ -147,6 +148,22 @@ class SS_Shipping_Frontend {
 		}
 
 		return $formatted_address;
+	}
+
+	/**
+	* Ensure a store pickup point is selected if the drop down exists
+	*/
+	public function validate_agent_selected() {
+		
+		if ( ! isset( $_POST ) ) {
+			return;
+		}
+		
+		// If agent drop down exists and is empty, cannot checkout
+		if( isset( $_POST[ 'ss_shipping_store_pickup' ] ) && empty( $_POST[ 'ss_shipping_store_pickup' ] ) ) {
+			wc_add_notice( __( 'A pickup store must be selected.', 'smart-send-shipping' ), 'error' );
+			return;
+		}
 	}
 
 	/**

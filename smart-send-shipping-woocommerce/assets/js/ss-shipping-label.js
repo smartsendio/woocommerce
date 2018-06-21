@@ -38,11 +38,11 @@ jQuery(function ($) {
                     $('#ss-shipping-label-form').append('<div id="ss-shipping-error" class="error ss-meta-message"><strong>' + response.error.message + '</strong></div>');
                     // Print 'Read more here' link to error explanation
                     if (response.error.links.about) {
-                        $('#ss-shipping-error').append('<p id="ss-shipping-error-link" class="error ss-meta-message"><a href="' + response.error.links.about + '" target="_blank">Read more</a></p>'); //TODO: Add translation
+                        $('#ss-shipping-error').append('<p id="ss-shipping-error-link" class="error ss-meta-message"><a href="' + response.error.links.about + '" target="_blank">' + ss_label_data.read_more + '</a></p>');
                     }
                     // Print unique error ID if one exists
                     if (response.id) {
-                        $('#ss-shipping-error').append('<p id="ss-shipping-error-id" class="error ss-meta-message">Unique error id: ' + response.error.id + '</p>'); //TODO: Add translation
+                        $('#ss-shipping-error').append('<p id="ss-shipping-error-id" class="error ss-meta-message">' + ss_label_data.unique_error_id + response.error.id + '</p>');
                     }
                     // Print each error
                     if (response.error.errors) {
@@ -61,7 +61,7 @@ jQuery(function ($) {
 
                 } else if (response.success) {
                     //$('.ss_agent_address').html(response.success.agent_address);
-                    $('#ss-shipping-label-form').append('<div id="ss-label-created" class="updated ss-meta-message"><a href="' + response.success.label_link + '" target="_blank">Download label</a></div>'); //TODO: Add translation
+                    $('#ss-shipping-label-form').append('<div id="ss-label-created" class="updated ss-meta-message"><a href="' + response.success.label_link + '" target="_blank">' + ss_label_data.download_label + '</a></div>');
                     if (response.success.order_note) {
 
                         $('#woocommerce-order-notes').block({
@@ -90,7 +90,7 @@ jQuery(function ($) {
 
                 } else {
                     // Print error message
-                    $('#ss-shipping-label-form').append('<div id="ss-shipping-error" class="error ss-meta-message"><strong>Unexpected error</strong></div>'); //TODO: Add translation
+                    $('#ss-shipping-label-form').append('<div id="ss-shipping-error" class="error ss-meta-message"><strong>' + ss_label_data.unexpected_error + '</strong></div>');
                 }
             });
 
