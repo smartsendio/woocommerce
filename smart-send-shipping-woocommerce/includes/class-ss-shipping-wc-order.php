@@ -547,9 +547,7 @@ class SS_Shipping_WC_Order {
     */
 	protected function make_single_shipment_api_payload( $order, $return ) {
 		$ss_settings = SS_SHIPPING_WC()->get_ss_shipping_settings();		
-
-		$order_num = $order->get_order_number();
-
+        
 		// Get address related information 
 		$billing_address = $order->get_address( );
 		$shipping_address = $order->get_address( 'shipping' );
@@ -567,7 +565,7 @@ class SS_Shipping_WC_Order {
 		// Make receiver object.
 		$receiver = new \Smartsend\Models\Shipment\Receiver();
 		$receiver->setInternalId( $order->get_id() )
-		    ->setInternalReference( $order->get_id() ?: null )
+		    ->setInternalReference( $order->get_order_number() ?: null )
 		    ->setCompany( $shipping_address['company'] ?: null )
 		    ->setNameLine1( $shipping_address['first_name'] ?: null )
 		    ->setNameLine2( $shipping_address['last_name'] ?: null )
@@ -747,7 +745,7 @@ class SS_Shipping_WC_Order {
 			// Create a parcel containing the items just defined
 			$parcels[0] = new \Smartsend\Models\Shipment\Parcel();
 			$parcels[0]->setInternalId( $order->get_id() ?: null )
-			    ->setInternalReference( $order_num ?: null )
+			    ->setInternalReference( $order->get_order_number() ?: null )
 			    ->setWeight($weight_total ?: null)
 			    ->setHeight(null)
 			    ->setWidth(null)
@@ -774,7 +772,7 @@ class SS_Shipping_WC_Order {
 
 		// Add final parameters to shipment
 		$shipment->setInternalId( $order->get_id() ?: null )
-		    ->setInternalReference( $order_num ?: null )
+		    ->setInternalReference( $order->get_order_number() ?: null )
 		    ->setShippingCarrier( $shipping_method_carrier ?: null )
 		    ->setShippingMethod( $shipping_method_type ?: null )
 		    ->setShippingDate( date('Y-m-d') )
