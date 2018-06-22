@@ -161,7 +161,7 @@ class SS_Shipping_Frontend {
 		
 		// If agent drop down exists and is empty, cannot checkout
 		if( isset( $_POST[ 'ss_shipping_store_pickup' ] ) && empty( $_POST[ 'ss_shipping_store_pickup' ] ) ) {
-			wc_add_notice( __( 'A pickup store must be selected.', 'smart-send-shipping' ), 'error' );
+			wc_add_notice( __( 'A pick-up point must be selected.', 'smart-send-shipping' ), 'error' );
 			return;
 		}
 	}
