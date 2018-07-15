@@ -223,6 +223,18 @@ class Api extends Client
         return $this->httpPost('shipments/labels',array(),array(),$shipment);
     }
 
+    public function combineLabelsForShipments($shipments=array())
+    {
+        $request = array(
+            'shipments' => array()
+        );
+        foreach($shipments as $shipment) {
+            $request["shipments"][] = array("shipment_id" => $shipment);
+        }
+
+        return $this->httpPost('shipment/labels/combine',array(),array(),$request);
+    }
+
 
 // General part
 
