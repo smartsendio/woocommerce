@@ -286,14 +286,27 @@ class SS_Shipping_WC_Order {
         $order = wc_get_order( $order_id );
 
         // Create API payload
-        $shipment = $this->make_single_shipment_api_payload($order, $return);
+        // $shipment = $this->make_single_shipment_api_payload($order, $return);
         // Make API Request (returns the API handler)
-        $this->make_single_shipment_api_request( $shipment );
+        // $this->make_single_shipment_api_request( $shipment );
 
-        if (SS_SHIPPING_WC()->get_api_handle()->isSuccessful()) {
+        $ss_shipping_method_id = $this->get_smart_send_method_id( $order->get_id(), $return );
+
+        // Determine shipping method and carrier from return settings
+        $shipping_method_carrier = SS_SHIPPING_WC()->get_shipping_method_carrier( $ss_shipping_method_id );
+        $shipping_method_type = SS_SHIPPING_WC()->get_shipping_method_type( $ss_shipping_method_id );
+
+        $ss_args['ss_agent'] = $this->get_ss_shipping_order_agent( $order_id );
+        $ss_args['ss_carrier'] = $shipping_method_carrier;
+        $ss_args['ss_type'] = $shipping_method_type;
+
+        $ss_order_api = new SS_Shipping_Shipment($order, $return, $ss_args);
+        // if (SS_SHIPPING_WC()->get_api_handle()->isSuccessful()) {
+        if ( $ss_order_api->make_single_shipment_api_call() ) {
 
             //The request was successful, lets update WooCommerce
-            $response = SS_SHIPPING_WC()->get_api_handle()->getData();
+            // $response = SS_SHIPPING_WC()->get_api_handle()->getData();
+            $response = $ss_order_api->get_shipping_data();
 
             // Save the PDF file and save order meta data
             $this->save_label_file_and_order_meta_data( $order_id, $response->shipment_id, $response->pdf->base_64_encoded, $return );
@@ -321,10 +334,11 @@ class SS_Shipping_WC_Order {
             do_action( 'ss_shipping_label_created', $order_id );
 
             // return the success data
-            return array('success' => $response);
+            return array('success' => $response, 'shipment' => $ss_order_api->get_shipment() );
         } else {
             // Something failed. Let's return them, so the error can be shown to the user
-            return array('error' => SS_SHIPPING_WC()->get_api_handle()->getError());
+            // return array('error' => SS_SHIPPING_WC()->get_api_handle()->getError());
+            return array('error' => $ss_order_api->get_error_msg());
         }
     }
 
@@ -847,6 +861,7 @@ class SS_Shipping_WC_Order {
 	public function process_orders_bulk_actions() {
 		global $typenow;
 		$array_messages = array( 'msg_user_id' => get_current_user_id() );
+		$array_shipments = array();
 
 		if ( 'shop_order' === $typenow ) {
 
@@ -902,6 +917,9 @@ class SS_Shipping_WC_Order {
                                     'message' => sprintf( __( 'Order #%s: Shipping label created by Smart Send: %s', 'smart-send-shipping'), $order->get_order_number(), $this->get_ss_shipping_label_link( $order_id ) ),
                                     'type' => 'success',
                                 ));
+
+                                array_push( $array_shipments, $response['shipment'] );
+
                             } else {
                                 // Print error message
                                 $message = sprintf( __( 'Order #%s: %s', 'smart-send-shipping'), $order->get_order_number(), $response['error']->message );
@@ -992,6 +1010,11 @@ class SS_Shipping_WC_Order {
                             ));
 						}
 					}
+
+					// Create combined label with successful shipments
+					$combined_shipments = SS_SHIPPING_WC()->get_api_handle()->combineLabelsForShipments( $array_shipments );
+
+					error_log(print_r($combined_shipments,true));
 				}
 
 				/* @see render_messages() */
