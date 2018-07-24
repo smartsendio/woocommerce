@@ -232,7 +232,7 @@ class Api extends Client
             $request["shipments"][] = array("shipment_id" => $shipment);
         }
 
-        return $this->httpPost('shipment/labels/combine',array(),array(),$request);
+        return $this->httpPost('shipments/labels/combine',array(),array(),$request);
     }
 
 
