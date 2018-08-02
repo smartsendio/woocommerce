@@ -333,7 +333,7 @@ class SS_Shipping_Shipment {
 	}
 
 	protected function make_single_shipment_api_request() {
-        SS_SHIPPING_WC()->log_msg( 'Called "createShipmentAndLabels" with arguments: ' . print_r($this->shipment, true) );
+       SS_SHIPPING_WC()->log_msg( 'Called "createShipmentAndLabels" with arguments: ' . print_r(json_encode($this->shipment, JSON_PRETTY_PRINT), true) );
         SS_SHIPPING_WC()->get_api_handle()->createShipmentAndLabels($this->shipment);
         // Show the response
         if (SS_SHIPPING_WC()->get_api_handle()->isSuccessful()) {
