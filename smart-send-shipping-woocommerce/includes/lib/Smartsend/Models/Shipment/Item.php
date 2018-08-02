@@ -79,12 +79,12 @@ class Item implements \JsonSerializable
     }
 
     /**
-     * @param mixed $internal_id
+     * @param string $internal_id
      * @return Item
      */
     public function setInternalId($internal_id)
     {
-        $this->internal_id = $internal_id;
+        $this->internal_id = (string) $internal_id;
         return $this;
     }
 
@@ -97,12 +97,12 @@ class Item implements \JsonSerializable
     }
 
     /**
-     * @param mixed $internal_reference
+     * @param string $internal_reference
      * @return Item
      */
     public function setInternalReference($internal_reference)
     {
-        $this->internal_reference = $internal_reference;
+        $this->internal_reference = (string) $internal_reference;
         return $this;
     }
 
