@@ -263,7 +263,7 @@ class SS_Shipping_WC_Order {
 		}
 
         $response = $this->create_label_for_single_order($order_id, $return, false);
-        error_log(print_r($response,true));
+
         // return the WooCommerce part of the response (that the plugin added before)
         if(isset($response['success']->woocommerce)) {
             wp_send_json( array('success' => $response['success']->woocommerce) );
@@ -867,6 +867,7 @@ class SS_Shipping_WC_Order {
 		global $typenow;
 		$array_messages = array( 'msg_user_id' => get_current_user_id() );
 		$array_shipments = array();
+		$array_shipment_ids = array();
 
 		if ( 'shop_order' === $typenow ) {
 
@@ -917,8 +918,6 @@ class SS_Shipping_WC_Order {
 
                             $response = $this->create_label_for_single_order($order_id, $return, true);
 
-                            error_log(print_r($response,true));
-
                             if(isset($response['success'])) {
                                 array_push($array_messages, array(
                                     'message' => sprintf( __( 'Order #%s: Shipping label created by Smart Send: %s', 'smart-send-shipping'), $order->get_order_number(), $this->get_ss_shipping_label_link( $order_id ) ),
@@ -926,6 +925,7 @@ class SS_Shipping_WC_Order {
                                 ));
 
                                 array_push( $array_shipments, $response['shipment'] );
+                                array_push( $array_shipment_ids, $response['success']->shipment_id );
 
                             } else {
                                 // Print error message
@@ -1018,39 +1018,45 @@ class SS_Shipping_WC_Order {
 						}
 					}
 
-					// error_log(print_r($array_shipments,true));
-					// Create combined label with successful shipments
-					$combined_shipments = SS_SHIPPING_WC()->get_api_handle()->combineLabelsForShipments( $array_shipments );
+					$combo_name = $this->get_combo_label_file_name( $array_shipment_ids );
+					$combo_path = $this->get_label_path_from_shipment_id( $combo_name );
+					$combo_url = '';
 
-					// error_log('combined response');
-					// error_log(print_r($combined_shipments,true));
+					if ( file_exists($combo_path) ) {
+						$combo_url = $this->get_label_url_from_shipment_id($combo_name);
+					} else {
 
+						// Create combined label with successful shipments
+						$combined_shipments = SS_SHIPPING_WC()->get_api_handle()->combineLabelsForShipments( $array_shipments );
 
-					if (SS_SHIPPING_WC()->get_api_handle()->isSuccessful()) {
-			            
-			            $response = SS_SHIPPING_WC()->get_api_handle()->getData();
+						if (SS_SHIPPING_WC()->get_api_handle()->isSuccessful()) {
+				            
+				            $response = SS_SHIPPING_WC()->get_api_handle()->getData();
 
-			            SS_SHIPPING_WC()->log_msg( 'Response from "combineLabelsForShipments" : ' . print_r($response, true) );
-						
-						try {
+				            SS_SHIPPING_WC()->log_msg( 'Response from "combineLabelsForShipments" : ' . print_r($response, true) );
 							
-							// Save the PDF file and save order meta data
-		            		$combo_url = $this->save_label_file( $order_id, $response->shipments[0]->shipment_id, $response->pdf->base_64_encoded, $return );
+							try {
+								// Save the PDF file and save order meta data
+			            		$combo_url = $this->save_label_file( $order_id, $combo_name, $response->pdf->base_64_encoded, $return );
+							} catch (Exception $e) {
+								array_push($array_messages, array(
+		                            'message' => $e->getMessage(),
+		                            'type' => 'error',
+		                        ));
+							}
 
-		            		array_push($array_messages, array(
-	                            'message' => sprintf( __( 'Bulk Shipping labels created by Smart Send: <a href="%s" target="_blank">Download Bulk Shipping Labels</a>', 'smart-send-shipping'), $combo_url ),
-	                            'type' => 'success',
-	                        ));
-						} catch (Exception $e) {
-							array_push($array_messages, array(
-	                            'message' => $e->getMessage(),
-	                            'type' => 'error',
-	                        ));
-						}
+				        } else {
+				            SS_SHIPPING_WC()->log_msg( 'Error response from "combineLabelsForShipments" : ' . print_r(SS_SHIPPING_WC()->get_api_handle()->getError(), true) );
+				        }
+					}
 
-			        } else {
-			            SS_SHIPPING_WC()->log_msg( 'Error response from "combineLabelsForShipments" : ' . print_r(SS_SHIPPING_WC()->get_api_handle()->getError(), true) );
-			        }
+					if ( ! empty( $combo_url ) ) {
+						array_push($array_messages, array(
+	                        'message' => sprintf( __( 'Bulk Shipping labels created by Smart Send: <a href="%s" target="_blank">Download Bulk Shipping Labels</a>', 'smart-send-shipping'), $combo_url ),
+	                        'type' => 'success',
+	                    ));
+					}
+
 				}
 
 				/* @see render_messages() */
@@ -1058,6 +1064,11 @@ class SS_Shipping_WC_Order {
 
 			}
  		}
+	}
+
+	protected function get_combo_label_file_name( $shipment_list ) {
+		$shipment_ids_str = implode('-', $shipment_list);
+		return hash('sha256', $shipment_ids_str);
 	}
 
 	/**
