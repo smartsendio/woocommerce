@@ -929,29 +929,8 @@ class SS_Shipping_WC_Order {
 
                             } else {
                                 // Print error message
-                                $message = sprintf( __( 'Order #%s: %s', 'smart-send-shipping'), $order->get_order_number(), $response['error']->message );
-                                // Print 'Read more here' link to error explanation
-                                if(isset($response['error']->links->about)) {
-                                    $message .= '<br><a href="' . $response['error']->links->about . '" target="_blank">' . __('Read more here', 'smart-send-shipping') .'</a>';
-                                }
-                                // Print unique error ID if one exists
-                                if(isset($response['error']->id)) {
-                                    $message .= '<br>' . __('Unique ID', 'smart-send-shipping') . ': ' . $response['error']->id;
-                                }
-                                // Print each error
-                                if(isset($response['error']->errors)) {
-                                    foreach($response['error']->errors as $error) {
-                                        // If there are more errors for each field, then show each of them
-                                        if (is_array($error)) {
-                                            foreach($error as $error_description) {
-                                                $message .= '<br/> - ' . $error_description;
-                                            }
-                                        } // otherwise just show the single error
-                                        else {
-                                            $message .= '<br/> - ' . $error;
-                                        }
-                                    }
-                                }
+                                $message = sprintf( __( 'Order #%s: %s', 'smart-send-shipping'), $order->get_order_number() );
+                                $message .= $this->get_error_detail_message($response['error']);
                                 array_push($array_messages, array(
                                     'message' => $message,
                                     'type' => 'error',
@@ -1047,6 +1026,10 @@ class SS_Shipping_WC_Order {
 
 				        } else {
 				            SS_SHIPPING_WC()->log_msg( 'Error response from "combineLabelsForShipments" : ' . print_r(SS_SHIPPING_WC()->get_api_handle()->getError(), true) );
+                            array_push($array_messages, array(
+                                'message' => __( 'Error combining shipping labels:', 'smart-send-shipping') .' '. $this->get_error_detail_message( SS_SHIPPING_WC()->get_api_handle()->getError() ),
+                                'type' => 'error',
+                            ));
 				        }
 					}
 
@@ -1065,6 +1048,38 @@ class SS_Shipping_WC_Order {
 			}
  		}
 	}
+
+	protected function get_error_detail_message($response) {
+        // Print the message returned from the API
+        if(isset($response->message)) {
+            $message = $response->message;
+        } else {
+            $message = '';
+        }
+        // Print 'Read more here' link to error explanation
+        if(isset($response->links->about)) {
+            $message .= '<br><a href="' . $response->links->about . '" target="_blank">' . __('Read more here', 'smart-send-shipping') .'</a>';
+        }
+        // Print unique error ID if one exists
+        if(isset($response->id)) {
+            $message .= '<br>' . __('Unique ID', 'smart-send-shipping') . ': ' . $response->id;
+        }
+        // Print each error
+        if(isset($response->errors)) {
+            foreach($response->errors as $error) {
+                // If there are more errors for each field, then show each of them
+                if (is_array($error)) {
+                    foreach($error as $error_description) {
+                        $message .= '<br/> - ' . $error_description;
+                    }
+                } // otherwise just show the single error
+                else {
+                    $message .= '<br/> - ' . $error;
+                }
+            }
+        }
+        return $message;
+    }
 
 	protected function get_combo_label_file_name( $shipment_list ) {
 		$shipment_ids_str = implode('-', $shipment_list);
