@@ -1000,18 +1000,22 @@ class SS_Shipping_WC_Order {
 					$combo_name = $this->get_combo_label_file_name( $array_shipment_ids );
 					$combo_path = $this->get_label_path_from_shipment_id( $combo_name );
 					$combo_url = '';
+                    $combine_shipments_payload = array_map(function($element) { return array('shipment_id' => $element); }, $array_shipment_ids);
 
 					if ( file_exists($combo_path) ) {
 						$combo_url = $this->get_label_url_from_shipment_id($combo_name);
 					} else {
+                        // Write API request to log
+                        SS_SHIPPING_WC()->log_msg( 'Called "combineLabelsForShipments" with arguments: ' . print_r($combine_shipments_payload, true) );
 
 						// Create combined label with successful shipments
-						$combined_shipments = SS_SHIPPING_WC()->get_api_handle()->combineLabelsForShipments( $array_shipments );
+						$combined_shipments = SS_SHIPPING_WC()->get_api_handle()->combineLabelsForShipments( $combine_shipments_payload );
 
 						if (SS_SHIPPING_WC()->get_api_handle()->isSuccessful()) {
 				            
 				            $response = SS_SHIPPING_WC()->get_api_handle()->getData();
 
+                            // Write API response to log
 				            SS_SHIPPING_WC()->log_msg( 'Response from "combineLabelsForShipments" : ' . print_r($response, true) );
 							
 							try {
