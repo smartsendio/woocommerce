@@ -13,6 +13,7 @@ class Client
 
     private $api_endpoint = 'https://smartsend-prod.apigee.net/api/v1/';
     private $api_token;
+    private $demo;
     protected $request_endpoint;
     protected $request_headers;
     protected $request_body;
@@ -28,13 +29,22 @@ class Client
     protected $links;
     protected $error;
 
-    public function __construct($api_token)
+    public function __construct($api_token, $demo=false)
     {
         $this->api_token = $api_token;
+        $this->demo = $demo;
     }
 
     public function getApiEndpoint() {
-        return $this->api_endpoint;
+        return $this->api_endpoint.($this->getDemo() ? 'demo/' : '');
+    }
+
+    public function getApiToken() {
+        return $this->api_token;
+    }
+
+    public function getDemo() {
+        return $this->demo;
     }
 
     /**
@@ -82,9 +92,14 @@ class Client
         // Print each error
         if(isset($error->errors)) {
             foreach($error->errors as $error_details) {
-                foreach($error_details as $error_description) {
-                    echo "<br>- ".$error_description;
+                if(is_array($error_details)) {
+                    foreach($error_details as $error_description) {
+                        echo "<br>- ".$error_description;
+                    }
+                } else {
+                    echo "<br>- ".$error_details;
                 }
+
             }
         }
     }
@@ -227,13 +242,13 @@ class Client
         }
 
         // Append API key to the headers
-        $args['api_token'] = $this->api_token;
+        $args['api_token'] = $this->getApiToken();
 
         // Clear request and response from previous API call
         $this->clearAll();
 
         // Set URL (inc parameters $args)
-        $this->request_endpoint = $this->api_endpoint.$method;
+        $this->request_endpoint = $this->getApiEndpoint().$method;
 
         if(!empty($args) && strpos($this->request_endpoint,'?') !== false) {
             $this->request_endpoint .= '&'.http_build_query($args, '', '&');

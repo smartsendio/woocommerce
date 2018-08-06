@@ -151,13 +151,20 @@ class SS_Shipping_WC_Method extends WC_Shipping_Flat_Rate {
 				'custom_attributes' => array(
 					'onclick' => "ssTestConnection('#woocommerce_smart_send_shipping_api_token_validate');",
 				),
-				'description'       => __( 'To validate the API token, save the settings then click the button.', 'smart-send-shipping' ),
-				'desc_tip'          => true,
+				'description'       => __( 'Save the settings before clicking the button to validate API Token.', 'smart-send-shipping' ),
+				'desc_tip'          => false,
 			),
+            'demo' => array(
+                'title'         => __( 'Demo mode', 'smart-send-shipping' ),
+                'description'   => __( 'Demo mode is used for testing on a staging site', 'smart-send-shipping' ),
+                'type'          => 'checkbox',
+                'default'       => 'no',
+                'label'         => __( 'Enable demo mode', 'smart-send-shipping' ),
+            ),
 			'ss_debug' => array(
-				'title'             => __( 'Debug Log', 'pr-shipping-dhl' ),
+				'title'             => __( 'Debug Log', 'smart-send-shippingl' ),
 				'type'              => 'checkbox',
-				'label'             => __( 'Enable logging', 'pr-shipping-dhl' ),
+				'label'             => __( 'Enable logging', 'smart-send-shipping' ),
 				'default'           => 'no',
 				'description'       => sprintf( __( 'A log file containing the communication to the Smart Send server will be maintained if this option is checked. This can be used in case of technical issues and can be found %shere%s.', 'smart-send-shipping' ), '<a href="' . $log_path . '" target = "_blank">', '</a>' )
 			),
