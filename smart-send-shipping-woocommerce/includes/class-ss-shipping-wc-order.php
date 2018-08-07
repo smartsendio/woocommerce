@@ -1010,7 +1010,6 @@ class SS_Shipping_WC_Order {
 
                         // If more than one smart send shipment label created, then create combo labels
                         if ( count($combine_shipments_payload) > 1 ) {
-
 							// Create combined label with successful shipments
 							$combined_shipments = SS_SHIPPING_WC()->get_api_handle()->combineLabelsForShipments( $combine_shipments_payload );
 
