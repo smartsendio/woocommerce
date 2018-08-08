@@ -866,7 +866,7 @@ class SS_Shipping_WC_Order {
 	public function process_orders_bulk_actions() {
 		global $typenow;
 		$array_messages = array( 'msg_user_id' => get_current_user_id() );
-		$array_shipments = array();
+		// $array_shipments = array();
 		$array_shipment_ids = array();
 
 		if ( 'shop_order' === $typenow ) {
@@ -924,12 +924,12 @@ class SS_Shipping_WC_Order {
                                     'type' => 'success',
                                 ));
 
-                                array_push( $array_shipments, $response['shipment'] );
-                                array_push( $array_shipment_ids, $response['success']->shipment_id );
+                                // array_push( $array_shipments, $response['shipment'] );
+                                array_push( $array_shipment_ids, array( 'shipment_id' => $response['success']->shipment_id ) );
 
                             } else {
                                 // Print error message
-                                $message = sprintf( __( 'Order #%s: %s', 'smart-send-shipping'), $order->get_order_number() );
+                                $message = sprintf( __( 'Order #%s: ', 'smart-send-shipping'), $order->get_order_number() );
                                 $message .= $this->get_error_detail_message($response['error']);
                                 array_push($array_messages, array(
                                     'message' => $message,
@@ -1000,18 +1000,18 @@ class SS_Shipping_WC_Order {
 					$combo_name = $this->get_combo_label_file_name( $array_shipment_ids );
 					$combo_path = $this->get_label_path_from_shipment_id( $combo_name );
 					$combo_url = '';
-                    $combine_shipments_payload = array_map(function($element) { return array('shipment_id' => $element); }, $array_shipment_ids);
+                    // $combine_shipments_payload = array_map(function($element) { return array('shipment_id' => $element); }, $array_shipment_ids);
 
 					if ( file_exists($combo_path) ) {
 						$combo_url = $this->get_label_url_from_shipment_id($combo_name);
 					} else {
                         // Write API request to log
-                        SS_SHIPPING_WC()->log_msg( 'Called "combineLabelsForShipments" with arguments: ' . print_r($combine_shipments_payload, true) );
+                        SS_SHIPPING_WC()->log_msg( 'Called "combineLabelsForShipments" with arguments: ' . print_r($array_shipment_ids, true) );
 
                         // If more than one smart send shipment label created, then create combo labels
-                        if ( count($combine_shipments_payload) > 1 ) {
+                        if ( count($array_shipment_ids) > 1 ) {
 							// Create combined label with successful shipments
-							$combined_shipments = SS_SHIPPING_WC()->get_api_handle()->combineLabelsForShipments( $combine_shipments_payload );
+							$combined_shipments = SS_SHIPPING_WC()->get_api_handle()->combineLabelsForShipments( $array_shipment_ids );
 
 							if (SS_SHIPPING_WC()->get_api_handle()->isSuccessful()) {
 					            
@@ -1088,8 +1088,9 @@ class SS_Shipping_WC_Order {
         return $message;
     }
 
-	protected function get_combo_label_file_name( $shipment_list ) {
-		$shipment_ids_str = implode('-', $shipment_list);
+	protected function get_combo_label_file_name( $shipment_ids ) {
+		$shipment_id_list = wp_list_pluck( $shipment_ids, 'shipment_id' );
+		$shipment_ids_str = implode('-', $shipment_id_list);
 		return hash('sha256', $shipment_ids_str);
 	}
 
