@@ -77,7 +77,7 @@ class SS_Shipping_Frontend {
 
                     $ss_agents = SS_SHIPPING_WC()->get_api_handle()->getData();
 
-                    SS_SHIPPING_WC()->log_msg( 'Response from "findClosestAgentByAddress": ' . print_r($ss_agents, true) );
+                    SS_SHIPPING_WC()->log_msg( 'Response from "findClosestAgentByAddress": ' . SS_SHIPPING_WC()->get_api_handle()->getResponseBody() );
                     // Save all of the agents in sessions
                     WC()->session->set( 'ss_shipping_agents' , $ss_agents );
                     $ss_setting = SS_SHIPPING_WC()->get_ss_shipping_settings();

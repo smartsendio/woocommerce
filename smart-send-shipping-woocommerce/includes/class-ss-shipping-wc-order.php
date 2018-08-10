@@ -350,13 +350,13 @@ class SS_Shipping_WC_Order {
     }
 
     protected function make_single_shipment_api_request( $shipment ) {
-        SS_SHIPPING_WC()->log_msg( 'Called "createShipmentAndLabels" with arguments: ' . print_r($shipment, true) );
         SS_SHIPPING_WC()->get_api_handle()->createShipmentAndLabels($shipment);
+        SS_SHIPPING_WC()->log_msg( 'Called "createShipmentAndLabels" with arguments: ' . SS_SHIPPING_WC()->get_api_handle()->getRequestBody()  );
         // Show the response
         if (SS_SHIPPING_WC()->get_api_handle()->isSuccessful()) {
-            SS_SHIPPING_WC()->log_msg( 'Response from "createShipmentAndLabels" : ' . print_r(SS_SHIPPING_WC()->get_api_handle()->getData(), true) );
+            SS_SHIPPING_WC()->log_msg( 'Response from "createShipmentAndLabels" : ' . SS_SHIPPING_WC()->get_api_handle()->getResponseBody() );
         } else {
-            SS_SHIPPING_WC()->log_msg( 'Error response from "createShipmentAndLabels" : ' . print_r(SS_SHIPPING_WC()->get_api_handle()->getError(), true) );
+            SS_SHIPPING_WC()->log_msg( 'Error response from "createShipmentAndLabels" : ' . SS_SHIPPING_WC()->get_api_handle()->getResponseBody() );
         }
     }
 
@@ -976,20 +976,20 @@ class SS_Shipping_WC_Order {
 		if ( file_exists($combo_path) ) {
 			$combo_url = $this->get_label_url_from_shipment_id($combo_name);
 		} else {
-            // Write API request to log
-            SS_SHIPPING_WC()->log_msg( 'Called "combineLabelsForShipments" with arguments: ' . print_r($array_shipment_ids, true) );
 
             // If more than one smart send shipment label created, then create combo labels
             if ( count($array_shipment_ids) > 1 ) {
 				// Create combined label with successful shipments
 				$combined_shipments = SS_SHIPPING_WC()->get_api_handle()->combineLabelsForShipments( $array_shipment_ids );
 
+                // Write API request to log
+                SS_SHIPPING_WC()->log_msg( 'Called "combineLabelsForShipments" with arguments: ' . SS_SHIPPING_WC()->get_api_handle()->getRequestBody() );
+
 				if (SS_SHIPPING_WC()->get_api_handle()->isSuccessful()) {
 		            
 		            $response = SS_SHIPPING_WC()->get_api_handle()->getData();
 
                     // Write API response to log
-		            SS_SHIPPING_WC()->log_msg( 'Response from "combineLabelsForShipments" : ' . print_r($response, true) );
 					
 					try {
 						// Save the PDF file and save order meta data
@@ -1000,9 +1000,10 @@ class SS_Shipping_WC_Order {
                             'type' => 'error',
                         ));
 					}
+		            SS_SHIPPING_WC()->log_msg( 'Response from "combineLabelsForShipments" : ' . SS_SHIPPING_WC()->get_api_handle()->getResponseBody() );
 
 		        } else {
-		            SS_SHIPPING_WC()->log_msg( 'Error response from "combineLabelsForShipments" : ' . print_r(SS_SHIPPING_WC()->get_api_handle()->getError(), true) );
+		            SS_SHIPPING_WC()->log_msg( 'Error response from "combineLabelsForShipments" : ' . SS_SHIPPING_WC()->get_api_handle()->getResponseBody() );
                     array_push($array_messages, array(
                         'message' => __( 'Error combining shipping labels:', 'smart-send-shipping') .' '. $this->get_error_detail_message( SS_SHIPPING_WC()->get_api_handle()->getError() ),
                         'type' => 'error',

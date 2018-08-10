@@ -72,36 +72,45 @@ class Client
     }
 
     /**
-     * @return void
+     * @return string
      */
-    public function printError()
+    public function getErrorString($delimiter='<br>')
     {
-        //fetch error:
+        // Fetch error:
         $error = $this->getError();
 
         // Print error message
-        echo $error->message;
+        $error_string = $error->message;
         // Print 'Read more here' link to error explenation
         if(isset($error->links->about)) {
-            echo "<br>- <a href='".$error->links->about."'>Read more here</a>";
+            $error_string .= $delimiter."- <a href='".$error->links->about."'>Read more here</a>";
         }
         // Print unique error ID if one exists
         if(isset($error->id)) {
-            echo "<br>Unique ID: ".$error->id;
+            $error_string .= $delimiter."Unique ID: ".$error->id;
         }
         // Print each error
         if(isset($error->errors)) {
             foreach($error->errors as $error_details) {
                 if(is_array($error_details)) {
                     foreach($error_details as $error_description) {
-                        echo "<br>- ".$error_description;
+                        $error_string .= $delimiter."- ".$error_description;
                     }
                 } else {
-                    echo "<br>- ".$error_details;
+                    $error_string .= $delimiter."- ".$error_details;
                 }
 
             }
         }
+        return $error_string;
+    }
+
+    /**
+     * @return void
+     */
+    public function printError()
+    {
+        echo $this->getErrorString('<br>');
     }
 
     /**
@@ -113,11 +122,43 @@ class Client
     }
 
     /**
-     * @param mixed $debug
+     * @return mixed
      */
-    public function setDebug($debug)
+    public function getRequestEndpoint()
     {
-        $this->debug = $debug;
+        return $this->request_endpoint;
+    }
+
+    /**
+     * @return mixed
+     */
+    public function getRequestBody()
+    {
+        return $this->request_body;
+    }
+
+    /**
+     * @return mixed
+     */
+    public function getRequestHeaders()
+    {
+        return $this->request_headers;
+    }
+
+    /**
+     * @return mixed
+     */
+    public function getResponseBody()
+    {
+        return $this->response_body;
+    }
+
+    /**
+     * @return mixed
+     */
+    public function getResponseHeaders()
+    {
+        return $this->response_headers;
     }
 
     /**

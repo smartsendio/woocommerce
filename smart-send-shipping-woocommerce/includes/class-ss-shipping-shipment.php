@@ -333,13 +333,17 @@ class SS_Shipping_Shipment {
 	}
 
 	protected function make_single_shipment_api_request() {
-       SS_SHIPPING_WC()->log_msg( 'Called "createShipmentAndLabels" with arguments: ' . print_r(json_encode($this->shipment, JSON_PRETTY_PRINT), true) );
+	    // Make API Request
         SS_SHIPPING_WC()->get_api_handle()->createShipmentAndLabels($this->shipment);
-        // Show the response
+
+        // Log API request
+        SS_SHIPPING_WC()->log_msg( 'Called "createShipmentAndLabels" with arguments: ' . SS_SHIPPING_WC()->get_api_handle()->getRequestBody() );
+
+        // Log API response
         if (SS_SHIPPING_WC()->get_api_handle()->isSuccessful()) {
-            SS_SHIPPING_WC()->log_msg( 'Response from "createShipmentAndLabels" : ' . print_r(SS_SHIPPING_WC()->get_api_handle()->getData(), true) );
+            SS_SHIPPING_WC()->log_msg( 'Response from "createShipmentAndLabels" : ' . SS_SHIPPING_WC()->get_api_handle()->getResponseBody() );
         } else {
-            SS_SHIPPING_WC()->log_msg( 'Error response from "createShipmentAndLabels" : ' . print_r(SS_SHIPPING_WC()->get_api_handle()->getError(), true) );
+            SS_SHIPPING_WC()->log_msg( 'Error response from "createShipmentAndLabels" : ' . SS_SHIPPING_WC()->get_api_handle()->getResponseBody() );
         }
     }
 }
