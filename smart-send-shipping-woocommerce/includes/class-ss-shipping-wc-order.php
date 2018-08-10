@@ -310,7 +310,7 @@ class SS_Shipping_WC_Order {
 
             try {
 	            // Save the PDF file
-	            $this->save_label_file( $order_id, $response->shipment_id, $response->pdf->base_64_encoded, $return );
+	            $this->save_label_file( $response->shipment_id, $response->pdf->base_64_encoded, $return );
             } catch (Exception $e) {
 	            return array( 'error' => $e->getMessage() );
             }
@@ -414,7 +414,7 @@ class SS_Shipping_WC_Order {
 	/**
 	 * Save label file in "uploads" folder
 	 */
-	protected function save_label_file( $order_id, $shipment_id, $label_data, $return ) {
+	protected function save_label_file( $shipment_id, $label_data, $return ) {
 		
 		if ( empty($shipment_id) ) {
 			throw new Exception( __('Shipment id is empty', 'smart-send-shipping' ) );
@@ -980,7 +980,7 @@ class SS_Shipping_WC_Order {
             // If more than one smart send shipment label created, then create combo labels
             if ( count($array_shipment_ids) > 1 ) {
 				// Create combined label with successful shipments
-				$combined_shipments = SS_SHIPPING_WC()->get_api_handle()->combineLabelsForShipments( $array_shipment_ids );
+				$combined_shipments = SS_SHIPPING_WC()->get_api_handle()->combineLabelsForShipments( wp_list_pluck( $array_shipment_ids, 'shipment_id' ) );
 
                 // Write API request to log
                 SS_SHIPPING_WC()->log_msg( 'Called "combineLabelsForShipments" with arguments: ' . SS_SHIPPING_WC()->get_api_handle()->getRequestBody() );
@@ -988,6 +988,15 @@ class SS_Shipping_WC_Order {
 				if (SS_SHIPPING_WC()->get_api_handle()->isSuccessful()) {
 		            
 		            $response = SS_SHIPPING_WC()->get_api_handle()->getData();
+                    try {
+                        // Save the PDF file and save order meta data
+                        $combo_url = $this->save_label_file( $combo_name, $response->pdf->base_64_encoded, null );
+                    } catch (Exception $e) {
+                        array_push($array_messages, array(
+                            'message' => $e->getMessage(),
+                            'type' => 'error',
+                        ));
+                    }
 
                     // Write API response to log
 		            SS_SHIPPING_WC()->log_msg( 'Response from "combineLabelsForShipments" : ' . SS_SHIPPING_WC()->get_api_handle()->getResponseBody() );
@@ -1004,7 +1013,7 @@ class SS_Shipping_WC_Order {
 
 		if ( ! empty( $combo_url ) ) {
 			$label_count = count($array_shipment_ids);
-			$order_id_list = wp_list_pluck( $shipment_ids, 'order_id' );
+			$order_id_list = wp_list_pluck( $array_shipment_ids, 'order_id' );
 			$order_ids_str = '#' . implode(', #', $order_id_list);
 
 			array_push($array_messages, array(

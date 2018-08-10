@@ -220,7 +220,7 @@ class SS_Shipping_Frontend {
 			$formatted_address = str_replace(',', '<br/>', $formatted_address);
 			?>
 
-			<h2><?php _e( 'Pick-up Point', 'woocommerce' ); ?></h2>
+			<h2><?php _e( 'Pick-up Point', 'smart-send-shipping' ); ?></h2>
 			<address>
 				<?php echo $formatted_address; ?>
 			</address>
