@@ -867,6 +867,8 @@ class SS_Shipping_WC_Order {
 		global $typenow;
 		$array_messages = array( 'msg_user_id' => get_current_user_id() );
 		// $array_shipments = array();
+		$array_messages_success = array();
+		$array_messages_error = array();
 		$array_shipment_ids = array();
 
 		if ( 'shop_order' === $typenow ) {
@@ -919,133 +921,36 @@ class SS_Shipping_WC_Order {
                             $response = $this->create_label_for_single_order($order_id, $return, true);
 
                             if(isset($response['success'])) {
-                                array_push($array_messages, array(
+                                array_push($array_messages_success, array(
                                     'message' => sprintf( __( 'Order #%s: Shipping label created by Smart Send: %s', 'smart-send-shipping'), $order->get_order_number(), $this->get_ss_shipping_label_link( $order_id ) ),
                                     'type' => 'success',
                                 ));
 
                                 // array_push( $array_shipments, $response['shipment'] );
-                                array_push( $array_shipment_ids, array( 'shipment_id' => $response['success']->shipment_id ) );
+                                array_push( $array_shipment_ids, array( 'shipment_id' => $response['success']->shipment_id, 'order_id' => $order->get_order_number() ) );
 
                             } else {
                                 // Print error message
                                 $message = sprintf( __( 'Order #%s: ', 'smart-send-shipping'), $order->get_order_number() );
                                 $message .= $this->get_error_detail_message($response['error']);
-                                array_push($array_messages, array(
+                                
+                                array_push($array_messages_error, array(
                                     'message' => $message,
                                     'type' => 'error',
                                 ));
                             }
 
-                            /*
-	                        $this->set_label_args( $order_id, $return );
-
-						    if( SS_SHIPPING_WC()->get_api_handle()->createShipmentAndLabels( $this->shipment ) ) {
-
-                                // Get formatted order comment
-                                $tracking_note = $this->get_formatted_order_note_with_label_and_tracking( $order_id, SS_SHIPPING_WC()->get_api_handle()->getData(), $return );
-
-								$order = wc_get_order( $order_id );
-								$order->add_order_note( $tracking_note, 0, true );
-
-								if($return) {
-                                    $message = sprintf( __( 'Order #%s: Return shipping label created by Smart Send: %s', 'smart-send-shipping'), $order_id, $this->get_ss_shipping_label_link( $order_id ) );
-                                } else {
-                                    // Add tracking information to Shipment Tracking
-                                    $shipment_tracking_details = $this->get_tracking_details( SS_SHIPPING_WC()->get_api_handle()->getData() );
-                                    foreach($shipment_tracking_details as $parcel_tracking_details) {
-                                        $this->save_tracking_in_shipment_tracking($order_id, $parcel_tracking_details['tracking_code'], $parcel_tracking_details['tracking_link'], $parcel_tracking_details['carrier_name'],$date_shipped=null);
-                                    }
-
-                                    $this->set_order_status_label( $order_id );
-
-
-                                }
-								$is_error = false;
-							} else {
-                                //fetch error:
-						        $error = SS_SHIPPING_WC()->get_api_handle()->getError();
-
-                                // Print error message
-                                $message = sprintf( __( 'Order #%s: %s', 'smart-send-shipping'), $order_id, $error->message );
-                                // Print 'Read more here' link to error explanation
-                                if(isset($error->links->about)) {
-                                    $message .= '<br><a href="' . $error->links->about . '" target="_blank">' . __('Read more here', 'smart-send-shipping') .'</a>';
-                                }
-                                // Print unique error ID if one exists
-                                if(isset($error->id)) {
-                                    $message .= '<br>' . __('Unique ID', 'smart-send-shipping') . ': ' . $error->id;
-                                }
-                                // Print each error
-                                if(isset($error->errors)) {
-                                    foreach($error->errors as $error_details) {
-                                        foreach($error_details as $error_description) {
-                                            $message .= '<br/> - ' . $error_description;
-                                        }
-                                    }
-                                }
-
-
-                                $is_error = true;
-							}
-                            */
 						} else {
-                            array_push($array_messages, array(
+                            array_push($array_messages_error, array(
                                 'message' => sprintf( __( 'Order #%s: The selected order did not include a Send Smart shipping method', 'smart-send-shipping'), $order->get_order_number()),
                                 'type' => 'error',
                             ));
 						}
 					}
 
-					$combo_name = $this->get_combo_label_file_name( $array_shipment_ids );
-					$combo_path = $this->get_label_path_from_shipment_id( $combo_name );
-					$combo_url = '';
-                    // $combine_shipments_payload = array_map(function($element) { return array('shipment_id' => $element); }, $array_shipment_ids);
+					$array_combo_messages = $this->create_combo_file( $array_messages_success, $array_messages_error, $array_shipment_ids );
 
-					if ( file_exists($combo_path) ) {
-						$combo_url = $this->get_label_url_from_shipment_id($combo_name);
-					} else {
-                        // Write API request to log
-                        SS_SHIPPING_WC()->log_msg( 'Called "combineLabelsForShipments" with arguments: ' . print_r($array_shipment_ids, true) );
-
-                        // If more than one smart send shipment label created, then create combo labels
-                        if ( count($array_shipment_ids) > 1 ) {
-							// Create combined label with successful shipments
-							$combined_shipments = SS_SHIPPING_WC()->get_api_handle()->combineLabelsForShipments( $array_shipment_ids );
-
-							if (SS_SHIPPING_WC()->get_api_handle()->isSuccessful()) {
-					            
-					            $response = SS_SHIPPING_WC()->get_api_handle()->getData();
-
-	                            // Write API response to log
-					            SS_SHIPPING_WC()->log_msg( 'Response from "combineLabelsForShipments" : ' . print_r($response, true) );
-								
-								try {
-									// Save the PDF file and save order meta data
-				            		$combo_url = $this->save_label_file( $order_id, $combo_name, $response->pdf->base_64_encoded, $return );
-								} catch (Exception $e) {
-									array_push($array_messages, array(
-			                            'message' => $e->getMessage(),
-			                            'type' => 'error',
-			                        ));
-								}
-
-					        } else {
-					            SS_SHIPPING_WC()->log_msg( 'Error response from "combineLabelsForShipments" : ' . print_r(SS_SHIPPING_WC()->get_api_handle()->getError(), true) );
-	                            array_push($array_messages, array(
-	                                'message' => __( 'Error combining shipping labels:', 'smart-send-shipping') .' '. $this->get_error_detail_message( SS_SHIPPING_WC()->get_api_handle()->getError() ),
-	                                'type' => 'error',
-	                            ));
-					        }
-                        }
-					}
-
-					if ( ! empty( $combo_url ) ) {
-						array_push($array_messages, array(
-	                        'message' => sprintf( __( 'Bulk Shipping labels created by Smart Send: <a href="%s" target="_blank">Download Bulk Shipping Labels</a>', 'smart-send-shipping'), $combo_url ),
-	                        'type' => 'success',
-	                    ));
-					}
+					$array_messages = array_merge( $array_messages, $array_combo_messages );
 
 				}
 
@@ -1054,6 +959,74 @@ class SS_Shipping_WC_Order {
 
 			}
  		}
+	}
+
+	/**
+	 * Create Combo File
+	 */
+
+	protected function create_combo_file( $array_messages_success, $array_messages_error, $array_shipment_ids ) {
+
+		$array_messages = array();
+		$combo_name = $this->get_combo_label_file_name( $array_shipment_ids );
+		$combo_path = $this->get_label_path_from_shipment_id( $combo_name );
+		$combo_url = '';
+        // $combine_shipments_payload = array_map(function($element) { return array('shipment_id' => $element); }, $array_shipment_ids);
+
+		if ( file_exists($combo_path) ) {
+			$combo_url = $this->get_label_url_from_shipment_id($combo_name);
+		} else {
+            // Write API request to log
+            SS_SHIPPING_WC()->log_msg( 'Called "combineLabelsForShipments" with arguments: ' . print_r($array_shipment_ids, true) );
+
+            // If more than one smart send shipment label created, then create combo labels
+            if ( count($array_shipment_ids) > 1 ) {
+				// Create combined label with successful shipments
+				$combined_shipments = SS_SHIPPING_WC()->get_api_handle()->combineLabelsForShipments( $array_shipment_ids );
+
+				if (SS_SHIPPING_WC()->get_api_handle()->isSuccessful()) {
+		            
+		            $response = SS_SHIPPING_WC()->get_api_handle()->getData();
+
+                    // Write API response to log
+		            SS_SHIPPING_WC()->log_msg( 'Response from "combineLabelsForShipments" : ' . print_r($response, true) );
+					
+					try {
+						// Save the PDF file and save order meta data
+	            		$combo_url = $this->save_label_file( $order_id, $combo_name, $response->pdf->base_64_encoded, $return );
+					} catch (Exception $e) {
+						array_push($array_messages, array(
+                            'message' => $e->getMessage(),
+                            'type' => 'error',
+                        ));
+					}
+
+		        } else {
+		            SS_SHIPPING_WC()->log_msg( 'Error response from "combineLabelsForShipments" : ' . print_r(SS_SHIPPING_WC()->get_api_handle()->getError(), true) );
+                    array_push($array_messages, array(
+                        'message' => __( 'Error combining shipping labels:', 'smart-send-shipping') .' '. $this->get_error_detail_message( SS_SHIPPING_WC()->get_api_handle()->getError() ),
+                        'type' => 'error',
+                    ));
+		        }
+            }
+		}
+
+		if ( ! empty( $combo_url ) ) {
+			$label_count = count($array_shipment_ids);
+			$order_id_list = wp_list_pluck( $shipment_ids, 'order_id' );
+			$order_ids_str = '#' . implode(', #', $order_id_list);
+
+			array_push($array_messages, array(
+                'message' => sprintf( __( 'Bulk Shipping labels created for %s by Smart Send: <a href="%s" target="_blank">Download Bulk Shipping Labels</a><br/>%s', 'smart-send-shipping'), $label_count, $combo_url, $order_ids_str ),
+                'type' => 'success',
+            ));
+
+            $array_messages = array_merge( $array_messages, $array_messages_error );
+		} else {
+			$array_messages = array_merge( $array_messages, $array_messages_success, $array_messages_error );
+		}
+
+		return $array_messages;
 	}
 
 	protected function get_error_detail_message($response) {
