@@ -990,16 +990,6 @@ class SS_Shipping_WC_Order {
 		            $response = SS_SHIPPING_WC()->get_api_handle()->getData();
 
                     // Write API response to log
-					
-					try {
-						// Save the PDF file and save order meta data
-	            		$combo_url = $this->save_label_file( $order_id, $combo_name, $response->pdf->base_64_encoded, $return );
-					} catch (Exception $e) {
-						array_push($array_messages, array(
-                            'message' => $e->getMessage(),
-                            'type' => 'error',
-                        ));
-					}
 		            SS_SHIPPING_WC()->log_msg( 'Response from "combineLabelsForShipments" : ' . SS_SHIPPING_WC()->get_api_handle()->getResponseBody() );
 
 		        } else {
