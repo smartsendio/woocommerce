@@ -83,7 +83,7 @@ class SS_Shipping_WC_Method extends WC_Shipping_Flat_Rate {
             'Bring'		=>
                 array(
                     'bring_returndropoff'		    => __( 'Bring: Return from pick-up point (PickUp Parcel Return)', 'smart-send-shipping' ),
-                    'bring_returnpickup'		    => __( 'Bring: Return from from address (Parcel Return)', 'smart-send-shipping' ),
+                    'bring_returnpickup'		    => __( 'Bring: Return from address (Parcel Return)', 'smart-send-shipping' ),
                 ),
         );
 
@@ -556,9 +556,9 @@ class SS_Shipping_WC_Method extends WC_Shipping_Flat_Rate {
 
 								echo '<tr class="ss_weight_cost">
 									<td class="sort"></td>
-									<td><input type="text" value="' . esc_attr( $weight_cost['ss_min_weight'] ) . '" name="ss_min_weight[' . $i . ']" class ="wc_input_decimal" /></td>
-									<td><input type="text" value="' . esc_attr( $weight_cost['ss_max_weight'] ) . '" name="ss_max_weight[' . $i . ']" class ="wc_input_decimal" /></td>
-									<td><input type="text" value="' . esc_attr( $weight_cost['ss_cost_weight'] ) . '" name="ss_cost_weight[' . $i . ']"  class =""/></td>
+									<td><input type="number" type="number" min="0" step="0.001" value="' . esc_attr( $weight_cost['ss_min_weight'] ) . '" name="ss_min_weight[' . $i . ']" class ="wc_input_decimal" /></td>
+									<td><input type="number" type="number" min="0" step="0.001" value="' . esc_attr( $weight_cost['ss_max_weight'] ) . '" name="ss_max_weight[' . $i . ']" class ="wc_input_decimal" /></td>
+									<td><input type="text" value="' . esc_attr( $weight_cost['ss_cost_weight'] ) . '" name="ss_cost_weight[' . $i . ']"  class ="" required/></td>
 								</tr>';
 							}
 						}
@@ -579,9 +579,9 @@ class SS_Shipping_WC_Method extends WC_Shipping_Flat_Rate {
 
 							jQuery('<tr class="ss_weight_cost">\
 									<td class="sort"></td>\
-									<td><input type="text" class ="wc_input_decimal" name="ss_min_weight[' + size + ']" /></td>\
-									<td><input type="text" class ="wc_input_decimal" name="ss_max_weight[' + size + ']" /></td>\
-									<td><input type="text" class ="" name="ss_cost_weight[' + size + ']" /></td>\
+									<td><input type="number" min="0" step="0.001" class ="wc_input_decimal" name="ss_min_weight[' + size + ']" /></td>\
+									<td><input type="number" min="0" step="0.001" class ="wc_input_decimal" name="ss_max_weight[' + size + ']" /></td>\
+									<td><input type="text" class ="" name="ss_cost_weight[' + size + ']" required/></td>\
 								</tr>').appendTo('#ss_cost_weight table tbody');
 
 							return false;
