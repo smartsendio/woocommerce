@@ -158,7 +158,7 @@ class SS_Shipping_WC_Method extends WC_Shipping_Flat_Rate {
                 'title'         => __( 'Demo mode', 'smart-send-shipping' ),
                 'description'   => __( 'Demo mode is used for testing on a staging site', 'smart-send-shipping' ),
                 'type'          => 'checkbox',
-                'default'       => 'no',
+                'default'       => 'yes',
                 'label'         => __( 'Enable demo mode', 'smart-send-shipping' ),
             ),
 			'ss_debug' => array(
@@ -695,9 +695,9 @@ class SS_Shipping_WC_Method extends WC_Shipping_Flat_Rate {
 			'label'   => $this->title,
 			'cost'    => 0,
 			'meta_data' => array( 
-								'smartsend_method' => $this->get_instance_option( 'method' ), 
-								'smartsend_return_method' => $this->get_instance_option( 'return_method' ) 
-							),
+                'smartsend_method' => $this->get_instance_option( 'method' ),
+                'smartsend_return_method' => $this->get_instance_option( 'return_method' )
+            ),
 			'package' => $package,
 		);
 
@@ -814,7 +814,7 @@ class SS_Shipping_WC_Method extends WC_Shipping_Flat_Rate {
 				}
 			}
 
-			if( $class_log_message ) {
+			if( !empty($class_log_message) ) {
 				if ( $is_available ) {
 					SS_SHIPPING_WC()->log_msg( 'Shipping method IS available' . $class_log_message );
 				} else {

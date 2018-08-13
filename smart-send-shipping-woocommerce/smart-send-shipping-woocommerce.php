@@ -385,7 +385,7 @@ class SS_Shipping_WC {
 
 			if( ! empty( $ss_shipping_settings['api_token'] ) ) {
 				// Initiate an API handle with the login credentials.
-                $demo_mode = (isset($ss_shipping_settings['demo']) && $ss_shipping_settings['demo'] == 'yes');
+                $demo_mode = (!isset($ss_shipping_settings['demo']) || $ss_shipping_settings['demo'] == 'yes');//default is yes
 				$this->api_handle = new \Smartsend\Api( $ss_shipping_settings['api_token'], $demo_mode );
 			} else {
 				return false;
@@ -400,7 +400,7 @@ class SS_Shipping_WC {
 
 		if ( $this->get_api_handle() ) {
 			if( $this->api_handle->getAuthenticatedUser() ) {
-				return true;
+				return $this->api_handle->getData()->email;
 			} else {
 				return false;
 			}
@@ -416,7 +416,7 @@ class SS_Shipping_WC {
 		check_ajax_referer( 'ss-test-connection', 'test_connection_nonce' );
 
 		if( $this->validate_api_token() ) {
-			$connection_msg = __(' API Token verified: Connected to Smart Send.', 'smart-send-shipping');
+			$connection_msg = sprintf(__(' API Token verified: Connected to Smart Send as %s', 'smart-send-shipping'),$this->validate_api_token());
 			$error = 0;
 		} else {
 			$connection_msg = __(' API Token validation failed: Make sure to save the settings before testing the connection.', 'smart-send-shipping');
