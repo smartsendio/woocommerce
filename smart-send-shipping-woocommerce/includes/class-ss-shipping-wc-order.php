@@ -144,6 +144,9 @@ class SS_Shipping_WC_Order {
 	
 	/**
 	 * Return formatted agent address
+	 * 
+	 * @param object $ss_shipping_order_agent
+	 * @return string
 	 */
 	protected function get_formatted_address( $ss_shipping_order_agent ) {
 
@@ -273,7 +276,7 @@ class SS_Shipping_WC_Order {
         wp_die();
 	}
 
-    /*
+    /**
      * Create label for a single WooCommerce order
      *
      * @param int  $order_id  Order ID
@@ -521,7 +524,7 @@ class SS_Shipping_WC_Order {
 		return $this->get_label_url_from_shipment_id($shipment_id);
 	}
 
-	/*
+	/**
 	 * Get label link 
 	 *
 	 * @param int  $order_id  Order ID
@@ -533,7 +536,7 @@ class SS_Shipping_WC_Order {
 	}
 
 
-    /*
+    /**
      * Save tracking number in Shipment Tracking
      *
      * @param int  $order_id  Order ID
@@ -701,7 +704,6 @@ class SS_Shipping_WC_Order {
 	/**
 	 * Create Combo File
 	 */
-
 	protected function create_combo_file( $array_messages_success, $array_messages_error, $array_shipment_ids ) {
 
 		$array_messages = array();
@@ -766,6 +768,9 @@ class SS_Shipping_WC_Order {
 		return $array_messages;
 	}
 
+	/**
+	 * Get detailed error message
+	 */	
 	protected function get_error_detail_message($response) {
         // Print the message returned from the API
         if(isset($response->message)) {

@@ -23,6 +23,9 @@ class SS_Shipping_Shipment {
 
 	/**
 	 * Init and hook in the integration.
+	 * 
+	 * @param mixed $order 
+	 * @param array $ss_args
 	 */
 	public function __construct( $order, $ss_args ) {
 		
@@ -47,6 +50,8 @@ class SS_Shipping_Shipment {
 	
 	/**
 	 * Create single order
+	 * 
+	 * @return bolean
 	 */
 	public function make_single_shipment_api_call() {
 		$this->make_single_shipment_api_payload();
@@ -60,31 +65,34 @@ class SS_Shipping_Shipment {
 	}
 
 	/**
-	 * Return error message
+	 * Get API call data
+	 * 
+	 * @return object
 	 */
 	public function get_shipping_data() {
 		return SS_SHIPPING_WC()->get_api_handle()->getData();
 	}
 
 	/**
-	 * Return error message
+	 * Get error message
+	 * 
+	 * @return string
 	 */
 	public function get_error_msg() {
 		return SS_SHIPPING_WC()->get_api_handle()->getError();
 	}
 
 	/**
-	 * Return shipment
+	 * Get shipment object
+	 * 
+	 * @return object
 	 */
 	public function get_shipment() {
 		return $this->shipment;
 	}
 
-    /*
-    * Create Payload for API request and return this as 'shipment'
-    *
-    * @param int  $order_id  Order ID
-    * @param boolean  $return true for return labels and false for normal labels (default)
+    /**
+    * Create Payload for API request
     */
 	protected function make_single_shipment_api_payload() {
 		$ss_settings = SS_SHIPPING_WC()->get_ss_shipping_settings();		
@@ -332,6 +340,9 @@ class SS_Shipping_Shipment {
 		// return $this->shipment;
 	}
 
+	/**
+	 * Call Smart Send Shipment API, log response
+	 */
 	protected function make_single_shipment_api_request() {
 	    // Make API Request
         SS_SHIPPING_WC()->get_api_handle()->createShipmentAndLabels($this->shipment);

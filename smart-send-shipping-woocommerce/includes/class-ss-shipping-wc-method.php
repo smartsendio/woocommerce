@@ -109,6 +109,9 @@ class SS_Shipping_WC_Method extends WC_Shipping_Flat_Rate {
 		add_action( 'admin_enqueue_scripts', array( $this, 'load_admin_scripts' ) );
 	}
 
+	/**
+	 * load admin scripts on settings page only
+	 */
 	public function load_admin_scripts( $hook ) {
 	    
 	    if( 'woocommerce_page_wc-settings' != $hook ) {
@@ -226,7 +229,7 @@ class SS_Shipping_WC_Method extends WC_Shipping_Flat_Rate {
 	 * @access public
 	 * @param mixed $key
 	 * @param mixed $data
-	 * @since 1.0.0
+	 * @since 8.0.0
 	 * @return string
 	 */
 	public function generate_button_html( $key, $data ) {
