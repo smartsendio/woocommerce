@@ -634,7 +634,7 @@ class SS_Shipping_WC_Method extends WC_Shipping_Flat_Rate {
 	 *
 	 * @param  mixed $key
 	 * @param  mixed $data
-	 * @since  1.0.0
+	 * @since  8.0.0
 	 * @return string
 	 */
 	public function generate_radio_html( $key, $data ) {
