@@ -14,9 +14,7 @@ class Parcel implements \JsonSerializable
     private $height;
     private $width;
     private $length;
-    private $freetext1;
-    private $freetext2;
-    private $freetext3;
+    private $freetext;
     private $items;
     private $total_price_excluding_tax;
     private $total_price_including_tax;
@@ -42,14 +40,8 @@ class Parcel implements \JsonSerializable
         if(isset($parcel['length'])) {
             $this->setLength($parcel['length']);
         }
-        if(isset($parcel['freetext1'])) {
-            $this->setFreetext1($parcel['freetext1']);
-        }
-        if(isset($parcel['freetext2'])) {
-            $this->setFreetext2($parcel['freetext2']);
-        }
-        if(isset($parcel['freetext3'])) {
-            $this->setFreetext3($parcel['freetext3']);
+        if(isset($parcel['freetext'])) {
+            $this->setFreetext($parcel['freetext']);
         }
         if(isset($parcel['items'])) {
             $this->setItems($parcel['items']);
@@ -179,54 +171,18 @@ class Parcel implements \JsonSerializable
     /**
      * @return mixed
      */
-    public function getFreetext1()
+    public function getFreetext()
     {
-        return $this->freetext1;
+        return $this->freetext;
     }
 
     /**
-     * @param mixed $freetext1
+     * @param mixed $freetext
      * @return Parcel
      */
-    public function setFreetext1($freetext1)
+    public function setFreetext($freetext)
     {
-        $this->freetext1 = $freetext1;
-        return $this;
-    }
-
-    /**
-     * @return mixed
-     */
-    public function getFreetext2()
-    {
-        return $this->freetext2;
-    }
-
-    /**
-     * @param mixed $freetext2
-     * @return Parcel
-     */
-    public function setFreetext2($freetext2)
-    {
-        $this->freetext2 = $freetext2;
-        return $this;
-    }
-
-    /**
-     * @return mixed
-     */
-    public function getFreetext3()
-    {
-        return $this->freetext3;
-    }
-
-    /**
-     * @param mixed $freetext3
-     * @return Parcel
-     */
-    public function setFreetext3($freetext3)
-    {
-        $this->freetext3 = $freetext3;
+        $this->freetext = $freetext;
         return $this;
     }
 
