@@ -281,18 +281,15 @@ class SS_Shipping_WC_Order {
      *
      * @param int  $order_id  Order ID
      * @param boolean $return Whether or not the label is return (true) or normal (false)
+     * @param boolean $setting_save_order_note Whether or not to save an order note with information about label
      *
-     * @return Agent Object
+     * @return array
      */
     public function create_label_for_single_order($order_id, $return=false, $setting_save_order_note=true) {
         // Load WC Order
         $order = wc_get_order( $order_id );
 
-        // Create API payload
-        // $shipment = $this->make_single_shipment_api_payload($order, $return);
-        // Make API Request (returns the API handler)
-        // $this->make_single_shipment_api_request( $shipment );
-
+        // Get shipping method
         $ss_shipping_method_id = $this->get_smart_send_method_id( $order->get_id(), $return );
 
         // Determine shipping method and carrier from return settings
@@ -304,11 +301,10 @@ class SS_Shipping_WC_Order {
         $ss_args['ss_type'] = $shipping_method_type;
 
         $ss_order_api = new SS_Shipping_Shipment($order, $ss_args);
-        // if (SS_SHIPPING_WC()->get_api_handle()->isSuccessful()) {
+
         if ( $ss_order_api->make_single_shipment_api_call() ) {
 
             //The request was successful, lets update WooCommerce
-            // $response = SS_SHIPPING_WC()->get_api_handle()->getData();
             $response = $ss_order_api->get_shipping_data();
 
             try {
@@ -332,7 +328,8 @@ class SS_Shipping_WC_Order {
 
             // Save order note
             if ($setting_save_order_note) {
-                $order->add_order_note( $response->woocommerce['order_note'], 0, true );
+                $order_note = apply_filters('ss_shipping_label_comment',$response->woocommerce['order_note'],$order,$return);
+                $order->add_order_note( $order_note, 0, true );
             }
 
             // Add tracking info to "WooCommerce Shipment Tracking" plugin
@@ -347,7 +344,6 @@ class SS_Shipping_WC_Order {
             return array('success' => $response, 'shipment' => $ss_order_api->get_shipment() );
         } else {
             // Something failed. Let's return them, so the error can be shown to the user
-            // return array('error' => SS_SHIPPING_WC()->get_api_handle()->getError());
             return array('error' => $ss_order_api->get_error_msg());
         }
     }
