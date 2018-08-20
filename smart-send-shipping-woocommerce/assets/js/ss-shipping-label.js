@@ -34,30 +34,7 @@ jQuery(function ($) {
                 $('#ss-shipping-label-form').unblock();
 
                 if (response.error) {
-                    // Print error message
-                    $('#ss-shipping-label-form').append('<div id="ss-shipping-error" class="error ss-meta-message"><strong>' + response.error.message + '</strong></div>');
-                    // Print 'Read more here' link to error explanation
-                    if (response.error.links.about) {
-                        $('#ss-shipping-error').append('<p id="ss-shipping-error-link" class="error ss-meta-message"><a href="' + response.error.links.about + '" target="_blank">' + ss_label_data.read_more + '</a></p>');
-                    }
-                    // Print unique error ID if one exists
-                    if (response.id) {
-                        $('#ss-shipping-error').append('<p id="ss-shipping-error-id" class="error ss-meta-message">' + ss_label_data.unique_error_id + response.error.id + '</p>');
-                    }
-                    // Print each error
-                    if (response.error.errors) {
-                        $('#ss-shipping-error').append('<ul id="ss-shipping-error-list" class="error ss-meta-message"></ul>');
-                        $.each(response.error.errors, function (index, value) { //each() iterates both object and array
-                            if($.isArray(value)) { // If there are more errors for each field, then show each of them
-                                $.each(value, function(index2,value2) {
-                                    $('#ss-shipping-error-list').append('<li class="' + index2 + ' error ss-meta-message">' + value2 + '</li>');
-                                    }
-                                );
-                            } else { // otherwise just show the single error
-                                $('#ss-shipping-error-list').append('<li class="' + index + ' error ss-meta-message">' + value + '</li>');
-                            }
-                        });
-                    }
+                     $('#ss-shipping-label-form').append('<div id="ss-shipping-error" class="error ss-meta-message">' + response.error + '</div>'); 
 
                 } else if (response.success) {
                     //$('.ss_agent_address').html(response.success.agent_address);

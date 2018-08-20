@@ -79,7 +79,7 @@ class SS_Shipping_Shipment {
 	 * @return string
 	 */
 	public function get_error_msg() {
-		return SS_SHIPPING_WC()->get_api_handle()->getError();
+		return SS_SHIPPING_WC()->get_api_handle()->getErrorString();
 	}
 
 	/**
