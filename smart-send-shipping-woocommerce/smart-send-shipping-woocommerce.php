@@ -307,19 +307,6 @@ class SS_Shipping_WC {
 		return $this->ss_shipping_wc_order;
 	}
 
-    /**
-     * Shipping Method Instance ID
-     */
-    public function get_shipping_method_instance_id( $ship_method ) {
-
-        $ship_method_parts = $this->get_shipping_method_part( $ship_method );
-        if(empty($ship_method_parts[0])) {
-            return false;
-        } else {
-            return $ship_method_parts[0];
-        }
-    }
-
 	/**
 	 * Shipping Method Carrier
 	 */
@@ -351,17 +338,6 @@ class SS_Shipping_WC {
 
 		return $ship_method;
 	}
-
-    /**
-     * Shipping Method for returns
-     */
-    public function get_shipping_method_return_option( $ship_method ) {
-
-        $ship_method_instance_id = $this->get_shipping_method_instance_id( $ship_method );
-
-        $SS_Shipping_WC_Method = new SS_Shipping_WC_Method($ship_method_instance_id);
-        return $SS_Shipping_WC_Method->get_instance_option( 'return_method' );
-    }
 
 	/**
 	 * Shipping Method helper function

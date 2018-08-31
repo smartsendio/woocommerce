@@ -133,9 +133,10 @@ class SS_Shipping_Shipment {
 		//$this->shipment->setSender(Sender $sender);
 
 		// $ss_agent = $this->get_ss_shipping_order_agent( $this->order->get_id() );
-		$ss_agent = $this->ss_args['ss_agent'];
 
-		if ( ! empty( $ss_agent ) ) {
+		if ( ! empty( $this->ss_args['ss_agent'] ) ) {
+			$ss_agent = $this->ss_args['ss_agent'];
+			
 			// Add an agent (pick-up point) to the shipment
 			$agent = new Smartsend\Models\Shipment\Agent();
 			$agent->setInternalId( isset($ss_agent->id) ? $ss_agent->id : $ss_agent->agent_no )
@@ -237,13 +238,14 @@ class SS_Shipping_Shipment {
 				$product_img_url = wp_get_attachment_url( $product_img_id );
 				
 				$hs_code = get_post_meta( $item['product_id'], '_ss_hs_code', true );
+				$custom_desc = get_post_meta( $item['product_id'], '_ss_custom_desc', true );
 
 				$items[ $index ] = new \Smartsend\Models\Shipment\Item();
 				$items[ $index ]->setInternalId( $product_id ?: null )
 				    ->setInternalReference( $product_id ?: null )
 				    ->setSku( $product_sku ?: null )
 				    ->setName( $product->get_title() ?: null )
-				    ->setDescription( null ) //$product_description can be used, but is often to long (255)
+				    ->setDescription( $custom_desc ?: null ) //$product_description can be used, but is often to long (255)
 				    ->setHsCode( $hs_code ?: null )
 				    ->setImageUrl( $product_img_url ?: null )
 				    ->setUnitWeight( $product_weight > 0 ? $product_weight : null )

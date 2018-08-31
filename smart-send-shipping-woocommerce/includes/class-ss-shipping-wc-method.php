@@ -408,15 +408,15 @@ class SS_Shipping_WC_Method extends WC_Shipping_Flat_Rate {
                 'desc_tip'        	=> true,
                 'options'         	=> $this->return_shipping_method,
             ),
-            /*
-            'automatic_return_label' => array(
-                'title'             => __( 'Autogenerate return label', 'smart-send-shipping' ),
+            
+            'auto_generate_return_label' => array(
+                'title'             => __( 'Auto Generate Return Label', 'smart-send-shipping' ),
                 'type'              => 'checkbox',
                 'label'             => __( 'Enable', 'smart-send-shipping' ),
                 'default'           => 'no',
                 'description'       => __( 'Should a return label automatically be generated whenever a normal shipping labels is generated.', 'smart-send-shipping' ),
                 'desc_tip'          => false,
-            ),*/
+            ),
 		);
 
 		/*
@@ -699,7 +699,8 @@ class SS_Shipping_WC_Method extends WC_Shipping_Flat_Rate {
 			'cost'    => 0,
 			'meta_data' => array( 
                 'smartsend_method' => $this->get_instance_option( 'method' ),
-                'smartsend_return_method' => $this->get_instance_option( 'return_method' )
+                'smartsend_return_method' => $this->get_instance_option( 'return_method' ),
+                'smartsend_auto_generate_return_label' => $this->get_instance_option( 'auto_generate_return_label' )
             ),
 			'package' => $package,
 		);

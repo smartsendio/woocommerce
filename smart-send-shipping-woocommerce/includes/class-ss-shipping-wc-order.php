@@ -133,6 +133,7 @@ class SS_Shipping_WC_Order {
 			'read_more' => __('Read more', 'smart-send-shipping'),
 			'unique_error_id' => __('Unique error id: ', 'smart-send-shipping'),
 			'download_label' => __('Download label', 'smart-send-shipping'),
+			'download_return_label' => __('Download return label', 'smart-send-shipping'),
 			'unexpected_error' => __('Unexpected error', 'smart-send-shipping'),
 		);
 		wp_enqueue_script( 'ss-shipping-label-js', SS_SHIPPING_PLUGIN_DIR_URL . '/assets/js/ss-shipping-label.js', array(), SS_SHIPPING_VERSION );
@@ -169,7 +170,6 @@ class SS_Shipping_WC_Order {
 
 		// Get shipping id to make sure it's SS
 		$order_shipping_methods = $order->get_shipping_methods();
-
 		if( !empty($order_shipping_methods) ) {
 
 			foreach ( $order_shipping_methods as $item_id => $item ) {
@@ -179,7 +179,7 @@ class SS_Shipping_WC_Order {
 				// If Smart Send found, return id
 				if ( stripos($shipping_method_id, 'smart_send_shipping') !== false ) {
 				    if($return) {
-                        return $item['smartsend_return_method'];
+                        return array( 'smartsend_return_method' => $item['smartsend_return_method'],'smartsend_auto_generate_return_label' => $item['smartsend_auto_generate_return_label']) ;
                     } else {
                         return $item['smartsend_method'];
                     }
@@ -264,17 +264,50 @@ class SS_Shipping_WC_Order {
 			wp_send_json( array( 'error' => array( 'message' => $msg ) ) );
 			wp_die();
 		}
-
-        $response = $this->create_label_for_single_order($order_id, $return, false);
-
-        // return the WooCommerce part of the response (that the plugin added before)
-        if(isset($response['success']->woocommerce)) {
-            wp_send_json( array('success' => $response['success']->woocommerce) );
-        } else {
-            wp_send_json( $response );
-        }
+		
+		$response = $this->create_label_for_single_order_maybe_return($order_id, $return, false);
+		
+		wp_send_json( $response );
         wp_die();
 	}
+
+    /**
+     * Create label for a single WooCommerce order and maybe auto generate return label
+     *
+     * @param int  $order_id  Order ID
+     * @param boolean $return Whether or not the label is return (true) or normal (false)
+     * @param boolean $setting_save_order_note Whether or not to save an order note with information about label
+     *
+     * @return array
+     */
+    protected function create_label_for_single_order_maybe_return($order_id, $return=false, $setting_save_order_note=true) {
+
+    	$reponse_arr = array();
+
+    	$ss_shipping_method_id = $this->get_smart_send_method_id( $order_id, true );
+
+        // If creating normal label and auto generate return flag is enabled, create both
+        if ( ! $return &&
+        	 isset( $ss_shipping_method_id['smartsend_auto_generate_return_label'] ) && 
+        	 $ss_shipping_method_id['smartsend_auto_generate_return_label'] == 'yes' ) {
+
+    		// Create the normal label
+    		$response = $this->create_label_for_single_order($order_id, false, false);
+    		array_push( $reponse_arr, $response );
+
+    		// We're only creating the return label if the normal label creation is successful.
+    		if ( isset( $response['success']->woocommerce ) ) {
+    		 	// Create the return label
+    		 	$response = $this->create_label_for_single_order($order_id, true, false);
+    		 	array_push( $reponse_arr, $response );
+    		 }
+    	} else {
+    		$response = $this->create_label_for_single_order($order_id, $return, false);
+    		array_push( $reponse_arr, $response );
+    	}
+
+    	return $reponse_arr;
+    }
 
     /**
      * Create label for a single WooCommerce order
@@ -285,18 +318,23 @@ class SS_Shipping_WC_Order {
      *
      * @return array
      */
-    public function create_label_for_single_order($order_id, $return=false, $setting_save_order_note=true) {
+    protected function create_label_for_single_order($order_id, $return=false, $setting_save_order_note=true) {
         // Load WC Order
         $order = wc_get_order( $order_id );
 
         // Get shipping method
         $ss_shipping_method_id = $this->get_smart_send_method_id( $order->get_id(), $return );
 
+        if ( $return && isset($ss_shipping_method_id['smartsend_return_method']) ) {
+        	$ss_shipping_method_id = $ss_shipping_method_id['smartsend_return_method'];
+        } else {
+        	$ss_args['ss_agent'] = $this->get_ss_shipping_order_agent( $order_id );
+        }
+
         // Determine shipping method and carrier from return settings
         $shipping_method_carrier = SS_SHIPPING_WC()->get_shipping_method_carrier( $ss_shipping_method_id );
         $shipping_method_type = SS_SHIPPING_WC()->get_shipping_method_type( $ss_shipping_method_id );
 
-        $ss_args['ss_agent'] = $this->get_ss_shipping_order_agent( $order_id );
         $ss_args['ss_carrier'] = $shipping_method_carrier;
         $ss_args['ss_type'] = $shipping_method_type;
 
@@ -320,6 +358,7 @@ class SS_Shipping_WC_Order {
             // Get formatted order comment
             $response->woocommerce['label_link'] = $this->get_label_url_from_shipment_id($response->shipment_id);
             $response->woocommerce['order_note'] = $this->get_formatted_order_note_with_label_and_tracking( $order_id, $response, $return );
+            $response->woocommerce['return'] = $return;
 
             // Set order status after label generation
             if (!$return) {
@@ -654,25 +693,33 @@ class SS_Shipping_WC_Order {
 
 						if( !empty($ss_shipping_method_id) ) {
 
-                            $response = $this->create_label_for_single_order($order_id, $return, true);
+                            $response = $this->create_label_for_single_order_maybe_return($order_id, $return, true);
 
-                            if(isset($response['success'])) {
-                                array_push($array_messages_success, array(
-                                    'message' => sprintf( __( 'Order #%s: Shipping label created by Smart Send: %s', 'smart-send-shipping'), $order->get_order_number(), $this->get_ss_shipping_label_link( $order_id ) ),
-                                    'type' => 'success',
-                                ));
+                            foreach ($response as $key => $value) {
+	                            
+	                            if(isset($value['success'])) {
+	                            	$return_txt = '';
+	                            	if( ! empty( $value['success']->woocommerce['return'] ) ) {
+	                            		$return_txt = ' return';
+	                            	}
 
-                                array_push( $array_shipment_ids, array( 'shipment_id' => $response['success']->shipment_id, 'order_id' => $order->get_order_number() ) );
+	                                array_push($array_messages_success, array(
+	                                    'message' => sprintf( __( 'Order #%s: Shipping%s label created by Smart Send: %s', 'smart-send-shipping'), $order->get_order_number(), $return_txt, $this->get_ss_shipping_label_link( $order_id ) ),
+	                                    'type' => 'success',
+	                                ));
 
-                            } else {
-                                // Print error message
-                                $message = sprintf( __( 'Order #%s: ', 'smart-send-shipping'), $order->get_order_number() );
-                                $message .= $response['error'];
-                                
-                                array_push($array_messages_error, array(
-                                    'message' => $message,
-                                    'type' => 'error',
-                                ));
+	                                array_push( $array_shipment_ids, array( 'shipment_id' => $value['success']->shipment_id, 'order_id' => $order->get_order_number() ) );
+
+	                            } else {
+	                                // Print error message
+	                                $message = sprintf( __( 'Order #%s: ', 'smart-send-shipping'), $order->get_order_number() );
+	                                $message .= $value['error'];
+	                                
+	                                array_push($array_messages_error, array(
+	                                    'message' => $message,
+	                                    'type' => 'error',
+	                                ));
+	                            }
                             }
 
 						} else {
@@ -746,8 +793,9 @@ class SS_Shipping_WC_Order {
 		}
 
 		if ( ! empty( $combo_url ) ) {
-			$label_count = count($array_shipment_ids);
 			$order_id_list = wp_list_pluck( $array_shipment_ids, 'order_id' );
+			$order_id_list = array_unique( $order_id_list );
+			$label_count = count($order_id_list);
 			$order_ids_str = '#' . implode(', #', $order_id_list);
 
 			array_push($array_messages, array(
