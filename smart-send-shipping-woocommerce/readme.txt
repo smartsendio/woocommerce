@@ -5,7 +5,7 @@ Author: SmartSend
 Author URI: https://smartsend.io/
 Developer: SmartSend
 Developer URI: https://smartsend.io/
-Tags: smartsend, smart send, shipping, pickup, pakkeboks, pakkeshop, hente selv, døgnboks, post danmark, gls, swipbox, bring, carrier, pacsoft, yourgls, mybring, postage, shipping method, your-gls, my-bring, pacosft-online, pacsoftonline, denmark, sweeden, posten, norway, post 
+Tags: smartsend, smart send, shipping, shipping label, pickup, pick-up, pakkelabel, pakkelabels, pakkeboks, pakkeshop, hente selv, døgnboks, postnord, post nord, post danmark, gls, swipbox, bring, dao, dao365, dao 365, carrier, pacsoft, yourgls, mybring, postage, shipping method, your-gls, my-bring, pacosft-online, pacsoftonline, denmark, sweeden, posten, norway, post 
 Requires at least: 3.0.1
 Tested up to: 5.0
 Stable tag: 8.0.0
