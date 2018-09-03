@@ -551,11 +551,16 @@ class SS_Shipping_WC_Order {
 	 * Gets label URL post meta array for an order
 	 *
 	 * @param int  $order_id  Order ID
+	 * @param boolean $return Whether or not the label is return (true) or normal (false)
 	 *
-	 * @return Label URL
+	 * @return string URL label link
 	 */
-	public function get_label_url_from_order_id( $order_id ) {
-		$shipment_id = get_post_meta( $order_id, '_ss_shipping_label_id', true );
+	public function get_label_url_from_order_id( $order_id, $return ) {
+	    if ($return) {
+            $shipment_id = get_post_meta( $order_id, '_ss_shipping_return_label_id', true );
+        } else {
+            $shipment_id = get_post_meta( $order_id, '_ss_shipping_label_id', true );
+        }
 		return $this->get_label_url_from_shipment_id($shipment_id);
 	}
 
@@ -563,11 +568,18 @@ class SS_Shipping_WC_Order {
 	 * Get label link 
 	 *
 	 * @param int  $order_id  Order ID
+     * @param boolean $return Whether or not the label is return (true) or normal (false)
 	 *
-	 * @return Label URL link
+	 * @return string html label link
 	 */
-	public function get_ss_shipping_label_link( $order_id ) {
-		return '<a href="' . $this->get_label_url_from_order_id( $order_id ) . '" target="_blank">' . __('Download Shipping Label', 'smart-send-shipping') . '</a>';
+	public function get_ss_shipping_label_link( $order_id, $return ) {
+	    $url = $this->get_label_url_from_order_id( $order_id, $return );
+	    if ($return) {
+	        $message = __('Download return shipping label', 'smart-send-shipping');
+        } else {
+            $message = __('Download shipping label', 'smart-send-shipping');
+        }
+		return '<a href="' . $url . '" target="_blank">' . $message . '</a>';
 	}
 
 
@@ -575,6 +587,10 @@ class SS_Shipping_WC_Order {
      * Save tracking number in Shipment Tracking
      *
      * @param int  $order_id  Order ID
+     * @param string  $tracking_number  Unique tracking code for parcel
+     * @param string  $tracking_url  Url for tracking parcel delivery
+     * @param string  $provider  Carrier provider
+     * @param string  $date_shipped  Shipping data in format YYYY-mm-dd
      *
      * @return void
      */
@@ -704,7 +720,7 @@ class SS_Shipping_WC_Order {
 	                            	}
 
 	                                array_push($array_messages_success, array(
-	                                    'message' => sprintf( __( 'Order #%s: Shipping%s label created by Smart Send: %s', 'smart-send-shipping'), $order->get_order_number(), $return_txt, $this->get_ss_shipping_label_link( $order_id ) ),
+	                                    'message' => sprintf( __( 'Order #%s: Shipping%s label created by Smart Send: %s', 'smart-send-shipping'), $order->get_order_number(), $return_txt, $this->get_ss_shipping_label_link( $order_id, isset($value['success']->woocommerce['return']) ? $value['success']->woocommerce['return'] : false ) ),
 	                                    'type' => 'success',
 	                                ));
 
