@@ -11,7 +11,8 @@ class Client
 {
     const TIMEOUT = 10;
 
-    private $api_endpoint = 'https://smartsend-prod.apigee.net/api/v1/';
+    private $api_host = 'https://smartsend-prod.apigee.net/api/v1/';
+    private $website;
     private $api_token;
     private $demo;
     protected $request_endpoint;
@@ -29,17 +30,26 @@ class Client
     protected $links;
     protected $error;
 
-    public function __construct($api_token, $demo=false)
+    public function __construct($api_token, $website, $demo=false)
     {
         $this->api_token = $api_token;
+        $this->website = $website;
         $this->demo = $demo;
     }
 
     public function getApiEndpoint() {
-        return $this->api_endpoint.($this->getDemo() ? 'demo/' : '');
+        return $this->getApiHost().($this->getDemo() ? 'demo/' : '')."website/".$this->getWebsite()."/";
     }
 
-    public function getApiToken() {
+    private function getApiHost() {
+        return $this->api_host;
+    }
+
+    private function getWebsite() {
+        return $this->website;
+    }
+
+    private function getApiToken() {
         return $this->api_token;
     }
 
@@ -306,17 +316,13 @@ class Client
         $path = dirname(__FILE__);
         $path = preg_replace('/includes\/lib\/Smartsend$/', '', $path);
         // $plugin_data = get_plugin_data( $path.'/smart-send-shipping-woocommerce.php' );
-
-        // Find referer
-        $webshop_url = parse_url(get_site_url(),PHP_URL_HOST) . parse_url(get_site_url(),PHP_URL_PATH);
-
         // Make request
         $ch = curl_init();
         curl_setopt($ch, CURLOPT_URL, $this->request_endpoint);
 
         curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
         curl_setopt($ch, CURLOPT_USERAGENT, 'WooCommerce/'. SS_SHIPPING_VERSION);
-        curl_setopt($ch, CURLOPT_REFERER, $webshop_url);
+        curl_setopt($ch, CURLOPT_REFERER, 'example.com');
         curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
         curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
         curl_setopt($ch, CURLOPT_TIMEOUT, $timeout);
