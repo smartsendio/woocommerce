@@ -812,10 +812,10 @@ class SS_Shipping_WC_Order {
 			$order_id_list = wp_list_pluck( $array_shipment_ids, 'order_id' );
 			$order_id_list = array_unique( $order_id_list );
 			$label_count = count($order_id_list);
-			$order_ids_str = '#' . implode(', #', $order_id_list);
+			$order_ids_str = 'Orders: #' . implode(', #', $order_id_list);
 
 			array_push($array_messages, array(
-                'message' => sprintf( __( 'Bulk Shipping labels created for %s by Smart Send: <a href="%s" target="_blank">Download Bulk Shipping Labels</a><br/>%s', 'smart-send-shipping'), $label_count, $combo_url, $order_ids_str ),
+                'message' => sprintf( __( 'Shipping labels created by Smart Send for %s order: <a href="%s" target="_blank">Download combined pdf</a><br/>%s', 'smart-send-shipping'), $label_count, $combo_url, $order_ids_str ),
                 'type' => 'success',
             ));
 
