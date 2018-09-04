@@ -15,7 +15,7 @@ class Api extends Client
 
     public function getAuthenticatedUser()
     {
-        return $this->httpGet('user');
+        return $this->httpGet('');
     }
 
     // Agent API

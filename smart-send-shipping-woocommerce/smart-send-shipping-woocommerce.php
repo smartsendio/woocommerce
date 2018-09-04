@@ -377,7 +377,7 @@ class SS_Shipping_WC {
 
 		if ( $this->get_api_handle() ) {
 			if( $this->api_handle->getAuthenticatedUser() ) {
-				return $this->api_handle->getData()->email;
+				return true;
 			} else {
 				return false;
 			}
@@ -393,10 +393,10 @@ class SS_Shipping_WC {
 		check_ajax_referer( 'ss-test-connection', 'test_connection_nonce' );
 
 		if( $this->validate_api_token() ) {
-			$connection_msg = sprintf(__(' API Token verified: Connected to Smart Send as %s', 'smart-send-shipping'),$this->validate_api_token());
+			$connection_msg = sprintf(__('API Token verified: Connected to Smart Send as %s from %s', 'smart-send-shipping'),$this->get_api_handle()->getData()->email, $this->get_api_handle()->getData()->website);
 			$error = 0;
 		} else {
-			$connection_msg = __(' API Token validation failed: Make sure to save the settings before testing the connection.', 'smart-send-shipping');
+			$connection_msg = sprintf(__('API Token validation failed: %s. Make sure to save the settings before testing the connection.', 'smart-send-shipping'), $this->get_api_handle()->getError()->message);
 			$error = 1;
 		}
 
