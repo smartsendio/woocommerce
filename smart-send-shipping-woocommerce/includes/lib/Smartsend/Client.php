@@ -276,12 +276,14 @@ class Client
      * @param   array $body Assoc array of body (will be converted to json)
      * @param   int $timeout
      * @return  object|true|false   Assoc array of API response, decoded from JSON
+     *
+     * @throws \Exception
      */
     private function makeRequest($http_verb, $method, $args = array(), $headers=array(), $body=null, $timeout = self::TIMEOUT)
     {
         // Throw an error if curl is not present
         if (!function_exists('curl_init') || !function_exists('curl_setopt')) {
-            throw new UnexpectedException("cURL support is required, but can't be found.");
+            throw new \Exception("cURL support is required, but can't be found.");
         }
 
         // If the headers where not set, then use default
