@@ -292,17 +292,17 @@ class SS_Shipping_WC_Order {
         	 $ss_shipping_method_id['smartsend_auto_generate_return_label'] == 'yes' ) {
 
     		// Create the normal label
-    		$response = $this->create_label_for_single_order($order_id, false, false);
+    		$response = $this->create_label_for_single_order($order_id, false, $setting_save_order_note);
     		array_push( $reponse_arr, $response );
 
     		// We're only creating the return label if the normal label creation is successful.
     		if ( isset( $response['success']->woocommerce ) ) {
     		 	// Create the return label
-    		 	$response = $this->create_label_for_single_order($order_id, true, false);
+    		 	$response = $this->create_label_for_single_order($order_id, true, $setting_save_order_note);
     		 	array_push( $reponse_arr, $response );
     		 }
     	} else {
-    		$response = $this->create_label_for_single_order($order_id, $return, false);
+    		$response = $this->create_label_for_single_order($order_id, $return, $setting_save_order_note);
     		array_push( $reponse_arr, $response );
     	}
 
