@@ -11,8 +11,10 @@ class Client
 {
     const TIMEOUT = 10;
 
-    private $api_endpoint = 'https://smartsend-prod.apigee.net/api/v1/';
+    private $api_host = 'https://smartsend-prod.apigee.net/api/v1/';
+    private $website;
     private $api_token;
+    private $demo;
     protected $request_endpoint;
     protected $request_headers;
     protected $request_body;
@@ -28,13 +30,31 @@ class Client
     protected $links;
     protected $error;
 
-    public function __construct($api_token)
+    public function __construct($api_token, $website, $demo=false)
     {
         $this->api_token = $api_token;
+        $this->website = $website;
+        $this->demo = $demo;
     }
 
     public function getApiEndpoint() {
-        return $this->api_endpoint;
+        return $this->getApiHost().($this->getDemo() ? 'demo/' : '')."website/".$this->getWebsite()."/";
+    }
+
+    private function getApiHost() {
+        return $this->api_host;
+    }
+
+    private function getWebsite() {
+        return $this->website;
+    }
+
+    private function getApiToken() {
+        return $this->api_token;
+    }
+
+    public function getDemo() {
+        return $this->demo;
     }
 
     /**
@@ -62,31 +82,45 @@ class Client
     }
 
     /**
-     * @return void
+     * @return string
      */
-    public function printError()
+    public function getErrorString($delimiter='<br>')
     {
-        //fetch error:
+        // Fetch error:
         $error = $this->getError();
 
         // Print error message
-        echo $error->message;
+        $error_string = $error->message;
         // Print 'Read more here' link to error explenation
         if(isset($error->links->about)) {
-            echo "<br>- <a href='".$error->links->about."'>Read more here</a>";
+            $error_string .= $delimiter."- <a href='".$error->links->about."'>Read more here</a>";
         }
         // Print unique error ID if one exists
         if(isset($error->id)) {
-            echo "<br>Unique ID: ".$error->id;
+            $error_string .= $delimiter."Unique ID: ".$error->id;
         }
         // Print each error
         if(isset($error->errors)) {
             foreach($error->errors as $error_details) {
-                foreach($error_details as $error_description) {
-                    echo "<br>- ".$error_description;
+                if(is_array($error_details)) {
+                    foreach($error_details as $error_description) {
+                        $error_string .= $delimiter."- ".$error_description;
+                    }
+                } else {
+                    $error_string .= $delimiter."- ".$error_details;
                 }
+
             }
         }
+        return $error_string;
+    }
+
+    /**
+     * @return void
+     */
+    public function printError()
+    {
+        echo $this->getErrorString('<br>');
     }
 
     /**
@@ -98,11 +132,43 @@ class Client
     }
 
     /**
-     * @param mixed $debug
+     * @return mixed
      */
-    public function setDebug($debug)
+    public function getRequestEndpoint()
     {
-        $this->debug = $debug;
+        return $this->request_endpoint;
+    }
+
+    /**
+     * @return mixed
+     */
+    public function getRequestBody()
+    {
+        return $this->request_body;
+    }
+
+    /**
+     * @return mixed
+     */
+    public function getRequestHeaders()
+    {
+        return $this->request_headers;
+    }
+
+    /**
+     * @return mixed
+     */
+    public function getResponseBody()
+    {
+        return $this->response_body;
+    }
+
+    /**
+     * @return mixed
+     */
+    public function getResponseHeaders()
+    {
+        return $this->response_headers;
     }
 
     /**
@@ -210,12 +276,14 @@ class Client
      * @param   array $body Assoc array of body (will be converted to json)
      * @param   int $timeout
      * @return  object|true|false   Assoc array of API response, decoded from JSON
+     *
+     * @throws \Exception
      */
     private function makeRequest($http_verb, $method, $args = array(), $headers=array(), $body=null, $timeout = self::TIMEOUT)
     {
         // Throw an error if curl is not present
         if (!function_exists('curl_init') || !function_exists('curl_setopt')) {
-            throw new UnexpectedException("cURL support is required, but can't be found.");
+            throw new \Exception("cURL support is required, but can't be found.");
         }
 
         // If the headers where not set, then use default
@@ -227,13 +295,13 @@ class Client
         }
 
         // Append API key to the headers
-        $args['api_token'] = $this->api_token;
+        $args['api_token'] = $this->getApiToken();
 
         // Clear request and response from previous API call
         $this->clearAll();
 
         // Set URL (inc parameters $args)
-        $this->request_endpoint = $this->api_endpoint.$method;
+        $this->request_endpoint = $this->getApiEndpoint().$method;
 
         if(!empty($args) && strpos($this->request_endpoint,'?') !== false) {
             $this->request_endpoint .= '&'.http_build_query($args, '', '&');
@@ -250,17 +318,13 @@ class Client
         $path = dirname(__FILE__);
         $path = preg_replace('/includes\/lib\/Smartsend$/', '', $path);
         // $plugin_data = get_plugin_data( $path.'/smart-send-shipping-woocommerce.php' );
-
-        // Find referer
-        $webshop_url = parse_url(get_site_url(),PHP_URL_HOST) . parse_url(get_site_url(),PHP_URL_PATH);
-
         // Make request
         $ch = curl_init();
         curl_setopt($ch, CURLOPT_URL, $this->request_endpoint);
 
         curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
         curl_setopt($ch, CURLOPT_USERAGENT, 'WooCommerce/'. SS_SHIPPING_VERSION);
-        curl_setopt($ch, CURLOPT_REFERER, $webshop_url);
+        curl_setopt($ch, CURLOPT_REFERER, 'example.com');
         curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
         curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
         curl_setopt($ch, CURLOPT_TIMEOUT, $timeout);

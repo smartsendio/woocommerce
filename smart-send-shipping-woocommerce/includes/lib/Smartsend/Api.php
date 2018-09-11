@@ -15,7 +15,7 @@ class Api extends Client
 
     public function getAuthenticatedUser()
     {
-        return $this->httpGet('user');
+        return $this->httpGet('');
     }
 
     // Agent API
@@ -221,6 +221,18 @@ class Api extends Client
     public function createShipmentAndLabels($shipment)
     {
         return $this->httpPost('shipments/labels',array(),array(),$shipment);
+    }
+
+    public function combineLabelsForShipments($shipments=array())
+    {
+        $request = array(
+            'shipments' => array()
+        );
+        foreach($shipments as $shipment) {
+            $request["shipments"][] = array("shipment_id" => $shipment);
+        }
+
+        return $this->httpPost('shipments/labels/combine',array(),array(),$request);
     }
 
 

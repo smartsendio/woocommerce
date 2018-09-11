@@ -5,9 +5,9 @@
  * Description: Smart Send Shipping for WooCommerce
  * Author: Smart Send ApS
  * Author URI: http://www.smartsend.io
- * Version: 8.0.0
+ * Version: 8.0.0b6
  * WC requires at least: 2.6.0
- * WC tested up to: 3.3
+ * WC tested up to: 3.4
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -307,19 +307,6 @@ class SS_Shipping_WC {
 		return $this->ss_shipping_wc_order;
 	}
 
-    /**
-     * Shipping Method Instance ID
-     */
-    public function get_shipping_method_instance_id( $ship_method ) {
-
-        $ship_method_parts = $this->get_shipping_method_part( $ship_method );
-        if(empty($ship_method_parts[0])) {
-            return false;
-        } else {
-            return $ship_method_parts[0];
-        }
-    }
-
 	/**
 	 * Shipping Method Carrier
 	 */
@@ -352,17 +339,6 @@ class SS_Shipping_WC {
 		return $ship_method;
 	}
 
-    /**
-     * Shipping Method for returns
-     */
-    public function get_shipping_method_return_option( $ship_method ) {
-
-        $ship_method_instance_id = $this->get_shipping_method_instance_id( $ship_method );
-
-        $SS_Shipping_WC_Method = new SS_Shipping_WC_Method($ship_method_instance_id);
-        return $SS_Shipping_WC_Method->get_instance_option( 'return_method' );
-    }
-
 	/**
 	 * Shipping Method helper function
 	 */
@@ -385,7 +361,9 @@ class SS_Shipping_WC {
 
 			if( ! empty( $ss_shipping_settings['api_token'] ) ) {
 				// Initiate an API handle with the login credentials.
-				$this->api_handle = new \Smartsend\Api( $ss_shipping_settings['api_token'] );
+                $demo_mode = (!isset($ss_shipping_settings['demo']) || $ss_shipping_settings['demo'] == 'yes');//default is yes
+                $webshop_url = parse_url(get_site_url(),PHP_URL_HOST) . parse_url(get_site_url(),PHP_URL_PATH);
+                $this->api_handle = new \Smartsend\Api( $ss_shipping_settings['api_token'], $webshop_url, $demo_mode );
 			} else {
 				return false;
 			}
@@ -415,10 +393,10 @@ class SS_Shipping_WC {
 		check_ajax_referer( 'ss-test-connection', 'test_connection_nonce' );
 
 		if( $this->validate_api_token() ) {
-			$connection_msg = __(' API Token verified: Connected to Smart Send.', 'smart-send-shipping');
+			$connection_msg = sprintf(__('API Token verified: Connected to Smart Send as %s from %s', 'smart-send-shipping'),$this->get_api_handle()->getData()->email, $this->get_api_handle()->getData()->website);
 			$error = 0;
 		} else {
-			$connection_msg = __(' API Token validation failed: Make sure to save the settings before testing the connection.', 'smart-send-shipping');
+			$connection_msg = sprintf(__('API Token validation failed: %s. Make sure to save the settings before testing the connection.', 'smart-send-shipping'), $this->get_api_handle()->getError()->message);
 			$error = 1;
 		}
 

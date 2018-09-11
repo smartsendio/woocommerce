@@ -83,7 +83,7 @@ class SS_Shipping_WC_Method extends WC_Shipping_Flat_Rate {
             'Bring'		=>
                 array(
                     'bring_returndropoff'		    => __( 'Bring: Return from pick-up point (PickUp Parcel Return)', 'smart-send-shipping' ),
-                    'bring_returnpickup'		    => __( 'Bring: Return from from address (Parcel Return)', 'smart-send-shipping' ),
+                    'bring_returnpickup'		    => __( 'Bring: Return from address (Parcel Return)', 'smart-send-shipping' ),
                 ),
         );
 
@@ -109,6 +109,9 @@ class SS_Shipping_WC_Method extends WC_Shipping_Flat_Rate {
 		add_action( 'admin_enqueue_scripts', array( $this, 'load_admin_scripts' ) );
 	}
 
+	/**
+	 * load admin scripts on settings page only
+	 */
 	public function load_admin_scripts( $hook ) {
 	    
 	    if( 'woocommerce_page_wc-settings' != $hook ) {
@@ -151,13 +154,20 @@ class SS_Shipping_WC_Method extends WC_Shipping_Flat_Rate {
 				'custom_attributes' => array(
 					'onclick' => "ssTestConnection('#woocommerce_smart_send_shipping_api_token_validate');",
 				),
-				'description'       => __( 'To validate the API token, save the settings then click the button.', 'smart-send-shipping' ),
-				'desc_tip'          => true,
+				'description'       => __( 'Save the settings before clicking the button to validate API Token.', 'smart-send-shipping' ),
+				'desc_tip'          => false,
 			),
+            'demo' => array(
+                'title'         => __( 'Demo mode', 'smart-send-shipping' ),
+                'description'   => __( 'Demo mode is used for testing on a staging site', 'smart-send-shipping' ),
+                'type'          => 'checkbox',
+                'default'       => 'yes',
+                'label'         => __( 'Enable demo mode', 'smart-send-shipping' ),
+            ),
 			'ss_debug' => array(
-				'title'             => __( 'Debug Log', 'pr-shipping-dhl' ),
+				'title'             => __( 'Debug Log', 'smart-send-shippingl' ),
 				'type'              => 'checkbox',
-				'label'             => __( 'Enable logging', 'pr-shipping-dhl' ),
+				'label'             => __( 'Enable logging', 'smart-send-shipping' ),
 				'default'           => 'no',
 				'description'       => sprintf( __( 'A log file containing the communication to the Smart Send server will be maintained if this option is checked. This can be used in case of technical issues and can be found %shere%s.', 'smart-send-shipping' ), '<a href="' . $log_path . '" target = "_blank">', '</a>' )
 			),
@@ -219,7 +229,7 @@ class SS_Shipping_WC_Method extends WC_Shipping_Flat_Rate {
 	 * @access public
 	 * @param mixed $key
 	 * @param mixed $data
-	 * @since 1.0.0
+	 * @since 8.0.0
 	 * @return string
 	 */
 	public function generate_button_html( $key, $data ) {
@@ -398,15 +408,15 @@ class SS_Shipping_WC_Method extends WC_Shipping_Flat_Rate {
                 'desc_tip'        	=> true,
                 'options'         	=> $this->return_shipping_method,
             ),
-            /*
-            'automatic_return_label' => array(
-                'title'             => __( 'Autogenerate return label', 'smart-send-shipping' ),
+            
+            'auto_generate_return_label' => array(
+                'title'             => __( 'Auto Generate Return Label', 'smart-send-shipping' ),
                 'type'              => 'checkbox',
                 'label'             => __( 'Enable', 'smart-send-shipping' ),
                 'default'           => 'no',
                 'description'       => __( 'Should a return label automatically be generated whenever a normal shipping labels is generated.', 'smart-send-shipping' ),
                 'desc_tip'          => false,
-            ),*/
+            ),
 		);
 
 		/*
@@ -549,9 +559,9 @@ class SS_Shipping_WC_Method extends WC_Shipping_Flat_Rate {
 
 								echo '<tr class="ss_weight_cost">
 									<td class="sort"></td>
-									<td><input type="text" value="' . esc_attr( $weight_cost['ss_min_weight'] ) . '" name="ss_min_weight[' . $i . ']" class ="wc_input_decimal" /></td>
-									<td><input type="text" value="' . esc_attr( $weight_cost['ss_max_weight'] ) . '" name="ss_max_weight[' . $i . ']" class ="wc_input_decimal" /></td>
-									<td><input type="text" value="' . esc_attr( $weight_cost['ss_cost_weight'] ) . '" name="ss_cost_weight[' . $i . ']"  class =""/></td>
+									<td><input type="number" type="number" min="0" step="0.001" value="' . esc_attr( $weight_cost['ss_min_weight'] ) . '" name="ss_min_weight[' . $i . ']" class ="wc_input_decimal" /></td>
+									<td><input type="number" type="number" min="0" step="0.001" value="' . esc_attr( $weight_cost['ss_max_weight'] ) . '" name="ss_max_weight[' . $i . ']" class ="wc_input_decimal" /></td>
+									<td><input type="text" value="' . esc_attr( $weight_cost['ss_cost_weight'] ) . '" name="ss_cost_weight[' . $i . ']"  class ="" required/></td>
 								</tr>';
 							}
 						}
@@ -572,9 +582,9 @@ class SS_Shipping_WC_Method extends WC_Shipping_Flat_Rate {
 
 							jQuery('<tr class="ss_weight_cost">\
 									<td class="sort"></td>\
-									<td><input type="text" class ="wc_input_decimal" name="ss_min_weight[' + size + ']" /></td>\
-									<td><input type="text" class ="wc_input_decimal" name="ss_max_weight[' + size + ']" /></td>\
-									<td><input type="text" class ="" name="ss_cost_weight[' + size + ']" /></td>\
+									<td><input type="number" min="0" step="0.001" class ="wc_input_decimal" name="ss_min_weight[' + size + ']" /></td>\
+									<td><input type="number" min="0" step="0.001" class ="wc_input_decimal" name="ss_max_weight[' + size + ']" /></td>\
+									<td><input type="text" class ="" name="ss_cost_weight[' + size + ']" required/></td>\
 								</tr>').appendTo('#ss_cost_weight table tbody');
 
 							return false;
@@ -624,7 +634,7 @@ class SS_Shipping_WC_Method extends WC_Shipping_Flat_Rate {
 	 *
 	 * @param  mixed $key
 	 * @param  mixed $data
-	 * @since  1.0.0
+	 * @since  8.0.0
 	 * @return string
 	 */
 	public function generate_radio_html( $key, $data ) {
@@ -688,9 +698,10 @@ class SS_Shipping_WC_Method extends WC_Shipping_Flat_Rate {
 			'label'   => $this->title,
 			'cost'    => 0,
 			'meta_data' => array( 
-								'smartsend_method' => $this->get_instance_option( 'method' ), 
-								'smartsend_return_method' => $this->get_instance_option( 'return_method' ) 
-							),
+                'smartsend_method' => $this->get_instance_option( 'method' ),
+                'smartsend_return_method' => $this->get_instance_option( 'return_method' ),
+                'smartsend_auto_generate_return_label' => $this->get_instance_option( 'auto_generate_return_label' )
+            ),
 			'package' => $package,
 		);
 
@@ -807,7 +818,7 @@ class SS_Shipping_WC_Method extends WC_Shipping_Flat_Rate {
 				}
 			}
 
-			if( $class_log_message ) {
+			if( !empty($class_log_message) ) {
 				if ( $is_available ) {
 					SS_SHIPPING_WC()->log_msg( 'Shipping method IS available' . $class_log_message );
 				} else {

@@ -42,12 +42,27 @@ class SS_Shipping_WC_Product {
 				'placeholder' => 'HsCode'
 			) 
 		);
+
+		woocommerce_wp_text_input( 
+			array(
+				'id' => '_ss_custom_desc',
+				'label' => __('Custom Description', 'smart-send-shipping'),
+				'description' => '',
+				'desc_tip' => 'false',
+				'placeholder' => ''
+			) 
+		);
 	}
 
 	public function save_additional_product_shipping_options( $post_id ) {
 	    //HS code value
 		if ( isset( $_POST['_ss_hs_code'] ) ) {
 			update_post_meta( $post_id, '_ss_hs_code', wc_clean( $_POST['_ss_hs_code'] ) );
+		}
+
+		//Custom description value
+		if ( isset( $_POST['_ss_custom_desc'] ) ) {
+			update_post_meta( $post_id, '_ss_custom_desc', wc_clean( $_POST['_ss_custom_desc'] ) );
 		}
 	}
 }
