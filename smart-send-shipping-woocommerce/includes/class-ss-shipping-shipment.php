@@ -113,7 +113,7 @@ class SS_Shipping_Shipment {
 
 		// Make receiver object.
 		$receiver = new \Smartsend\Models\Shipment\Receiver();
-		$receiver->setInternalId( $this->order->get_id() )
+		$receiver->setInternalId( $this->getOrderId($this->order) )
 		    ->setInternalReference( $this->order->get_order_number() ?: null )
 		    ->setCompany( $shipping_address['company'] ?: null )
 		    ->setNameLine1( $shipping_address['first_name'] ?: null )
@@ -132,7 +132,7 @@ class SS_Shipping_Shipment {
 		// Add the sender to the shipment (we use the system default for now)
 		//$this->shipment->setSender(Sender $sender);
 
-		// $ss_agent = $this->get_ss_shipping_order_agent( $this->order->get_id() );
+		// $ss_agent = $this->get_ss_shipping_order_agent( $this->getOrderId($this->order) );
 
 		if ( ! empty( $this->ss_args['ss_agent'] ) ) {
 			$ss_agent = $this->ss_args['ss_agent'];
@@ -293,7 +293,7 @@ class SS_Shipping_Shipment {
 			$parcels = array();
 			// Create a parcel containing the items just defined
 			$parcels[0] = new \Smartsend\Models\Shipment\Parcel();
-			$parcels[0]->setInternalId( $this->order->get_id() ?: null )
+			$parcels[0]->setInternalId( $this->getOrderId($this->order) ?: null )
 			    ->setInternalReference( $this->order->get_order_number() ?: null )
 			    ->setWeight($weight_total ?: null)
 			    ->setHeight(null)
@@ -311,7 +311,7 @@ class SS_Shipping_Shipment {
 		$services->setSmsNotification( $receiver->getSms() ) //Always enable SMS notification
             ->setEmailNotification( $receiver->getEmail() ); //Always enable Email notification
 
-        // $ss_shipping_method_id = $this->get_smart_send_method_id( $this->order->get_id(), $this->return );
+        // $ss_shipping_method_id = $this->get_smart_send_method_id( $this->getOrderId($this->order), $this->return );
 
         // Determine shipping method and carrier from return settings
         // $shipping_method_carrier = SS_SHIPPING_WC()->get_shipping_method_carrier( $ss_shipping_method_id );
@@ -320,7 +320,7 @@ class SS_Shipping_Shipment {
         $shipping_method_type = $this->ss_args['ss_type'];
 
 		// Add final parameters to shipment
-		$this->shipment->setInternalId( $this->order->get_id() ?: null )
+		$this->shipment->setInternalId( $this->getOrderId($this->order) ?: null )
 		    ->setInternalReference( $this->order->get_order_number() ?: null )
 		    ->setShippingCarrier( $shipping_method_carrier ?: null )
 		    ->setShippingMethod( $shipping_method_type ?: null )
@@ -355,6 +355,15 @@ class SS_Shipping_Shipment {
             SS_SHIPPING_WC()->log_msg( 'Response from "createShipmentAndLabels" : ' . SS_SHIPPING_WC()->get_api_handle()->getResponseBody() );
         } else {
             SS_SHIPPING_WC()->log_msg( 'Error response from "createShipmentAndLabels" : ' . SS_SHIPPING_WC()->get_api_handle()->getResponseBody() );
+        }
+    }
+
+    protected function getOrderId($order) {
+        // WC 3.0 code!
+        if ( defined( 'WOOCOMMERCE_VERSION' ) && version_compare( WOOCOMMERCE_VERSION, '3.0', '>=' ) ) {
+            return $order->get_id();
+        } else {
+            return $order->id;
         }
     }
 }

@@ -323,7 +323,7 @@ class SS_Shipping_WC_Order {
         $order = wc_get_order( $order_id );
 
         // Get shipping method
-        $ss_shipping_method_id = $this->get_smart_send_method_id( $order->get_id(), $return );
+        $ss_shipping_method_id = $this->get_smart_send_method_id( $order_id, $return );
 
         if ( $return && isset($ss_shipping_method_id['smartsend_return_method']) ) {
         	$ss_shipping_method_id = $ss_shipping_method_id['smartsend_return_method'];
