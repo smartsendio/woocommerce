@@ -228,7 +228,7 @@ class Item implements \JsonSerializable
      */
     public function setUnitWeight($unit_weight)
     {
-        $this->unit_weight = $unit_weight;
+        $this->unit_weight = (float) $unit_weight;
         return $this;
     }
 
@@ -246,7 +246,7 @@ class Item implements \JsonSerializable
      */
     public function setUnitPriceExcludingTax($unit_price_excluding_tax)
     {
-        $this->unit_price_excluding_tax = $unit_price_excluding_tax;
+        $this->unit_price_excluding_tax = (float) $unit_price_excluding_tax;
         return $this;
     }
 
@@ -264,7 +264,7 @@ class Item implements \JsonSerializable
      */
     public function setUnitPriceIncludingTax($unit_price_including_tax)
     {
-        $this->unit_price_including_tax = $unit_price_including_tax;
+        $this->unit_price_including_tax = (float) $unit_price_including_tax;
         return $this;
     }
 
@@ -282,7 +282,7 @@ class Item implements \JsonSerializable
      */
     public function setQuantity($quantity)
     {
-        $this->quantity = $quantity;
+        $this->quantity = (float) $quantity;
         return $this;
     }
 
@@ -300,7 +300,7 @@ class Item implements \JsonSerializable
      */
     public function setTotalPriceExcludingTax($total_price_excluding_tax)
     {
-        $this->total_price_excluding_tax = $total_price_excluding_tax;
+        $this->total_price_excluding_tax = (float) $total_price_excluding_tax;
         return $this;
     }
 
@@ -318,7 +318,7 @@ class Item implements \JsonSerializable
      */
     public function setTotalPriceIncludingTax($total_price_including_tax)
     {
-        $this->total_price_including_tax = $total_price_including_tax;
+        $this->total_price_including_tax = (float) $total_price_including_tax;
         return $this;
     }
 
@@ -336,7 +336,7 @@ class Item implements \JsonSerializable
      */
     public function setTotalTaxAmount($total_tax_amount)
     {
-        $this->total_tax_amount = $total_tax_amount;
+        $this->total_tax_amount = (float) $total_tax_amount;
         return $this;
     }
 

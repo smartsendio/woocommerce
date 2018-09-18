@@ -110,7 +110,7 @@ class Parcel implements \JsonSerializable
      */
     public function setWeight($weight)
     {
-        $this->weight = $weight;
+        $this->weight = (float) $weight;
         return $this;
     }
 
@@ -128,7 +128,7 @@ class Parcel implements \JsonSerializable
      */
     public function setHeight($height)
     {
-        $this->height = $height;
+        $this->height = (float) $height;
         return $this;
     }
 
@@ -146,7 +146,7 @@ class Parcel implements \JsonSerializable
      */
     public function setWidth($width)
     {
-        $this->width = $width;
+        $this->width = (float) $width;
         return $this;
     }
 
@@ -164,7 +164,7 @@ class Parcel implements \JsonSerializable
      */
     public function setLength($length)
     {
-        $this->length = $length;
+        $this->length = (float) $length;
         return $this;
     }
 
@@ -232,7 +232,7 @@ class Parcel implements \JsonSerializable
      */
     public function setTotalPriceExcludingTax($total_price_excluding_tax)
     {
-        $this->total_price_excluding_tax = $total_price_excluding_tax;
+        $this->total_price_excluding_tax = (float) $total_price_excluding_tax;
         return $this;
     }
 
@@ -250,7 +250,7 @@ class Parcel implements \JsonSerializable
      */
     public function setTotalPriceIncludingTax($total_price_including_tax)
     {
-        $this->total_price_including_tax = $total_price_including_tax;
+        $this->total_price_including_tax = (float) $total_price_including_tax;
         return $this;
     }
 
@@ -268,7 +268,7 @@ class Parcel implements \JsonSerializable
      */
     public function setTotalTaxAmount($total_tax_amount)
     {
-        $this->total_tax_amount = $total_tax_amount;
+        $this->total_tax_amount = (float) $total_tax_amount;
         return $this;
     }
 

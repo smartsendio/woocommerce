@@ -320,7 +320,7 @@ class Shipment implements \JsonSerializable
      */
     public function setSubtotalPriceIncludingTax($subtotal_price_including_tax)
     {
-        $this->subtotal_price_including_tax = $subtotal_price_including_tax;
+        $this->subtotal_price_including_tax = (float) $subtotal_price_including_tax;
         return $this;
     }
 
@@ -338,7 +338,7 @@ class Shipment implements \JsonSerializable
      */
     public function setShippingPriceExcludingTax($shipping_price_excluding_tax)
     {
-        $this->shipping_price_excluding_tax = $shipping_price_excluding_tax;
+        $this->shipping_price_excluding_tax = (float) $shipping_price_excluding_tax;
         return $this;
     }
 
@@ -356,7 +356,7 @@ class Shipment implements \JsonSerializable
      */
     public function setShippingPriceIncludingTax($shipping_price_including_tax)
     {
-        $this->shipping_price_including_tax = $shipping_price_including_tax;
+        $this->shipping_price_including_tax = (float) $shipping_price_including_tax;
         return $this;
     }
 
@@ -374,7 +374,7 @@ class Shipment implements \JsonSerializable
      */
     public function setTotalPriceExcludingTax($total_price_excluding_tax)
     {
-        $this->total_price_excluding_tax = $total_price_excluding_tax;
+        $this->total_price_excluding_tax = (float) $total_price_excluding_tax;
         return $this;
     }
 
@@ -392,7 +392,7 @@ class Shipment implements \JsonSerializable
      */
     public function setTotalPriceIncludingTax($total_price_including_tax)
     {
-        $this->total_price_including_tax = $total_price_including_tax;
+        $this->total_price_including_tax = (float) $total_price_including_tax;
         return $this;
     }
 
@@ -410,7 +410,7 @@ class Shipment implements \JsonSerializable
      */
     public function setTotalTaxAmount($total_tax_amount)
     {
-        $this->total_tax_amount = $total_tax_amount;
+        $this->total_tax_amount = (float) $total_tax_amount;
         return $this;
     }
 
