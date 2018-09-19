@@ -110,7 +110,7 @@ class Parcel implements \JsonSerializable
      */
     public function setWeight($weight)
     {
-        $this->weight = (float) $weight;
+        $this->weight = is_null($weight) ? null : ((float) $weight);
         return $this;
     }
 
@@ -128,7 +128,7 @@ class Parcel implements \JsonSerializable
      */
     public function setHeight($height)
     {
-        $this->height = (float) $height;
+        $this->height = is_null($height) ? null : ((float) $height);
         return $this;
     }
 
@@ -146,7 +146,7 @@ class Parcel implements \JsonSerializable
      */
     public function setWidth($width)
     {
-        $this->width = (float) $width;
+        $this->width = is_null($width) ? null : ((float) $width);
         return $this;
     }
 
@@ -164,7 +164,7 @@ class Parcel implements \JsonSerializable
      */
     public function setLength($length)
     {
-        $this->length = (float) $length;
+        $this->length = is_null($length) ? null : ((float) $length);
         return $this;
     }
 
@@ -232,7 +232,7 @@ class Parcel implements \JsonSerializable
      */
     public function setTotalPriceExcludingTax($total_price_excluding_tax)
     {
-        $this->total_price_excluding_tax = (float) $total_price_excluding_tax;
+        $this->total_price_excluding_tax = is_null($total_price_excluding_tax) ? null : ((float) $total_price_excluding_tax);
         return $this;
     }
 
@@ -250,7 +250,7 @@ class Parcel implements \JsonSerializable
      */
     public function setTotalPriceIncludingTax($total_price_including_tax)
     {
-        $this->total_price_including_tax = (float) $total_price_including_tax;
+        $this->total_price_including_tax = is_null($total_price_including_tax) ? null : ((float) $total_price_including_tax);
         return $this;
     }
 
@@ -268,7 +268,7 @@ class Parcel implements \JsonSerializable
      */
     public function setTotalTaxAmount($total_tax_amount)
     {
-        $this->total_tax_amount = (float) $total_tax_amount;
+        $this->total_tax_amount = is_null($total_tax_amount) ? null : ((float) $total_tax_amount);
         return $this;
     }
 
