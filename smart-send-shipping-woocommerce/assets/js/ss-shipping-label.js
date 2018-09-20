@@ -7,6 +7,30 @@ jQuery(function ($) {
                 .on('click', '#ss-shipping-label-button', {return_label: 0}, this.save_ss_shipping_label);
             $('#ss-shipping-label-form')
                 .on('click', '#ss-shipping-return-label-button', {return_label: 1}, this.save_ss_shipping_label);
+            $('#ss-shipping-label-form')
+                .on('click', '#ss-shipping-split-parcels', {}, this.show_parcel_option);
+                
+        },
+
+        show_parcel_option: function() {
+            if ($(this).is(':checked')) {
+                $('#ss-shipping-order-items').show();
+            } else {
+                $('#ss-shipping-order-items').hide();
+            }
+        },
+
+        get_parcels_input: function() {
+            var parcels = [];
+            $('select[name="ss_shipping_box_no\[\]"]').each(function() {
+                parcels.push({
+                    id: $(this).data('id'),
+                    name: $(this).data('name'),
+                    value: $(this).val()
+                });
+            });
+
+            return parcels;
         },
 
         save_ss_shipping_label: function (event) {
@@ -28,7 +52,9 @@ jQuery(function ($) {
                 order_id: woocommerce_admin_meta_boxes.post_id,
                 return_label: event.data.return_label,
                 ss_shipping_agent_no: $('#ss_shipping_agent_no').val(),
-                ss_shipping_label_nonce: $('#ss_shipping_label_nonce').val()
+                ss_shipping_label_nonce: $('#ss_shipping_label_nonce').val(),
+                ss_shipping_parcels: ss_shipping_label_items.get_parcels_input(),
+                ss_shipping_split_parcel: $('input#ss-shipping-split-parcels').is(':checked') ? 1 : 0
             };
 
             // AJAX call with order data to create label

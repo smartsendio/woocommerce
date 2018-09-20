@@ -73,6 +73,7 @@ class SS_Shipping_Frontend {
 				$carrier = SS_SHIPPING_WC()->get_shipping_method_carrier( $meta_data['smartsend_method'] );
 
 				SS_SHIPPING_WC()->log_msg( 'Called "findClosestAgentByAddress" with carrier = "' . $carrier .'", country = "'. $country . '", postcode = "' . $postal_code . '", street = "' . $street . '"' );
+				
                 if ( SS_SHIPPING_WC()->get_api_handle()->findClosestAgentByAddress( $carrier, $country, $postal_code, $street ) ) {
 
                     $ss_agents = SS_SHIPPING_WC()->get_api_handle()->getData();

@@ -160,6 +160,10 @@ class SS_Shipping_Shipment {
 		// Get order item specific data
 		$ordered_items = $this->order->get_items( );
 
+		// Get product info from the same routine so that we won't have
+		// to iterate through the ordered items once again.
+		$item_data = array();
+
 		if ( !empty( $ordered_items ) ) {
 			$items = array();
 			$index = 0;
@@ -234,6 +238,13 @@ class SS_Shipping_Shipment {
 					$weight_total += ( $item['qty'] * $product_weight );
 				}
 
+				// Update product/item data array
+				$item_data[$product_id] = array(
+					'product_val' => $product_val,
+					'product_val_tax' => $product_val_tax,
+					'product_weight' => $product_weight
+				);
+
 				$product_img_id = $product->get_image_id();
 				$product_img_url = wp_get_attachment_url( $product_img_id );
 				
@@ -255,6 +266,9 @@ class SS_Shipping_Shipment {
 				    ->setTotalPriceExcludingTax( $product_val_total ?: null )
 				    ->setTotalPriceIncludingTax( $product_val_tax_total ?: null )
 				    ->setTotalTaxAmount( $product_tax_total ?: null );
+
+				// Store product item in data item array for later reference
+				$item_data[$product_id]['product_item'] = $items[ $index ];
 
 				$index++;
 			}
@@ -291,19 +305,65 @@ class SS_Shipping_Shipment {
 			$order_subtotal_excl = $order_total_excl - $order_subtotal_tax;
 
 			$parcels = array();
-			// Create a parcel containing the items just defined
-			$parcels[0] = new \Smartsend\Models\Shipment\Parcel();
-			$parcels[0]->setInternalId( $this->getOrderId($this->order) ?: null )
-			    ->setInternalReference( $this->order->get_order_number() ?: null )
-			    ->setWeight($weight_total ?: null)
-			    ->setHeight(null)
-			    ->setWidth(null)
-			    ->setLength(null)
-			    ->setFreetext( $order_note ?: null )
-			    ->setItems( $items ) // Alternatively add each item using $parcel->addItem(Item $item)
-			    ->setTotalPriceExcludingTax( $order_subtotal_excl ?: null )
-			    ->setTotalPriceIncludingTax( $order_subtotal ?: null )
-			    ->setTotalTaxAmount( $order_subtotal_tax ?: null );
+			if ( !empty( $this->ss_args['ss_parcels'] ) ) {
+				if ( is_array( $this->ss_args['ss_parcels'] ) ) {
+
+					$boxes = array();
+					foreach ( $this->ss_args['ss_parcels'] as $parcel ) {
+						$boxes[$parcel['value']][] = array(
+							'id' => $parcel['id'],
+							'name' => $parcel['name']
+						);
+					}
+
+					foreach ( $boxes as $box_number => $items ) {
+						$item_total_wo_tax = 0; $item_total_tax = 0; $item_total_incl_tax = 0; $item_weight_total = 0;
+						$product_items = array();
+
+						foreach ( $items as $item ) {
+							$data = $item_data[$item['id']];
+
+							$item_total_wo_tax += floatval($data['product_val']);
+							$item_total_incl_tax += floatval($data['product_val_tax']);
+							$item_weight_total += floatval($data['product_weight']);
+
+							// Compute for the total tax per individual
+							$item_total_tax += $item_total_incl_tax - $item_total_wo_tax;
+
+							array_push( $product_items, $data['product_item'] );
+						}
+
+						$parcel = new \Smartsend\Models\Shipment\Parcel();
+						$parcel->setInternalId( $this->getOrderId($this->order) ?: null )
+						    ->setInternalReference( $this->order->get_order_number() ?: null )
+						    ->setWeight($item_weight_total ?: null)
+						    ->setHeight(null)
+						    ->setWidth(null)
+						    ->setLength(null)
+						    ->setFreetext( $order_note ?: null )
+						    ->setItems( $product_items ) // Alternatively add each item using $parcel->addItem(Item $item)
+						    ->setTotalPriceExcludingTax( $item_total_wo_tax ?: null )
+						    ->setTotalPriceIncludingTax( $item_total_incl_tax ?: null )
+						    ->setTotalTaxAmount( $item_total_tax ?: null );
+
+						array_push( $parcels, $parcel );
+					}
+				}
+			} else {
+				// Create a parcel containing the items just defined
+				$parcels[0] = new \Smartsend\Models\Shipment\Parcel();
+				$parcels[0]->setInternalId( $this->getOrderId($this->order) ?: null )
+				    ->setInternalReference( $this->order->get_order_number() ?: null )
+				    ->setWeight($weight_total ?: null)
+				    ->setHeight(null)
+				    ->setWidth(null)
+				    ->setLength(null)
+				    ->setFreetext( $order_note ?: null )
+				    ->setItems( $items ) // Alternatively add each item using $parcel->addItem(Item $item)
+				    ->setTotalPriceExcludingTax( $order_subtotal_excl ?: null )
+				    ->setTotalPriceIncludingTax( $order_subtotal ?: null )
+				    ->setTotalTaxAmount( $order_subtotal_tax ?: null );
+			}
 		}
 		
 		// Create services
@@ -336,6 +396,7 @@ class SS_Shipping_Shipment {
 		    ->setTotalTaxAmount( $order_total_tax ?: null )
 		    ->setCurrency( $order_currency ?: null );
 
+		error_log(print_r($this->shipment,true));
 		// Send the shipment object. The new object will be almost identical, but will have 'id' and 'type' fields
 		// return $this->shipment;
 	}
