@@ -150,7 +150,9 @@ class SS_Shipping_WC {
 		add_filter( 'plugin_action_links_' . SS_SHIPPING_PLUGIN_BASENAME, array( $this, 'plugin_action_links' ) );
 		add_filter( 'plugin_row_meta', array( $this, 'ss_shipping_plugin_row_meta'), 10, 2 );
 		
-		add_action( 'admin_enqueue_scripts', array( $this, 'ss_shipping_theme_enqueue_styles') );		
+		add_action( 'admin_enqueue_scripts', array( $this, 'ss_shipping_theme_enqueue_admin_styles') );
+        add_action( 'wp_enqueue_scripts', array( $this, 'ss_shipping_theme_enqueue_frontend_styles') );
+
 		add_filter( 'woocommerce_shipping_methods', array( $this, 'add_shipping_method' ) );
 
 		// Test connection
@@ -185,9 +187,16 @@ class SS_Shipping_WC {
 	/**
 	 * Load Admin CSS 
 	 */
-	public function ss_shipping_theme_enqueue_styles() {
-		wp_enqueue_style( 'ss-shipping-admin-css', SS_SHIPPING_PLUGIN_DIR_URL . '/assets/css/ss-shipping-admin.css' );
+	public function ss_shipping_theme_enqueue_admin_styles() {
+        wp_enqueue_style( 'ss-shipping-admin-css', SS_SHIPPING_PLUGIN_DIR_URL . '/assets/css/ss-shipping-admin.css' );
 	}
+
+    /**
+     * Load Frontend CSS
+     */
+    public function ss_shipping_theme_enqueue_frontend_styles() {
+        wp_enqueue_style( 'ss-shipping-frontend-css', SS_SHIPPING_PLUGIN_DIR_URL . '/assets/css/ss-shipping-frontend.css' );
+    }
 
 	/**
 	 * Define constant if not already set.

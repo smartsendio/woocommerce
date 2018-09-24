@@ -66,7 +66,7 @@ class SS_Shipping_Frontend {
 			( $chosen_shipping == $shipping_id ) &&
 			( stripos($meta_data['smartsend_method'], 'agent') !== false) ) {
 
-			if ( isset( $_POST['s_country'] ) && isset( $_POST['s_postcode'] ) && isset( $_POST['s_address'] ) ) {
+			if ( !empty( $_POST['s_country'] ) && !empty( $_POST['s_postcode'] ) && !empty( $_POST['s_address'] ) ) {
 				$country = wc_clean( $_POST['s_country'] );
 				$postal_code = wc_clean( $_POST['s_postcode'] );
 				$street = wc_clean( $_POST['s_address'] );
@@ -84,7 +84,7 @@ class SS_Shipping_Frontend {
                     $ss_setting = SS_SHIPPING_WC()->get_ss_shipping_settings();
 
                     ?>
-                    <select name="ss_shipping_store_pickup">
+                    <select name="ss_shipping_store_pickup" class="ss-agent-list">
                         <?php
                         	// Select the closest pick-up point by default or have the customer select one
                             if ( !isset( $ss_setting['default_select_agent'] ) || $ss_setting['default_select_agent'] == 'no' ) {
@@ -103,9 +103,11 @@ class SS_Shipping_Frontend {
                 	
                 	SS_SHIPPING_WC()->log_msg( 'Response from "findClosestAgentByAddress": No agent found' );
 
-                    echo '<p>' . __('Shipping to closest pick-up point', 'smart-send-shipping') . '</p>';
+                    echo '<div class="woocommerce-info ss-agent-info">' . __('Shipping to closest pick-up point', 'smart-send-shipping') . '</div>';
                 }
-			}
+			} else {
+                echo '<div class="woocommerce-info ss-agent-info">' . __('Enter shipping information', 'smart-send-shipping') . '</div>';
+            }
 		}
 	}
 
