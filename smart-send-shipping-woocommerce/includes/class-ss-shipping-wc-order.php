@@ -412,6 +412,8 @@ class SS_Shipping_WC_Order {
         $ss_args['ss_type'] = $shipping_method_type;
         $ss_args['ss_parcels'] = $this->get_ss_shipping_order_parcels( $order_id );
 
+        $ss_args = apply_filters( 'smart_send_generate_label_args', $ss_args, $order_id, $return);
+
         $ss_order_api = new SS_Shipping_Shipment($order, $ss_args);
 
         if ( $ss_order_api->make_single_shipment_api_call() ) {
