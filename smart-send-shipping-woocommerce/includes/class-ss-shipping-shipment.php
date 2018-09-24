@@ -396,7 +396,6 @@ class SS_Shipping_Shipment {
 		    ->setTotalTaxAmount( $order_total_tax ?: null )
 		    ->setCurrency( $order_currency ?: null );
 
-		error_log(print_r($this->shipment,true));
 		// Send the shipment object. The new object will be almost identical, but will have 'id' and 'type' fields
 		// return $this->shipment;
 	}
