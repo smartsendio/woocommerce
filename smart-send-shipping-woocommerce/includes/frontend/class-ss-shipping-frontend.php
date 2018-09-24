@@ -49,7 +49,7 @@ class SS_Shipping_Frontend {
 		}
 
 		$chosen_methods = WC()->session->get( 'chosen_shipping_methods' );
- 		$chosen_shipping = $chosen_methods[0]; 
+ 		$chosen_shipping = current($chosen_methods);
 
  		if ( defined( 'WOOCOMMERCE_VERSION' ) && version_compare( WOOCOMMERCE_VERSION, '3.0', '>=' ) ) {
  			$method_id = $method->get_method_id();
@@ -61,7 +61,8 @@ class SS_Shipping_Frontend {
  		
  		$meta_data = $method->get_meta_data();
 
-		if( ( $method_id == 'smart_send_shipping' ) &&
+		if ( $chosen_shipping &&
+            ( $method_id == 'smart_send_shipping' ) &&
 			( $chosen_shipping == $shipping_id ) &&
 			( stripos($meta_data['smartsend_method'], 'agent') !== false) ) {
 
