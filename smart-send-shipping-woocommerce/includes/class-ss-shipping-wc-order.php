@@ -402,7 +402,6 @@ class SS_Shipping_WC_Order {
 
         } else {
         	$ss_args['ss_agent'] = $this->get_ss_shipping_order_agent( $order_id );
-        	$ss_args['ss_parcels'] = $this->get_ss_shipping_order_parcels( $order_id );
         }
 
         // Determine shipping method and carrier from return settings
@@ -411,6 +410,7 @@ class SS_Shipping_WC_Order {
 
         $ss_args['ss_carrier'] = $shipping_method_carrier;
         $ss_args['ss_type'] = $shipping_method_type;
+        $ss_args['ss_parcels'] = $this->get_ss_shipping_order_parcels( $order_id );
 
         $ss_order_api = new SS_Shipping_Shipment($order, $ss_args);
 
