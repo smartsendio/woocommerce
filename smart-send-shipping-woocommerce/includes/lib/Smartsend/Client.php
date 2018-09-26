@@ -34,7 +34,7 @@ class Client
     {
         $this->setApiToken($api_token);
         $this->setWebsite($website);
-        $this->setDemon($demo);
+        $this->setDemo($demo);
     }
 
     protected function setApiToken($api_token)
@@ -51,7 +51,7 @@ class Client
         $this->website = $website;
     }
 
-    protected function setDemon($demo)
+    protected function setDemo($demo)
     {
         $this->demo = $demo;
     }
