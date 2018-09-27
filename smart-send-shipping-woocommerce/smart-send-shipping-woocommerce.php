@@ -5,7 +5,7 @@
  * Description: Smart Send Shipping for WooCommerce
  * Author: Smart Send ApS
  * Author URI: http://www.smartsend.io
- * Version: 8.0.0b6
+ * Version: 8.0.0b8
  * WC requires at least: 2.6.0
  * WC tested up to: 3.4
  *
@@ -32,7 +32,7 @@ if ( ! class_exists( 'SS_Shipping_WC' ) ) :
 
 class SS_Shipping_WC {
 
-	private $version = "8.0.0";
+	private $version = "8.0.0b8";
 
 	/**
 	 * Instance to call certain functions globally within the plugin
