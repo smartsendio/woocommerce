@@ -68,7 +68,7 @@ Let the customer choose a pick-up point close to them during checkout. The packa
 * User friendly dropdown list
 * One step/page checkout compatible
 
-Shipping to pickup points are the most widely used shipping method due to it's flexibility and the reduced shipping cost.
+Shipping to pick-up points are the most widely used shipping method due to it's flexibility and the reduced shipping cost.
 
 = Shipping labels =
 Create shipping labels directly from the backend by a single click. The information is automatically formatted and send to the carrier for processing. A PDF label is immediately shown and ready to print. Tracking information is automatically saved in the system and can be included in customer emails or can be sendt by text message.
@@ -95,7 +95,7 @@ See our online installation guide at [SmartSend.io](https://smartsend.io/woocomm
 6. Once the plugin is installed, click the 'Activate Plugin' link to active the plugin
 7. The plugin is installed, activated and ready to use once you see the succes message 'Plugin activated' at the top of the plugin page
 
-= Connect plugin to Smart Send using API Token =
+= Connect the plugin to Smart Send using an API Token =
 
 The plugin must be connected to Smart Send for all functions to work properly. You can create a [Smart Send account here](https://smartsend.io/signup)
 
@@ -131,9 +131,9 @@ The plugin implements a number of useful hooks and filters that can be used to e
 
 == Screenshots ==
 
-1. Create shipping labels from backend and let tracking information being saved automatically
+1. Create shipping labels from backend and save tracking information automatically
 2. Let the customer choose a close pickup point where the parcel can be collected
-3. Easy setup of the centrale module settings
+3. Plugins general settings
 4. Table rate setup of shipping methods have never been easier.
 5. Services for each carrier is easily setup in WooCommerce backend.
 
@@ -169,7 +169,7 @@ The plugin implements a number of useful hooks and filters that can be used to e
 
 = 7.1.12 =
 * Changing API booking endpoint
-* Add cURL error description is no response from server
+* Add cURL error description if no response from server
 
 = 7.1.11 =
 * Fixing problem with missing file for version 7.1.10
@@ -231,7 +231,7 @@ The plugin implements a number of useful hooks and filters that can be used to e
 * Multisite compatible
 * Adding Flexdelivery option for Post Danmark
 * Adding the possibility to exclude private shipping methods from TAX for Post Danmark
-* Adding the possibility to shop dropdown of pickup points for WooCommerce Free shipping
+* Adding the possibility to show dropdown of pickup points for WooCommerce Free shipping
 * Adding setting to change order status once a label is created
 * Adding more frontend display formats for shipping methods
 * Adding the possibility to change shipping method from backend
@@ -245,7 +245,7 @@ The plugin implements a number of useful hooks and filters that can be used to e
 
 = 7.0.17 =
 * Adding support for WooCommerce Sequential Order Numbers
-* Bugfixes
+* Minor bugfixes
 * Adding notification function to notify about major updates
 * Showing correct order numbers in succes/error messages when creating a label
 * Remove text above frontend-dropdown showing pickup points
