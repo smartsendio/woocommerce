@@ -115,8 +115,14 @@ See our written guide on our [Smart Send website](https://smartsend.io/woocommer
 The plugin implements a number of useful hooks and filters that can be used to extend the functionality of the plugin:
 
 * woocommerce_smart_send_shipping_shipping_add_rate: An action that allows 3rd parties to add rates after the Smart Send rate is added.
-* woocommerce_shipping_smart_send_shipping_is_available: A filter that allows 3rd parties to disable this shipping method
-* woocommerce_shipping_smart_send_shipping_is_free_shipping: A filter that allows 3rd parties to disable free shipping for this method
+* woocommerce_shipping_smart_send_shipping_is_available: A filter that allows 3rd parties to disable a shipping method
+* woocommerce_shipping_smart_send_shipping_is_free_shipping: A filter that allows 3rd parties to disable/enable free shipping for a method
+* smart_send_agent_timeout: A filter to change the timeout used when searching for agents on checkout page
+* smart_send_shipping_label_args: A filter to modify the order parameters that are used when creating shipping labels
+* smart_send_shipping_label_created: An action which is called once a shipping label has been created for an order
+* smart_send_order_note: A filter to change the freetext that is inserted on shipping labels
+* smart_send_shipping_label_comment: : A filter to modify the order comment that is added once a shipping label is created
+* smart_send_tracking_url: A filter to modify the tracking url that is entered in WooCommerce once a shipping label is created
 
  The following filters are inherited from WooCommerce and can be used as well:
 

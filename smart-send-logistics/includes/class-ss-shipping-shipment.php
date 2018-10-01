@@ -287,6 +287,12 @@ class SS_Shipping_Shipment {
 				$order_currency = $this->order->get_order_currency();
 			}
 
+			/*
+			 * Filter the order note which can be printed as freetext on the shipping label
+			 *
+			 * @param string $order_note is the customer note of the order
+			 * @param WC_Order object
+			 */
 			$order_note = apply_filters( 'smart_send_order_note', $order_note, $this->order );
 
 			// Order totals

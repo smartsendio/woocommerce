@@ -388,6 +388,7 @@ class SS_Shipping_WC_Order {
     protected function create_label_for_single_order($order_id, $return=false, $setting_save_order_note=true) {
         // Load WC Order
         $order = wc_get_order( $order_id );
+        $ss_args = array();
 
         // Get shipping method
         $ss_shipping_method_id = $this->get_smart_send_method_id( $order_id, $return );
@@ -412,7 +413,14 @@ class SS_Shipping_WC_Order {
         $ss_args['ss_type'] = $shipping_method_type;
         $ss_args['ss_parcels'] = $this->get_ss_shipping_order_parcels( $order_id );
 
-        $ss_args = apply_filters( 'smart_send_generate_label_args', $ss_args, $order_id, $return);
+        /*
+         * Filter the arguments used when creating a shipping label
+         *
+         * @param array $ss_args contains info about shipping carrier, shipping method, agent and parcels
+         * @param int  $order_id  Order ID
+         * @param boolean $return Whether or not the label is return (true) or normal (false)
+         */
+        $ss_args = apply_filters( 'smart_send_shipping_label_args', $ss_args, $order_id, $return);
 
         $ss_order_api = new SS_Shipping_Shipment($order, $ss_args);
 
@@ -443,7 +451,14 @@ class SS_Shipping_WC_Order {
 
             // Save order note
             if ($setting_save_order_note) {
-                $order_note = apply_filters('ss_shipping_label_comment',$response->woocommerce['order_note'],$order,$return);
+                /*
+                 * Filter the order comment that is saved. The order comment can be seen in the WooCommerce backend
+                 *
+                 * @param string order note containing tracking link and link to pdf label
+                 * @param WC_Order object
+                 * @param boolean $return Whether or not the label is return (true) or normal (false)
+                 */
+                $order_note = apply_filters('smart_send_shipping_label_comment',$response->woocommerce['order_note'], $order, $return);
                 $order->add_order_note( $order_note, 0, true );
             }
 
@@ -456,8 +471,8 @@ class SS_Shipping_WC_Order {
                 }
             }
 
-            // Action label created for order id
-            do_action( 'ss_shipping_label_created', $order_id );
+            // Action when a shipping label has been created
+            do_action( 'smart_send_shipping_label_created', $order_id, $response );
 
             // return the success data
             return array('success' => $response, 'shipment' => $ss_order_api->get_shipment() );
@@ -489,6 +504,12 @@ class SS_Shipping_WC_Order {
                     'carrier_code' => $shipment->carrier_code,
                     'carrier_name' => $shipment->carrier_name,
                     'tracking_code' => $parcel->tracking_code,
+                    /*
+                     * Filter the tracking link
+                     *
+                     * @param string | tracking link
+                     * @param string | carrier code
+                     */
                     'tracking_link' => apply_filters( 'smart_send_tracking_url', $parcel->tracking_link, $shipment->carrier_code ),
             );
         }
