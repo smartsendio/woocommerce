@@ -122,6 +122,67 @@ class SS_Shipping_WC_Order {
 		}
 
 		echo '<hr>';
+
+		$parcels = $this->get_ss_shipping_order_parcels( $order_id );
+		$checked_attrib = '';
+		$items_class = 'hidden';
+		$items = '';
+		if ( !empty( $parcels ) ) {
+			$checked_attrib = 'checked';
+			$items_class = '';
+
+			foreach ($parcels as $parcel) {
+				$dropdown = '<select data-id="'.$parcel['id'].'" data-name="'.$parcel['name'].'" name="ss_shipping_box_no[]"  autocomplete="off">';
+
+				for ($i=1; $i<=9; $i++) {
+					$selected = ($i == intval($parcel['value'])) ? 'selected' : '';
+					$dropdown .= '<option value="'.$i.'" '.$selected.'>'.$i.'</option>';
+				}
+				$dropdown .= '</select>';
+
+				$items .= '<tr><td width="80%">'.$parcel['name'].'</td><td width="20%">'.$dropdown.'</td></tr>';
+			}
+		}
+
+		echo '<input type="checkbox" id="ss-shipping-split-parcels" name="ss_shipping_split_parcels" autocomplete="off" value="1" '.$checked_attrib.'> <strong>'.__( 'Split into parcels', 'smart-send-shipping' ).'</strong><br/>';
+
+		echo '<div id="ss-shipping-order-items" class="'.$items_class.'"><table width="100%">';
+
+		if ( !empty( $parcels ) ) {
+			echo $items;
+		} else {
+			$order = wc_get_order( $order_id );
+			foreach ( $order->get_items() as $item_id => $item ) {
+
+				$product_id = $item['product_id'];
+				$product_name = $item['name'];
+				// If variable product, add attribute to name
+				if( ! empty( $item['variation_id'] ) ) {
+					$product_id = $item['variation_id'];
+
+					$product_attribute = wc_get_product_variation_attributes($item['variation_id']);
+					$product_name .= ': ' . current( $product_attribute );
+
+				}
+
+				for ( $ii=1; $ii <= intval( $item['qty'] ); $ii++ ) {
+					
+					$dropdown = '<select data-id="' . $product_id . '" data-name="' . $product_name . '" name="ss_shipping_box_no[]"  autocomplete="off">';
+					
+					for ($i=1; $i<=9; $i++) {
+						$dropdown .= '<option value="' . $i . '">' . $i . '</option>';
+					}
+
+					$dropdown .= '</select>';
+
+					echo '<tr><td width="80%">' . $product_name . '</td><td width="20%">' . $dropdown . '</td></tr>';
+				}
+			}
+		}
+
+		echo '</table></div>';
+
+		echo '<hr>';
 		echo '</p>';
 		
 
@@ -258,6 +319,7 @@ class SS_Shipping_WC_Order {
 		check_ajax_referer( 'create-ss-shipping-label', 'ss_shipping_label_nonce' ); //This function dies if the referer is not correct
 		$order_id = wc_clean( $_POST[ 'order_id' ] );
         $return = boolval( $_POST[ 'return_label' ] );
+        $split_parcel = boolval( $_POST[ 'ss_shipping_split_parcel' ] );
 
 		// Save inputted data first, if a message was returned there was an error
 		if( $msg = $this->save_meta_box( $order_id, null, true ) ) {
@@ -265,6 +327,11 @@ class SS_Shipping_WC_Order {
 			wp_die();
 		}
 		
+		// Save parcels input if set:
+		$parcels = ( $split_parcel ) ? $_POST[ 'ss_shipping_parcels' ] : array();
+		$this->save_ss_shipping_order_parcels( $order_id, $parcels );
+		
+
 		$response = $this->create_label_for_single_order_maybe_return($order_id, $return, false);
 		
 		wp_send_json( $response );
@@ -326,7 +393,13 @@ class SS_Shipping_WC_Order {
         $ss_shipping_method_id = $this->get_smart_send_method_id( $order_id, $return );
 
         if ( $return && isset($ss_shipping_method_id['smartsend_return_method']) ) {
-        	$ss_shipping_method_id = $ss_shipping_method_id['smartsend_return_method'];
+        	// If no return method set return error
+        	if ( empty( $ss_shipping_method_id['smartsend_return_method'] ) ) {
+        		return array( 'error' => __('No return method set', 'smart-send-shipping') );
+        	} else {
+        		$ss_shipping_method_id = $ss_shipping_method_id['smartsend_return_method'];
+        	}
+
         } else {
         	$ss_args['ss_agent'] = $this->get_ss_shipping_order_agent( $order_id );
         }
@@ -337,6 +410,9 @@ class SS_Shipping_WC_Order {
 
         $ss_args['ss_carrier'] = $shipping_method_carrier;
         $ss_args['ss_type'] = $shipping_method_type;
+        $ss_args['ss_parcels'] = $this->get_ss_shipping_order_parcels( $order_id );
+
+        $ss_args = apply_filters( 'smart_send_generate_label_args', $ss_args, $order_id, $return);
 
         $ss_order_api = new SS_Shipping_Shipment($order, $ss_args);
 
@@ -373,7 +449,11 @@ class SS_Shipping_WC_Order {
 
             // Add tracking info to "WooCommerce Shipment Tracking" plugin
             foreach($response->parcels as $parcel) {
-                $this->save_tracking_in_shipment_tracking($order_id, $parcel->tracking_code, $parcel->tracking_link, $response->carrier_name,$date_shipped=null);
+                // Only add tracking info to "WooCommerce Shipment Tracking" plugin for non-return parcels
+                if (!$return) {
+                    $this->save_tracking_in_shipment_tracking($order_id, $parcel->tracking_code, $parcel->tracking_link,
+                        $response->carrier_name, $date_shipped = null);
+                }
             }
 
             // Action label created for order id
@@ -483,6 +563,32 @@ class SS_Shipping_WC_Order {
         $upload_path = wp_upload_dir();
         return $upload_path['path'] . '/'. $shipment_id . '.pdf';
     }
+
+
+    /**
+     * Saves the parcels input to post_meta
+     *
+     * @param int $order_id
+     * @param array $parcels
+     *
+     * @return void
+     */
+    public function save_ss_shipping_order_parcels( $order_id, $parcels ) {
+    	update_post_meta( $order_id, 'ss_shipping_order_parcels', $parcels );
+    }
+
+    /**
+     * Gets parcels input from post_meta
+     *
+     * @param int $order_id
+     * @param array $parcels
+     *
+     * @return mixed Parcels if present, false otherwise
+     */
+    public function get_ss_shipping_order_parcels( $order_id ) {
+    	return get_post_meta( $order_id, 'ss_shipping_order_parcels', true );
+    }
+
 
 	/**
 	 * Saves the label agent no to post_meta.

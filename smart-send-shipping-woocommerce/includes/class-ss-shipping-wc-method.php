@@ -178,7 +178,7 @@ class SS_Shipping_WC_Method extends WC_Shipping_Flat_Rate {
 			),
 			'order_status' => array(
 				'title'    	=> __( 'Set order status after label print','smart-send-shipping'),
-				'id'       	=> 'smartsend_logistics_order_status',
+				'id'       	=> 'smart_send_shipping_order_status',
 				'default'  	=> '0',
 				'type'     	=> 'select',
 				'class'    	=> 'wc-enhanced-select',

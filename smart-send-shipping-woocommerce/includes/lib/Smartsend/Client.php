@@ -32,8 +32,27 @@ class Client
 
     public function __construct($api_token, $website, $demo=false)
     {
+        $this->setApiToken($api_token);
+        $this->setWebsite($website);
+        $this->setDemo($demo);
+    }
+
+    protected function setApiToken($api_token)
+    {
         $this->api_token = $api_token;
+    }
+
+    protected function setWebsite($website)
+    {
+        // Remove www. from the start of the website
+        if (substr($website, 0, strlen('www.')) == 'www.') {
+            $website = substr($website, strlen('www.'));
+        }
         $this->website = $website;
+    }
+
+    protected function setDemo($demo)
+    {
         $this->demo = $demo;
     }
 

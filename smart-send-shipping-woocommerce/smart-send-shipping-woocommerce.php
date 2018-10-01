@@ -371,7 +371,7 @@ class SS_Shipping_WC {
 			if( ! empty( $ss_shipping_settings['api_token'] ) ) {
 				// Initiate an API handle with the login credentials.
                 $demo_mode = (!isset($ss_shipping_settings['demo']) || $ss_shipping_settings['demo'] == 'yes');//default is yes
-                $webshop_url = parse_url(get_site_url(),PHP_URL_HOST) . parse_url(get_site_url(),PHP_URL_PATH);
+                $webshop_url = parse_url(get_site_url(),PHP_URL_HOST);
                 $this->api_handle = new \Smartsend\Api( $ss_shipping_settings['api_token'], $webshop_url, $demo_mode );
 			} else {
 				return false;
