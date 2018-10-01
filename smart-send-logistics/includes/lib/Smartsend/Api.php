@@ -19,21 +19,41 @@ class Api extends Client
     }
 
     // Agent API
+    const AGENT_TIMEOUT = 4;
+
+    /**
+     * Get the timeout used when fetching agents
+     *
+     * If no results are returned within the timespan, then cURL timeouts.
+     * This prevents customers from waiting at checkout until the PHP script timeouts.
+     *
+     * @return float timeout in seconds
+     */
+    private function getAgentTimeout()
+    {
+        /*
+         * Filter the timeout used when searching for agents
+         *
+         * @param int | timeout in seconds
+         */
+        return apply_filters( 'smart_send_agent_timeout', self::AGENT_TIMEOUT);
+    }
 
     public function getAgent($id)
     {
-        return $this->httpGet('agents/'.$id);
+        return $this->httpGet($method='agents/',
+            $args = array(), $headers = array(), $body=null, $timeout=$this->getAgentTimeout());
     }
 
     public function getAgentByAgentNo($carrier, $country, $agent_no)
     {
-        return $this->httpGet('agents/carrier/'.$carrier.'/country/'.$country.'/agentno/'.$agent_no);
+        return $this->httpGet($method='agents/carrier/'.$carrier.'/country/'.$country.'/agentno/'.$agent_no,
+            $args = array(), $headers = array(), $body=null, $timeout=$this->getAgentTimeout());
     }
 
     public function findFirstAgent($criteria)
     {
-        // TODO: Implement function to search for $criteria
-        return $this->httpGet('agents/123');
+        throw new \Exception('Feature not yet implemented');
     }
 
     public function updateAgent($id, Agent $agent)
@@ -61,7 +81,8 @@ class Api extends Client
      */
     public function getAgentsByCountry($carrier, $country)
     {
-        return $this->httpGet('agents/carrier/'.$carrier.'/country/'.$country);
+        return $this->httpGet($method='agents/carrier/'.$carrier.'/country/'.$country,
+            $args = array(), $headers = array(), $body=null, $timeout=$this->getAgentTimeout());
     }
 
     /*
@@ -75,7 +96,8 @@ class Api extends Client
      */
     public function getAgentsByPostalCode($carrier, $country, $postal_code)
     {
-        return $this->httpGet('agents/carrier/'.$carrier.'/country/'.$country.'/postalcode/'.$postal_code);
+        return $this->httpGet($method='agents/carrier/'.$carrier.'/country/'.$country.'/postalcode/'.$postal_code,
+            $args = array(), $headers = array(), $body=null, $timeout=$this->getAgentTimeout());
     }
 
     /*
@@ -90,7 +112,8 @@ class Api extends Client
      */
     public function getAgentsByAddress($carrier, $country, $postal_code, $street)
     {
-        return $this->httpGet('agents/carrier/'.$carrier.'/country/'.$country.'/postalcode/'.$postal_code.'/street/'.$street);
+        return $this->httpGet($method='agents/carrier/'.$carrier.'/country/'.$country.'/postalcode/'.$postal_code.'/street/'.$street,
+            $args = array(), $headers = array(), $body=null, $timeout=$this->getAgentTimeout());
     }
     
     /*
@@ -108,14 +131,16 @@ class Api extends Client
     public function getAgentsInArea($carrier, $country=null, $min_latitude, $max_latitude,$min_longitude, $max_longitude)
     {
     	if($country) {
-        	return $this->httpGet('agents/carrier/'.$carrier.'/country/'.$country
+            $method = 'agents/carrier/'.$carrier.'/country/'.$country
         	.'/area/latitude/min/'.$min_latitude.'/max/'.$max_latitude
-        	.'/longitude/min/'.$min_longitude.'/max/'.$max_longitude);
+        	.'/longitude/min/'.$min_longitude.'/max/'.$max_longitude;
         } else {
-        	return $this->httpGet('agents/carrier/'.$carrier
+            $method = 'agents/carrier/'.$carrier
         	.'/area/latitude/min/'.$min_latitude.'/max/'.$max_latitude
-        	.'/longitude/min/'.$min_longitude.'/max/'.$max_longitude);
+        	.'/longitude/min/'.$min_longitude.'/max/'.$max_longitude;
         }
+
+        return $this->httpGet($method, $args = array(), $headers = array(), $body=null, $timeout=$this->getAgentTimeout());
     }
 
     /*
@@ -129,7 +154,8 @@ class Api extends Client
      */
     public function findClosestAgentByPostalCode($carrier, $country, $postal_code)
     {
-        return $this->httpGet('agents/closest/carrier/'.$carrier.'/country/'.$country.'/postalcode/'.$postal_code);
+        return $this->httpGet($method='agents/closest/carrier/'.$carrier.'/country/'.$country.'/postalcode/'.$postal_code,
+            $args = array(), $headers = array(), $body=null, $timeout=$this->getAgentTimeout());
     }
 
     /*
@@ -144,7 +170,8 @@ class Api extends Client
      */
     public function findClosestAgentByAddress($carrier, $country, $postal_code, $street)
     {
-        return $this->httpGet('agents/closest/carrier/'.$carrier.'/country/'.$country.'/postalcode/'.$postal_code.'/street/'.$street);
+        return $this->httpGet($method='agents/closest/carrier/'.$carrier.'/country/'.$country.'/postalcode/'.$postal_code.'/street/'.$street,
+            $args = array(), $headers = array(), $body=null, $timeout=$this->getAgentTimeout());
     }
 
     /*
@@ -159,7 +186,8 @@ class Api extends Client
      */
     public function findClosestAgentByGpsCoordinates($carrier, $country, $latitude, $longitude)
     {
-        return $this->httpGet('agents/closest/carrier/'.$carrier.'/country/'.$country.'/coordinates/latitude/'.$latitude.'/longitude/'.$longitude);
+        return $this->httpGet($method='agents/closest/carrier/'.$carrier.'/country/'.$country.'/coordinates/latitude/'.$latitude.'/longitude/'.$longitude,
+            $args = array(), $headers = array(), $body=null, $timeout=$this->getAgentTimeout());
     }
 
 // Shipment API

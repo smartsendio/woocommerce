@@ -9,7 +9,7 @@ use Smartsend\Models\Error;
 
 class Client
 {
-    const TIMEOUT = 10;
+    const TIMEOUT = 30;
 
     private $api_host = 'https://smartsend-prod.apigee.net/api/v1/';
     private $website;
