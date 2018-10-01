@@ -102,7 +102,7 @@ class SS_Shipping_Frontend {
                     <?php
                 } else {
                 	
-                	SS_SHIPPING_WC()->log_msg( 'Response from "findClosestAgentByAddress": No agent found' );
+                	SS_SHIPPING_WC()->log_msg( 'Response from "findClosestAgentByAddress": '.SS_SHIPPING_WC()->get_api_handle()->getErrorString() );
 
                     echo '<div class="woocommerce-info ss-agent-info">' . __('Shipping to closest pick-up point', 'smart-send-shipping') . '</div>';
                 }
