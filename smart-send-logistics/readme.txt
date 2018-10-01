@@ -131,11 +131,11 @@ The plugin implements a number of useful hooks (actions and filters) that can be
 
 == Screenshots ==
 
-1. Create shipping labels from backend and save tracking information automatically
-2. Let the customer choose a close pickup point where the parcel can be collected
-3. Plugins general settings
-4. Table rate setup of shipping methods have never been easier.
-5. Services for each carrier is easily setup in WooCommerce backend.
+1. Add shipping methods to WooCommerce Shipping Zones
+2. Connect WooCommerce to Smart Send by entering the API Token
+3. Create PDF shipping labels from backend with just one click
+4. Get details errors if something is incorrect
+5. Save tracking information automatically after creating shipping labels
 
 == Changelog ==
 
