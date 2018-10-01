@@ -5,7 +5,7 @@
  * Description: Smart Send Shipping for WooCommerce
  * Author: Smart Send ApS
  * Author URI: http://www.smartsend.io
- * Version: 8.0.0b8
+ * Version: 8.0.0b9
  * WC requires at least: 2.6.0
  * WC tested up to: 3.4
  *
