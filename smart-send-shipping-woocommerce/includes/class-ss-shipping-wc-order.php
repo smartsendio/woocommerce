@@ -449,7 +449,11 @@ class SS_Shipping_WC_Order {
 
             // Add tracking info to "WooCommerce Shipment Tracking" plugin
             foreach($response->parcels as $parcel) {
-                $this->save_tracking_in_shipment_tracking($order_id, $parcel->tracking_code, $parcel->tracking_link, $response->carrier_name,$date_shipped=null);
+                // Only add tracking info to "WooCommerce Shipment Tracking" plugin for non-return parcels
+                if (!$return) {
+                    $this->save_tracking_in_shipment_tracking($order_id, $parcel->tracking_code, $parcel->tracking_link,
+                        $response->carrier_name, $date_shipped = null);
+                }
             }
 
             // Action label created for order id
