@@ -134,7 +134,7 @@ The plugin implements a number of useful hooks (actions and filters) that can be
 1. Add shipping methods to WooCommerce Shipping Zones
 2. Connect WooCommerce to Smart Send by entering the API Token
 3. Create PDF shipping labels from backend with just one click
-4. Get details errors if something is incorrect
+4. Get detailed error description if something is incorrect
 5. Save tracking information automatically after creating shipping labels
 
 == Changelog ==
