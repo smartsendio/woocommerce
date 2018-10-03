@@ -88,7 +88,8 @@ class SS_Shipping_WC_Order {
 		$ss_shipping_method_id = $this->get_smart_send_method_id( $order_id );
 
 		// Get order agent object
-		$ss_shipping_order_agent = $this->get_ss_shipping_order_agent( $order_id );
+        $ss_shipping_order_agent = $this->get_ss_shipping_order_agent( $order_id );
+		$ss_shipping_order_agent_no = $this->get_ss_shipping_order_agent_no( $order_id );
 		
 		echo '<div id="ss-shipping-label-form">';
 
@@ -113,11 +114,11 @@ class SS_Shipping_WC_Order {
 				'label'       		=> __( 'Agent No.', 'smart-send-logistics' ),
 				'placeholder' 		=> '',
 				'description'		=> sprintf( __( 'Search for an "Agent No." <a href="%s" target="_blank">here</a>', 'smart-send-logistics' ), esc_url( 'https://smartsend.io/pick-up-points' ) ),
-				'value'       		=> isset($ss_shipping_order_agent->agent_no) ? $ss_shipping_order_agent->agent_no : null,
+				'value'       		=> $ss_shipping_order_agent_no,
 				'class'				=> '',
 				'type'				=> 'number'
 			) );
-			
+
 			echo $this->get_formatted_address( $ss_shipping_order_agent );
 		}
 
@@ -643,7 +644,20 @@ class SS_Shipping_WC_Order {
 	 * @return Agent No
 	 */
 	public function get_ss_shipping_order_agent_no( $order_id ) {
-		return get_post_meta( $order_id, 'ss_shipping_order_agent_no', true );
+	    // Fecth agent_no from meta field saved by Smart Send
+		$ss_agent_number = get_post_meta( $order_id, 'ss_shipping_order_agent_no', true );
+		if ($ss_agent_number) {
+		    // Return the agent_no found
+		    return $ss_agent_number;
+        } else {
+		    // No Smart Send agent_no was found, check if the order has a vConnect agent_no
+            $vc_aio_meta = get_post_meta($order_id, '_vc_aio_options', true);
+            if ( !empty($vc_aio_meta['addressId']['value']) ) {
+                return $vc_aio_meta['addressId']['value'];
+            } else {
+                return null;
+            }
+        }
 	}
 
 	/**
@@ -666,7 +680,28 @@ class SS_Shipping_WC_Order {
 	 * @return Agent Object
 	 */
 	public function get_ss_shipping_order_agent( $order_id ) {
-		return get_post_meta( $order_id, '_ss_shipping_order_agent', true );
+        // Fecth agent info from meta field saved by Smart Send
+        $ss_agent_info = get_post_meta( $order_id, '_ss_shipping_order_agent', true );
+        if ($ss_agent_info) {
+            // Return the agent_no found
+            return $ss_agent_info;
+        } else {
+            // No Smart Send agent_no was found, check if the order has a vConnect agent_no
+            $vc_aio_meta = get_post_meta($order_id, '_vc_aio_options', true);
+            if ( !empty($vc_aio_meta['addressId']['value']) ) {
+                return (object) array(
+                    'agent_no'          => isset($vc_aio_meta['addressId']['value']) ? $vc_aio_meta['addressId']['value'] : null,
+                    'company'           => isset($vc_aio_meta['name']['value']) ? $vc_aio_meta['name']['value'] : null,
+                    'address_line1'     => isset($vc_aio_meta['addressText']['value']) ? $vc_aio_meta['addressText']['value'] : null,
+                    'address_line2'     => null,
+                    'city'              => isset($vc_aio_meta['city']['value']) ? $vc_aio_meta['city']['value'] : null,
+                    'postal_code'       => isset($vc_aio_meta['postcode']['value']) ? $vc_aio_meta['postcode']['value'] : null,
+                    'country'           => isset($vc_aio_meta['country']['value']) ? $vc_aio_meta['country']['value'] : null,
+                );
+            } else {
+                return null;
+            }
+        }
 	}
 
 	/**
