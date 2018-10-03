@@ -249,7 +249,7 @@ class SS_Shipping_Shipment {
 				$product_img_url = wp_get_attachment_url( $product_img_id );
 				
 				$hs_code = get_post_meta( $item['product_id'], '_ss_hs_code', true );
-				$custom_desc = get_post_meta( $item['product_id'], '_ss_custom_desc', true );
+				$custom_desc = get_post_meta( $item['product_id'], '_ss_customs_desc', true );
 
 				$items[ $index ] = new \Smartsend\Models\Shipment\Item();
 				$items[ $index ]->setInternalId( $product_id ?: null )

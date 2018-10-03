@@ -45,8 +45,8 @@ class SS_Shipping_WC_Product {
 
 		woocommerce_wp_text_input( 
 			array(
-				'id' => '_ss_custom_desc',
-				'label' => __('Custom Description', 'smart-send-logistics'),
+				'id' => '_ss_customs_desc',
+				'label' => __('Customs description', 'smart-send-logistics'),
 				'description' => '',
 				'desc_tip' => 'false',
 				'placeholder' => ''
@@ -61,8 +61,8 @@ class SS_Shipping_WC_Product {
 		}
 
 		//Custom description value
-		if ( isset( $_POST['_ss_custom_desc'] ) ) {
-			update_post_meta( $post_id, '_ss_custom_desc', wc_clean( $_POST['_ss_custom_desc'] ) );
+		if ( isset( $_POST['_ss_customs_desc'] ) ) {
+			update_post_meta( $post_id, '_ss_customs_desc', wc_clean( $_POST['_ss_customs_desc'] ) );
 		}
 	}
 }
