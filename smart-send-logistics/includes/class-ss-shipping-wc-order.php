@@ -229,7 +229,7 @@ class SS_Shipping_WC_Order {
 			return '';
 		}
 
-		// Get shipping id to make sure it's SS
+		// Get shipping id to make sure its either Smart Send, Free Shipping or vConnect
 		$order_shipping_methods = $order->get_shipping_methods();
 		if( !empty($order_shipping_methods) ) {
 
@@ -245,14 +245,23 @@ class SS_Shipping_WC_Order {
                         return $item['smart_send_shipping_method'];
                     }
 				} else {
-					// If free shipping and setting to set free shipping to Send Smart
 					if ( stripos($shipping_method_id, 'free_shipping') !== false ) {
+                        // If free shipping, then filter the shipping method to the correct Smart Send method
+
 						$ss_settings = SS_SHIPPING_WC()->get_ss_shipping_settings();
 						
-						if( ! empty( $ss_settings['shipping_method_for_free_shipping'] ) ) {
+						if ( !empty( $ss_settings['shipping_method_for_free_shipping'] ) ) {
 							return $ss_settings['shipping_method_for_free_shipping'];
 						}
-					}
+					} elseif ( stripos($shipping_method_id, 'vconnect_postnord') !== false ) {
+                        // If vConnect, then filter the shipping method to the correct Smart Send method
+
+                        if ( stripos($shipping_method_id, '_pickup') !== false ) {
+                            return 'postnord_agent';
+                        } elseif ( stripos($shipping_method_id, '_dpd') !== false ) {
+                            return 'postnord_homedelivery';
+                        }
+                    }
 				}
 			}
 		}
