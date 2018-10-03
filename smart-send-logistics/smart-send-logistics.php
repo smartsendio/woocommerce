@@ -6,7 +6,7 @@
  * Author: Smart Send ApS
  * Author URI: https://www.smartsend.io
  * Text Domain: smart-send-logistics
- * Version: 8.0.0b11
+ * Version: 8.0.0b12
  * WC requires at least: 2.6.0
  * WC tested up to: 3.5
  *
