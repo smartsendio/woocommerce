@@ -255,11 +255,14 @@ class SS_Shipping_WC_Order {
 						}
 					} elseif ( stripos($shipping_method_id, 'vconnect_postnord') !== false ) {
                         // If vConnect, then filter the shipping method to the correct Smart Send method
-
-                        if ( stripos($shipping_method_id, '_pickup') !== false ) {
-                            return 'postnord_agent';
-                        } elseif ( stripos($shipping_method_id, '_dpd') !== false ) {
-                            return 'postnord_homedelivery';
+                        if ($return) {
+                            return 'postnord_returndropoff';
+                        } else {
+                            if ( stripos($shipping_method_id, '_pickup') !== false ) {
+                                return 'postnord_agent';
+                            } elseif ( stripos($shipping_method_id, '_dpd') !== false ) {
+                                return 'postnord_homedelivery';
+                            }
                         }
                     }
 				}
