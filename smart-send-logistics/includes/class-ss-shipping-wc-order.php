@@ -936,10 +936,11 @@ class SS_Shipping_WC_Order {
 			$order_id_list = wp_list_pluck( $array_shipment_ids, 'order_id' );
 			$order_id_list = array_unique( $order_id_list );
 			$label_count = count($order_id_list);
-			$order_ids_str = 'Orders: #' . implode(', #', $order_id_list);
+			$order_ids_str = __( 'Orders: #', 'smart-send-logistics') . implode(', #', $order_id_list);
 
 			array_push($array_messages, array(
-                'message' => sprintf( __( 'Shipping labels created by Smart Send for %s order: <a href="%s" target="_blank">Download combined pdf</a><br/>%s', 'smart-send-logistics'), $label_count, $combo_url, $order_ids_str ),
+                'message' => sprintf( __( 'Shipping labels created by Smart Send for %s orders: <a href="%s" target="_blank">Download combined pdf</a>', 'smart-send-logistics'), $label_count, $combo_url )
+                    . '<br/>' . $order_ids_str,
                 'type' => 'success',
             ));
 
