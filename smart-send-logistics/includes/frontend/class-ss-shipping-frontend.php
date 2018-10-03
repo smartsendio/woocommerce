@@ -64,14 +64,14 @@ class SS_Shipping_Frontend {
 		if ( $chosen_shipping &&
             ( $method_id == 'smart_send_shipping' ) &&
 			( $chosen_shipping == $shipping_id ) &&
-			( stripos($meta_data['smartsend_method'], 'agent') !== false) ) {
+			( stripos($meta_data['smart_send_shipping_method'], 'agent') !== false) ) {
 
 			if ( !empty( $_POST['s_country'] ) && !empty( $_POST['s_postcode'] ) && !empty( $_POST['s_address'] ) ) {
 				$country = wc_clean( $_POST['s_country'] );
 				$postal_code = wc_clean( $_POST['s_postcode'] );
 				$street = wc_clean( $_POST['s_address'] );
 
-				$carrier = SS_SHIPPING_WC()->get_shipping_method_carrier( $meta_data['smartsend_method'] );
+				$carrier = SS_SHIPPING_WC()->get_shipping_method_carrier( $meta_data['smart_send_shipping_method'] );
 
 				SS_SHIPPING_WC()->log_msg( 'Called "findClosestAgentByAddress" with carrier = "' . $carrier .'", country = "'. $country . '", postcode = "' . $postal_code . '", street = "' . $street . '"' );
 				

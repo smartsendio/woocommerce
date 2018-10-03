@@ -240,9 +240,9 @@ class SS_Shipping_WC_Order {
 				// If Smart Send found, return id
 				if ( stripos($shipping_method_id, 'smart_send_shipping') !== false ) {
 				    if($return) {
-                        return array( 'smartsend_return_method' => $item['smartsend_return_method'],'smartsend_auto_generate_return_label' => $item['smartsend_auto_generate_return_label']) ;
+                        return array( 'smart_send_return_method' => $item['smart_send_return_method'],'smart_send_auto_generate_return_label' => $item['smart_send_auto_generate_return_label']) ;
                     } else {
-                        return $item['smartsend_method'];
+                        return $item['smart_send_shipping_method'];
                     }
 				} else {
 					// If free shipping and setting to set free shipping to Send Smart
@@ -355,8 +355,8 @@ class SS_Shipping_WC_Order {
 
         // If creating normal label and auto generate return flag is enabled, create both
         if ( ! $return &&
-        	 isset( $ss_shipping_method_id['smartsend_auto_generate_return_label'] ) && 
-        	 $ss_shipping_method_id['smartsend_auto_generate_return_label'] == 'yes' ) {
+        	 isset( $ss_shipping_method_id['smart_send_auto_generate_return_label'] ) &&
+        	 $ss_shipping_method_id['smart_send_auto_generate_return_label'] == 'yes' ) {
 
     		// Create the normal label
     		$response = $this->create_label_for_single_order($order_id, false, $setting_save_order_note);
@@ -393,12 +393,12 @@ class SS_Shipping_WC_Order {
         // Get shipping method
         $ss_shipping_method_id = $this->get_smart_send_method_id( $order_id, $return );
 
-        if ( $return && isset($ss_shipping_method_id['smartsend_return_method']) ) {
+        if ( $return && isset($ss_shipping_method_id['smart_send_return_method']) ) {
         	// If no return method set return error
-        	if ( empty( $ss_shipping_method_id['smartsend_return_method'] ) ) {
+        	if ( empty( $ss_shipping_method_id['smart_send_return_method'] ) ) {
         		return array( 'error' => __('No return method set', 'smart-send-shipping') );
         	} else {
-        		$ss_shipping_method_id = $ss_shipping_method_id['smartsend_return_method'];
+        		$ss_shipping_method_id = $ss_shipping_method_id['smart_send_return_method'];
         	}
 
         } else {
@@ -871,11 +871,11 @@ class SS_Shipping_WC_Order {
                                 'type' => 'error',
                             ));
 						}
-					}
+                    }
 
-					$array_combo_messages = $this->create_combo_file( $array_messages_success, $array_messages_error, $array_shipment_ids );
+                    $array_combo_messages = $this->create_combo_file( $array_messages_success, $array_messages_error, $array_shipment_ids );
 
-					$array_messages = array_merge( $array_messages, $array_combo_messages );
+                    $array_messages = array_merge( $array_messages, $array_combo_messages );
 
 				}
 

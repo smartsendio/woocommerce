@@ -698,9 +698,9 @@ class SS_Shipping_WC_Method extends WC_Shipping_Flat_Rate {
 			'label'   => $this->title,
 			'cost'    => 0,
 			'meta_data' => array( 
-                'smartsend_method' => $this->get_instance_option( 'method' ),
-                'smartsend_return_method' => $this->get_instance_option( 'return_method' ),
-                'smartsend_auto_generate_return_label' => $this->get_instance_option( 'auto_generate_return_label' )
+                'smart_send_shipping_method' => $this->get_instance_option( 'method' ),
+                'smart_send_return_method' => $this->get_instance_option( 'return_method' ),
+                'smart_send_auto_generate_return_label' => $this->get_instance_option( 'auto_generate_return_label' )
             ),
 			'package' => $package,
 		);

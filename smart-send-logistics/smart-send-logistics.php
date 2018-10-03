@@ -236,8 +236,8 @@ class SS_Shipping_WC {
 
 		if ( SS_SHIPPING_PLUGIN_BASENAME == $file ) {
 			$row_meta = array(
-				'configuration'	=> '<a href="' . esc_url( apply_filters( 'smartsend_logistics_configuration_url', 'https://smartsend.io/woocommerce/configuration/' ) ) . '" title="' . esc_attr( __( 'Configuration guide','smart-send-shipping' ) ) . '" target="_blank">' . __( 'Configuration guide','smart-send-shipping' ) . '</a>',
-				'support'		=> '<a href="' . esc_url( apply_filters( 'smartsend_logistics_support_url', 'https://smartsend.io/support/' ) ) . '" title="' . esc_attr( __( 'Support','smart-send-shipping' ) ) . '" target="_blank">' . __( 'Support','smart-send-shipping' ) . '</a>',
+				'configuration'	=> '<a href="' . esc_url( apply_filters( 'smart_send_configuration_url', 'https://smartsend.io/woocommerce/configuration/' ) ) . '" title="' . esc_attr( __( 'Configuration guide','smart-send-shipping' ) ) . '" target="_blank">' . __( 'Configuration guide','smart-send-shipping' ) . '</a>',
+				'support'		=> '<a href="' . esc_url( apply_filters( 'smart_send_support_url', 'https://smartsend.io/support/' ) ) . '" title="' . esc_attr( __( 'Support','smart-send-shipping' ) ) . '" target="_blank">' . __( 'Support','smart-send-shipping' ) . '</a>',
 			);
 			
 			return array_merge( $links, $row_meta );
