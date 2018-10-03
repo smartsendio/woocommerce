@@ -89,7 +89,7 @@ class SS_Shipping_Frontend {
                         <?php
                         	// Select the closest pick-up point by default or have the customer select one
                             if ( !isset( $ss_setting['default_select_agent'] ) || $ss_setting['default_select_agent'] == 'no' ) {
-                                echo '<option value="0">' . __('- Select Pick-up Point -', 'smart-send-shipping') . '</option>';
+                                echo '<option value="0">' . __('- Select Pick-up Point -', 'smart-send-logistics') . '</option>';
                             }
 
                             foreach ($ss_agents as $key => $agent) {
@@ -104,10 +104,10 @@ class SS_Shipping_Frontend {
                 	
                 	SS_SHIPPING_WC()->log_msg( 'Response from "findClosestAgentByAddress": '.SS_SHIPPING_WC()->get_api_handle()->getErrorString() );
 
-                    echo '<div class="woocommerce-info ss-agent-info">' . __('Shipping to closest pick-up point', 'smart-send-shipping') . '</div>';
+                    echo '<div class="woocommerce-info ss-agent-info">' . __('Shipping to closest pick-up point', 'smart-send-logistics') . '</div>';
                 }
 			} else {
-                echo '<div class="woocommerce-info ss-agent-info">' . __('Enter shipping information', 'smart-send-shipping') . '</div>';
+                echo '<div class="woocommerce-info ss-agent-info">' . __('Enter shipping information', 'smart-send-logistics') . '</div>';
             }
 		}
 	}
@@ -125,10 +125,10 @@ class SS_Shipping_Frontend {
 		$address_format = $agents_address_format[ $format_id ];
 
 		$place_holders = array( 
-								__('#Company', 'smart-send-shipping'),
-								__('#Street','smart-send-shipping'),
-								__('#Zipcode','smart-send-shipping'),
-								__('#City','smart-send-shipping')
+								__('#Company', 'smart-send-logistics'),
+								__('#Street','smart-send-logistics'),
+								__('#Zipcode','smart-send-logistics'),
+								__('#City','smart-send-logistics')
 							);
 
 		$place_holders_vals = array(
@@ -143,10 +143,10 @@ class SS_Shipping_Frontend {
 		if( !empty( $agent->distance ) ) {
 		    if($agent->distance < 1) {
                 $formatted_distance = number_format($agent->distance*1000, 0, '.', '')
-                    . __('m: ', 'smart-send-shipping');
+                    . __('m: ', 'smart-send-logistics');
             } else {
                 $formatted_distance = number_format($agent->distance, 2, '.', '')
-                    . __('km: ', 'smart-send-shipping');
+                    . __('km: ', 'smart-send-logistics');
             }
             $formatted_address = $formatted_distance . $formatted_address;
 		}
@@ -165,7 +165,7 @@ class SS_Shipping_Frontend {
 		
 		// If agent drop down exists and is empty, cannot checkout
 		if( isset( $_POST[ 'ss_shipping_store_pickup' ] ) && empty( $_POST[ 'ss_shipping_store_pickup' ] ) ) {
-			wc_add_notice( __( 'A pick-up point must be selected.', 'smart-send-shipping' ), 'error' );
+			wc_add_notice( __( 'A pick-up point must be selected.', 'smart-send-logistics' ), 'error' );
 			return;
 		}
 	}
@@ -224,7 +224,7 @@ class SS_Shipping_Frontend {
 			$formatted_address = str_replace(',', '<br/>', $formatted_address);
 			?>
 
-			<h2><?php _e( 'Pick-up Point', 'smart-send-shipping' ); ?></h2>
+			<h2><?php _e( 'Pick-up Point', 'smart-send-logistics' ); ?></h2>
 			<address>
 				<?php echo $formatted_address; ?>
 			</address>

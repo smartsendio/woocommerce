@@ -5,6 +5,7 @@
  * Description: Smart Send Shipping for WooCommerce
  * Author: Smart Send ApS
  * Author URI: http://www.smartsend.io
+ * Text Domain: smart-send-logistics
  * Version: 8.0.0b11
  * WC requires at least: 2.6.0
  * WC tested up to: 3.5
@@ -91,13 +92,13 @@ class SS_Shipping_WC {
 		$this->init_hooks();
 
 		$this->agents_address_format = array(
-					'1' 		=> __('#Company', 'smart-send-shipping') . ', ' . __('#Street','smart-send-shipping'),
-					'2'    		=> __('#Company', 'smart-send-shipping') . ', ' . __('#Street','smart-send-shipping') . ', ' .__('#Zipcode','smart-send-shipping'),
-					'3'    		=> __('#Company', 'smart-send-shipping') . ', ' . __('#Street','smart-send-shipping') . ', ' . __('#City','smart-send-shipping'),
-					'4'    		=> __('#Company', 'smart-send-shipping') . ', ' . __('#Street','smart-send-shipping') . ', ' .__('#Zipcode','smart-send-shipping').' ' . __('#City','smart-send-shipping'),
-					'5'    		=> __('#Company', 'smart-send-shipping') . ', ' .__('#Zipcode','smart-send-shipping'),
-					'6'    		=> __('#Company', 'smart-send-shipping') . ', ' .__('#Zipcode','smart-send-shipping') . ', ' . __('#City','smart-send-shipping'),
-					'7'    		=> __('#Company', 'smart-send-shipping') . ', ' . __('#City','smart-send-shipping'),
+					'1' 		=> __('#Company', 'smart-send-logistics') . ', ' . __('#Street','smart-send-logistics'),
+					'2'    		=> __('#Company', 'smart-send-logistics') . ', ' . __('#Street','smart-send-logistics') . ', ' .__('#Zipcode','smart-send-logistics'),
+					'3'    		=> __('#Company', 'smart-send-logistics') . ', ' . __('#Street','smart-send-logistics') . ', ' . __('#City','smart-send-logistics'),
+					'4'    		=> __('#Company', 'smart-send-logistics') . ', ' . __('#Street','smart-send-logistics') . ', ' .__('#Zipcode','smart-send-logistics').' ' . __('#City','smart-send-logistics'),
+					'5'    		=> __('#Company', 'smart-send-logistics') . ', ' .__('#Zipcode','smart-send-logistics'),
+					'6'    		=> __('#Company', 'smart-send-logistics') . ', ' .__('#Zipcode','smart-send-logistics') . ', ' . __('#City','smart-send-logistics'),
+					'7'    		=> __('#Company', 'smart-send-logistics') . ', ' . __('#City','smart-send-logistics'),
 				);
 	}
 
@@ -131,7 +132,7 @@ class SS_Shipping_WC {
 		$this->define( 'SS_SHIPPING_VERSION', $this->version );
 		$this->define( 'SS_SHIPPING_LOG_DIR', $upload_dir['basedir'] . '/wc-logs/' );
 		$this->define( 'SS_SHIPPING_METHOD_ID', 'smart_send_shipping' );
-		$this->define( 'SS_BUTTON_TEST_CONNECTION', __('Validate API Token', 'smart-send-shipping' ) );
+		$this->define( 'SS_BUTTON_TEST_CONNECTION', __('Validate API Token', 'smart-send-logistics' ) );
 	}
 	
 	/**
@@ -181,7 +182,7 @@ class SS_Shipping_WC {
 	 * Localisation
 	 */
 	public function load_textdomain() {
-		load_plugin_textdomain( 'smart-send-shipping', false, dirname( plugin_basename(__FILE__) ) . '/lang/' );
+		load_plugin_textdomain( 'smart-send-logistics', false, dirname( plugin_basename(__FILE__) ) . '/lang/' );
 	}
 
 	/**
@@ -219,7 +220,7 @@ class SS_Shipping_WC {
 	 */
 	public static function plugin_action_links( $links ) {
 		$action_links = array(
-			'settings' => '<a href="' . admin_url( 'admin.php?page=wc-settings&tab=shipping&section=smart_send_shipping' ) . '" aria-label="' . esc_attr__( 'View WooCommerce settings', 'smart-send-shipping' ) . '">' . esc_html__( 'Settings', 'smart-send-shipping' ) . '</a>',
+			'settings' => '<a href="' . admin_url( 'admin.php?page=wc-settings&tab=shipping&section=smart_send_shipping' ) . '" aria-label="' . esc_attr__( 'View WooCommerce settings', 'smart-send-logistics' ) . '">' . esc_html__( 'Settings', 'smart-send-logistics' ) . '</a>',
 		);
 
 		return array_merge( $action_links, $links );
@@ -236,8 +237,8 @@ class SS_Shipping_WC {
 
 		if ( SS_SHIPPING_PLUGIN_BASENAME == $file ) {
 			$row_meta = array(
-				'configuration'	=> '<a href="' . esc_url( apply_filters( 'smart_send_configuration_url', 'https://smartsend.io/woocommerce/configuration/' ) ) . '" title="' . esc_attr( __( 'Configuration guide','smart-send-shipping' ) ) . '" target="_blank">' . __( 'Configuration guide','smart-send-shipping' ) . '</a>',
-				'support'		=> '<a href="' . esc_url( apply_filters( 'smart_send_support_url', 'https://smartsend.io/support/' ) ) . '" title="' . esc_attr( __( 'Support','smart-send-shipping' ) ) . '" target="_blank">' . __( 'Support','smart-send-shipping' ) . '</a>',
+				'configuration'	=> '<a href="' . esc_url( apply_filters( 'smart_send_configuration_url', 'https://smartsend.io/woocommerce/configuration/' ) ) . '" title="' . esc_attr( __( 'Configuration guide','smart-send-logistics' ) ) . '" target="_blank">' . __( 'Configuration guide','smart-send-logistics' ) . '</a>',
+				'support'		=> '<a href="' . esc_url( apply_filters( 'smart_send_support_url', 'https://smartsend.io/support/' ) ) . '" title="' . esc_attr( __( 'Support','smart-send-logistics' ) ) . '" target="_blank">' . __( 'Support','smart-send-logistics' ) . '</a>',
 			);
 			
 			return array_merge( $links, $row_meta );
@@ -262,7 +263,7 @@ class SS_Shipping_WC {
 	public function notice_wc_required() {
 	?>
 		<div class="error">
-			<p><?php _e( 'Smart Send Shipping requires WooCommerce 2.6 and above to be installed and activated!', 'smart-send-shipping' ); ?></p>
+			<p><?php _e( 'Smart Send Shipping requires WooCommerce 2.6 and above to be installed and activated!', 'smart-send-logistics' ); ?></p>
 		</div>
 	<?php
 	}
@@ -402,10 +403,10 @@ class SS_Shipping_WC {
 		check_ajax_referer( 'ss-test-connection', 'test_connection_nonce' );
 
 		if( $this->validate_api_token() ) {
-			$connection_msg = sprintf(__('API Token verified: Connected to Smart Send as %s from %s', 'smart-send-shipping'),$this->get_api_handle()->getData()->email, $this->get_api_handle()->getData()->website);
+			$connection_msg = sprintf(__('API Token verified: Connected to Smart Send as %s from %s', 'smart-send-logistics'),$this->get_api_handle()->getData()->email, $this->get_api_handle()->getData()->website);
 			$error = 0;
 		} else {
-			$connection_msg = sprintf(__('API Token validation failed: %s. Make sure to save the settings before testing the connection.', 'smart-send-shipping'), $this->get_api_handle()->getError()->message);
+			$connection_msg = sprintf(__('API Token validation failed: %s. Make sure to save the settings before testing the connection.', 'smart-send-logistics'), $this->get_api_handle()->getError()->message);
 			$error = 1;
 		}
 

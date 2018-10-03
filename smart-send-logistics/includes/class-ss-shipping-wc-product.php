@@ -36,8 +36,8 @@ class SS_Shipping_WC_Product {
 		woocommerce_wp_text_input( 
 			array(
 				'id' => '_ss_hs_code',
-				'label' => __('Harmonized Tariff Schedule (Smart Send)', 'smart-send-shipping'),
-				'description' => __('Harmonized Tariff Schedule is a number assigned to every possible commodity that can be imported or exported from any country.', 'smart-send-shipping'),
+				'label' => __('Harmonized Tariff Schedule (Smart Send)', 'smart-send-logistics'),
+				'description' => __('Harmonized Tariff Schedule is a number assigned to every possible commodity that can be imported or exported from any country.', 'smart-send-logistics'),
 				'desc_tip' => 'true',
 				'placeholder' => 'HsCode'
 			) 
@@ -46,7 +46,7 @@ class SS_Shipping_WC_Product {
 		woocommerce_wp_text_input( 
 			array(
 				'id' => '_ss_custom_desc',
-				'label' => __('Custom Description', 'smart-send-shipping'),
+				'label' => __('Custom Description', 'smart-send-logistics'),
 				'description' => '',
 				'desc_tip' => 'false',
 				'placeholder' => ''

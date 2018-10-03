@@ -31,8 +31,8 @@ class SS_Shipping_WC_Order {
 	 * Define constants
 	 */
 	protected function define_constants() {
-		SS_SHIPPING_WC()->define( 'SS_SHIPPING_BUTTON_LABEL_GEN', __( 'Generate label', 'smart-send-shipping' ) );
-        SS_SHIPPING_WC()->define( 'SS_SHIPPING_BUTTON_RETURN_LABEL_GEN', __( 'Generate return label', 'smart-send-shipping' ) );
+		SS_SHIPPING_WC()->define( 'SS_SHIPPING_BUTTON_LABEL_GEN', __( 'Generate label', 'smart-send-logistics' ) );
+        SS_SHIPPING_WC()->define( 'SS_SHIPPING_BUTTON_RETURN_LABEL_GEN', __( 'Generate return label', 'smart-send-logistics' ) );
 	}
 
 	/**
@@ -74,7 +74,7 @@ class SS_Shipping_WC_Order {
 		// Only display Smart Shipping (SS) meta box is SS selected as shipping method OR free shipping is set to SS method
 		if( !empty($ss_shipping_method_id) ) {
 			
-			add_meta_box( 'woocommerce-ss-shipping-label', __( 'Smart Send Shipping', 'smart-send-shipping' ), array( $this, 'meta_box' ), 'shop_order', 'side', 'default' );
+			add_meta_box( 'woocommerce-ss-shipping-label', __( 'Smart Send Shipping', 'smart-send-logistics' ), array( $this, 'meta_box' ), 'shop_order', 'side', 'default' );
 		}
 	}
 
@@ -100,19 +100,19 @@ class SS_Shipping_WC_Order {
 		$shipping_method_carrier = ucfirst( SS_SHIPPING_WC()->get_shipping_method_carrier( $ss_shipping_method_id ) );
 		$shipping_method_type = ucfirst( SS_SHIPPING_WC()->get_shipping_method_type( $ss_shipping_method_id ) );
 
-		echo '<h3>' . __('Shipping Method', 'smart-send-shipping') . '</h3>';
+		echo '<h3>' . __('Shipping Method', 'smart-send-logistics') . '</h3>';
 		echo '<p>'. $shipping_method_carrier . ' - ' . $shipping_method_type . '</p>';
 		
 		// Display Agent No. field if pickup-point shipping method selected
 		if( stripos($shipping_method_type, 'agent') !== false ) {
 
-			echo '<h3>' . __('Pick-up Point', 'smart-send-shipping') . '</h3>';
+			echo '<h3>' . __('Pick-up Point', 'smart-send-logistics') . '</h3>';
 
 			woocommerce_wp_text_input( array(
 				'id'          		=> 'ss_shipping_agent_no',
-				'label'       		=> __( 'Agent No.', 'smart-send-shipping' ),
+				'label'       		=> __( 'Agent No.', 'smart-send-logistics' ),
 				'placeholder' 		=> '',
-				'description'		=> sprintf( __( 'Search for an "Agent No." <a href="%s" target="_blank">here</a>', 'smart-send-shipping' ), esc_url( 'https://smartsend.io/pick-up-points' ) ),
+				'description'		=> sprintf( __( 'Search for an "Agent No." <a href="%s" target="_blank">here</a>', 'smart-send-logistics' ), esc_url( 'https://smartsend.io/pick-up-points' ) ),
 				'value'       		=> isset($ss_shipping_order_agent->agent_no) ? $ss_shipping_order_agent->agent_no : null,
 				'class'				=> '',
 				'type'				=> 'number'
@@ -144,7 +144,7 @@ class SS_Shipping_WC_Order {
 			}
 		}
 
-		echo '<input type="checkbox" id="ss-shipping-split-parcels" name="ss_shipping_split_parcels" autocomplete="off" value="1" '.$checked_attrib.'> <strong>'.__( 'Split into parcels', 'smart-send-shipping' ).'</strong><br/>';
+		echo '<input type="checkbox" id="ss-shipping-split-parcels" name="ss_shipping_split_parcels" autocomplete="off" value="1" '.$checked_attrib.'> <strong>'.__( 'Split into parcels', 'smart-send-logistics' ).'</strong><br/>';
 
 		echo '<div id="ss-shipping-order-items" class="'.$items_class.'"><table width="100%">';
 
@@ -191,11 +191,11 @@ class SS_Shipping_WC_Order {
 
 		// Load JS for AJAX calls
 		$ss_label_data = array(
-			'read_more' => __('Read more', 'smart-send-shipping'),
-			'unique_error_id' => __('Unique error id: ', 'smart-send-shipping'),
-			'download_label' => __('Download label', 'smart-send-shipping'),
-			'download_return_label' => __('Download return label', 'smart-send-shipping'),
-			'unexpected_error' => __('Unexpected error', 'smart-send-shipping'),
+			'read_more' => __('Read more', 'smart-send-logistics'),
+			'unique_error_id' => __('Unique error id: ', 'smart-send-logistics'),
+			'download_label' => __('Download label', 'smart-send-logistics'),
+			'download_return_label' => __('Download return label', 'smart-send-logistics'),
+			'unexpected_error' => __('Unexpected error', 'smart-send-logistics'),
 		);
 		wp_enqueue_script( 'ss-shipping-label-js', SS_SHIPPING_PLUGIN_DIR_URL . '/assets/js/ss-shipping-label.js', array(), SS_SHIPPING_VERSION );
 		wp_localize_script( 'ss-shipping-label-js', 'ss_label_data', $ss_label_data );
@@ -297,7 +297,7 @@ class SS_Shipping_WC_Order {
 	                	
 	                	SS_SHIPPING_WC()->log_msg( 'Agent NOT found.' );
 
-	                	$error_msg = sprintf( __( 'The agent number entered, %s, was not found.', 'smart-send-shipping' ), $ss_shipping_agent_no );
+	                	$error_msg = sprintf( __( 'The agent number entered, %s, was not found.', 'smart-send-logistics' ), $ss_shipping_agent_no );
 	                    
 	                    if( $doing_ajax ) {
 	                    	return $error_msg;
@@ -396,7 +396,7 @@ class SS_Shipping_WC_Order {
         if ( $return && isset($ss_shipping_method_id['smart_send_return_method']) ) {
         	// If no return method set return error
         	if ( empty( $ss_shipping_method_id['smart_send_return_method'] ) ) {
-        		return array( 'error' => __('No return method set', 'smart-send-shipping') );
+        		return array( 'error' => __('No return method set', 'smart-send-logistics') );
         	} else {
         		$ss_shipping_method_id = $ss_shipping_method_id['smart_send_return_method'];
         	}
@@ -528,11 +528,11 @@ class SS_Shipping_WC_Order {
      */
 	protected function get_formatted_order_note_with_label_and_tracking( $order_id, $api_shipment_response, $return ) {
 
-        $tracking_note = '<label>' . ($return ? __('Return shipping label','smart-send-shipping') : __('Shipping label','smart-send-shipping')) . ': </label>'
-            . '<a href="'.$api_shipment_response->woocommerce['label_link'].'" target="_blank">' . __('Download label','smart-send-shipping') . '</a>';
+        $tracking_note = '<label>' . ($return ? __('Return shipping label','smart-send-logistics') : __('Shipping label','smart-send-logistics')) . ': </label>'
+            . '<a href="'.$api_shipment_response->woocommerce['label_link'].'" target="_blank">' . __('Download label','smart-send-logistics') . '</a>';
 
         foreach($api_shipment_response->parcels as $parcel) {
-            $tracking_note .= '<br><label>' . __('Tracking number','smart-send-shipping') . ': </label>'
+            $tracking_note .= '<br><label>' . __('Tracking number','smart-send-logistics') . ': </label>'
                 . '<a href="' . $parcel->tracking_link . '" target="_blank">' . $parcel->tracking_code . '</a>';
         }
 		
@@ -545,25 +545,25 @@ class SS_Shipping_WC_Order {
 	protected function save_label_file( $shipment_id, $label_data, $return ) {
 		
 		if ( empty($shipment_id) ) {
-			throw new Exception( __('Shipment id is empty', 'smart-send-shipping' ) );
+			throw new Exception( __('Shipment id is empty', 'smart-send-logistics' ) );
 		}
 
 		if ( empty($label_data) ) {
-			throw new Exception( __('Label data empty', 'smart-send-shipping' ) );
+			throw new Exception( __('Label data empty', 'smart-send-logistics' ) );
 		}
 
 		$label_path = $this->get_label_path_from_shipment_id($shipment_id);
 		$label_url = $this->get_label_url_from_shipment_id($shipment_id);
 
 		if( validate_file($label_path) > 0 ) {
-			throw new Exception( __('Invalid file path', 'smart-send-shipping' ) ); //This exception is not caught
+			throw new Exception( __('Invalid file path', 'smart-send-logistics' ) ); //This exception is not caught
 		}
 
 		$label_data_decoded = base64_decode($label_data);
 		$file_ret = file_put_contents( $label_path, $label_data_decoded );
 		
 		if( empty( $file_ret ) ) {
-			throw new Exception( __('Label file cannot be saved', 'smart-send-shipping' ) ); //This exception is not caught
+			throw new Exception( __('Label file cannot be saved', 'smart-send-logistics' ) ); //This exception is not caught
 		}
 
 		return $label_url;
@@ -702,9 +702,9 @@ class SS_Shipping_WC_Order {
 	public function get_ss_shipping_label_link( $order_id, $return ) {
 	    $url = $this->get_label_url_from_order_id( $order_id, $return );
 	    if ($return) {
-	        $message = __('Download return shipping label', 'smart-send-shipping');
+	        $message = __('Download return shipping label', 'smart-send-logistics');
         } else {
-            $message = __('Download shipping label', 'smart-send-shipping');
+            $message = __('Download shipping label', 'smart-send-logistics');
         }
 		return '<a href="' . $url . '" target="_blank">' . $message . '</a>';
 	}
@@ -771,8 +771,8 @@ class SS_Shipping_WC_Order {
 		$shop_manager_actions = array();
 
 		$shop_manager_actions = array(
-			'ss_shipping_label_bulk'      => __( 'Smart Send - Generate Labels', 'smart-send-shipping' ),
-			'ss_shipping_return_bulk'      => __( 'Smart Send - Generate Return Labels', 'smart-send-shipping' ),
+			'ss_shipping_label_bulk'      => __( 'Smart Send - Generate Labels', 'smart-send-logistics' ),
+			'ss_shipping_return_bulk'      => __( 'Smart Send - Generate Return Labels', 'smart-send-logistics' ),
 		);
 
 		return $shop_manager_actions;
@@ -818,12 +818,12 @@ class SS_Shipping_WC_Order {
 
 				if ( $orders_count < 1 ) {
                     array_push($array_messages, array(
-                        'message' => __( 'No orders selected, please select the orders to create labels for.', 'smart-send-shipping' ),
+                        'message' => __( 'No orders selected, please select the orders to create labels for.', 'smart-send-logistics' ),
                         'type' => 'error',
                     ));
 				} elseif ( $orders_count > 5 ) {
                     array_push($array_messages, array(
-                        'message' =>__( 'It is not possible to create labels for more than 5 orders at the moment. This feature is coming soon.', 'smart-send-shipping' ),
+                        'message' =>__( 'It is not possible to create labels for more than 5 orders at the moment. This feature is coming soon.', 'smart-send-logistics' ),
                         'type' => 'error',
                     ));
 				} else {
@@ -847,7 +847,7 @@ class SS_Shipping_WC_Order {
 	                            	}
 
 	                                array_push($array_messages_success, array(
-	                                    'message' => sprintf( __( 'Order #%s: Shipping%s label created by Smart Send: %s', 'smart-send-shipping'), $order->get_order_number(), $return_txt, $this->get_ss_shipping_label_link( $order_id, isset($value['success']->woocommerce['return']) ? $value['success']->woocommerce['return'] : false ) ),
+	                                    'message' => sprintf( __( 'Order #%s: Shipping%s label created by Smart Send: %s', 'smart-send-logistics'), $order->get_order_number(), $return_txt, $this->get_ss_shipping_label_link( $order_id, isset($value['success']->woocommerce['return']) ? $value['success']->woocommerce['return'] : false ) ),
 	                                    'type' => 'success',
 	                                ));
 
@@ -855,7 +855,7 @@ class SS_Shipping_WC_Order {
 
 	                            } else {
 	                                // Print error message
-	                                $message = sprintf( __( 'Order #%s: ', 'smart-send-shipping'), $order->get_order_number() );
+	                                $message = sprintf( __( 'Order #%s: ', 'smart-send-logistics'), $order->get_order_number() );
 	                                $message .= $value['error'];
 	                                
 	                                array_push($array_messages_error, array(
@@ -867,7 +867,7 @@ class SS_Shipping_WC_Order {
 
 						} else {
                             array_push($array_messages_error, array(
-                                'message' => sprintf( __( 'Order #%s: The selected order did not include a Send Smart shipping method', 'smart-send-shipping'), $order->get_order_number()),
+                                'message' => sprintf( __( 'Order #%s: The selected order did not include a Send Smart shipping method', 'smart-send-logistics'), $order->get_order_number()),
                                 'type' => 'error',
                             ));
 						}
@@ -928,7 +928,7 @@ class SS_Shipping_WC_Order {
 		        } else {
 		            SS_SHIPPING_WC()->log_msg( 'Error response from "combineLabelsForShipments" : ' . SS_SHIPPING_WC()->get_api_handle()->getResponseBody() );
                     array_push($array_messages, array(
-                        'message' => __( 'Error combining shipping labels:', 'smart-send-shipping') .' '.SS_SHIPPING_WC()->get_api_handle()->getErrorString(),
+                        'message' => __( 'Error combining shipping labels:', 'smart-send-logistics') .' '.SS_SHIPPING_WC()->get_api_handle()->getErrorString(),
                         'type' => 'error',
                     ));
 		        }
@@ -942,7 +942,7 @@ class SS_Shipping_WC_Order {
 			$order_ids_str = 'Orders: #' . implode(', #', $order_id_list);
 
 			array_push($array_messages, array(
-                'message' => sprintf( __( 'Shipping labels created by Smart Send for %s order: <a href="%s" target="_blank">Download combined pdf</a><br/>%s', 'smart-send-shipping'), $label_count, $combo_url, $order_ids_str ),
+                'message' => sprintf( __( 'Shipping labels created by Smart Send for %s order: <a href="%s" target="_blank">Download combined pdf</a><br/>%s', 'smart-send-logistics'), $label_count, $combo_url, $order_ids_str ),
                 'type' => 'success',
             ));
 
