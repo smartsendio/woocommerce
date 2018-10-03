@@ -818,12 +818,12 @@ class SS_Shipping_WC_Order {
 
 				if ( $orders_count < 1 ) {
                     array_push($array_messages, array(
-                        'message' => __( 'No orders selected, please select the orders to create label(s).', 'smart-send-shipping' ),
+                        'message' => __( 'No orders selected, please select the orders to create labels for.', 'smart-send-shipping' ),
                         'type' => 'error',
                     ));
-				} elseif ( $orders_count > 8 ) {
+				} elseif ( $orders_count > 5 ) {
                     array_push($array_messages, array(
-                        'message' =>__( 'At most 8 order can be selected, please select 8 orders or less and try again.', 'smart-send-shipping' ),
+                        'message' =>__( 'It is not possible to create labels for more than 5 orders at the moment. This feature is coming soon.', 'smart-send-shipping' ),
                         'type' => 'error',
                     ));
 				} else {
