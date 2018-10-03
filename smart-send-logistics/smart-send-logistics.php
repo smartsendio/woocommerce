@@ -4,7 +4,7 @@
  * Plugin URI: https://wordpress.org/plugins/smart-send-logistics/
  * Description: Smart Send Shipping for WooCommerce
  * Author: Smart Send ApS
- * Author URI: http://www.smartsend.io
+ * Author URI: https://www.smartsend.io
  * Text Domain: smart-send-logistics
  * Version: 8.0.0b11
  * WC requires at least: 2.6.0

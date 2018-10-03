@@ -124,7 +124,7 @@ class SS_Shipping_WC_Method extends WC_Shipping_Flat_Rate {
 		$test_con_data = array( 
     					'ajax_url' => admin_url( 'admin-ajax.php' ),
     					'test_connection_nonce' => wp_create_nonce( 'ss-test-connection' ),
-    					'validating_connection' => __('Validating Connection...', 'smart-send-logistics'),
+    					'validating_connection' => __('Validating connection...', 'smart-send-logistics'),
     				);
 
 		wp_enqueue_script( 'smart-send-test-connection', SS_SHIPPING_PLUGIN_DIR_URL . '/assets/js/ss-shipping-test-connection.js', array('jquery'), SS_SHIPPING_VERSION );
@@ -174,7 +174,7 @@ class SS_Shipping_WC_Method extends WC_Shipping_Flat_Rate {
 			'title_labels'	=> array(
 				'title'   		=> __( 'Shipping Labels','smart-send-logistics'),
 				'type' 			=> 'title',
-				'description' 	=> __( 'Settings for general shipping labels.','smart-send-logistics' ),
+				'description' 	=> __( 'Settings for generating shipping labels.','smart-send-logistics' ),
 			),
 			'order_status' => array(
 				'title'    	=> __( 'Set order status after label print','smart-send-logistics'),

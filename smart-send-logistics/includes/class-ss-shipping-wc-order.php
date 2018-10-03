@@ -193,7 +193,7 @@ class SS_Shipping_WC_Order {
 		$ss_label_data = array(
 			'read_more' => __('Read more', 'smart-send-logistics'),
 			'unique_error_id' => __('Unique error id: ', 'smart-send-logistics'),
-			'download_label' => __('Download label', 'smart-send-logistics'),
+			'download_label' => __('Download shipping label', 'smart-send-logistics'),
 			'download_return_label' => __('Download return label', 'smart-send-logistics'),
 			'unexpected_error' => __('Unexpected error', 'smart-send-logistics'),
 		);
@@ -841,13 +841,11 @@ class SS_Shipping_WC_Order {
                             foreach ($response as $key => $value) {
 	                            
 	                            if(isset($value['success'])) {
-	                            	$return_txt = '';
-	                            	if( ! empty( $value['success']->woocommerce['return'] ) ) {
-	                            		$return_txt = ' return';
-	                            	}
-
 	                                array_push($array_messages_success, array(
-	                                    'message' => sprintf( __( 'Order #%s: Shipping%s label created by Smart Send: %s', 'smart-send-logistics'), $order->get_order_number(), $return_txt, $this->get_ss_shipping_label_link( $order_id, isset($value['success']->woocommerce['return']) ? $value['success']->woocommerce['return'] : false ) ),
+	                                    'message' => sprintf( __( 'Order #%s','smart-send-logistics'), $order->get_order_number()) . ': '
+                                            . ( empty( $value['success']->woocommerce['return'] ) ?
+                                                __( 'Shipping label created by Smart Send','smart-send-logistics' ) : __( 'Return label created by Smart Send','smart-send-logistics' ) )
+                                            . ': ' . $this->get_ss_shipping_label_link( $order_id, isset($value['success']->woocommerce['return']) ? $value['success']->woocommerce['return'] : false ),
 	                                    'type' => 'success',
 	                                ));
 
@@ -855,8 +853,7 @@ class SS_Shipping_WC_Order {
 
 	                            } else {
 	                                // Print error message
-	                                $message = sprintf( __( 'Order #%s: ', 'smart-send-logistics'), $order->get_order_number() );
-	                                $message .= $value['error'];
+	                                $message = sprintf( __( 'Order #%s', 'smart-send-logistics'), $order->get_order_number() ).': '.$value['error'];
 	                                
 	                                array_push($array_messages_error, array(
 	                                    'message' => $message,
@@ -867,7 +864,7 @@ class SS_Shipping_WC_Order {
 
 						} else {
                             array_push($array_messages_error, array(
-                                'message' => sprintf( __( 'Order #%s: The selected order did not include a Send Smart shipping method', 'smart-send-logistics'), $order->get_order_number()),
+                                'message' => sprintf( __( 'Order #%s', 'smart-send-logistics'), $order->get_order_number()).': '.__( 'The selected order did not include a Send Smart shipping method', 'smart-send-logistics'),
                                 'type' => 'error',
                             ));
 						}
