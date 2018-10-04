@@ -367,13 +367,13 @@ class SS_Shipping_WC {
 	public function get_api_handle() {
 		
 		if( ! $this->api_handle ) {
-			$ss_shipping_settings = $this->get_ss_shipping_settings();
+            $api_token = $this->get_api_token_setting();
 
-			if( ! empty( $ss_shipping_settings['api_token'] ) ) {
+			if ( $api_token ) {
 				// Initiate an API handle with the login credentials.
-                $demo_mode = (!isset($ss_shipping_settings['demo']) || $ss_shipping_settings['demo'] == 'yes');//default is yes
-                $webshop_url = parse_url(get_site_url(),PHP_URL_HOST);
-                $this->api_handle = new \Smartsend\Api( $ss_shipping_settings['api_token'], $webshop_url, $demo_mode );
+                $demo_mode = $this->get_demo_mode_setting();
+                $website_url = $this->get_website_url();
+                $this->api_handle = new \Smartsend\Api( $api_token, $website_url, $demo_mode );
 			} else {
 				return false;
 			}
