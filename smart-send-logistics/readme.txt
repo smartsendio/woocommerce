@@ -1,6 +1,6 @@
 === Smart Send Logistics ===
 Contributors: SmartSend
-Donate link: https://www.smartsend.io/
+Donate link: https://smartsend.io/
 Author: SmartSend
 Author URI: https://smartsend.io/
 Developer: SmartSend
@@ -138,6 +138,9 @@ The plugin implements a number of useful hooks (actions and filters) that can be
 5. Save tracking information automatically after creating shipping labels
 
 == Changelog ==
+
+= 8.0.1 =
+* Add error when trying to validate an empty API Token
 
 = 8.0.0 =
 * Completely refactoring of plugin

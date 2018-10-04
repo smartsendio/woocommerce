@@ -405,10 +405,13 @@ class SS_Shipping_WC {
 		if( $this->validate_api_token() ) {
 			$connection_msg = sprintf(__('API Token verified: Connected to Smart Send as %s from %s', 'smart-send-logistics'),$this->get_api_handle()->getData()->email, $this->get_api_handle()->getData()->website);
 			$error = 0;
-		} else {
-			$connection_msg = sprintf(__('API Token validation failed: %s. Make sure to save the settings before testing the connection.', 'smart-send-logistics'), $this->get_api_handle()->getError()->message);
+		} elseif($this->get_api_handle()) {
+			$connection_msg = sprintf(__('API Token validation failed: %s. Make sure to save the settings before validating.', 'smart-send-logistics'), $this->get_api_handle()->getError()->message);
 			$error = 1;
-		}
+		} else {
+            $connection_msg = __('API Token validation failed: Please enter an API Token and save the settings before validating.', 'smart-send-logistics');
+            $error = 1;
+        }
 
 		$this->log_msg( $connection_msg );
 
