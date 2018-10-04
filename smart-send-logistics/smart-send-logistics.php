@@ -6,7 +6,7 @@
  * Author: Smart Send ApS
  * Author URI: https://www.smartsend.io
  * Text Domain: smart-send-logistics
- * Version: 8.0.0
+ * Version: 8.0.1
  * WC requires at least: 2.6.0
  * WC tested up to: 3.5
  *
@@ -33,7 +33,7 @@ if ( ! class_exists( 'SS_Shipping_WC' ) ) :
 
 class SS_Shipping_WC {
 
-	private $version = "8.0.0";
+	private $version = "8.0.1";
 
 	/**
 	 * Instance to call certain functions globally within the plugin
@@ -92,14 +92,14 @@ class SS_Shipping_WC {
 		$this->init_hooks();
 
 		$this->agents_address_format = array(
-					'1' 		=> __('#Company', 'smart-send-logistics') . ', ' . __('#Street','smart-send-logistics'),
-					'2'    		=> __('#Company', 'smart-send-logistics') . ', ' . __('#Street','smart-send-logistics') . ', ' .__('#Zipcode','smart-send-logistics'),
-					'3'    		=> __('#Company', 'smart-send-logistics') . ', ' . __('#Street','smart-send-logistics') . ', ' . __('#City','smart-send-logistics'),
-					'4'    		=> __('#Company', 'smart-send-logistics') . ', ' . __('#Street','smart-send-logistics') . ', ' .__('#Zipcode','smart-send-logistics').' ' . __('#City','smart-send-logistics'),
-					'5'    		=> __('#Company', 'smart-send-logistics') . ', ' .__('#Zipcode','smart-send-logistics'),
-					'6'    		=> __('#Company', 'smart-send-logistics') . ', ' .__('#Zipcode','smart-send-logistics') . ', ' . __('#City','smart-send-logistics'),
-					'7'    		=> __('#Company', 'smart-send-logistics') . ', ' . __('#City','smart-send-logistics'),
-				);
+            '1' => __('#Company', 'smart-send-logistics') . ', ' . __('#Street','smart-send-logistics'),
+            '2' => __('#Company', 'smart-send-logistics') . ', ' . __('#Street','smart-send-logistics') . ', ' . __('#Zipcode','smart-send-logistics'),
+            '3' => __('#Company', 'smart-send-logistics') . ', ' . __('#Street','smart-send-logistics') . ', ' . __('#City','smart-send-logistics'),
+            '4' => __('#Company', 'smart-send-logistics') . ', ' . __('#Street','smart-send-logistics') . ', ' . __('#Zipcode','smart-send-logistics') . ' ' . __('#City','smart-send-logistics'),
+            '5' => __('#Company', 'smart-send-logistics') . ', ' . __('#Zipcode','smart-send-logistics'),
+            '6' => __('#Company', 'smart-send-logistics') . ', ' . __('#Zipcode','smart-send-logistics') . ', ' . __('#City','smart-send-logistics'),
+            '7' => __('#Company', 'smart-send-logistics') . ', ' . __('#City','smart-send-logistics'),
+        );
 	}
 
 	/**
@@ -155,6 +155,7 @@ class SS_Shipping_WC {
         add_action( 'wp_enqueue_scripts', array( $this, 'ss_shipping_theme_enqueue_frontend_styles') );
 
 		add_filter( 'woocommerce_shipping_methods', array( $this, 'add_shipping_method' ) );
+		add_filter( 'woocommerce_package_rates', array( $this, 'ss_sort_shipping_methods' ) );
 
 		// Test connection
         add_action( 'wp_ajax_ss_test_connection', array( $this, 'ss_test_connection_callback' ) );
@@ -367,13 +368,13 @@ class SS_Shipping_WC {
 	public function get_api_handle() {
 		
 		if( ! $this->api_handle ) {
-			$ss_shipping_settings = $this->get_ss_shipping_settings();
+            $api_token = $this->get_api_token_setting();
 
-			if( ! empty( $ss_shipping_settings['api_token'] ) ) {
+			if ( $api_token ) {
 				// Initiate an API handle with the login credentials.
-                $demo_mode = (!isset($ss_shipping_settings['demo']) || $ss_shipping_settings['demo'] == 'yes');//default is yes
-                $webshop_url = parse_url(get_site_url(),PHP_URL_HOST);
-                $this->api_handle = new \Smartsend\Api( $ss_shipping_settings['api_token'], $webshop_url, $demo_mode );
+                $demo_mode = $this->get_demo_mode_setting();
+                $website_url = $this->get_website_url();
+                $this->api_handle = new \Smartsend\Api( $api_token, $website_url, $demo_mode );
 			} else {
 				return false;
 			}
@@ -382,6 +383,38 @@ class SS_Shipping_WC {
 
 		return $this->api_handle;
 	}
+
+	/*
+	 * Get the url of the current site
+	 *
+	 * @return string | website url like example.com
+	 */
+	public function get_website_url()
+    {
+        return parse_url(get_site_url(),PHP_URL_HOST);
+    }
+
+    /*
+	 * Get the setting 'demo-mode'
+	 *
+	 * @return boolean
+	 */
+    public function get_demo_mode_setting()
+    {
+        $ss_shipping_settings = $this->get_ss_shipping_settings();
+        return empty($ss_shipping_settings['demo']) ? true : $ss_shipping_settings['demo'];
+    }
+
+    /*
+	 * Get the url of the current site
+	 *
+	 * @return string
+	 */
+    public function get_api_token_setting()
+    {
+        $ss_shipping_settings = $this->get_ss_shipping_settings();
+        return empty($ss_shipping_settings['api_token']) ? null : $ss_shipping_settings['api_token'];
+    }
 
 	public function validate_api_token() {
 
@@ -405,10 +438,13 @@ class SS_Shipping_WC {
 		if( $this->validate_api_token() ) {
 			$connection_msg = sprintf(__('API Token verified: Connected to Smart Send as %s from %s', 'smart-send-logistics'),$this->get_api_handle()->getData()->email, $this->get_api_handle()->getData()->website);
 			$error = 0;
-		} else {
-			$connection_msg = sprintf(__('API Token validation failed: %s. Make sure to save the settings before testing the connection.', 'smart-send-logistics'), $this->get_api_handle()->getError()->message);
+		} elseif($this->get_api_handle()) {
+			$connection_msg = sprintf(__('API Token validation failed: %s. Make sure to save the settings before validating.', 'smart-send-logistics'), $this->get_api_handle()->getError()->message);
 			$error = 1;
-		}
+		} else {
+            $connection_msg = __('API Token validation failed: Please enter an API Token and save the settings before validating.', 'smart-send-logistics');
+            $error = 1;
+        }
 
 		$this->log_msg( $connection_msg );
 
@@ -420,6 +456,39 @@ class SS_Shipping_WC {
 
 		wp_die();
 	}
+
+	/*
+	 * Sort the shipping methods according to setting
+	 *
+	 * @param array $available_shipping_methods
+	 */
+    public function ss_sort_shipping_methods($available_shipping_methods)
+    {
+        //  if there are no rates don't do anything
+        if ( ! $available_shipping_methods ) {
+            return $available_shipping_methods;
+        }
+
+        // Get setting
+        $ss_shipping_settings = $this->get_ss_shipping_settings();
+        if ( !empty($ss_shipping_settings['sort_methods_by_cost']) && $ss_shipping_settings['sort_methods_by_cost'] == 'yes') {
+            // get an array of prices
+            $prices = array();
+            foreach( $available_shipping_methods as $shipping_method ) {
+                // the price is the cost + taxes
+                $prices[] = $shipping_method->cost + array_sum($shipping_method->taxes);
+            }
+
+            // use the prices to sort the rates
+            array_multisort( $prices, $available_shipping_methods );
+
+            // write to log
+            $this->log_msg('Shipping methods sorted by cost');
+        }
+
+        // return the rates
+        return $available_shipping_methods;
+    }
 }
 
 endif;

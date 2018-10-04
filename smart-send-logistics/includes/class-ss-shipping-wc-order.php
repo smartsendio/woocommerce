@@ -514,16 +514,16 @@ class SS_Shipping_WC_Order {
 	    $tracking_array = array();
 	    foreach($shipment->parcels as $parcel) {
             $tracking_array[$parcel->parcel_internal_id] = array(
-                    'carrier_code' => $shipment->carrier_code,
-                    'carrier_name' => $shipment->carrier_name,
-                    'tracking_code' => $parcel->tracking_code,
-                    /*
-                     * Filter the tracking link
-                     *
-                     * @param string | tracking link
-                     * @param string | carrier code
-                     */
-                    'tracking_link' => apply_filters( 'smart_send_tracking_url', $parcel->tracking_link, $shipment->carrier_code ),
+                'carrier_code' => $shipment->carrier_code,
+                'carrier_name' => $shipment->carrier_name,
+                'tracking_code' => $parcel->tracking_code,
+                /*
+                 * Filter the tracking link
+                 *
+                 * @param string | tracking link
+                 * @param string | carrier code
+                 */
+                'tracking_link' => apply_filters( 'smart_send_tracking_url', $parcel->tracking_link, $shipment->carrier_code ),
             );
         }
         return $tracking_array;
@@ -680,7 +680,7 @@ class SS_Shipping_WC_Order {
 	 * @return Agent Object
 	 */
 	public function get_ss_shipping_order_agent( $order_id ) {
-        // Fecth agent info from meta field saved by Smart Send
+        // Fetch agent info from meta field saved by Smart Send
         $ss_agent_info = get_post_meta( $order_id, '_ss_shipping_order_agent', true );
         if ($ss_agent_info) {
             // Return the agent_no found

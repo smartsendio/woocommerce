@@ -4,7 +4,6 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit; // Exit if accessed directly
 }
 
-
 if ( ! class_exists( 'SS_Shipping_WC_Method' ) ) :
 
 class SS_Shipping_WC_Method extends WC_Shipping_Flat_Rate {
@@ -20,7 +19,7 @@ class SS_Shipping_WC_Method extends WC_Shipping_Flat_Rate {
 		$this->method_title = __( 'Smart Send', 'smart-send-logistics' );
 		$this->method_description = __( 'Advanced shipping solution for PostNord, GLS and Bring.', 'smart-send-logistics' );
 		
-		$this->supports           = array(
+		$this->supports = array(
 			'settings',
 			'shipping-zones', // support shipping zones shipping method
 			'instance-settings',
@@ -122,10 +121,10 @@ class SS_Shipping_WC_Method extends WC_Shipping_Flat_Rate {
 		wp_enqueue_script( 'smart-send-shipping-admin-js', SS_SHIPPING_PLUGIN_DIR_URL . '/assets/js/ss-shipping-admin.js', array('jquery'), SS_SHIPPING_VERSION );
 
 		$test_con_data = array( 
-    					'ajax_url' => admin_url( 'admin-ajax.php' ),
-    					'test_connection_nonce' => wp_create_nonce( 'ss-test-connection' ),
-    					'validating_connection' => __('Validating connection...', 'smart-send-logistics'),
-    				);
+                'ajax_url' => admin_url( 'admin-ajax.php' ),
+                'test_connection_nonce' => wp_create_nonce( 'ss-test-connection' ),
+                'validating_connection' => __('Validating connection...', 'smart-send-logistics'),
+            );
 
 		wp_enqueue_script( 'smart-send-test-connection', SS_SHIPPING_PLUGIN_DIR_URL . '/assets/js/ss-shipping-test-connection.js', array('jquery'), SS_SHIPPING_VERSION );
 		wp_localize_script( 'smart-send-test-connection', 'ss_test_connection_obj', $test_con_data );
@@ -165,7 +164,7 @@ class SS_Shipping_WC_Method extends WC_Shipping_Flat_Rate {
                 'label'         => __( 'Enable demo mode', 'smart-send-logistics' ),
             ),
 			'ss_debug' => array(
-				'title'             => __( 'Debug Log', 'smart-send-shippingl' ),
+				'title'             => __( 'Debug Log', 'smart-send-logistics' ),
 				'type'              => 'checkbox',
 				'label'             => __( 'Enable logging', 'smart-send-logistics' ),
 				'default'           => 'no',
@@ -220,8 +219,55 @@ class SS_Shipping_WC_Method extends WC_Shipping_Flat_Rate {
 				'type'     	=> 'checkbox',
 				'desc_tip' 	=> true,
 			),
+            'title_shipping_methods'	=> array(
+                'title'   		=> __( 'Shipping methods','smart-send-logistics'),
+                'type' 			=> 'title',
+                'description' 	=> __( 'Settings for shipping methods.','smart-send-logistics' ),
+            ),
+            'sort_methods_by_cost' => array(
+                'title'             => __( 'Sort shipping methods', 'smart-send-logistics' ),
+                'type'              => 'checkbox',
+                'label'             => __( 'Enable automatic sorting by cost on checkout page', 'smart-send-logistics' ),
+                'default'           => 'no',
+                'description'       => sprintf( __( 'Shipping methods will be sorted in ascending order, according to the cost, instead of by order of appearance in Shipping Zone table as per default', 'smart-send-logistics' ), '<a href="' . $log_path . '" target = "_blank">', '</a>' )
+            ),
 		);
 	}
+
+    /**
+     * Validate the Demo Checkbox Field.
+     *
+     * If not set, return "no", otherwise return "yes".
+     *
+     * @param  string $key
+     * @param  string|null $value Posted Value
+     * @return string
+     *
+     * @throws Exception
+     */
+	public function validate_demo_field($key, $value ) {
+
+	    //Trying to disable Demo-mode setting. Check if the API Token entered is valid
+        if ($value == 0) {
+            $post_data = $this->get_post_data();
+            if (empty($post_data['woocommerce_smart_send_shipping_api_token'])) {
+                // No API Token was provided, so need to shown an error and re-enable demo-mode
+                WC_Admin_Settings::add_error( __( 'Demo mode can only be disabled with a valid API Token. Please enter a valid API Token and save the settings again.','smart-send-logistics') );
+                $value = 1;
+            } else {
+                //Check if API Token is valid
+                $website_url = SS_SHIPPING_WC()->get_website_url();
+                $api_handle = new \Smartsend\Api( $post_data['woocommerce_smart_send_shipping_api_token'], $website_url, false );
+                if (!$api_handle->getAuthenticatedUser()) {
+                    // The API Token was not valid for live mode, so need to shown an error and re-enable demo-mode
+                    WC_Admin_Settings::add_error( sprintf( __( 'Invalid API Token. Demo mode can only be disabled with a valid API Token for %s.','smart-send-logistics'), $website_url) );
+                    $value = 1;
+                }
+            }
+        }
+
+        return $this->validate_checkbox_field($key, $value);
+    }
 
 	/**
 	 * Generate Button HTML.
