@@ -383,6 +383,38 @@ class SS_Shipping_WC {
 		return $this->api_handle;
 	}
 
+	/*
+	 * Get the url of the current site
+	 *
+	 * @return string | webshop url like example.com
+	 */
+	public function get_website_url()
+    {
+        return parse_url(get_site_url(),PHP_URL_HOST);
+    }
+
+    /*
+	 * Get the setting 'demo-mode'
+	 *
+	 * @return boolean
+	 */
+    public function get_demo_mode_setting()
+    {
+        $ss_shipping_settings = $this->get_ss_shipping_settings();
+        return empty($ss_shipping_settings['demo']) ? true : $ss_shipping_settings['demo'];
+    }
+
+    /*
+	 * Get the url of the current site
+	 *
+	 * @return string
+	 */
+    public function get_api_token_setting()
+    {
+        $ss_shipping_settings = $this->get_ss_shipping_settings();
+        return empty($ss_shipping_settings['api_token']) ? null : $ss_shipping_settings['api_token'];
+    }
+
 	public function validate_api_token() {
 
 		if ( $this->get_api_handle() ) {

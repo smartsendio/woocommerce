@@ -245,11 +245,11 @@ class SS_Shipping_WC_Method extends WC_Shipping_Flat_Rate {
                 $value = 1;
             } else {
                 //Check if API Token is valid
-                $is_api_token_valid = false;//TODO: Validate using the API Token $post_data['woocommerce_smart_send_shipping_api_token']
-                if (!$is_api_token_valid) {
+                $website_url = SS_SHIPPING_WC()->get_website_url();
+                $api_handle = new \Smartsend\Api( $post_data['woocommerce_smart_send_shipping_api_token'], $website_url, false );
+                if (!$api_handle->getAuthenticatedUser()) {
                     // The API Token was not valid for live mode, so need to shown an error and re-enable demo-mode
-                    $site = 'smartsend.io';//TODO: Change to the actual site URL
-                    WC_Admin_Settings::add_error( sprintf( __( 'Invalid API Token. Demo mode can only be disabled with a valid API Token linked to %s.','smart-send-logistics'), $site) );
+                    WC_Admin_Settings::add_error( sprintf( __( 'Invalid API Token. Demo mode can only be disabled with a valid API Token for %s.','smart-send-logistics'), $website_url) );
                     $value = 1;
                 }
             }
