@@ -220,6 +220,18 @@ class SS_Shipping_WC_Method extends WC_Shipping_Flat_Rate {
 				'type'     	=> 'checkbox',
 				'desc_tip' 	=> true,
 			),
+            'title_shipping_methods'	=> array(
+                'title'   		=> __( 'Shipping methods','smart-send-logistics'),
+                'type' 			=> 'title',
+                'description' 	=> __( 'Settings for shipping methods.','smart-send-logistics' ),
+            ),
+            'sort_methods_by_cost' => array(
+                'title'             => __( 'Sort shipping methods', 'smart-send-logistics' ),
+                'type'              => 'checkbox',
+                'label'             => __( 'Enable automatic sorting by cost on checkout page', 'smart-send-logistics' ),
+                'default'           => 'no',
+                'description'       => sprintf( __( 'Shipping methods will be sorted in ascending order, according to the cost, instead of by order of appearance in Shipping Zone table as per default', 'smart-send-logistics' ), '<a href="' . $log_path . '" target = "_blank">', '</a>' )
+            ),
 		);
 	}
 

@@ -155,6 +155,7 @@ class SS_Shipping_WC {
         add_action( 'wp_enqueue_scripts', array( $this, 'ss_shipping_theme_enqueue_frontend_styles') );
 
 		add_filter( 'woocommerce_shipping_methods', array( $this, 'add_shipping_method' ) );
+		add_filter( 'woocommerce_package_rates', array( $this, 'ss_sort_shipping_methods' ) );
 
 		// Test connection
         add_action( 'wp_ajax_ss_test_connection', array( $this, 'ss_test_connection_callback' ) );
@@ -455,6 +456,39 @@ class SS_Shipping_WC {
 
 		wp_die();
 	}
+
+	/*
+	 * Sort the shipping methods according to setting
+	 *
+	 * @param array $available_shipping_methods
+	 */
+    public function ss_sort_shipping_methods($available_shipping_methods)
+    {
+        //  if there are no rates don't do anything
+        if ( ! $available_shipping_methods ) {
+            return $available_shipping_methods;
+        }
+
+        // Get setting
+        $ss_shipping_settings = $this->get_ss_shipping_settings();
+        if ( !empty($ss_shipping_settings['sort_methods_by_cost']) && $ss_shipping_settings['sort_methods_by_cost'] == 'yes') {
+            // get an array of prices
+            $prices = array();
+            foreach( $available_shipping_methods as $shipping_method ) {
+                // the price is the cost + taxes
+                $prices[] = $shipping_method->cost + array_sum($shipping_method->taxes);
+            }
+
+            // use the prices to sort the rates
+            array_multisort( $prices, $available_shipping_methods );
+
+            // write to log
+            $this->log_msg('Shipping methods sorted by cost');
+        }
+
+        // return the rates
+        return $available_shipping_methods;
+    }
 }
 
 endif;
