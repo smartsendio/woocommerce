@@ -4,7 +4,6 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit; // Exit if accessed directly
 }
 
-
 if ( ! class_exists( 'SS_Shipping_WC_Method' ) ) :
 
 class SS_Shipping_WC_Method extends WC_Shipping_Flat_Rate {
@@ -20,7 +19,7 @@ class SS_Shipping_WC_Method extends WC_Shipping_Flat_Rate {
 		$this->method_title = __( 'Smart Send', 'smart-send-logistics' );
 		$this->method_description = __( 'Advanced shipping solution for PostNord, GLS and Bring.', 'smart-send-logistics' );
 		
-		$this->supports           = array(
+		$this->supports = array(
 			'settings',
 			'shipping-zones', // support shipping zones shipping method
 			'instance-settings',
@@ -122,10 +121,10 @@ class SS_Shipping_WC_Method extends WC_Shipping_Flat_Rate {
 		wp_enqueue_script( 'smart-send-shipping-admin-js', SS_SHIPPING_PLUGIN_DIR_URL . '/assets/js/ss-shipping-admin.js', array('jquery'), SS_SHIPPING_VERSION );
 
 		$test_con_data = array( 
-    					'ajax_url' => admin_url( 'admin-ajax.php' ),
-    					'test_connection_nonce' => wp_create_nonce( 'ss-test-connection' ),
-    					'validating_connection' => __('Validating connection...', 'smart-send-logistics'),
-    				);
+                'ajax_url' => admin_url( 'admin-ajax.php' ),
+                'test_connection_nonce' => wp_create_nonce( 'ss-test-connection' ),
+                'validating_connection' => __('Validating connection...', 'smart-send-logistics'),
+            );
 
 		wp_enqueue_script( 'smart-send-test-connection', SS_SHIPPING_PLUGIN_DIR_URL . '/assets/js/ss-shipping-test-connection.js', array('jquery'), SS_SHIPPING_VERSION );
 		wp_localize_script( 'smart-send-test-connection', 'ss_test_connection_obj', $test_con_data );
@@ -165,7 +164,7 @@ class SS_Shipping_WC_Method extends WC_Shipping_Flat_Rate {
                 'label'         => __( 'Enable demo mode', 'smart-send-logistics' ),
             ),
 			'ss_debug' => array(
-				'title'             => __( 'Debug Log', 'smart-send-shippingl' ),
+				'title'             => __( 'Debug Log', 'smart-send-logistics' ),
 				'type'              => 'checkbox',
 				'label'             => __( 'Enable logging', 'smart-send-logistics' ),
 				'default'           => 'no',

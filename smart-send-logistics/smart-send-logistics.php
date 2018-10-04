@@ -92,14 +92,14 @@ class SS_Shipping_WC {
 		$this->init_hooks();
 
 		$this->agents_address_format = array(
-					'1' 		=> __('#Company', 'smart-send-logistics') . ', ' . __('#Street','smart-send-logistics'),
-					'2'    		=> __('#Company', 'smart-send-logistics') . ', ' . __('#Street','smart-send-logistics') . ', ' .__('#Zipcode','smart-send-logistics'),
-					'3'    		=> __('#Company', 'smart-send-logistics') . ', ' . __('#Street','smart-send-logistics') . ', ' . __('#City','smart-send-logistics'),
-					'4'    		=> __('#Company', 'smart-send-logistics') . ', ' . __('#Street','smart-send-logistics') . ', ' .__('#Zipcode','smart-send-logistics').' ' . __('#City','smart-send-logistics'),
-					'5'    		=> __('#Company', 'smart-send-logistics') . ', ' .__('#Zipcode','smart-send-logistics'),
-					'6'    		=> __('#Company', 'smart-send-logistics') . ', ' .__('#Zipcode','smart-send-logistics') . ', ' . __('#City','smart-send-logistics'),
-					'7'    		=> __('#Company', 'smart-send-logistics') . ', ' . __('#City','smart-send-logistics'),
-				);
+            '1' => __('#Company', 'smart-send-logistics') . ', ' . __('#Street','smart-send-logistics'),
+            '2' => __('#Company', 'smart-send-logistics') . ', ' . __('#Street','smart-send-logistics') . ', ' . __('#Zipcode','smart-send-logistics'),
+            '3' => __('#Company', 'smart-send-logistics') . ', ' . __('#Street','smart-send-logistics') . ', ' . __('#City','smart-send-logistics'),
+            '4' => __('#Company', 'smart-send-logistics') . ', ' . __('#Street','smart-send-logistics') . ', ' . __('#Zipcode','smart-send-logistics') . ' ' . __('#City','smart-send-logistics'),
+            '5' => __('#Company', 'smart-send-logistics') . ', ' . __('#Zipcode','smart-send-logistics'),
+            '6' => __('#Company', 'smart-send-logistics') . ', ' . __('#Zipcode','smart-send-logistics') . ', ' . __('#City','smart-send-logistics'),
+            '7' => __('#Company', 'smart-send-logistics') . ', ' . __('#City','smart-send-logistics'),
+        );
 	}
 
 	/**
@@ -387,7 +387,7 @@ class SS_Shipping_WC {
 	/*
 	 * Get the url of the current site
 	 *
-	 * @return string | webshop url like example.com
+	 * @return string | website url like example.com
 	 */
 	public function get_website_url()
     {

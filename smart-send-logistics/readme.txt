@@ -141,6 +141,7 @@ The plugin implements a number of useful hooks (actions and filters) that can be
 
 = 8.0.1 =
 * Add error when trying to validate an empty API Token
+* Add setting to auto sort shipping methods by cost on checkout page
 
 = 8.0.0 =
 * Completely refactoring of plugin
