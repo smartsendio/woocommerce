@@ -223,6 +223,41 @@ class SS_Shipping_WC_Method extends WC_Shipping_Flat_Rate {
 		);
 	}
 
+    /**
+     * Validate the Demo Checkbox Field.
+     *
+     * If not set, return "no", otherwise return "yes".
+     *
+     * @param  string $key
+     * @param  string|null $value Posted Value
+     * @return string
+     *
+     * @throws Exception
+     */
+	public function validate_demo_field($key, $value ) {
+
+	    //Trying to disable Demo-mode setting. Check if the API Token entered is valid
+        if ($value == 0) {
+            $post_data = $this->get_post_data();
+            if (empty($post_data['woocommerce_smart_send_shipping_api_token'])) {
+                // No API Token was provided, so need to shown an error and re-enable demo-mode
+                WC_Admin_Settings::add_error( __( 'Demo mode can only be disabled with a valid API Token. Please enter a valid API Token and save the settings again.','smart-send-logistics') );
+                $value = 1;
+            } else {
+                //Check if API Token is valid
+                $is_api_token_valid = false;//TODO: Validate using the API Token $post_data['woocommerce_smart_send_shipping_api_token']
+                if (!$is_api_token_valid) {
+                    // The API Token was not valid for live mode, so need to shown an error and re-enable demo-mode
+                    $site = 'smartsend.io';//TODO: Change to the actual site URL
+                    WC_Admin_Settings::add_error( sprintf( __( 'Invalid API Token. Demo mode can only be disabled with a valid API Token linked to %s.','smart-send-logistics'), $site) );
+                    $value = 1;
+                }
+            }
+        }
+
+        return $this->validate_checkbox_field($key, $value);
+    }
+
 	/**
 	 * Generate Button HTML.
 	 *
