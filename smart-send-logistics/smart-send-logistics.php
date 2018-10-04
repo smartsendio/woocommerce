@@ -367,13 +367,13 @@ class SS_Shipping_WC {
 	public function get_api_handle() {
 		
 		if( ! $this->api_handle ) {
-			$ss_shipping_settings = $this->get_ss_shipping_settings();
+            $api_token = $this->get_api_token_setting();
 
-			if( ! empty( $ss_shipping_settings['api_token'] ) ) {
+			if ( $api_token ) {
 				// Initiate an API handle with the login credentials.
-                $demo_mode = (!isset($ss_shipping_settings['demo']) || $ss_shipping_settings['demo'] == 'yes');//default is yes
-                $webshop_url = parse_url(get_site_url(),PHP_URL_HOST);
-                $this->api_handle = new \Smartsend\Api( $ss_shipping_settings['api_token'], $webshop_url, $demo_mode );
+                $demo_mode = $this->get_demo_mode_setting();
+                $website_url = $this->get_website_url();
+                $this->api_handle = new \Smartsend\Api( $api_token, $website_url, $demo_mode );
 			} else {
 				return false;
 			}
@@ -382,6 +382,38 @@ class SS_Shipping_WC {
 
 		return $this->api_handle;
 	}
+
+	/*
+	 * Get the url of the current site
+	 *
+	 * @return string | webshop url like example.com
+	 */
+	public function get_website_url()
+    {
+        return parse_url(get_site_url(),PHP_URL_HOST);
+    }
+
+    /*
+	 * Get the setting 'demo-mode'
+	 *
+	 * @return boolean
+	 */
+    public function get_demo_mode_setting()
+    {
+        $ss_shipping_settings = $this->get_ss_shipping_settings();
+        return empty($ss_shipping_settings['demo']) ? true : $ss_shipping_settings['demo'];
+    }
+
+    /*
+	 * Get the url of the current site
+	 *
+	 * @return string
+	 */
+    public function get_api_token_setting()
+    {
+        $ss_shipping_settings = $this->get_ss_shipping_settings();
+        return empty($ss_shipping_settings['api_token']) ? null : $ss_shipping_settings['api_token'];
+    }
 
 	public function validate_api_token() {
 
