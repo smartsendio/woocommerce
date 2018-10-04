@@ -1,20 +1,27 @@
 === Smart Send Logistics ===
 Contributors: SmartSend
-Donate link: http://www.SmartSend.dk/
-Tags: shipping, pickup, pakkeboks, pakkeshop, hente selv, døgnboks, post danmark, gls, swipbox, bring, carrier, pacsoft, yourgls, mybring, postage, shipping method, your-gls, my-bring, pacosft-online, pacsoftonline, denmark, sweeden, posten, norway, post 
+Donate link: https://www.smartsend.io/
+Author: SmartSend
+Author URI: https://smartsend.io/
+Developer: SmartSend
+Developer URI: https://smartsend.io/
+Tags: smartsend, smart send, shipping, shipping label, pickup, pick-up, pakkelabel, pakkelabels, pakkeboks, pakkeshop, hente selv, døgnboks, postnord, post nord, post danmark, gls, swipbox, bring, dao, dao365, dao 365, carrier, pacsoft, yourgls, mybring, postage, shipping method, your-gls, my-bring, pacosft-online, pacsoftonline, denmark, sweeden, posten, norway, post 
 Requires at least: 3.0.1
 Tested up to: 5.0
-Stable tag: 7.1.18
+Stable tag: 8.0.0
 License: GNU General Public License v3.0
 License URI: http://www.gnu.org/licenses/gpl-3.0.html
 WC requires at least: 2.6.0
-WC tested up to: 3.4
+WC tested up to: 3.5
+Requires PHP: 5.6.0
 
 Complete WooCommerce shipping solution for PostNord, GLS and Bring.
 
 == Description ==
 
-SmartSend shipping solution for PostNord, GLS and Bring. Setup shipping methods with rates calculated based on products, shipping address, weight, subtotal and much more. Show pickup points to the customer during checkout and create shipping labels directly from the WooCommerce admin panel.
+Complete shipping solution for PostNord, GLS and Bring. Setup shipping methods with rates calculated based on products, shipping address, weight, subtotal, user roles, shipping classes and much more. Show pick-up points to the customer during checkout and create shipping labels directly from the WooCommerce admin panel.
+
+From now on, everything is incorporated directly into your WooCommerce store.
 
 Supported carriers:
 
@@ -31,35 +38,37 @@ Supports worldwide shipping from these countries:
 * Finland
 * Norway
 
-= Table rates =
-Table rate settings enables multiple shipping methods to be easily configured in one table. Determine the shipping price for each method based on multiple condition.
-
-Calculate shipping rate based on:
+= Shipping method =
+Shipping methods are setup in WooCommerce Shipping Zones and the shipping cost can be calculated based on a range of criteria:
 
 * Shipping address
 * Order weight
 * Order subtotal
 * Shipping class
+* User role
+* Shipping Zone
 
 = Services =
 Enable services for shipping methods:
 
 * Customer notification by email
 * Customer notification by SMS
-* Pickup point (collect the parcel at a shop near the customer)
+* Pick-up point (collect the parcel at a shop near the customer)
 * Flex delivery (leave parcel at specified location)
 * Home delivery
 * Handling of special good, eg food
 * TAX handling
 * Enable free delivery based on condition
 
-= Pickup point =
-Let the customer choose a close by pickup point during checkout. The package will be delivered to that pickup point. The customer can collect the package at selected pickup point at convenience.
+= Pick-up point =
+Let the customer choose a pick-up point close to them during checkout. The package will be delivered to the selected pick-up point, where the customer can collect the package at their own convenience.
 
-* Nearest pickup points based on customer address
+* Nearest pick-up points based on entered shipping address
 * Automatically updated list
 * User friendly dropdown list
 * One step/page checkout compatible
+
+Shipping to pick-up points are the most widely used shipping method due to it's flexibility and the reduced shipping cost.
 
 = Shipping labels =
 Create shipping labels directly from the backend by a single click. The information is automatically formatted and send to the carrier for processing. A PDF label is immediately shown and ready to print. Tracking information is automatically saved in the system and can be included in customer emails or can be sendt by text message.
@@ -76,10 +85,7 @@ This plugin replaces the two previous modules “Smart Send Labelgenerator” an
 
 == Installation ==
 
-= Automatic installation (recommended) =
-Automatic installing a Plugin using WordPress Plugin Search is the easiest option as WordPress handles the file transfer and no FTP access is required. This installation method is therefore the recommended method.
-
-To install a plugin automatically using the WordPress Plugin Search, follow the process:
+See our online installation guide at [SmartSend.io](https://smartsend.io/woocommerce/configuration), or follow these steps:
 
 1. Log in to the WordPress dashboard
 2. Navigate to the Plugin menu
@@ -89,32 +95,57 @@ To install a plugin automatically using the WordPress Plugin Search, follow the 
 6. Once the plugin is installed, click the 'Activate Plugin' link to active the plugin
 7. The plugin is installed, activated and ready to use once you see the succes message 'Plugin activated' at the top of the plugin page
 
-= Manual installation =
+= Connect the plugin to Smart Send using an API Token =
 
-The manual installation requires that the plugin is downloaded, extracted and transfered to the server hosting the WordPress site. This is usually done using an FTP client like FileZilla.
+The plugin must be connected to Smart Send for all functions to work properly. You can create a [Smart Send account here](https://smartsend.io/signup)
 
-To install a plugin manually, follow the process:
+[youtube https://www.youtube.com/embed/wyJYbwwI0h8]
 
-1. Download the plugin either from [WordPress](https://wordpress.org/plugins/smart-send-logistics/) or from the [Smart Send website](http://smartsend.dk/woocommerce/).
-2. Extract the plugin using appropriate software (WinRAR, TheUnarchiver...)
-3. Open FTP client eg FileZilla
-4. Connect to WordPress site
-5. Move to folder 'wp-content/plugins/'
-6. Transfer the folder 'smart-send-logistics' to the remote folder 'wp-content/plugins/'
-7. The plugin should now be installed and can be seen in the WordPress plugin page
-8. Once the plugin is installed, click the 'Activate Plugin' link at the plugin page to active the plugin
-9. The plugin is installed, activated and ready to use once you see the succes message 'Plugin activated' at the top of the plugin page
+See our written guide on our [Smart Send website](https://smartsend.io/woocommerce/api-token/) or followed these steps:
 
+1. Log in to the WordPress dashboard
+2. Choose 'WooCommerce' in the menu to the left and select 'Settings'
+3. Choose the 'Shipping' tab in the top menu bar
+4. Click on 'Smart Send' in the list under the tabs
+5. Enter the API Token you received in your welcome email and click save. Signup [here](https://smartsend.io/woocommerce/api-token/) to get an API Token.
+6. Once the API Token is saved, press 'Validate API Token' to connect your WooCommerce store to Smart Send.
+
+== Developers ==
+
+The plugin implements a number of useful hooks (actions and filters) that can be used to extend the functionality of the plugin:
+
+* woocommerce_smart_send_shipping_shipping_add_rate: An action that allows 3rd parties to add rates after the Smart Send rate is added.
+* woocommerce_shipping_smart_send_shipping_is_available: A filter that allows 3rd parties to disable a shipping method
+* woocommerce_shipping_smart_send_shipping_is_free_shipping: A filter that allows 3rd parties to disable/enable free shipping for a method
+* smart_send_agent_timeout: A filter to change the timeout used when searching for agents on checkout page
+* smart_send_shipping_label_args: A filter to modify the order parameters that are used when creating shipping labels
+* smart_send_shipping_label_created: An action which is called once a shipping label has been created for an order
+* smart_send_order_note: A filter to change the freetext that is inserted on shipping labels
+* smart_send_shipping_label_comment: A filter to modify the order comment that is added once a shipping label is created
+* smart_send_tracking_url: A filter to modify the tracking url that is entered in WooCommerce once a shipping label is created
+
+ The following filters are inherited from WooCommerce and can be used as well:
+
+ * woocommerce_settings_api_form_fields_smart_send_shipping: A filter to override the main setting fields.
+ * woocommerce_shipping_instance_form_fields_smart_send_shipping: A filter to override shipping method settings.
 
 == Screenshots ==
 
-1. Create shipping labels from backend and let tracking information being saved automatically
-2. Let the customer choose a close pickup point where the parcel can be collected
-3. Easy setup of the centrale module settings
-4. Table rate setup of shipping methods have never been easier.
-5. Services for each carrier is easily setup in WooCommerce backend.
+1. Add shipping methods to WooCommerce Shipping Zones
+2. Connect WooCommerce to Smart Send by entering the API Token
+3. Create PDF shipping labels from backend with just one click
+4. Get detailed error description if something is incorrect
+5. Save tracking information automatically after creating shipping labels
 
 == Changelog ==
+
+= 8.0.0 =
+* Completely refactoring of plugin
+* Using Shipping Zones instead of WooCommerce legacy shipping API
+* Plugin is not backwards compatible. All settings must be setup from scratch
+* Separates standard settings from the more advanced settings for simplicity
+* Includes more information about pick-up points in checkout page
+* Limit shipping methods by weight, price, user role, shipping zone, shipping class and much more
 
 = 7.1.18 =
 * Fix for international delivery with vConnect All in 1 plugin to PostNord
@@ -141,7 +172,7 @@ To install a plugin manually, follow the process:
 
 = 7.1.12 =
 * Changing API booking endpoint
-* Add cURL error description is no response from server
+* Add cURL error description if no response from server
 
 = 7.1.11 =
 * Fixing problem with missing file for version 7.1.10
@@ -149,7 +180,7 @@ To install a plugin manually, follow the process:
 = 7.1.10 =
 * Fixing PHP notification for WooCommerce 3.0+
 * Fixing problem fetching pickup point data for some installations
-* Adding compatability for WooCommerce 2.5+
+* Adding compatibility for WooCommerce 2.5+
 * Adding cURL timeout to API calls
 
 = 7.1.9 =
@@ -173,7 +204,7 @@ To install a plugin manually, follow the process:
 * Adding support for WooCommerce Subscriptions.
 * Performance improvement: Not using sessions when showing notifications.
 * Performance improvement: Only making API calls when valid input parameters presented.
-* Adding Wordpress filters for cart subtotal and cart weight. 
+* Adding Wordpress filters for cart subtotal and cart weight.
 
 = 7.1.5 =
 * Fixing problem with shipment weight when unit was gram.
@@ -203,7 +234,7 @@ To install a plugin manually, follow the process:
 * Multisite compatible
 * Adding Flexdelivery option for Post Danmark
 * Adding the possibility to exclude private shipping methods from TAX for Post Danmark
-* Adding the possibility to shop dropdown of pickup points for WooCommerce Free shipping
+* Adding the possibility to show dropdown of pickup points for WooCommerce Free shipping
 * Adding setting to change order status once a label is created
 * Adding more frontend display formats for shipping methods
 * Adding the possibility to change shipping method from backend
@@ -217,7 +248,7 @@ To install a plugin manually, follow the process:
 
 = 7.0.17 =
 * Adding support for WooCommerce Sequential Order Numbers
-* Bugfixes
+* Minor bugfixes
 * Adding notification function to notify about major updates
 * Showing correct order numbers in succes/error messages when creating a label
 * Remove text above frontend-dropdown showing pickup points
@@ -305,3 +336,8 @@ To install a plugin manually, follow the process:
 
 = 7.0.3 =
 * Initial release for Wordpress.org
+
+== Upgrade Notice ==
+
+= 8.0.0 =
+8.0 is a major update. Shipping methods moved to WooCommerce Shipping Zones. Make a full site backup, and [review update best practices](https://docs.woocommerce.com/document/how-to-update-your-site) before upgrading.
