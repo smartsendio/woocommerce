@@ -6,7 +6,7 @@
  * Author: Smart Send ApS
  * Author URI: https://www.smartsend.io
  * Text Domain: smart-send-logistics
- * Version: 8.0.1
+ * Version: 8.0.2
  * WC requires at least: 2.6.0
  * WC tested up to: 3.5
  *
@@ -33,7 +33,7 @@ if ( ! class_exists( 'SS_Shipping_WC' ) ) :
 
 class SS_Shipping_WC {
 
-	private $version = "8.0.1";
+	private $version = "8.0.2";
 
 	/**
 	 * Instance to call certain functions globally within the plugin
@@ -402,7 +402,7 @@ class SS_Shipping_WC {
     public function get_demo_mode_setting()
     {
         $ss_shipping_settings = $this->get_ss_shipping_settings();
-        return empty($ss_shipping_settings['demo']) ? true : $ss_shipping_settings['demo'];
+        return empty($ss_shipping_settings['demo']) ? true : ($ss_shipping_settings['demo'] == 'yes' ? true : false);
     }
 
     /*
