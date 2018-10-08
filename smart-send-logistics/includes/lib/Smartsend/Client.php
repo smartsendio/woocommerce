@@ -76,6 +76,11 @@ class Client
         return $this->demo;
     }
 
+    public function getModuleVersion()
+    {
+        return SS_SHIPPING_VERSION;
+    }
+
     /**
      * @return mixed
      */
@@ -342,8 +347,8 @@ class Client
         curl_setopt($ch, CURLOPT_URL, $this->request_endpoint);
 
         curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
-        curl_setopt($ch, CURLOPT_USERAGENT, 'WooCommerce/'. SS_SHIPPING_VERSION);
-        curl_setopt($ch, CURLOPT_REFERER, 'example.com');
+        curl_setopt($ch, CURLOPT_USERAGENT, 'WooCommerce/'.$this->getModuleVersion());
+        curl_setopt($ch, CURLOPT_REFERER, $this->getWebsite());
         curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
         curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
         curl_setopt($ch, CURLOPT_TIMEOUT, $timeout);
