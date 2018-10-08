@@ -143,12 +143,12 @@ class SS_Shipping_Frontend {
 		if( !empty( $agent->distance ) ) {
 		    if($agent->distance < 1) {
                 $formatted_distance = number_format($agent->distance*1000, 0, '.', '')
-                    . __('m: ', 'smart-send-logistics');
+                    . __('m', 'smart-send-logistics');
             } else {
                 $formatted_distance = number_format($agent->distance, 2, '.', '')
-                    . __('km: ', 'smart-send-logistics');
+                    . __('km', 'smart-send-logistics');
             }
-            $formatted_address = $formatted_distance . $formatted_address;
+            $formatted_address = $formatted_distance . ': ' . $formatted_address;
 		}
 
 		return $formatted_address;
