@@ -6,7 +6,7 @@
  * Author: Smart Send ApS
  * Author URI: https://www.smartsend.io
  * Text Domain: smart-send-logistics
- * Version: 8.0.3
+ * Version: 8.0.4
  * WC requires at least: 2.6.0
  * WC tested up to: 3.5
  *
@@ -33,7 +33,7 @@ if ( ! class_exists( 'SS_Shipping_WC' ) ) :
 
 class SS_Shipping_WC {
 
-	private $version = "8.0.3";
+	private $version = "8.0.4";
 
 	/**
 	 * Instance to call certain functions globally within the plugin
@@ -370,14 +370,10 @@ class SS_Shipping_WC {
 		if( ! $this->api_handle ) {
             $api_token = $this->get_api_token_setting();
 
-			if ( $api_token ) {
-				// Initiate an API handle with the login credentials.
-                $demo_mode = $this->get_demo_mode_setting();
-                $website_url = $this->get_website_url();
-                $this->api_handle = new \Smartsend\Api( $api_token, $website_url, $demo_mode );
-			} else {
-				return false;
-			}
+            // Initiate an API handle with the login credentials.
+            $demo_mode = $this->get_demo_mode_setting();
+            $website_url = $this->get_website_url();
+            $this->api_handle = new \Smartsend\Api( $api_token, $website_url, $demo_mode );
 
 		}
 
