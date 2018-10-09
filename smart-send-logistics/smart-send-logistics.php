@@ -370,14 +370,10 @@ class SS_Shipping_WC {
 		if( ! $this->api_handle ) {
             $api_token = $this->get_api_token_setting();
 
-			if ( $api_token ) {
-				// Initiate an API handle with the login credentials.
-                $demo_mode = $this->get_demo_mode_setting();
-                $website_url = $this->get_website_url();
-                $this->api_handle = new \Smartsend\Api( $api_token, $website_url, $demo_mode );
-			} else {
-				return false;
-			}
+            // Initiate an API handle with the login credentials.
+            $demo_mode = $this->get_demo_mode_setting();
+            $website_url = $this->get_website_url();
+            $this->api_handle = new \Smartsend\Api( $api_token, $website_url, $demo_mode );
 
 		}
 

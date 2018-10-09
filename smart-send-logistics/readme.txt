@@ -139,6 +139,9 @@ The plugin implements a number of useful hooks (actions and filters) that can be
 
 == Changelog ==
 
+= 8.0.4 =
+* Fix unexpected error when no API Token is entered in the plugin settings
+
 = 8.0.3 =
 * Fix problem with pick-up point format
 
