@@ -31,8 +31,8 @@ class SS_Shipping_WC_Order {
 	 * Define constants
 	 */
 	protected function define_constants() {
-		SS_SHIPPING_WC()->define( 'SS_SHIPPING_BUTTON_LABEL_GEN', __( 'Generate label', 'smart-send-logistics' ) );
-        SS_SHIPPING_WC()->define( 'SS_SHIPPING_BUTTON_RETURN_LABEL_GEN', __( 'Generate return label', 'smart-send-logistics' ) );
+		SS_SHIPPING_WC()->define( 'SS_SHIPPING_BUTTON_LABEL_GEN', (SS_SHIPPING_WC()->get_demo_mode_setting() ? __( 'DEMO MODE', 'smart-send-logistics' ).': ' : '') . __( 'Generate label', 'smart-send-logistics' ) );
+        SS_SHIPPING_WC()->define( 'SS_SHIPPING_BUTTON_RETURN_LABEL_GEN', (SS_SHIPPING_WC()->get_demo_mode_setting() ? __( 'DEMO MODE', 'smart-send-logistics' ).': ' : '') . __( 'Generate return label', 'smart-send-logistics' ) );
 	}
 
 	/**
@@ -818,8 +818,8 @@ class SS_Shipping_WC_Order {
 		$shop_manager_actions = array();
 
 		$shop_manager_actions = array(
-			'ss_shipping_label_bulk'      => __( 'Smart Send - Generate Labels', 'smart-send-logistics' ),
-			'ss_shipping_return_bulk'      => __( 'Smart Send - Generate Return Labels', 'smart-send-logistics' ),
+			'ss_shipping_label_bulk'    => (SS_SHIPPING_WC()->get_demo_mode_setting() ? __( 'DEMO MODE', 'smart-send-logistics' ).': ' : '') . __( 'Smart Send - Generate Labels', 'smart-send-logistics' ),
+			'ss_shipping_return_bulk'   => (SS_SHIPPING_WC()->get_demo_mode_setting() ? __( 'DEMO MODE', 'smart-send-logistics' ).': ' : '') . __( 'Smart Send - Generate Return Labels', 'smart-send-logistics' ),
 		);
 
 		return $shop_manager_actions;

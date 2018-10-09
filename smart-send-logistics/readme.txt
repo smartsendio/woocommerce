@@ -140,6 +140,7 @@ The plugin implements a number of useful hooks (actions and filters) that can be
 == Changelog ==
 
 = 8.0.4 =
+* Add a help text to action buttons when operating in demo demo
 * Fix unexpected error when no API Token is entered in the plugin settings
 
 = 8.0.3 =
