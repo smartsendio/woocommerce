@@ -140,21 +140,21 @@ class SS_Shipping_WC_Method extends WC_Shipping_Flat_Rate {
 		$agents_address_format = SS_SHIPPING_WC()->get_agents_address_format();
 
 		$this->form_fields = array(
-			'api_token'            	=> array(
-				'title'           	=> __( 'API Token', 'smart-send-logistics' ),
-				'type'            	=> 'text',
-                'default'           => '',
-				'description'     	=> sprintf( __( 'Sign up for a Smart Send account <a href="%s" target="_blank">here</a>.', 'smart-send-logistics' ), esc_url( 'https://smartsend.io/' ) ),
-				'desc_tip'        	=> false
+			'api_token'         => array(
+				'title'         => __( 'API Token', 'smart-send-logistics' ),
+				'type'          => 'text',
+                'default'       => '',
+				'description'   => sprintf( __( 'Sign up for a Smart Send account <a href="%s" target="_blank">here</a>.', 'smart-send-logistics' ), esc_url( 'https://smartsend.io/' ) ),
+				'desc_tip'      => false
 			),
 			'api_token_validate' => array(
-				'title'             => SS_BUTTON_TEST_CONNECTION,
-				'type'              => 'button',
+				'title'         => SS_BUTTON_TEST_CONNECTION,
+				'type'          => 'button',
 				'custom_attributes' => array(
 					'onclick' => "ssTestConnection('#woocommerce_smart_send_shipping_api_token_validate');",
 				),
-				'description'       => __( 'Save the settings before clicking the button to validate API Token.', 'smart-send-logistics' ),
-				'desc_tip'          => false,
+				'description'   => __( 'Save the settings before clicking the button to validate API Token.', 'smart-send-logistics' ),
+				'desc_tip'      => false,
 			),
             'demo' => array(
                 'title'         => __( 'Demo mode', 'smart-send-logistics' ),
@@ -164,11 +164,11 @@ class SS_Shipping_WC_Method extends WC_Shipping_Flat_Rate {
                 'label'         => __( 'Enable demo mode', 'smart-send-logistics' ),
             ),
 			'ss_debug' => array(
-				'title'             => __( 'Debug Log', 'smart-send-logistics' ),
-				'type'              => 'checkbox',
-				'label'             => __( 'Enable logging', 'smart-send-logistics' ),
-				'default'           => 'no',
-				'description'       => sprintf( __( 'A log file containing the communication to the Smart Send server will be maintained if this option is checked. This can be used in case of technical issues and can be found %shere%s.', 'smart-send-logistics' ), '<a href="' . $log_path . '" target = "_blank">', '</a>' )
+				'title'         => __( 'Debug Log', 'smart-send-logistics' ),
+				'type'          => 'checkbox',
+				'label'         => __( 'Enable logging', 'smart-send-logistics' ),
+				'default'       => 'no',
+				'description'   => sprintf( __( 'A log file containing the communication to the Smart Send server will be maintained if this option is checked. This can be used in case of technical issues and can be found %shere%s.', 'smart-send-logistics' ), '<a href="' . $log_path . '" target = "_blank">', '</a>' )
 			),
 			'title_labels'	=> array(
 				'title'   		=> __( 'Shipping Labels','smart-send-logistics'),
@@ -176,26 +176,26 @@ class SS_Shipping_WC_Method extends WC_Shipping_Flat_Rate {
 				'description' 	=> __( 'Settings for generating shipping labels.','smart-send-logistics' ),
 			),
 			'order_status' => array(
-				'title'    	=> __( 'Set order status after label print','smart-send-logistics'),
-				'id'       	=> 'smart_send_shipping_order_status',
-				'default'  	=> '0',
-				'type'     	=> 'select',
-				'class'    	=> 'wc-enhanced-select',
-				'options'   => array_merge( array( '0' => __("Don't change order status",'smart-send-logistics') ), wc_get_order_statuses() )
+				'title'    	    => __( 'Set order status after label print','smart-send-logistics'),
+				'id'       	    => 'smart_send_shipping_order_status',
+				'default'  	    => 'no',
+				'type'     	    => 'select',
+				'class'    	    => 'wc-enhanced-select',
+				'options'       => array_merge( array( '0' => __("Don't change order status",'smart-send-logistics') ), wc_get_order_statuses() )
 			),
 			'shipping_method_for_free_shipping' => array(
-				'title'    	=> __( 'Shipping method used for WooCommerce method Free Shipping','smart-send-logistics'),
-				'type'     	=> 'selectopt',
-				'class'    	=> 'wc-enhanced-select',
-				'description' => __( 'Selecting a shipping method will make it possible to make shipping labels for order places with WooCommerces native Free Shipping method.', 'smart-send-logistics' ),
-				'desc_tip' 	=> true,
-				'options'         	=> $this->shipping_method
+				'title'    	    => __( 'Shipping method used for WooCommerce method Free Shipping','smart-send-logistics'),
+				'type'     	    => 'selectopt',
+				'class'    	    => 'wc-enhanced-select',
+				'description'   => __( 'Selecting a shipping method will make it possible to make shipping labels for order places with WooCommerces native Free Shipping method.', 'smart-send-logistics' ),
+				'desc_tip'  	=> true,
+				'options'       => $this->shipping_method
 			),
 			'include_order_comment' => array(
-				'title'    	=> __( 'Include order comment on label','smart-send-logistics'),
-				'default' 	=> 'yes',
-				'type'    	=> 'checkbox',
-				'desc_tip'        =>  false,
+				'title'    	    => __( 'Include order comment on label','smart-send-logistics'),
+				'default' 	    => 'no',
+				'type'    	    => 'checkbox',
+				'desc_tip'      =>  false,
 			),
 			'title_pickup'	=> array(
 				'title'   		=> __( 'Pick-up Points','smart-send-logistics'),
@@ -203,21 +203,21 @@ class SS_Shipping_WC_Method extends WC_Shipping_Flat_Rate {
 				'description' 	=> __( 'Settings for displaying pick-up points during checkout.','smart-send-logistics' ),
 			),
 			'dropdown_display_format' => array(
-				'title'    	=> __( 'Dropdown format','smart-send-logistics'),
-				'desc'		=> __('How the pick-up points are listed during checkout.','smart-send-logistics'),
-				'default'  	=> '4',
-				'type'     	=> 'select',
-				'class'    	=> 'wc-enhanced-select',
-				'desc_tip' 	=> true,
-				'options'   => $agents_address_format
+				'title'    	    => __( 'Dropdown format','smart-send-logistics'),
+				'desc'		    => __('How the pick-up points are listed during checkout.','smart-send-logistics'),
+				'default'  	    => '4',
+				'type'     	    => 'select',
+				'class'    	    => 'wc-enhanced-select',
+				'desc_tip' 	    => true,
+				'options'       => $agents_address_format
 			),
 			'default_select_agent' => array(
-				'title'    	=> __( 'Select Default','smart-send-logistics'),
-				'label'    	=> __( 'Enable Select Default','smart-send-logistics'),
+				'title'    	    => __( 'Select Default','smart-send-logistics'),
+				'label'    	    => __( 'Enable Select Default','smart-send-logistics'),
 				'description'	=> __('Select the first returned pick-up point.'),
-				'default' 	=> 'no',
-				'type'     	=> 'checkbox',
-				'desc_tip' 	=> true,
+				'default' 	    => 'no',
+				'type'     	    => 'checkbox',
+				'desc_tip' 	    => true,
 			),
             'title_shipping_methods'	=> array(
                 'title'   		=> __( 'Shipping methods','smart-send-logistics'),
@@ -225,11 +225,11 @@ class SS_Shipping_WC_Method extends WC_Shipping_Flat_Rate {
                 'description' 	=> __( 'Settings for shipping methods.','smart-send-logistics' ),
             ),
             'sort_methods_by_cost' => array(
-                'title'             => __( 'Sort shipping methods', 'smart-send-logistics' ),
-                'type'              => 'checkbox',
-                'label'             => __( 'Enable automatic sorting by cost on checkout page', 'smart-send-logistics' ),
-                'default'           => 'no',
-                'description'       => sprintf( __( 'Shipping methods will be sorted in ascending order, according to the cost, instead of by order of appearance in Shipping Zone table as per default', 'smart-send-logistics' ), '<a href="' . $log_path . '" target = "_blank">', '</a>' )
+                'title'         => __( 'Sort shipping methods', 'smart-send-logistics' ),
+                'type'          => 'checkbox',
+                'label'         => __( 'Enable automatic sorting by cost on checkout page', 'smart-send-logistics' ),
+                'default'       => 'no',
+                'description'   => sprintf( __( 'Shipping methods will be sorted in ascending order, according to the cost, instead of by order of appearance in Shipping Zone table as per default', 'smart-send-logistics' ), '<a href="' . $log_path . '" target = "_blank">', '</a>' )
             ),
 		);
 	}
