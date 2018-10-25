@@ -117,7 +117,7 @@ class Client
         $error_string = $error->message;
         // Print 'Read more here' link to error explenation
         if(isset($error->links->about)) {
-            $error_string .= $delimiter."- <a href='".$error->links->about."'>Read more here</a>";
+            $error_string .= $delimiter."- <a href='".$error->links->about."' target='_blank'>Read more here</a>";
         }
         // Print unique error ID if one exists
         if(isset($error->id)) {
