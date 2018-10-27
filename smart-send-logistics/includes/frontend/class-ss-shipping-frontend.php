@@ -30,7 +30,8 @@ class SS_Shipping_Frontend {
 		add_action( 'woocommerce_after_shipping_rate', array( $this, 'display_ss_pickup_points' ), 10, 2 );
 		add_action( 'woocommerce_checkout_process', array( $this, 'validate_agent_selected' ) );
 		add_action( 'woocommerce_checkout_order_processed', array( $this, 'process_ss_pickup_points' ), 10, 2 );
-		add_filter( 'woocommerce_order_details_after_order_table', array( $this, 'display_ss_shipping_agent') ) ;
+        add_action( 'woocommerce_order_details_after_order_table', array( $this, 'display_ss_shipping_agent'), 10, 2 ) ;
+        add_action( 'woocommerce_email_after_order_table', array( $this, 'display_ss_shipping_agent'), 10, 2 ) ;
 	}
 
 	/**
@@ -116,31 +117,44 @@ class SS_Shipping_Frontend {
 	 * Get the formatted address to display on the frontend
 	 */
 	protected function get_formatted_address( $agent, $format_id = 0 ) {
-		if ( empty($format_id) ) {
-			$ss_setting = SS_SHIPPING_WC()->get_ss_shipping_settings();
-			$format_id = $ss_setting['dropdown_display_format'];
-		}
+		if ($format_id == -1) {
+            // Show everything
+            $address_format = __('#Company', 'smart-send-logistics') . '<br>'
+                . __('#Street','smart-send-logistics') . '<br>'
+                . __('#Country','smart-send-logistics') . ' '
+                . __('#Zipcode','smart-send-logistics') . ' ' . __('#City','smart-send-logistics');
+        } else {
+            if ( $format_id == 0 ) {
+                // Find the setting
+                $ss_setting = SS_SHIPPING_WC()->get_ss_shipping_settings();
+                $format_id = $ss_setting['dropdown_display_format'];
+            }
+            // Get the specified format
+            $agents_address_format = SS_SHIPPING_WC()->get_agents_address_format();
+            $address_format = $agents_address_format[ $format_id ];
+        }
 
-		$agents_address_format = SS_SHIPPING_WC()->get_agents_address_format();
-		$address_format = $agents_address_format[ $format_id ];
-
-		$place_holders = array( 
-								__('#Company', 'smart-send-logistics'),
-								__('#Street','smart-send-logistics'),
-								__('#Zipcode','smart-send-logistics'),
-								__('#City','smart-send-logistics')
-							);
+		$place_holders = array(
+            __('#AgentNo', 'smart-send-logistics'),
+            __('#Company', 'smart-send-logistics'),
+            __('#Street','smart-send-logistics'),
+            __('#Zipcode','smart-send-logistics'),
+            __('#City','smart-send-logistics'),
+            __('#Country','smart-send-logistics'),
+        );
 
 		$place_holders_vals = array(
-								$agent->company,
-								$agent->address_line1,
-								$agent->postal_code,
-								$agent->city
-							);
+            $agent->agent_no,
+            $agent->company,
+            $agent->address_line1,
+            $agent->postal_code,
+            $agent->city,
+            $agent->country,
+        );
 
 		$formatted_address = str_replace( $place_holders, $place_holders_vals, $address_format );
 
-		if( !empty( $agent->distance ) ) {
+		if( !empty( $agent->distance ) && $format_id > 0 ) {
 		    if($agent->distance < 1) {
                 $formatted_distance = number_format($agent->distance*1000, 0, '.', '')
                     . __('m', 'smart-send-logistics');
@@ -212,26 +226,30 @@ class SS_Shipping_Frontend {
 	*/
 	public function display_ss_shipping_agent( $order ) {
 
-		$order_id = $order->get_order_number();
+		$order_id = $this->getOrderId($order);
 		$ordered_agent_no = SS_SHIPPING_WC()->get_ss_shipping_wc_order()->get_ss_shipping_order_agent_no( $order_id );
 
 		if ( $ordered_agent_no ) {
 			
 			$ordered_agent = SS_SHIPPING_WC()->get_ss_shipping_wc_order()->get_ss_shipping_order_agent( $order_id );
 
-			$formatted_address = $this->get_formatted_address($ordered_agent);
+			$formatted_address = $this->get_formatted_address($ordered_agent, -1);
 			// Display in block instead of one line
 			$formatted_address = str_replace(',', '<br/>', $formatted_address);
-			?>
 
-			<h2><?php _e( 'Pick-up Point', 'smart-send-logistics' ); ?></h2>
-			<address>
-				<?php echo $formatted_address; ?>
-			</address>
-			
-			<?php		
+			echo '<h2>' . __( 'Pick-up Point', 'smart-send-logistics' ) .'</h2>'
+                . '<address>' . $formatted_address . '</address>';
 		}
 	}
+
+    protected function getOrderId($order) {
+        // WC 3.0 code!
+        if ( defined( 'WOOCOMMERCE_VERSION' ) && version_compare( WOOCOMMERCE_VERSION, '3.0', '>=' ) ) {
+            return $order->get_id();
+        } else {
+            return $order->id;
+        }
+    }
 }
 
 endif;

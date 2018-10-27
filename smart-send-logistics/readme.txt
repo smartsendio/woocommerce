@@ -140,6 +140,7 @@ The plugin implements a number of useful hooks (actions and filters) that can be
 == Changelog ==
 
 = 8.0.5 =
+* Bugfix: Show selected pick-up point on order confirmation page and confirmation email
 * Changing default setting whether or not to include order comment on shipping labels
 * Make label links open in a new tab
 * Add carrier Bifrost Logistics
