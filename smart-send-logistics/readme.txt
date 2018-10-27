@@ -141,6 +141,8 @@ The plugin implements a number of useful hooks (actions and filters) that can be
 
 = 8.0.5 =
 * Changing default setting whether or not to include order comment on shipping labels
+* Make label links open in a new tab
+* Add carrier Bifrost Logistics
 
 = 8.0.4 =
 * Add a help text to action buttons when operating in demo demo

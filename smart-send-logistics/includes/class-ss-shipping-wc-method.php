@@ -66,6 +66,30 @@ class SS_Shipping_WC_Method extends WC_Shipping_Flat_Rate {
                     'bring_express9'			    => __( 'Bring: Express delivery before 9:00 (Express Nordic 09:00)', 'smart-send-logistics' ),
                     'bring_bulkexpress9'			=> __( 'Bring: Express delivery before 9:00, send as bulk (Express Nordic 09:00 Bulk)', 'smart-send-logistics' ),
 				),
+            'Bifrost Logistics'		=>
+                array(
+                    // eTail Tracked
+                    'bifrost_etailtracked'			    => __( 'Bifrost Logistics: eTail Tracked', 'smart-send-logistics' ),
+                    'bifrost_etailtrackedlarge'		    => __( 'Bifrost Logistics: eTail Tracked large', 'smart-send-logistics' ),
+                    // Letter Priority
+                    'bifrost_letterprioritysmall'	    => __( 'Bifrost Logistics: Letter priority small', 'smart-send-logistics' ),
+                    'bifrost_letterprioritylarge'	    => __( 'Bifrost Logistics: Letter priority large', 'smart-send-logistics' ),
+                    'bifrost_letterprioritymaxi'	    => __( 'Bifrost Logistics: Letter priority maxi', 'smart-send-logistics' ),
+                    //Letter Economy
+                    'bifrost_lettereconomysmall'	    => __( 'Bifrost Logistics: Letter economy small', 'smart-send-logistics' ),
+                    'bifrost_lettereconomylarge'	    => __( 'Bifrost Logistics: Letter economy large', 'smart-send-logistics' ),
+                    'bifrost_lettereconomymaxi'	        => __( 'Bifrost Logistics: Letter economy maxi', 'smart-send-logistics' ),
+                    // Press Priority
+                    'bifrost_pressprioritylarge'	    => __( 'Bifrost Logistics: Press priority large', 'smart-send-logistics' ),
+                    'bifrost_pressprioritymaxi'	        => __( 'Bifrost Logistics: Press priority maxi', 'smart-send-logistics' ),
+                    // Advertising Economy
+                    'bifrost_advertisingeconomysmall'	=> __( 'Bifrost Logistics: Advertising economy small', 'smart-send-logistics' ),
+                    'bifrost_advertisingeconomylarge'	=> __( 'Bifrost Logistics: Advertising economy large', 'smart-send-logistics' ),
+                    'bifrost_advertisingeconomymaxi'	=> __( 'Bifrost Logistics: Advertising economy maxi', 'smart-send-logistics' ),
+                    // Ecom priority large
+                    'bifrost_ecomprioritylarge'	        => __( 'Bifrost Logistics: Ecom priority large', 'smart-send-logistics' ),
+                    'bifrost_ecomprioritymaxi'	        => __( 'Bifrost Logistics: Ecom priority maxi', 'smart-send-logistics' ),
+                ),
 		);
 
         $this->return_shipping_method = array(
