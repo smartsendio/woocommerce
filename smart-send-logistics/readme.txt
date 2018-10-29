@@ -8,7 +8,7 @@ Developer URI: https://smartsend.io/
 Tags: smartsend, smart send, shipping, shipping label, pickup, pick-up, pakkelabel, pakkelabels, pakkeboks, pakkeshop, hente selv, døgnboks, postnord, post nord, post danmark, gls, swipbox, bring, dao, dao365, dao 365, carrier, pacsoft, yourgls, mybring, postage, shipping method, your-gls, my-bring, pacosft-online, pacsoftonline, denmark, sweeden, posten, norway, post 
 Requires at least: 3.0.1
 Tested up to: 5.0
-Stable tag: 8.0.5
+Stable tag: 8.0.6
 License: GNU General Public License v3.0
 License URI: http://www.gnu.org/licenses/gpl-3.0.html
 WC requires at least: 2.6.0
@@ -138,6 +138,9 @@ The plugin implements a number of useful hooks (actions and filters) that can be
 5. Save tracking information automatically after creating shipping labels
 
 == Changelog ==
+
+= 8.0.6 =
+* Add support for extra shipping methods from the plugin: vConnect PostNord Delivery Checkout
 
 = 8.0.5 =
 * Bugfix: Show selected pick-up point on order confirmation page and confirmation email

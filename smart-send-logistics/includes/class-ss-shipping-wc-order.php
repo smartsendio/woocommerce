@@ -263,6 +263,40 @@ class SS_Shipping_WC_Order {
                                 return 'postnord_agent';
                             } elseif ( stripos($shipping_method_id, '_dpd') !== false ) {
                                 return 'postnord_homedelivery';
+                            } elseif ( stripos($shipping_method_id, '_commercial') !== false ) {
+                                return 'postnord_commercial';
+                            } elseif ( stripos($shipping_method_id, '_privatehome') !== false ) {
+                                $vc_aio_options = get_post_meta($order_id,'_vc_aio_options');
+                                $flexDelivery = false;
+                                $flexDeliveryOption = false;
+                                $dayDelivery = false;
+                                if (is_array($vc_aio_options)) {
+                                    foreach ($vc_aio_options as $option) {
+                                        // Check if shipping method has flexDelivery enabled (the parcel can be left somewhere)
+                                        if (array_search('flexDelivery', array_column($option, 'value')) !== false ) {
+                                            $flexDelivery = true;
+                                        }
+                                        // Check if shipping method has dayDelivery enabled (customer will receive an SMS with possibility to choose)
+                                        if (array_search('dayDelivery', array_column($option, 'value')) !== false ) {
+                                            $dayDelivery = true;
+                                        }
+                                        // A flexDelivery option is chosen
+                                        if (!empty($option['typeId']['value']) && $option['typeId']['value'] == 'flexDelivery'
+                                            && !empty($option['addressText']['value'])) {
+                                            $flexDeliveryOption= true;
+                                        }
+                                    }
+                                }
+                                if (!$flexDelivery && !$dayDelivery && !$flexDeliveryOption) {
+                                    return 'postnord_homedelivery';
+                                } elseif (!$flexDelivery && !$flexDeliveryOption && $dayDelivery) {
+                                    return 'postnord_flexhome';
+                                } elseif ($flexDelivery && !$flexDeliveryOption && !$dayDelivery) {
+                                    return 'postnord_doorstep';
+                                    // The chosen flexdelivy option must be used to tell PostNord where the parcel should be left
+                                } elseif ($flexDelivery && $flexDeliveryOption && !$dayDelivery) {
+                                    // The chosen flexdelivy option must be used to tell PostNord where the parcel should be left
+                                }
                             }
                         }
                     }
