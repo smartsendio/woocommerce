@@ -37,12 +37,12 @@ class Client
         $this->setDemo($demo);
     }
 
-    protected function setApiToken($api_token)
+    public function setApiToken($api_token)
     {
         $this->api_token = $api_token;
     }
 
-    protected function setWebsite($website)
+    public function setWebsite($website)
     {
         // Remove www. from the start of the website
         if (substr($website, 0, strlen('www.')) == 'www.') {
@@ -51,7 +51,7 @@ class Client
         $this->website = $website;
     }
 
-    protected function setDemo($demo)
+    public function setDemo($demo)
     {
         $this->demo = $demo;
     }
@@ -117,7 +117,7 @@ class Client
         $error_string = $error->message;
         // Print 'Read more here' link to error explenation
         if(isset($error->links->about)) {
-            $error_string .= $delimiter."- <a href='".$error->links->about."'>Read more here</a>";
+            $error_string .= $delimiter."- <a href='".$error->links->about."' target='_blank'>Read more here</a>";
         }
         // Print unique error ID if one exists
         if(isset($error->id)) {
