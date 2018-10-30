@@ -140,6 +140,8 @@ The plugin implements a number of useful hooks (actions and filters) that can be
 == Changelog ==
 
 = 8.0.7 =
+* Bugfix: Some translation plugins caused the pick-up point to not display properly
+
 = 8.0.6 =
 * Add support for extra shipping methods from the plugin: vConnect PostNord Delivery Checkout
 
