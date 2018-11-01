@@ -148,16 +148,22 @@ The following meta fields are used by the plugin:
     Shipping method meta field used to store the shipping method used when generating shipping labels
 * **smart_send_return_method**
     Shipping method meta field used to store the shipping method used when generating return shipping labels
+* **smart_send_auto_generate_return_label**
+    Field used for storing setting whether or not a return label should automatically be created when creating a shipping label
 * **ss_shipping_order_parcels**
     Used for storing information how the orders items are split into parcels
 * **ss_shipping_order_agent_no**
     Used for storing the id of the selected pick-up point
-* **ss_shipping_order_agent**
-    Used for storing the address of the selected pick-up point
+* **_ss_shipping_order_agent**
+    Hidden field used for storing the address of the selected pick-up point
+* **_ss_shipping_label_id**
+    Hidden field used for storing the unique Smart Send id of the generated shipping label
+* **_ss_shipping_return_label_id**
+    Hidden field used for storing the unique Smart Send id of the generated return shipping label
 * **_ss_hs_code**
-    Used to store the customs HS code for products in WooCommerce
+    Hidden field used to store the customs HS code for products in WooCommerce
 * **_ss_customs_desc**
-    Used to store the customs description for products in WooCommerce
+    Hidden field used to store the customs description for products in WooCommerce
 
 == Frequently Asked Questions ==
 
