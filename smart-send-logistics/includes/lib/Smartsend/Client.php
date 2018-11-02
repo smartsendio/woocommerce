@@ -35,6 +35,8 @@ class Client
         $this->setApiToken($api_token);
         $this->setWebsite($website);
         $this->setDemo($demo);
+
+        $this->api_host = apply_filters( 'smart_send_api_endpoint', $this->api_host);
     }
 
     public function setApiToken($api_token)
