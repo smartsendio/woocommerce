@@ -401,7 +401,17 @@ class SS_Shipping_WC {
         return empty($ss_shipping_settings['demo']) ? true : ($ss_shipping_settings['demo'] == 'yes' ? true : false);
     }
 
+    /*
+	 * Get the setting 'save_shipping_labels_in_uploads'
+	 *
+	 * @return boolean
+	 */
     public function get_setting_save_shipping_labels_in_uploads()
+    {
+        $ss_shipping_settings = $this->get_ss_shipping_settings();
+        return empty($ss_shipping_settings['save_shipping_labels_in_uploads']) ? false : ($ss_shipping_settings['save_shipping_labels_in_uploads'] == 'yes' ? true : false);
+    }
+
     /*
 	 * Get the url of the current site
 	 *
