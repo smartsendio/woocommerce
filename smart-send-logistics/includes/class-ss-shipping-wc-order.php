@@ -479,16 +479,19 @@ class SS_Shipping_WC_Order {
 
             try {
 	            // Save the PDF file
-	            $this->save_label_file( $response->shipment_id, $response->pdf->base_64_encoded, $return );
+	            //$labelUrl = $this->save_label_file( $response->shipment_id, $response->pdf->base_64_encoded, $return );
             } catch (Exception $e) {
 	            return array( 'error' => $e->getMessage() );
             }
+
+            // Get the label link
+            $labelUrl = $response->pdf->link;
             
           	// save order meta data  
             $this->save_ss_shipment_id_in_order_meta( $order_id, $response->shipment_id, $return );
 
             // Get formatted order comment
-            $response->woocommerce['label_link'] = $this->get_label_url_from_shipment_id($response->shipment_id);
+            $response->woocommerce['label_link'] = $labelUrl;
             $response->woocommerce['order_note'] = $this->get_formatted_order_note_with_label_and_tracking( $order_id, $response, $return );
             $response->woocommerce['return'] = $return;
 
@@ -993,13 +996,16 @@ class SS_Shipping_WC_Order {
 		            $response = SS_SHIPPING_WC()->get_api_handle()->getData();
                     try {
                         // Save the PDF file and save order meta data
-                        $combo_url = $this->save_label_file( $combo_name, $response->pdf->base_64_encoded, null );
+                        //$combo_url = $this->save_label_file( $combo_name, $response->pdf->base_64_encoded, null );
                     } catch (Exception $e) {
                         array_push($array_messages, array(
                             'message' => $e->getMessage(),
                             'type' => 'error',
                         ));
                     }
+
+                    // Get the combined label link
+                    $combo_url = $response->pdf->link;
 
                     // Write API response to log
 		            SS_SHIPPING_WC()->log_msg( 'Response from "combineLabelsForShipments" : ' . SS_SHIPPING_WC()->get_api_handle()->getResponseBody() );
