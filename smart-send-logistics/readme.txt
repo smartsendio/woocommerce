@@ -187,6 +187,7 @@ This box appears when a "Select Pick-up Point" shipping method is selected, but 
 == Changelog ==
 
 = 8.0.7 =
+* Add order weight to Smart Send meta box on admin order page
 * Bugfix: Some translation plugins caused the pick-up point to not display properly
 
 = 8.0.6 =
