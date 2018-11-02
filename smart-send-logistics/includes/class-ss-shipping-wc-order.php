@@ -603,37 +603,31 @@ class SS_Shipping_WC_Order {
 			throw new Exception( __('Label data empty', 'smart-send-logistics' ) );
 		}
 
-		$label_path = $this->get_label_path_from_shipment_id($shipment_id);
-		$label_url = $this->get_label_url_from_shipment_id($shipment_id);
-
-		if( validate_file($label_path) > 0 ) {
-			throw new Exception( __('Invalid file path', 'smart-send-logistics' ) .': '.$label_path ); //This exception is not caught
-		}
-
 		$label_data_decoded = base64_decode($label_data);
-		$file_ret = file_put_contents( $label_path, $label_data_decoded );
+        $file_ret = wp_upload_bits($this->get_label_name_from_shipment_id($shipment_id), null, $label_data_decoded, null);
 		
-		if( empty( $file_ret ) ) {
-			throw new Exception( __('Label file cannot be saved', 'smart-send-logistics' ).': '.$label_path ); //This exception is not caught
+		if( empty( $file_ret['url'] ) ) {
+			throw new Exception( __('Label file cannot be saved', 'smart-send-logistics' ) ); //This exception is not caught
 		}
 
-		return $label_url;
+		return $file_ret['url'];
 	}
 
 	protected function get_label_url_from_shipment_id($shipment_id) {
-        if($this->label_prefix) {
-            $shipment_id = $this->label_prefix . $shipment_id;
-        }
         $upload_path = wp_upload_dir();
-        return $upload_path['url'] . '/'. $shipment_id . '.pdf';
+        return $upload_path['url'] . '/'. $this->get_label_name_from_shipment_id($shipment_id);
     }
 
     protected function get_label_path_from_shipment_id($shipment_id) {
-	    if($this->label_prefix) {
+        $upload_path = wp_upload_dir();
+        return $upload_path['path'] . '/'. $this->get_label_name_from_shipment_id($shipment_id);
+    }
+
+    protected function get_label_name_from_shipment_id($shipment_id) {
+        if ($this->label_prefix) {
             $shipment_id = $this->label_prefix . $shipment_id;
         }
-        $upload_path = wp_upload_dir();
-        return $upload_path['path'] . '/'. $shipment_id . '.pdf';
+        return $shipment_id . '.pdf';
     }
 
 
