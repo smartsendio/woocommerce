@@ -182,7 +182,7 @@ class SS_Shipping_WC_Method extends WC_Shipping_Flat_Rate {
             ),
             'demo' => array(
                 'title'         => __('Demo mode', 'smart-send-logistics'),
-                'description'   => __('Demo mode is used for testing on a staging site', 'smart-send-logistics'),
+                'description'   => __('Demo mode is used for testing on a staging site. No data will be send to the shipping carrier.', 'smart-send-logistics'),
                 'type'          => 'checkbox',
                 'default'       => 'yes',
                 'label'         => __('Enable demo mode', 'smart-send-logistics'),
