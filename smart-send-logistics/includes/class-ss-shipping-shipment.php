@@ -258,7 +258,7 @@ class SS_Shipping_Shipment {
 				    ->setName( $product->get_title() ?: null )
 				    ->setDescription( $custom_desc ?: null ) //$product_description can be used, but is often to long (255)
 				    ->setHsCode( $hs_code ?: null )
-				    ->setImageUrl( $product_img_url ?: null )
+				    ->setImageUrl( null ) //$product_img_url can be used, but sometimes include spaces (bug) which causes validation error
 				    ->setUnitWeight( $product_weight > 0 ? $product_weight : null )
 				    ->setUnitPriceExcludingTax( $product_val ?: null )
 				    ->setUnitPriceIncludingTax( $product_val_tax ?: null )

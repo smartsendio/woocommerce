@@ -117,30 +117,47 @@ class SS_Shipping_Frontend {
 	 * Get the formatted address to display on the frontend
 	 */
 	protected function get_formatted_address( $agent, $format_id = 0 ) {
-		if ($format_id == -1) {
-            // Show everything
-            $address_format = __('#Company', 'smart-send-logistics') . '<br>'
-                . __('#Street','smart-send-logistics') . '<br>'
-                . __('#Country','smart-send-logistics') . ' '
-                . __('#Zipcode','smart-send-logistics') . ' ' . __('#City','smart-send-logistics');
-        } else {
-            if ( $format_id == 0 ) {
-                // Find the setting
-                $ss_setting = SS_SHIPPING_WC()->get_ss_shipping_settings();
-                $format_id = $ss_setting['dropdown_display_format'];
-            }
-            // Get the specified format
-            $agents_address_format = SS_SHIPPING_WC()->get_agents_address_format();
-            $address_format = $agents_address_format[ $format_id ];
+
+	    if ($format_id == 0) {
+            // Find the setting
+            $ss_setting = SS_SHIPPING_WC()->get_ss_shipping_settings();
+            $format_id = $ss_setting['dropdown_display_format'];
+        }
+
+        switch ($format_id) {
+            case 1:
+                $address_format = '#Company, #Street';
+                break;
+            case 2:
+                $address_format = '#Company, #Street, #Zipcode';
+                break;
+            case 3:
+                $address_format = '#Company, #Street, #City';
+                break;
+            case 4:
+                $address_format = '#Company, #Street, #Zipcode #City';
+                break;
+            case 5:
+                $address_format = '#Company, #Zipcode';
+                break;
+            case 6:
+                $address_format = '#Company, #Zipcode, #City';
+                break;
+            case 7:
+                $address_format = '#Company, #City';
+                break;
+            default:
+                $address_format = '#Company<br>#Street<br>#Country #Zipcode #City';
+                break;
         }
 
 		$place_holders = array(
-            __('#AgentNo', 'smart-send-logistics'),
-            __('#Company', 'smart-send-logistics'),
-            __('#Street','smart-send-logistics'),
-            __('#Zipcode','smart-send-logistics'),
-            __('#City','smart-send-logistics'),
-            __('#Country','smart-send-logistics'),
+            '#AgentNo',
+            '#Company',
+            '#Street',
+            '#Zipcode',
+            '#City',
+            '#Country',
         );
 
 		$place_holders_vals = array(

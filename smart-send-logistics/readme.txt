@@ -8,7 +8,7 @@ Developer URI: https://smartsend.io/
 Tags: smartsend, smart send, shipping, shipping label, pickup, pick-up, pakkelabel, pakkelabels, pakkeboks, pakkeshop, hente selv, døgnboks, postnord, post nord, post danmark, gls, swipbox, bring, dao, dao365, dao 365, carrier, pacsoft, yourgls, mybring, postage, shipping method, your-gls, my-bring, pacosft-online, pacsoftonline, denmark, sweeden, posten, norway, post 
 Requires at least: 3.0.1
 Tested up to: 5.0
-Stable tag: 8.0.6
+Stable tag: 8.0.7
 License: GNU General Public License v3.0
 License URI: http://www.gnu.org/licenses/gpl-3.0.html
 WC requires at least: 2.6.0
@@ -85,7 +85,7 @@ This plugin replaces the two previous modules “Smart Send Labelgenerator” an
 
 == Installation ==
 
-See our online installation guide at [SmartSend.io](https://smartsend.io/woocommerce/configuration), or follow these steps:
+See our online installation guide at [https://smartsend.io](https://smartsend.io/woocommerce/configuration), or follow these steps:
 
 1. Log in to the WordPress dashboard
 2. Navigate to the Plugin menu
@@ -99,7 +99,7 @@ See our online installation guide at [SmartSend.io](https://smartsend.io/woocomm
 
 The plugin must be connected to Smart Send for all functions to work properly. You can create a [Smart Send account here](https://smartsend.io/signup)
 
-[youtube https://www.youtube.com/embed/wyJYbwwI0h8]
+[youtube https://www.youtube.com/watch?v=wyJYbwwI0h8]
 
 See our written guide on our [Smart Send website](https://smartsend.io/woocommerce/api-token/) or followed these steps:
 
@@ -114,20 +114,67 @@ See our written guide on our [Smart Send website](https://smartsend.io/woocommer
 
 The plugin implements a number of useful hooks (actions and filters) that can be used to extend the functionality of the plugin:
 
-* woocommerce_smart_send_shipping_shipping_add_rate: An action that allows 3rd parties to add rates after the Smart Send rate is added.
-* woocommerce_shipping_smart_send_shipping_is_available: A filter that allows 3rd parties to disable a shipping method
-* woocommerce_shipping_smart_send_shipping_is_free_shipping: A filter that allows 3rd parties to disable/enable free shipping for a method
-* smart_send_agent_timeout: A filter to change the timeout used when searching for agents on checkout page
-* smart_send_shipping_label_args: A filter to modify the order parameters that are used when creating shipping labels
-* smart_send_shipping_label_created: An action which is called once a shipping label has been created for an order
-* smart_send_order_note: A filter to change the freetext that is inserted on shipping labels
-* smart_send_shipping_label_comment: A filter to modify the order comment that is added once a shipping label is created
-* smart_send_tracking_url: A filter to modify the tracking url that is entered in WooCommerce once a shipping label is created
+* **woocommerce_smart_send_shipping_shipping_add_rate**
+    An action that allows 3rd parties to add rates after the Smart Send rate is added.
+* **woocommerce_shipping_smart_send_shipping_is_available**
+    A filter that allows 3rd parties to disable a shipping method
+* **woocommerce_shipping_smart_send_shipping_is_free_shipping**
+    A filter that allows 3rd parties to disable/enable free shipping for a method
+* **smart_send_agent_timeout**
+    A filter to change the timeout used when searching for agents on checkout page
+* **smart_send_shipping_label_args**
+    A filter to modify the order parameters that are used when creating shipping labels
+* **smart_send_shipping_label_created**
+    An action which is called once a shipping label has been created for an order
+* **smart_send_order_note**
+    A filter to change the freetext that is inserted on shipping labels
+* **smart_send_shipping_label_comment**
+    A filter to modify the order comment that is added once a shipping label is created
+* **smart_send_tracking_url**
+    A filter to modify the tracking url that is entered in WooCommerce once a shipping label is created
 
- The following filters are inherited from WooCommerce and can be used as well:
+The following filters are inherited from WooCommerce and can be used as well:
 
- * woocommerce_settings_api_form_fields_smart_send_shipping: A filter to override the main setting fields.
- * woocommerce_shipping_instance_form_fields_smart_send_shipping: A filter to override shipping method settings.
+* **woocommerce_settings_api_form_fields_smart_send_shipping**
+    A filter to override the main setting fields.
+* **woocommerce_shipping_instance_form_fields_smart_send_shipping**
+    A filter to override shipping method settings.
+
+= Meta fields =
+
+The following meta fields are used by the plugin:
+
+* **smart_send_shipping_method**
+    Shipping method meta field used to store the shipping method used when generating shipping labels
+* **smart_send_return_method**
+    Shipping method meta field used to store the shipping method used when generating return shipping labels
+* **smart_send_auto_generate_return_label**
+    Field used for storing setting whether or not a return label should automatically be created when creating a shipping label
+* **ss_shipping_order_parcels**
+    Used for storing information how the orders items are split into parcels
+* **ss_shipping_order_agent_no**
+    Used for storing the id of the selected pick-up point
+* **_ss_shipping_order_agent**
+    Hidden field used for storing the address of the selected pick-up point
+* **_ss_shipping_label_id**
+    Hidden field used for storing the unique Smart Send id of the generated shipping label
+* **_ss_shipping_return_label_id**
+    Hidden field used for storing the unique Smart Send id of the generated return shipping label
+* **_ss_hs_code**
+    Hidden field used to store the customs HS code for products in WooCommerce
+* **_ss_customs_desc**
+    Hidden field used to store the customs description for products in WooCommerce
+
+== Frequently Asked Questions ==
+
+= Why are no pick-up point shown at checkout? =
+Make sure, that the selected shipping method is "Select Pick-up Point".
+
+= Info box: Shipping to closest pick-up point =
+This box appears when a "Select Pick-up Point" shipping method is selected, but no pick-up points were found. Check that the entered shipping address is valid, that pick-up points are possible in the selected region and that a valid API Token is entered in the plugins settings.
+
+= Info box: Enter shipping information =
+This box appears when a "Select Pick-up Point" shipping method is selected, but no shipping address is entered. Enter a valid shipping address so that the plugin can search for nearby pick-up points.
 
 == Screenshots ==
 
@@ -138,6 +185,10 @@ The plugin implements a number of useful hooks (actions and filters) that can be
 5. Save tracking information automatically after creating shipping labels
 
 == Changelog ==
+
+= 8.0.7 =
+* Add order weight to Smart Send meta box on admin order page
+* Bugfix: Some translation plugins caused the pick-up point to not display properly
 
 = 8.0.6 =
 * Add support for extra shipping methods from the plugin: vConnect PostNord Delivery Checkout

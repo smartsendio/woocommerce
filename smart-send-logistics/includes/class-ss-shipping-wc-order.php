@@ -84,6 +84,7 @@ class SS_Shipping_WC_Order {
 	public function meta_box() {
 		global $woocommerce, $post;
 		$order_id = $post->ID;
+        $order = wc_get_order( $order_id );
 		
 		$ss_shipping_method_id = $this->get_smart_send_method_id( $order_id );
 
@@ -103,6 +104,7 @@ class SS_Shipping_WC_Order {
 
 		echo '<h3>' . __('Shipping Method', 'smart-send-logistics') . '</h3>';
 		echo '<p>'. $shipping_method_carrier . ' - ' . $shipping_method_type . '</p>';
+		echo '<p>' . sprintf(__('Weight: %0.2f kg', 'smart-send-logistics'), $this->getOrderWeight($order)) . '</p>';
 		
 		// Display Agent No. field if pickup-point shipping method selected
 		if( stripos($shipping_method_type, 'agent') !== false ) {
@@ -152,7 +154,6 @@ class SS_Shipping_WC_Order {
 		if ( !empty( $parcels ) ) {
 			echo $items;
 		} else {
-			$order = wc_get_order( $order_id );
 			foreach ( $order->get_items() as $item_id => $item ) {
 
 				$product_id = $item['product_id'];
@@ -1083,6 +1084,34 @@ class SS_Shipping_WC_Order {
 			}
 		}
 	}
+
+    /*
+     * Get an orders total weight
+     *
+     * @param WC_Order | $order
+     * @return float weight in kg
+     */
+    protected function getOrderWeight($order) {
+        $weight_total = 0;
+
+        // Get order item specific data
+        $ordered_items = $order->get_items( );
+        if ( !empty( $ordered_items ) ) {
+            foreach ($ordered_items as $key => $item) {
+                $product = wc_get_product($item['product_id']);
+                if( ! empty( $item['variation_id'] ) ) {
+                    $product_variation = wc_get_product($item['variation_id']);
+                } else {
+                    $product_variation = $product;
+                }
+                $product_weight = round(wc_get_weight($product_variation->get_weight(), 'kg'),2);
+                if( $product_weight ) {
+                    $weight_total += ( $item['qty'] * $product_weight );
+                }
+            }
+        }
+        return $weight_total;
+    }
 }
 
 endif;
