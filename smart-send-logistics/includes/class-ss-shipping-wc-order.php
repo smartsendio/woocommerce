@@ -477,11 +477,13 @@ class SS_Shipping_WC_Order {
             //The request was successful, lets update WooCommerce
             $response = $ss_order_api->get_shipping_data();
 
-            try {
-	            // Save the PDF file
-	            $labelUrl = $this->save_label_file( $response->shipment_id, $response->pdf->base_64_encoded, $return );
-            } catch (Exception $e) {
-	            return array( 'error' => $e->getMessage() );
+            if (SS_SHIPPING_WC()->get_setting_save_shipping_labels_in_uploads()) {
+                try {
+                    // Save the PDF file
+                    $labelUrl = $this->save_label_file( $response->shipment_id, $response->pdf->base_64_encoded, $return );
+                } catch (Exception $e) {
+                    return array( 'error' => $e->getMessage() );
+                }
             }
 
             // Get the label link
@@ -987,14 +989,16 @@ class SS_Shipping_WC_Order {
 				if (SS_SHIPPING_WC()->get_api_handle()->isSuccessful()) {
 		            
 		            $response = SS_SHIPPING_WC()->get_api_handle()->getData();
-                    try {
-                        // Save the PDF file and save order meta data
-                        $combo_url = $this->save_label_file( $combo_name, $response->pdf->base_64_encoded, null );
-                    } catch (Exception $e) {
-                        array_push($array_messages, array(
-                            'message' => $e->getMessage(),
-                            'type' => 'error',
-                        ));
+                    if (SS_SHIPPING_WC()->get_setting_save_shipping_labels_in_uploads()) {
+                        try {
+                            // Save the PDF file and save order meta data
+                            $combo_url = $this->save_label_file( $combo_name, $response->pdf->base_64_encoded, null );
+                        } catch (Exception $e) {
+                            array_push($array_messages, array(
+                                'message' => $e->getMessage(),
+                                'type' => 'error',
+                            ));
+                        }
                     }
 
                     // Get the combined label link

@@ -221,6 +221,13 @@ class SS_Shipping_WC_Method extends WC_Shipping_Flat_Rate {
                 'type'    	    => 'checkbox',
                 'desc_tip'      =>  false,
             ),
+            'save_shipping_labels_in_uploads' => array(
+                'title'    	    => __('Save a copy of the PDF','smart-send-logistics'),
+                'default' 	    => 'no',
+                'type'    	    => 'checkbox',
+                'description'   => __('This will save a copy of the generated PDF label in the WordPress uploads-folder', 'smart-send-logistics'),
+                'desc_tip'      =>  true,
+            ),
             'title_pickup'	=> array(
                 'title'   		=> __('Pick-up Points','smart-send-logistics'),
                 'type' 			=> 'title',
