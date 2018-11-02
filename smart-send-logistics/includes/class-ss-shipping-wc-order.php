@@ -604,14 +604,14 @@ class SS_Shipping_WC_Order {
 		$label_url = $this->get_label_url_from_shipment_id($shipment_id);
 
 		if( validate_file($label_path) > 0 ) {
-			throw new Exception( __('Invalid file path', 'smart-send-logistics' ) ); //This exception is not caught
+			throw new Exception( __('Invalid file path', 'smart-send-logistics' ) .': '.$label_path ); //This exception is not caught
 		}
 
 		$label_data_decoded = base64_decode($label_data);
 		$file_ret = file_put_contents( $label_path, $label_data_decoded );
 		
 		if( empty( $file_ret ) ) {
-			throw new Exception( __('Label file cannot be saved', 'smart-send-logistics' ) ); //This exception is not caught
+			throw new Exception( __('Label file cannot be saved', 'smart-send-logistics' ).': '.$label_path ); //This exception is not caught
 		}
 
 		return $label_url;
