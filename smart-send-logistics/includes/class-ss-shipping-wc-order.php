@@ -479,7 +479,7 @@ class SS_Shipping_WC_Order {
 
             try {
 	            // Save the PDF file
-	            //$labelUrl = $this->save_label_file( $response->shipment_id, $response->pdf->base_64_encoded, $return );
+	            $labelUrl = $this->save_label_file( $response->shipment_id, $response->pdf->base_64_encoded, $return );
             } catch (Exception $e) {
 	            return array( 'error' => $e->getMessage() );
             }
@@ -771,15 +771,14 @@ class SS_Shipping_WC_Order {
 	}
 
 	/**
-	 * Get label link 
+	 * Get formatted label link
 	 *
-	 * @param int  $order_id  Order ID
+	 * @param string  $url label url
      * @param boolean $return Whether or not the label is return (true) or normal (false)
 	 *
 	 * @return string html label link
 	 */
-	public function get_ss_shipping_label_link( $order_id, $return ) {
-	    $url = $this->get_label_url_from_order_id( $order_id, $return );
+	public function get_ss_shipping_label_link( $url, $return ) {
 	    if ($return) {
 	        $message = __('Download return shipping label', 'smart-send-logistics');
         } else {
@@ -924,7 +923,7 @@ class SS_Shipping_WC_Order {
 	                                    'message' => sprintf( __( 'Order #%s','smart-send-logistics'), $order->get_order_number()) . ': '
                                             . ( empty( $value['success']->woocommerce['return'] ) ?
                                                 __( 'Shipping label created by Smart Send','smart-send-logistics' ) : __( 'Return label created by Smart Send','smart-send-logistics' ) )
-                                            . ': ' . $this->get_ss_shipping_label_link( $order_id, isset($value['success']->woocommerce['return']) ? $value['success']->woocommerce['return'] : false ),
+                                            . ': ' . $value['success']->woocommerce['label_link'],
 	                                    'type' => 'success',
 	                                ));
 
@@ -990,7 +989,7 @@ class SS_Shipping_WC_Order {
 		            $response = SS_SHIPPING_WC()->get_api_handle()->getData();
                     try {
                         // Save the PDF file and save order meta data
-                        //$combo_url = $this->save_label_file( $combo_name, $response->pdf->base_64_encoded, null );
+                        $combo_url = $this->save_label_file( $combo_name, $response->pdf->base_64_encoded, null );
                     } catch (Exception $e) {
                         array_push($array_messages, array(
                             'message' => $e->getMessage(),
