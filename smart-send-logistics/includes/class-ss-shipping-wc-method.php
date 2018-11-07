@@ -36,11 +36,11 @@ class SS_Shipping_WC_Method extends WC_Shipping_Flat_Rate {
                     'postnord_doorstep'             => __('PostNord: Leave at door (Flexdelivery)', 'smart-send-logistics'),
                     'postnord_flexhome'             => __('PostNord: Flexible home delivery (FlexChange)', 'smart-send-logistics'),
                     'postnord_commercial'           => __('PostNord: Commercial delivery to address (Parcel)', 'smart-send-logistics'),
-                    'postnord_valuemaillarge'       => __('PostNord: Valuemail Large', 'smart-send-logistics'),
-                    'postnord_valuemailmaxi'        => __('PostNord: Valuemail Maxi', 'smart-send-logistics'),
-                    'postnord_valuemailfirstclass'  => __('PostNord: Valuemail First Class', 'smart-send-logistics'),
-                    'postnord_valuemaileconomy'     => __('PostNord: Valuemail Economy', 'smart-send-logistics'),
-                    'postnord_valuemaileco'         => __('PostNord: Valuemail Eco Friendly', 'smart-send-logistics'),
+                    'postnord_valuemaillarge'       => __('PostNord: Tracked Valuemail Large', 'smart-send-logistics'),
+                    'postnord_valuemailmaxi'        => __('PostNord: Tracked Valuemail Maxi', 'smart-send-logistics'),
+                    'postnord_valuemailfirstclass'  => __('PostNord: Tracked Valuemail First Class', 'smart-send-logistics'),
+                    'postnord_valuemaileconomy'     => __('PostNord: Tracked Valuemail Economy', 'smart-send-logistics'),
+                    'postnord_valuemaileco'         => __('PostNord: Tracked Valuemail Eco Friendly', 'smart-send-logistics'),
                 ),
             'GLS'       =>
                 array(
