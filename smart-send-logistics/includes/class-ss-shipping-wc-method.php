@@ -41,6 +41,8 @@ class SS_Shipping_WC_Method extends WC_Shipping_Flat_Rate {
                     'postnord_valuemailfirstclass'  => __('PostNord: Tracked Valuemail First Class', 'smart-send-logistics'),
                     'postnord_valuemaileconomy'     => __('PostNord: Tracked Valuemail Economy', 'smart-send-logistics'),
                     'postnord_valuemaileco'         => __('PostNord: Tracked Valuemail Eco Friendly', 'smart-send-logistics'),
+                    'postnord_valuemailuntrackedlarge'  => __('PostNord: Untracked Valuemail Large', 'smart-send-logistics'),
+                    'postnord_valuemailuntrackedmaxi'   => __('PostNord: Untracked Valuemail Maxi', 'smart-send-logistics'),
                 ),
             'GLS'       =>
                 array(
