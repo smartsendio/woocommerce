@@ -9,7 +9,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  *
  * @package  SS_Shipping_Frontend
  * @category Shipping
- * @author   Shadi Manna
+ * @author   Smart Send
  */
 
 if ( ! class_exists( 'SS_Shipping_Frontend' ) ) :
