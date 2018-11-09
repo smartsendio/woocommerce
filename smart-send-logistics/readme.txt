@@ -124,14 +124,16 @@ The plugin implements a number of useful hooks (actions and filters) that can be
     A filter to change the timeout used when searching for agents on checkout page
 * **smart_send_shipping_label_args**
     A filter to modify the order parameters that are used when creating shipping labels
-* **smart_send_shipping_label_created**
-    An action which is called once a shipping label has been created for an order
+* **smart_send_order_receiver**
+    A filter to change the receiver add that is used for shipping labels
 * **smart_send_order_note**
     A filter to change the freetext that is inserted on shipping labels
 * **smart_send_shipping_label_comment**
     A filter to modify the order comment that is added once a shipping label is created
 * **smart_send_tracking_url**
     A filter to modify the tracking url that is entered in WooCommerce once a shipping label is created
+* **smart_send_shipping_label_created**
+    An action which is called once a shipping label has been created for an order
 
 The following filters are inherited from WooCommerce and can be used as well:
 
@@ -187,6 +189,7 @@ This box appears when a "Select Pick-up Point" shipping method is selected, but 
 == Changelog ==
 
 = 8.0.8 =
+* Add filter for receiver address
 * Add option if PDF labels should be saved in the WordPress Uploads folder
 
 = 8.0.7 =

@@ -99,7 +99,7 @@ class SS_Shipping_Shipment {
         
 		// Get address related information 
 		$billing_address = $this->order->get_address( );
-		$shipping_address = $this->order->get_address( 'shipping' );
+		$shipping_address = apply_filters('smart_send_order_receiver', $this->order->get_address('shipping'), $this->getOrderId($this->order));
 
 		// If shipping phone number doesn't exist, try to get billing phone number
 		if( ! isset( $shipping_address['phone'] ) && isset( $billing_address['phone'] ) ) {
