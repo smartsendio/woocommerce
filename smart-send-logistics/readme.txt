@@ -15,11 +15,11 @@ WC requires at least: 2.6.0
 WC tested up to: 3.5
 Requires PHP: 5.6.0
 
-Complete WooCommerce shipping solution for PostNord, GLS and Bring.
+Complete WooCommerce shipping solution for PostNord, GLS, DAO and Bring.
 
 == Description ==
 
-Complete shipping solution for PostNord, GLS and Bring. Setup shipping methods with rates calculated based on products, shipping address, weight, subtotal, user roles, shipping classes and much more. Show pick-up points to the customer during checkout and create shipping labels directly from the WooCommerce admin panel.
+Complete shipping solution for PostNord, GLS, DAO and Bring. Setup shipping methods with rates calculated based on products, shipping address, weight, subtotal, user roles, shipping classes and much more. Show pick-up points to the customer during checkout and create shipping labels directly from the WooCommerce admin panel.
 
 From now on, everything is incorporated directly into your WooCommerce store.
 
@@ -30,6 +30,7 @@ Supported carriers:
 * Post Nord (Pacsoft)
 * Post Danmark (Pacsoft)
 * Posten (Pacsoft)
+* DAO
 
 Supports worldwide shipping from these countries:
 
@@ -189,6 +190,7 @@ This box appears when a "Select Pick-up Point" shipping method is selected, but 
 == Changelog ==
 
 = 8.0.8 =
+* Add DAO shipping methods
 * Add filter for receiver address
 * Add option if PDF labels should be saved in the WordPress Uploads folder
 * Add PostNord Untracked Valuemail shipping methods

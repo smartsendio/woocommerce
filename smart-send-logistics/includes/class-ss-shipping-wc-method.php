@@ -53,6 +53,12 @@ class SS_Shipping_WC_Method extends WC_Shipping_Flat_Rate {
                     'gls_flexhome'                  => __('GLS: Flexible home delivery (FlexDelivery)', 'smart-send-logistics'),
                     'gls_commercial'                => __('GLS: Commercial delivery to address (BusinessParcel)', 'smart-send-logistics'),
                 ),
+            'DAO'       =>
+                array(
+                    'dao_agent'                     => __('DAO: Select pick-up point (ParcelSshop)', 'smart-send-logistics'),
+                    'dao_collect'                   => __('DAO: Closest pick-up point (ParcelSshop)', 'smart-send-logistics'),
+                    'dao_doorstep'                  => __('DAO: Leave at door (Direct)', 'smart-send-logistics'),
+                ),
             'Bring'     =>
                 array(
                     'bring_agent'                   => __('Bring: Select pick-up point (PickUp Parcel / Serviceparcel)', 'smart-send-logistics'),
@@ -107,6 +113,10 @@ class SS_Shipping_WC_Method extends WC_Shipping_Flat_Rate {
             'GLS'		=>
                 array(
                     'gls_returndropoff' 		    => __('GLS: Return from pick-up point (ShopReturn)', 'smart-send-logistics'),
+                ),
+            'DAO'		=>
+                array(
+                    'dao_returndropoff' 		    => __('DAO: Return from pick-up point (ParcelShop Return)', 'smart-send-logistics'),
                 ),
             'Bring'		=>
                 array(
