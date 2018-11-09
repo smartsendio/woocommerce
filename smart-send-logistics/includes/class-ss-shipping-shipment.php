@@ -9,7 +9,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  *
  * @package  SS_Shipping_Shipment
  * @category Shipping
- * @author   Shadi Manna
+ * @author   Smart Send
  */
 
 if ( ! class_exists( 'SS_Shipping_Shipment' ) ) :
@@ -95,26 +95,26 @@ class SS_Shipping_Shipment {
     * Create Payload for API request
     */
 	protected function make_single_shipment_api_payload() {
-		$ss_settings = SS_SHIPPING_WC()->get_ss_shipping_settings();		
+		$ss_settings = SS_SHIPPING_WC()->get_ss_shipping_settings();
         
 		// Get address related information 
-		$billing_address = $this->order->get_address( );
-		$shipping_address = $this->order->get_address( 'shipping' );
+		$billing_address = $this->order->get_address();
+		$shipping_address = apply_filters('smart_send_order_receiver', $this->order->get_address('shipping'), $this->getOrderId($this->order));
 
 		// If shipping phone number doesn't exist, try to get billing phone number
-		if( ! isset( $shipping_address['phone'] ) && isset( $billing_address['phone'] ) ) {
+		if (!isset($shipping_address['phone']) && isset($billing_address['phone'])) {
 			$shipping_address['phone'] = $billing_address['phone'];			
 		}
 
 		// If shipping email doesn't exist, try to get billing email
-		if( ! isset( $shipping_address['email'] ) && isset( $billing_address['email'] ) ) {
+		if (!isset($shipping_address['email']) && isset($billing_address['email']) ) {
 			$shipping_address['email'] = $billing_address['email'];
 		}
 
 		// Make receiver object.
 		$receiver = new \Smartsend\Models\Shipment\Receiver();
 		$receiver->setInternalId( $this->getOrderId($this->order) )
-		    ->setInternalReference( $this->order->get_order_number() ?: null )
+		    ->setInternalReference( $this->order->get_order_number() ? $this->order->get_order_number() : null )
 		    ->setCompany( $shipping_address['company'] ?: null )
 		    ->setNameLine1( $shipping_address['first_name'] ?: null )
 		    ->setNameLine2( $shipping_address['last_name'] ?: null )

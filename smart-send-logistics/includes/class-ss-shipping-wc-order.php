@@ -9,7 +9,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  *
  * @package  SS_Shipping_WC_Order
  * @category Shipping
- * @author   Shadi Manna
+ * @author   Smart Send
  */
 
 if ( ! class_exists( 'SS_Shipping_WC_Order' ) ) :
@@ -85,6 +85,8 @@ class SS_Shipping_WC_Order {
 		global $woocommerce, $post;
 		$order_id = $post->ID;
         $order = wc_get_order( $order_id );
+
+        $shipping_ss_settings = SS_SHIPPING_WC()->get_ss_shipping_settings();
 		
 		$ss_shipping_method_id = $this->get_smart_send_method_id( $order_id );
 
@@ -104,6 +106,15 @@ class SS_Shipping_WC_Order {
 
 		echo '<h3>' . __('Shipping Method', 'smart-send-logistics') . '</h3>';
 		echo '<p>'. $shipping_method_carrier . ' - ' . $shipping_method_type . '</p>';
+
+		// If debug is enabled then show the shipping method id and instance id
+		if (isset($shipping_ss_settings['ss_debug']) && $shipping_ss_settings['ss_debug'] == 'yes') {
+            foreach ($order->get_shipping_methods() as $method) {
+                echo '<pre>'. __('Debug id', 'smart-send-logistics') . ': ' .
+                    $method->get_method_id() . ':' . $method->get_instance_id() . '</pre>';
+            }
+        }
+
 		echo '<p>' . sprintf(__('Weight: %0.2f kg', 'smart-send-logistics'), $this->getOrderWeight($order)) . '</p>';
 		
 		// Display Agent No. field if pickup-point shipping method selected
@@ -477,18 +488,23 @@ class SS_Shipping_WC_Order {
             //The request was successful, lets update WooCommerce
             $response = $ss_order_api->get_shipping_data();
 
-            try {
-	            // Save the PDF file
-	            $this->save_label_file( $response->shipment_id, $response->pdf->base_64_encoded, $return );
-            } catch (Exception $e) {
-	            return array( 'error' => $e->getMessage() );
+            if (SS_SHIPPING_WC()->get_setting_save_shipping_labels_in_uploads()) {
+                try {
+                    // Save the PDF file
+                    $labelUrl = $this->save_label_file( $response->shipment_id, $response->pdf->base_64_encoded, $return );
+                } catch (Exception $e) {
+                    return array( 'error' => $e->getMessage() );
+                }
             }
+
+            // Get the label link
+            $labelUrl = $response->pdf->link;
             
           	// save order meta data  
             $this->save_ss_shipment_id_in_order_meta( $order_id, $response->shipment_id, $return );
 
             // Get formatted order comment
-            $response->woocommerce['label_link'] = $this->get_label_url_from_shipment_id($response->shipment_id);
+            $response->woocommerce['label_link'] = $labelUrl;
             $response->woocommerce['order_note'] = $this->get_formatted_order_note_with_label_and_tracking( $order_id, $response, $return );
             $response->woocommerce['return'] = $return;
 
@@ -600,37 +616,31 @@ class SS_Shipping_WC_Order {
 			throw new Exception( __('Label data empty', 'smart-send-logistics' ) );
 		}
 
-		$label_path = $this->get_label_path_from_shipment_id($shipment_id);
-		$label_url = $this->get_label_url_from_shipment_id($shipment_id);
-
-		if( validate_file($label_path) > 0 ) {
-			throw new Exception( __('Invalid file path', 'smart-send-logistics' ) ); //This exception is not caught
-		}
-
 		$label_data_decoded = base64_decode($label_data);
-		$file_ret = file_put_contents( $label_path, $label_data_decoded );
+        $file_ret = wp_upload_bits($this->get_label_name_from_shipment_id($shipment_id), null, $label_data_decoded, null);
 		
-		if( empty( $file_ret ) ) {
+		if( empty( $file_ret['url'] ) ) {
 			throw new Exception( __('Label file cannot be saved', 'smart-send-logistics' ) ); //This exception is not caught
 		}
 
-		return $label_url;
+		return $file_ret['url'];
 	}
 
 	protected function get_label_url_from_shipment_id($shipment_id) {
-        if($this->label_prefix) {
-            $shipment_id = $this->label_prefix . $shipment_id;
-        }
         $upload_path = wp_upload_dir();
-        return $upload_path['url'] . '/'. $shipment_id . '.pdf';
+        return $upload_path['url'] . '/'. $this->get_label_name_from_shipment_id($shipment_id);
     }
 
     protected function get_label_path_from_shipment_id($shipment_id) {
-	    if($this->label_prefix) {
+        $upload_path = wp_upload_dir();
+        return $upload_path['path'] . '/'. $this->get_label_name_from_shipment_id($shipment_id);
+    }
+
+    protected function get_label_name_from_shipment_id($shipment_id) {
+        if ($this->label_prefix) {
             $shipment_id = $this->label_prefix . $shipment_id;
         }
-        $upload_path = wp_upload_dir();
-        return $upload_path['path'] . '/'. $shipment_id . '.pdf';
+        return $shipment_id . '.pdf';
     }
 
 
@@ -774,15 +784,14 @@ class SS_Shipping_WC_Order {
 	}
 
 	/**
-	 * Get label link 
+	 * Get formatted label link
 	 *
-	 * @param int  $order_id  Order ID
+	 * @param string  $url label url
      * @param boolean $return Whether or not the label is return (true) or normal (false)
 	 *
 	 * @return string html label link
 	 */
-	public function get_ss_shipping_label_link( $order_id, $return ) {
-	    $url = $this->get_label_url_from_order_id( $order_id, $return );
+	public function get_ss_shipping_label_link( $url, $return ) {
 	    if ($return) {
 	        $message = __('Download return shipping label', 'smart-send-logistics');
         } else {
@@ -927,7 +936,7 @@ class SS_Shipping_WC_Order {
 	                                    'message' => sprintf( __( 'Order #%s','smart-send-logistics'), $order->get_order_number()) . ': '
                                             . ( empty( $value['success']->woocommerce['return'] ) ?
                                                 __( 'Shipping label created by Smart Send','smart-send-logistics' ) : __( 'Return label created by Smart Send','smart-send-logistics' ) )
-                                            . ': ' . $this->get_ss_shipping_label_link( $order_id, isset($value['success']->woocommerce['return']) ? $value['success']->woocommerce['return'] : false ),
+                                            . ': ' . $value['success']->woocommerce['label_link'],
 	                                    'type' => 'success',
 	                                ));
 
@@ -991,15 +1000,20 @@ class SS_Shipping_WC_Order {
 				if (SS_SHIPPING_WC()->get_api_handle()->isSuccessful()) {
 		            
 		            $response = SS_SHIPPING_WC()->get_api_handle()->getData();
-                    try {
-                        // Save the PDF file and save order meta data
-                        $combo_url = $this->save_label_file( $combo_name, $response->pdf->base_64_encoded, null );
-                    } catch (Exception $e) {
-                        array_push($array_messages, array(
-                            'message' => $e->getMessage(),
-                            'type' => 'error',
-                        ));
+                    if (SS_SHIPPING_WC()->get_setting_save_shipping_labels_in_uploads()) {
+                        try {
+                            // Save the PDF file and save order meta data
+                            $combo_url = $this->save_label_file( $combo_name, $response->pdf->base_64_encoded, null );
+                        } catch (Exception $e) {
+                            array_push($array_messages, array(
+                                'message' => $e->getMessage(),
+                                'type' => 'error',
+                            ));
+                        }
                     }
+
+                    // Get the combined label link
+                    $combo_url = $response->pdf->link;
 
                     // Write API response to log
 		            SS_SHIPPING_WC()->log_msg( 'Response from "combineLabelsForShipments" : ' . SS_SHIPPING_WC()->get_api_handle()->getResponseBody() );

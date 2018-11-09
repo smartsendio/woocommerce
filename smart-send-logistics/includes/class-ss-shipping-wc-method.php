@@ -36,11 +36,13 @@ class SS_Shipping_WC_Method extends WC_Shipping_Flat_Rate {
                     'postnord_doorstep'             => __('PostNord: Leave at door (Flexdelivery)', 'smart-send-logistics'),
                     'postnord_flexhome'             => __('PostNord: Flexible home delivery (FlexChange)', 'smart-send-logistics'),
                     'postnord_commercial'           => __('PostNord: Commercial delivery to address (Parcel)', 'smart-send-logistics'),
-                    'postnord_valuemaillarge'       => __('PostNord: Valuemail Large', 'smart-send-logistics'),
-                    'postnord_valuemailmaxi'        => __('PostNord: Valuemail Maxi', 'smart-send-logistics'),
-                    'postnord_valuemailfirstclass'  => __('PostNord: Valuemail First Class', 'smart-send-logistics'),
-                    'postnord_valuemaileconomy'     => __('PostNord: Valuemail Economy', 'smart-send-logistics'),
-                    'postnord_valuemaileco'         => __('PostNord: Valuemail Eco Friendly', 'smart-send-logistics'),
+                    'postnord_valuemaillarge'       => __('PostNord: Tracked Valuemail Large', 'smart-send-logistics'),
+                    'postnord_valuemailmaxi'        => __('PostNord: Tracked Valuemail Maxi', 'smart-send-logistics'),
+                    'postnord_valuemailfirstclass'  => __('PostNord: Tracked Valuemail First Class', 'smart-send-logistics'),
+                    'postnord_valuemaileconomy'     => __('PostNord: Tracked Valuemail Economy', 'smart-send-logistics'),
+                    'postnord_valuemaileco'         => __('PostNord: Tracked Valuemail Eco Friendly', 'smart-send-logistics'),
+                    'postnord_valuemailuntrackedlarge'  => __('PostNord: Untracked Valuemail Large', 'smart-send-logistics'),
+                    'postnord_valuemailuntrackedmaxi'   => __('PostNord: Untracked Valuemail Maxi', 'smart-send-logistics'),
                 ),
             'GLS'       =>
                 array(
@@ -50,6 +52,12 @@ class SS_Shipping_WC_Method extends WC_Shipping_Flat_Rate {
                     'gls_doorstep'                  => __('GLS: Leave at door (DepositService)', 'smart-send-logistics'),
                     'gls_flexhome'                  => __('GLS: Flexible home delivery (FlexDelivery)', 'smart-send-logistics'),
                     'gls_commercial'                => __('GLS: Commercial delivery to address (BusinessParcel)', 'smart-send-logistics'),
+                ),
+            'DAO'       =>
+                array(
+                    'dao_agent'                     => __('DAO: Select pick-up point (ParcelSshop)', 'smart-send-logistics'),
+                    'dao_collect'                   => __('DAO: Closest pick-up point (ParcelSshop)', 'smart-send-logistics'),
+                    'dao_doorstep'                  => __('DAO: Leave at door (Direct)', 'smart-send-logistics'),
                 ),
             'Bring'     =>
                 array(
@@ -71,6 +79,9 @@ class SS_Shipping_WC_Method extends WC_Shipping_Flat_Rate {
                     // eTail Tracked
                     'bifrost_etailtracked'              => __('Bifrost Logistics: eTail Tracked', 'smart-send-logistics'),
                     'bifrost_etailtrackedlarge'         => __('Bifrost Logistics: eTail Tracked large', 'smart-send-logistics'),
+                    // eTail Gain
+                    'bifrost_etailgainsmall'            => __('Bifrost Logistics: eTail Gain small', 'smart-send-logistics'),
+                    'bifrost_etailgainlarge'            => __('Bifrost Logistics: eTail Gain large', 'smart-send-logistics'),
                     // Letter Priority
                     'bifrost_letterprioritysmall'       => __('Bifrost Logistics: Letter priority small', 'smart-send-logistics'),
                     'bifrost_letterprioritylarge'       => __('Bifrost Logistics: Letter priority large', 'smart-send-logistics'),
@@ -102,6 +113,10 @@ class SS_Shipping_WC_Method extends WC_Shipping_Flat_Rate {
             'GLS'		=>
                 array(
                     'gls_returndropoff' 		    => __('GLS: Return from pick-up point (ShopReturn)', 'smart-send-logistics'),
+                ),
+            'DAO'		=>
+                array(
+                    'dao_returndropoff' 		    => __('DAO: Return from pick-up point (ParcelShop Return)', 'smart-send-logistics'),
                 ),
             'Bring'		=>
                 array(
@@ -220,6 +235,13 @@ class SS_Shipping_WC_Method extends WC_Shipping_Flat_Rate {
                 'default' 	    => 'no',
                 'type'    	    => 'checkbox',
                 'desc_tip'      =>  false,
+            ),
+            'save_shipping_labels_in_uploads' => array(
+                'title'    	    => __('Save a copy of the PDF','smart-send-logistics'),
+                'default' 	    => 'no',
+                'type'    	    => 'checkbox',
+                'description'   => __('This will save a copy of the generated PDF label in the WordPress uploads-folder', 'smart-send-logistics'),
+                'desc_tip'      =>  true,
             ),
             'title_pickup'	=> array(
                 'title'   		=> __('Pick-up Points','smart-send-logistics'),

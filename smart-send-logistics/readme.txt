@@ -8,18 +8,18 @@ Developer URI: https://smartsend.io/
 Tags: smartsend, smart send, shipping, shipping label, pickup, pick-up, pakkelabel, pakkelabels, pakkeboks, pakkeshop, hente selv, døgnboks, postnord, post nord, post danmark, gls, swipbox, bring, dao, dao365, dao 365, carrier, pacsoft, yourgls, mybring, postage, shipping method, your-gls, my-bring, pacosft-online, pacsoftonline, denmark, sweeden, posten, norway, post 
 Requires at least: 3.0.1
 Tested up to: 5.0
-Stable tag: 8.0.7
+Stable tag: 8.0.8
 License: GNU General Public License v3.0
 License URI: http://www.gnu.org/licenses/gpl-3.0.html
 WC requires at least: 2.6.0
 WC tested up to: 3.5
 Requires PHP: 5.6.0
 
-Complete WooCommerce shipping solution for PostNord, GLS and Bring.
+Complete WooCommerce shipping solution for PostNord, GLS, DAO and Bring.
 
 == Description ==
 
-Complete shipping solution for PostNord, GLS and Bring. Setup shipping methods with rates calculated based on products, shipping address, weight, subtotal, user roles, shipping classes and much more. Show pick-up points to the customer during checkout and create shipping labels directly from the WooCommerce admin panel.
+Complete shipping solution for PostNord, GLS, DAO and Bring. Setup shipping methods with rates calculated based on products, shipping address, weight, subtotal, user roles, shipping classes and much more. Show pick-up points to the customer during checkout and create shipping labels directly from the WooCommerce admin panel.
 
 From now on, everything is incorporated directly into your WooCommerce store.
 
@@ -30,6 +30,7 @@ Supported carriers:
 * Post Nord (Pacsoft)
 * Post Danmark (Pacsoft)
 * Posten (Pacsoft)
+* DAO
 
 Supports worldwide shipping from these countries:
 
@@ -124,14 +125,16 @@ The plugin implements a number of useful hooks (actions and filters) that can be
     A filter to change the timeout used when searching for agents on checkout page
 * **smart_send_shipping_label_args**
     A filter to modify the order parameters that are used when creating shipping labels
-* **smart_send_shipping_label_created**
-    An action which is called once a shipping label has been created for an order
+* **smart_send_order_receiver**
+    A filter to change the receiver add that is used for shipping labels
 * **smart_send_order_note**
     A filter to change the freetext that is inserted on shipping labels
 * **smart_send_shipping_label_comment**
     A filter to modify the order comment that is added once a shipping label is created
 * **smart_send_tracking_url**
     A filter to modify the tracking url that is entered in WooCommerce once a shipping label is created
+* **smart_send_shipping_label_created**
+    An action which is called once a shipping label has been created for an order
 
 The following filters are inherited from WooCommerce and can be used as well:
 
@@ -185,6 +188,14 @@ This box appears when a "Select Pick-up Point" shipping method is selected, but 
 5. Save tracking information automatically after creating shipping labels
 
 == Changelog ==
+
+= 8.0.8 =
+* Add DAO shipping methods
+* Add filter for receiver address
+* Add option if PDF labels should be saved in the WordPress Uploads folder
+* Add PostNord Untracked Valuemail shipping methods
+* Rename PostNord Tracked Valuemail shipping methods
+* Show shipping method id and instance id on order page if debug is enabled
 
 = 8.0.7 =
 * Add order weight to Smart Send meta box on admin order page

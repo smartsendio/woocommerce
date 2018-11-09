@@ -6,7 +6,7 @@
  * Author: Smart Send ApS
  * Author URI: https://www.smartsend.io
  * Text Domain: smart-send-logistics
- * Version: 8.0.7
+ * Version: 8.0.8
  * WC requires at least: 2.6.0
  * WC tested up to: 3.5
  *
@@ -33,7 +33,7 @@ if ( ! class_exists( 'SS_Shipping_WC' ) ) :
 
 class SS_Shipping_WC {
 
-	private $version = "8.0.7";
+	private $version = "8.0.8";
 
 	/**
 	 * Instance to call certain functions globally within the plugin
@@ -399,6 +399,17 @@ class SS_Shipping_WC {
     {
         $ss_shipping_settings = $this->get_ss_shipping_settings();
         return empty($ss_shipping_settings['demo']) ? true : ($ss_shipping_settings['demo'] == 'yes' ? true : false);
+    }
+
+    /*
+	 * Get the setting 'save_shipping_labels_in_uploads'
+	 *
+	 * @return boolean
+	 */
+    public function get_setting_save_shipping_labels_in_uploads()
+    {
+        $ss_shipping_settings = $this->get_ss_shipping_settings();
+        return empty($ss_shipping_settings['save_shipping_labels_in_uploads']) ? false : ($ss_shipping_settings['save_shipping_labels_in_uploads'] == 'yes' ? true : false);
     }
 
     /*
