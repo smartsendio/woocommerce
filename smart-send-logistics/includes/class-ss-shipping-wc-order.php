@@ -85,6 +85,8 @@ class SS_Shipping_WC_Order {
 		global $woocommerce, $post;
 		$order_id = $post->ID;
         $order = wc_get_order( $order_id );
+
+        $shipping_ss_settings = SS_SHIPPING_WC()->get_ss_shipping_settings();
 		
 		$ss_shipping_method_id = $this->get_smart_send_method_id( $order_id );
 
@@ -104,6 +106,15 @@ class SS_Shipping_WC_Order {
 
 		echo '<h3>' . __('Shipping Method', 'smart-send-logistics') . '</h3>';
 		echo '<p>'. $shipping_method_carrier . ' - ' . $shipping_method_type . '</p>';
+
+		// If debug is enabled then show the shipping method id and instance id
+		if (isset($shipping_ss_settings['ss_debug']) && $shipping_ss_settings['ss_debug'] == 'yes') {
+            foreach ($order->get_shipping_methods() as $method) {
+                echo '<pre>'. __('Debug id', 'smart-send-logistics') . ': ' .
+                    $method->get_method_id() . ':' . $method->get_instance_id() . '</pre>';
+            }
+        }
+
 		echo '<p>' . sprintf(__('Weight: %0.2f kg', 'smart-send-logistics'), $this->getOrderWeight($order)) . '</p>';
 		
 		// Display Agent No. field if pickup-point shipping method selected

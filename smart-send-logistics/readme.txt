@@ -195,6 +195,7 @@ This box appears when a "Select Pick-up Point" shipping method is selected, but 
 * Add option if PDF labels should be saved in the WordPress Uploads folder
 * Add PostNord Untracked Valuemail shipping methods
 * Rename PostNord Tracked Valuemail shipping methods
+* Show shipping method id and instance id on order page if debug is enabled
 
 = 8.0.7 =
 * Add order weight to Smart Send meta box on admin order page
