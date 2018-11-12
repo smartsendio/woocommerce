@@ -55,8 +55,8 @@ class SS_Shipping_WC_Method extends WC_Shipping_Flat_Rate {
                 ),
             'DAO'       =>
                 array(
-                    'dao_agent'                     => __('DAO: Select pick-up point (ParcelSshop)', 'smart-send-logistics'),
-                    'dao_collect'                   => __('DAO: Closest pick-up point (ParcelSshop)', 'smart-send-logistics'),
+                    'dao_agent'                     => __('DAO: Select pick-up point (ParcelShop)', 'smart-send-logistics'),
+                    'dao_collect'                   => __('DAO: Closest pick-up point (ParcelShop)', 'smart-send-logistics'),
                     'dao_doorstep'                  => __('DAO: Leave at door (Direct)', 'smart-send-logistics'),
                 ),
             'Bring'     =>
