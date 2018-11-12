@@ -189,6 +189,8 @@ This box appears when a "Select Pick-up Point" shipping method is selected, but 
 
 == Changelog ==
 
+* Change width of agent select box on checkout page
+
 = 8.0.8 =
 * Add DAO shipping methods
 * Add filter for receiver address
