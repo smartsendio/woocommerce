@@ -83,6 +83,28 @@ class Client
         return SS_SHIPPING_VERSION;
     }
 
+    public function getUserAgent()
+    {
+        // Find WooCommerce version number
+        $wooCommercePluginFolder = get_plugins( '/' . 'woocommerce' );
+        $wooCommercePluginFile = 'woocommerce.php';
+        if (isset($wooCommercePluginFolder[$wooCommercePluginFile]['Version'])) {
+            $wooCommerceVersion = $wooCommercePluginFolder[$wooCommercePluginFile]['Version'];
+        } else {
+            $wooCommerceVersion = '';
+        }
+
+        // Find the HTTP User-agent
+        $userAgent = array(
+            "WordPress"     => get_bloginfo('version'),
+            "WooCommerce"   => $wooCommerceVersion,
+            "SmartSend"     => $this->getModuleVersion(),
+        );
+        $userAgentString = str_replace('=', '/', http_build_query($userAgent, '', ' '));
+
+        return $userAgentString;
+    }
+
     /**
      * @return mixed
      */
@@ -340,29 +362,12 @@ class Client
             $this->request_body = ($body ? json_encode($body) : null);
         }
 
-        // Find WooCommerce version number
-        $wooCommercePluginFolder = get_plugins( '/' . 'woocommerce' );
-        $wooCommercePluginFile = 'woocommerce.php';
-        if (isset($wooCommercePluginFolder[$wooCommercePluginFile]['Version'])) {
-            $wooCommerceVersion = $wooCommercePluginFolder[$wooCommercePluginFile]['Version'];
-        } else {
-            $wooCommerceVersion = '';
-        }
-
-        // Find the HTTP User-agent
-        $userAgent = array(
-            "WordPress"     => get_bloginfo('version'),
-            "WooCommerce"   => $wooCommerceVersion,
-            "SmartSend"     => $this->getModuleVersion(),
-        );
-        $userAgentString = str_replace('=', '/', http_build_query($userAgent, '', ' '));
-
         // Make request
         $ch = curl_init();
         curl_setopt($ch, CURLOPT_URL, $this->request_endpoint);
 
         curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
-        curl_setopt($ch, CURLOPT_USERAGENT, $userAgentString);
+        curl_setopt($ch, CURLOPT_USERAGENT, $this->getUserAgent());
         curl_setopt($ch, CURLOPT_REFERER, $this->getWebsite());
         curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
         curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
