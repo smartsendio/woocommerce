@@ -504,7 +504,7 @@ class SS_Shipping_WC_Order {
             $this->save_ss_shipment_id_in_order_meta( $order_id, $response->shipment_id, $return );
 
             // Get formatted order comment
-            $response->woocommerce['label_link'] = $labelUrl;
+            $response->woocommerce['label_url'] = $labelUrl;
             $response->woocommerce['order_note'] = $this->get_formatted_order_note_with_label_and_tracking( $order_id, $response, $return );
             $response->woocommerce['return'] = $return;
 
@@ -593,7 +593,7 @@ class SS_Shipping_WC_Order {
 	protected function get_formatted_order_note_with_label_and_tracking( $order_id, $api_shipment_response, $return ) {
 
         $tracking_note = '<label>' . ($return ? __('Return shipping label','smart-send-logistics') : __('Shipping label','smart-send-logistics')) . ': </label>'
-            . '<a href="'.$api_shipment_response->woocommerce['label_link'].'" target="_blank">' . __('Download label','smart-send-logistics') . '</a>';
+            . $this->get_ss_shipping_label_link($api_shipment_response->woocommerce['label_url'], $return);
 
         foreach($api_shipment_response->parcels as $parcel) {
             $tracking_note .= '<br><label>' . __('Tracking number','smart-send-logistics') . ': </label>'
@@ -936,7 +936,7 @@ class SS_Shipping_WC_Order {
 	                                    'message' => sprintf( __( 'Order #%s','smart-send-logistics'), $order->get_order_number()) . ': '
                                             . ( empty( $value['success']->woocommerce['return'] ) ?
                                                 __( 'Shipping label created by Smart Send','smart-send-logistics' ) : __( 'Return label created by Smart Send','smart-send-logistics' ) )
-                                            . ': ' . $value['success']->woocommerce['label_link'],
+                                            . ': ' . $this->get_ss_shipping_label_link($value['success']->woocommerce['label_url'], !empty($value['success']->woocommerce['return'])),
 	                                    'type' => 'success',
 	                                ));
 

@@ -189,6 +189,7 @@ This box appears when a "Select Pick-up Point" shipping method is selected, but 
 
 == Changelog ==
 
+* Bugfix: Link to PDF label not always formatted as link
 * Change width of agent select box on checkout page
 
 = 8.0.8 =
