@@ -85,6 +85,12 @@ class Client
 
     public function getUserAgent()
     {
+        // Check if get_plugins() function exists. This is required on the front end of the
+        // site, since it is in a file that is normally only loaded in the admin.
+        if ( ! function_exists( 'get_plugins' ) ) {
+            require_once ABSPATH . 'wp-admin/includes/plugin.php';
+        }
+
         // Find WooCommerce version number
         $wooCommercePluginFolder = get_plugins( '/' . 'woocommerce' );
         $wooCommercePluginFile = 'woocommerce.php';
