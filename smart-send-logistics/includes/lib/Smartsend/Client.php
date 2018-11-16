@@ -83,6 +83,34 @@ class Client
         return SS_SHIPPING_VERSION;
     }
 
+    public function getUserAgent()
+    {
+        // Check if get_plugins() function exists. This is required on the front end of the
+        // site, since it is in a file that is normally only loaded in the admin.
+        if ( ! function_exists( 'get_plugins' ) ) {
+            require_once ABSPATH . 'wp-admin/includes/plugin.php';
+        }
+
+        // Find WooCommerce version number
+        $wooCommercePluginFolder = get_plugins( '/' . 'woocommerce' );
+        $wooCommercePluginFile = 'woocommerce.php';
+        if (isset($wooCommercePluginFolder[$wooCommercePluginFile]['Version'])) {
+            $wooCommerceVersion = $wooCommercePluginFolder[$wooCommercePluginFile]['Version'];
+        } else {
+            $wooCommerceVersion = '';
+        }
+
+        // Find the HTTP User-agent
+        $userAgent = array(
+            "WordPress"     => get_bloginfo('version'),
+            "WooCommerce"   => $wooCommerceVersion,
+            "SmartSend"     => $this->getModuleVersion(),
+        );
+        $userAgentString = str_replace('=', '/', http_build_query($userAgent, '', ' '));
+
+        return $userAgentString;
+    }
+
     /**
      * @return mixed
      */
@@ -340,16 +368,12 @@ class Client
             $this->request_body = ($body ? json_encode($body) : null);
         }
 
-        // Find plugin version number
-        $path = dirname(__FILE__);
-        $path = preg_replace('/includes\/lib\/Smartsend$/', '', $path);
-
         // Make request
         $ch = curl_init();
         curl_setopt($ch, CURLOPT_URL, $this->request_endpoint);
 
         curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
-        curl_setopt($ch, CURLOPT_USERAGENT, 'WooCommerce/'.$this->getModuleVersion());
+        curl_setopt($ch, CURLOPT_USERAGENT, $this->getUserAgent());
         curl_setopt($ch, CURLOPT_REFERER, $this->getWebsite());
         curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
         curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);

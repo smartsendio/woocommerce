@@ -73,9 +73,9 @@ jQuery(function ($) {
                         
                         // If return label, place correct link
                         if( value.success.woocommerce.return ) {
-                            $('#ss-shipping-label-form').append('<div id="ss-label-created" class="updated ss-meta-message"><a href="' + value.success.woocommerce.label_link + '" target="_blank">' + ss_label_data.download_return_label + '</a></div>');
+                            $('#ss-shipping-label-form').append('<div id="ss-label-created" class="updated ss-meta-message"><a href="' + value.success.woocommerce.label_url + '" target="_blank">' + ss_label_data.download_return_label + '</a></div>');
                         } else {
-                            $('#ss-shipping-label-form').append('<div id="ss-label-created" class="updated ss-meta-message"><a href="' + value.success.woocommerce.label_link + '" target="_blank">' + ss_label_data.download_label + '</a></div>');
+                            $('#ss-shipping-label-form').append('<div id="ss-label-created" class="updated ss-meta-message"><a href="' + value.success.woocommerce.label_url + '" target="_blank">' + ss_label_data.download_label + '</a></div>');
                         }
 
                         // Add order note with tracking info
