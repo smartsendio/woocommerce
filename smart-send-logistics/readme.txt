@@ -191,6 +191,7 @@ This box appears when a "Select Pick-up Point" shipping method is selected, but 
 
 * Bugfix: Link to PDF label not always formatted as link
 * Change width of agent select box on checkout page
+* Add meta box to orders without a Smart Send shipping method
 
 = 8.0.8 =
 * Add DAO shipping methods

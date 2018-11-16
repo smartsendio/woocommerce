@@ -75,11 +75,27 @@ class SS_Shipping_WC_Order {
 		if( !empty($ss_shipping_method_id) ) {
 			
 			add_meta_box( 'woocommerce-ss-shipping-label', __( 'Smart Send Shipping', 'smart-send-logistics' ), array( $this, 'meta_box' ), 'shop_order', 'side', 'default' );
-		}
+		} else {
+            add_meta_box( 'woocommerce-ss-shipping-label', __( 'Smart Send Shipping', 'smart-send-logistics' ), array( $this, 'meta_box_non_smart_send' ), 'shop_order', 'side', 'default' );
+
+        }
 	}
+
+    /**
+     * Show the meta box for shipment info on the order page
+     *
+     * This meta box is shown when the order does not have a Smart Send shipping method
+     */
+    public function meta_box_non_smart_send() {
+        global $woocommerce, $post;
+        $order_id = $post->ID;
+        echo '<p>' . __( 'Order placed with a shipping method that is not from the Smart Send plugin', 'smart-send-logistics' ) . '</p>';
+    }
 
 	/**
 	 * Show the meta box for shipment info on the order page
+     *
+     * This meta box is shown when the order have a Smart Send shipping method
 	 */
 	public function meta_box() {
 		global $woocommerce, $post;
