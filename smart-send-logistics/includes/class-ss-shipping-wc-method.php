@@ -38,6 +38,8 @@ if (!class_exists('SS_Shipping_WC_Method')) :
                             'smart-send-logistics'),
                         'postnord_homedelivery'            => __('PostNord: Private delivery to address (MyPack Home)',
                             'smart-send-logistics'),
+                        'postnord_homedeliverysmall'       => __('PostNord: Private delivery to address Small (MyPack Home Small)',
+	                        'smart-send-logistics'),
                         'postnord_homedeliveryeconomy'     => __('PostNord: Private economy delivery to address (MyPack Home Economy)',
                             'smart-send-logistics'),
                         'postnord_doorstep'                => __('PostNord: Leave at door (Flexdelivery)',

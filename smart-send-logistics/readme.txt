@@ -191,6 +191,7 @@ This box appears when a "Select Pick-up Point" shipping method is selected, but 
 
 = 8.0.10 =
 * Add convenience wrapper for pick-up point function
+* Add PostNord shipping method: Private delivery to address Small (MyPack Home Small)
 
 = 8.0.9 =
 * Bugfix: Link to PDF label not always formatted as link
