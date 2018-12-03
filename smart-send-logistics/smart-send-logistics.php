@@ -6,7 +6,7 @@
  * Author: Smart Send ApS
  * Author URI: https://www.smartsend.io
  * Text Domain: smart-send-logistics
- * Version: 8.0.9
+ * Version: 8.0.10
  * WC requires at least: 2.6.0
  * WC tested up to: 3.5
  *
@@ -34,7 +34,7 @@ if (!class_exists('SS_Shipping_WC')) :
     class SS_Shipping_WC
     {
 
-        private $version = "8.0.9";
+        private $version = "8.0.10";
 
         /**
          * Instance to call certain functions globally within the plugin
@@ -418,7 +418,7 @@ if (!class_exists('SS_Shipping_WC')) :
             return $this->api_handle;
         }
 
-        /*
+        /**
          * Get the url of the current site
          *
          * @return string | website url like example.com
@@ -508,10 +508,27 @@ if (!class_exists('SS_Shipping_WC')) :
             wp_die();
         }
 
-        /*
+	    /**
+	     * Find the closest agents by address - Convenience wrapper
+	     *
+	     * @param $carrier string | unique carrier code
+	     * @param $country string | ISO3166-A2 Country code
+	     * @param $postal_code string
+	     * @param $street string
+	     *
+	     * @return array
+	     */
+	    public function ss_find_closest_agents_by_address($carrier, $country, $postal_code, $street) {
+	        return $this->ss_shipping_frontend
+                ->find_closest_agents_by_address($carrier, $country, $postal_code, $street);
+        }
+
+        /**
          * Sort the shipping methods according to setting
          *
          * @param array $available_shipping_methods
+         *
+         * @return array
          */
         public function ss_sort_shipping_methods($available_shipping_methods)
         {
