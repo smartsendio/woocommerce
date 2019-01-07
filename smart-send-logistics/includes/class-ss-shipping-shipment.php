@@ -183,7 +183,7 @@ if (!class_exists('SS_Shipping_Shipment')) :
                         $product_variation = wc_get_product($item['variation_id']);
                         // Ensure id is string and not int
                         $product_id = $item['variation_id'];
-                        $product_sku = empty($product_variation->get_sku()) ? strval($item['variation_id']) : $product_variation->get_sku();
+                        $product_sku = $product_variation->get_sku() ? $product_variation->get_sku() : strval($item['variation_id']);
 
                         // $product_attribute = wc_get_product_variation_attributes($item['variation_id']);
                         // $product_description .= ' : ' . current( $product_attribute );
@@ -192,7 +192,7 @@ if (!class_exists('SS_Shipping_Shipment')) :
                         $product_variation = $product;
                         $product_id = $item['product_id'];
                         // Ensure id is string and not int
-                        $product_sku = empty($product->get_sku()) ? strval($item['product_id']) : $product->get_sku();
+                        $product_sku = $product->get_sku() ? $product->get_sku() : strval($item['product_id']);
                     }
 
                     $product_description = $product->get_title();

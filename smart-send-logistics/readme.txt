@@ -8,10 +8,10 @@ Developer URI: https://smartsend.io/
 Tags: smartsend, smart send, shipping, shipping label, pickup, pick-up, pakkelabel, pakkelabels, pakkeboks, pakkeshop, hente selv, døgnboks, postnord, post nord, post danmark, gls, swipbox, bring, dao, dao365, dao 365, carrier, pacsoft, yourgls, mybring, postage, shipping method, your-gls, my-bring, pacosft-online, pacsoftonline, denmark, sweeden, posten, norway, post 
 Requires at least: 3.0.1
 Tested up to: 5.0
-Stable tag: 8.0.10
+Stable tag: 8.0.11
 License: GNU General Public License v3.0
 License URI: http://www.gnu.org/licenses/gpl-3.0.html
-WC requires at least: 2.6.0
+WC requires at least: 2.7.0
 WC tested up to: 3.5
 Requires PHP: 5.6.0
 
@@ -188,6 +188,11 @@ This box appears when a "Select Pick-up Point" shipping method is selected, but 
 5. Save tracking information automatically after creating shipping labels
 
 == Changelog ==
+
+= 8.0.11 =
+* Bugfix: PHP error when using name_line2 field for WooCommerce orders
+* Bugfix: PHP error for older PHP versions
+* Change WooCommerce minimum requirement to WC 2.7
 
 = 8.0.10 =
 * Add convenience wrapper for pick-up point function
