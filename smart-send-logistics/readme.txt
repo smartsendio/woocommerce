@@ -11,7 +11,7 @@ Tested up to: 5.0
 Stable tag: 8.0.10
 License: GNU General Public License v3.0
 License URI: http://www.gnu.org/licenses/gpl-3.0.html
-WC requires at least: 2.6.0
+WC requires at least: 2.7.0
 WC tested up to: 3.5
 Requires PHP: 5.6.0
 
@@ -190,6 +190,8 @@ This box appears when a "Select Pick-up Point" shipping method is selected, but 
 == Changelog ==
 
 * Bugfix: PHP error when using name_line2 field for WooCommerce orders
+* Bugfix: PHP error for older PHP versions
+* Change WooCommerce minimum requirement to WC 2.7
 
 = 8.0.10 =
 * Add convenience wrapper for pick-up point function
