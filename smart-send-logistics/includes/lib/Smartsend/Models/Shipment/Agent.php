@@ -36,7 +36,7 @@ class Agent implements \JsonSerializable
             $this->setNameLine1($receiver['name_line1']);
         }
         if(isset($receiver['name_line2'])) {
-            $this->setNameLine2(receiver['name_line2']);
+            $this->setNameLine2($receiver['name_line2']);
         }
         if(isset($receiver['address_line1'])) {
             $this->setAddressLine1($receiver['address_line1']);

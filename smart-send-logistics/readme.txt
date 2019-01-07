@@ -189,6 +189,8 @@ This box appears when a "Select Pick-up Point" shipping method is selected, but 
 
 == Changelog ==
 
+* Bugfix: PHP error when using name_line2 field for WooCommerce orders
+
 = 8.0.10 =
 * Add convenience wrapper for pick-up point function
 * Add PostNord shipping method: Private delivery to address Small (MyPack Home Small)
