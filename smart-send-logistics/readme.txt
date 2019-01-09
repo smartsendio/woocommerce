@@ -11,7 +11,7 @@ Tested up to: 5.0
 Stable tag: 8.0.11
 License: GNU General Public License v3.0
 License URI: http://www.gnu.org/licenses/gpl-3.0.html
-WC requires at least: 2.7.0
+WC requires at least: 3.0.0
 WC tested up to: 3.5
 Requires PHP: 5.6.0
 
@@ -188,6 +188,8 @@ This box appears when a "Select Pick-up Point" shipping method is selected, but 
 5. Save tracking information automatically after creating shipping labels
 
 == Changelog ==
+
+* Change WooCommerce minimum requirement to WC 3.0
 
 = 8.0.11 =
 * Bugfix: PHP error when using name_line2 field for WooCommerce orders
