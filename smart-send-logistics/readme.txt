@@ -189,6 +189,7 @@ This box appears when a "Select Pick-up Point" shipping method is selected, but 
 
 == Changelog ==
 
+* Add city to request when searching for closest agents for improved accuracy
 * Change WooCommerce minimum requirement to WC 3.0
 
 = 8.0.11 =

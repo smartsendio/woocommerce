@@ -74,12 +74,12 @@ if (!class_exists('SS_Shipping_Frontend')) :
                 if (!empty($_POST['s_country']) && !empty($_POST['s_postcode']) && !empty($_POST['s_address'])) {
                     $country = wc_clean($_POST['s_country']);
                     $postal_code = wc_clean($_POST['s_postcode']);
+	                $city = (empty($_POST['s_city']) ? wc_clean($_POST['s_city']) : null);//not required but preferred
                     $street = wc_clean($_POST['s_address']);
 
                     $carrier = SS_SHIPPING_WC()->get_shipping_method_carrier($meta_data['smart_send_shipping_method']);
 
-	                $ss_agents = $this->find_closest_agents_by_address($carrier, $country, $postal_code,
-                        $street);
+	                $ss_agents = $this->find_closest_agents_by_address($carrier, $country, $postal_code, $city, $street);
 
                     if (!empty($ss_agents)) {
 
@@ -119,16 +119,16 @@ if (!class_exists('SS_Shipping_Frontend')) :
          * @param $carrier string | unique carrier code
          * @param $country string | ISO3166-A2 Country code
          * @param $postal_code string
+         * @param $city string
          * @param $street string
          *
          * @return array
 	     */
-        public function find_closest_agents_by_address($carrier, $country, $postal_code, $street)
+        public function find_closest_agents_by_address($carrier, $country, $postal_code, $city, $street)
         {
-	        SS_SHIPPING_WC()->log_msg('Called "findClosestAgentByAddress" with carrier = "' . $carrier . '", country = "' . $country . '", postcode = "' . $postal_code . '", street = "' . $street . '"');
+	        SS_SHIPPING_WC()->log_msg('Called "findClosestAgentByAddress" with carrier = "' . $carrier . '", country = "' . $country . '", postcode = "' . $postal_code . '", city = "' . $city . '", street = "' . $street . '"');
 
-	        if (SS_SHIPPING_WC()->get_api_handle()->findClosestAgentByAddress($carrier, $country, $postal_code,
-		        $street)) {
+	        if (SS_SHIPPING_WC()->get_api_handle()->findClosestAgentByAddress($carrier, $country, $postal_code, $city, $street)) {
 
 		        $ss_agents = SS_SHIPPING_WC()->get_api_handle()->getData();
 

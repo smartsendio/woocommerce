@@ -511,16 +511,17 @@ if (!class_exists('SS_Shipping_WC')) :
 	    /**
 	     * Find the closest agents by address - Convenience wrapper
 	     *
-	     * @param $carrier string | unique carrier code
-	     * @param $country string | ISO3166-A2 Country code
+	     * @param $carrier string unique carrier code
+	     * @param $country string ISO3166-A2 Country code
 	     * @param $postal_code string
 	     * @param $street string
+         * @param $city string optional but providing a city yields better accuracy for geocoding
 	     *
 	     * @return array
 	     */
-	    public function ss_find_closest_agents_by_address($carrier, $country, $postal_code, $street) {
+	    public function ss_find_closest_agents_by_address($carrier, $country, $postal_code, $street, $city=null) {
 	        return $this->ss_shipping_frontend
-                ->find_closest_agents_by_address($carrier, $country, $postal_code, $street);
+                ->find_closest_agents_by_address($carrier, $country, $postal_code, $city, $street);
         }
 
         /**
