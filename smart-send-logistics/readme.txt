@@ -181,7 +181,7 @@ This box appears when a "Select Pick-up Point" shipping method is selected, but 
 
 == Screenshots ==
 
-1. Show closest pick-up point during checkout
+1. Show closest pick-up points during checkout
 2. Create PDF shipping labels from backend with just one click
 3. Save tracking information automatically after creating shipping labels
 4. Get detailed error description if something is incorrect
