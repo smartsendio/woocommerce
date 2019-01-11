@@ -115,7 +115,7 @@ class Api extends Client
         return $this->httpGet($method='agents/carrier/'.$carrier.'/country/'.$country.'/postalcode/'.$postal_code.'/street/'.$street,
             $args = array(), $headers = array(), $body=null, $timeout=$this->getAgentTimeout());
     }
-    
+
     /*
      * Get agents located within an area
      *
@@ -130,14 +130,14 @@ class Api extends Client
      */
     public function getAgentsInArea($carrier, $country=null, $min_latitude, $max_latitude,$min_longitude, $max_longitude)
     {
-    	if($country) {
+        if ($country) {
             $method = 'agents/carrier/'.$carrier.'/country/'.$country
-        	.'/area/latitude/min/'.$min_latitude.'/max/'.$max_latitude
-        	.'/longitude/min/'.$min_longitude.'/max/'.$max_longitude;
+                .'/area/latitude/min/'.$min_latitude.'/max/'.$max_latitude
+                .'/longitude/min/'.$min_longitude.'/max/'.$max_longitude;
         } else {
             $method = 'agents/carrier/'.$carrier
-        	.'/area/latitude/min/'.$min_latitude.'/max/'.$max_latitude
-        	.'/longitude/min/'.$min_longitude.'/max/'.$max_longitude;
+                .'/area/latitude/min/'.$min_latitude.'/max/'.$max_latitude
+                .'/longitude/min/'.$min_longitude.'/max/'.$max_longitude;
         }
 
         return $this->httpGet($method, $args = array(), $headers = array(), $body=null, $timeout=$this->getAgentTimeout());
@@ -164,13 +164,19 @@ class Api extends Client
      * @param string $carrier is the carrier for which to find agents
      * @param string $country is the country in which the agents should be located
      * @param string $postal_code is the postal code to search for close agents from
+     * @param string $city is the city to search for close agents from
      * @param string $street is the street name to search for close agents from
      *
      * return array of agent objects
      */
-    public function findClosestAgentByAddress($carrier, $country, $postal_code, $street)
+    public function findClosestAgentByAddress($carrier, $country, $postal_code, $city=null, $street)
     {
-        return $this->httpGet($method='agents/closest/carrier/'.$carrier.'/country/'.$country.'/postalcode/'.$postal_code.'/street/'.$street,
+        $method = 'agents/closest/carrier/'.$carrier.'/country/'.$country.'/postalcode/'.$postal_code;
+        if ($city) {
+            $method .= '/city/'.$city;
+        }
+        $method .= '/street/'.$street;
+        return $this->httpGet($method,
             $args = array(), $headers = array(), $body=null, $timeout=$this->getAgentTimeout());
     }
 

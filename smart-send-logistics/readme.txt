@@ -8,10 +8,10 @@ Developer URI: https://smartsend.io/
 Tags: smartsend, smart send, shipping, shipping label, pickup, pick-up, pakkelabel, pakkelabels, pakkeboks, pakkeshop, hente selv, døgnboks, postnord, post nord, post danmark, gls, swipbox, bring, dao, dao365, dao 365, carrier, pacsoft, yourgls, mybring, postage, shipping method, your-gls, my-bring, pacosft-online, pacsoftonline, denmark, sweeden, posten, norway, post 
 Requires at least: 3.0.1
 Tested up to: 5.0
-Stable tag: 8.0.11
+Stable tag: 8.0.12
 License: GNU General Public License v3.0
 License URI: http://www.gnu.org/licenses/gpl-3.0.html
-WC requires at least: 2.7.0
+WC requires at least: 3.0.0
 WC tested up to: 3.5
 Requires PHP: 5.6.0
 
@@ -181,13 +181,19 @@ This box appears when a "Select Pick-up Point" shipping method is selected, but 
 
 == Screenshots ==
 
-1. Add shipping methods to WooCommerce Shipping Zones
-2. Connect WooCommerce to Smart Send by entering the API Token
-3. Create PDF shipping labels from backend with just one click
+1. Show closest pick-up points during checkout
+2. Create PDF shipping labels from backend with just one click
+3. Save tracking information automatically after creating shipping labels
 4. Get detailed error description if something is incorrect
-5. Save tracking information automatically after creating shipping labels
+5. Add shipping methods to WooCommerce Shipping Zones
+6. Connect WooCommerce to Smart Send by entering the API Token
+
 
 == Changelog ==
+
+= 8.0.12 =
+* Add city to request when searching for closest agents for improved accuracy
+* Change WooCommerce minimum requirement to WC 3.0
 
 = 8.0.11 =
 * Bugfix: PHP error when using name_line2 field for WooCommerce orders
