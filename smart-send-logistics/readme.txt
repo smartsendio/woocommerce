@@ -181,11 +181,13 @@ This box appears when a "Select Pick-up Point" shipping method is selected, but 
 
 == Screenshots ==
 
-1. Add shipping methods to WooCommerce Shipping Zones
-2. Connect WooCommerce to Smart Send by entering the API Token
-3. Create PDF shipping labels from backend with just one click
+1. Show closest pick-up point during checkout
+2. Create PDF shipping labels from backend with just one click
+3. Save tracking information automatically after creating shipping labels
 4. Get detailed error description if something is incorrect
-5. Save tracking information automatically after creating shipping labels
+5. Add shipping methods to WooCommerce Shipping Zones
+6. Connect WooCommerce to Smart Send by entering the API Token
+
 
 == Changelog ==
 
