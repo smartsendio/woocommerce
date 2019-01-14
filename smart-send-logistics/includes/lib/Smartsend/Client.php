@@ -343,11 +343,6 @@ class Client
      */
     private function makeRequest($http_verb, $method, $args = array(), $headers=array(), $body=null, $timeout = self::TIMEOUT)
     {
-        // Throw an error if curl is not present
-        if (!function_exists('curl_init') || !function_exists('curl_setopt')) {
-            throw new \Exception("cURL support is required, but can't be found.");
-        }
-
         // If the headers where not set, then use default
         if (empty($headers)) {
             $headers = array(
@@ -376,66 +371,53 @@ class Client
             $this->request_body = ($body ? json_encode($body) : null);
         }
 
-        // Make request
-        $ch = curl_init();
-        curl_setopt($ch, CURLOPT_URL, $this->request_endpoint);
-
-        curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
-        curl_setopt($ch, CURLOPT_USERAGENT, $this->getUserAgent());
-        curl_setopt($ch, CURLOPT_REFERER, $this->getWebsite());
-        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-        curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
-        curl_setopt($ch, CURLOPT_TIMEOUT, $timeout);
-        curl_setopt($ch, CURLINFO_HEADER_OUT, true);
-
-        curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, 0);
-        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, 0);
-
-        switch ($http_verb) {
-            case 'post':
-                curl_setopt($ch, CURLOPT_POST, 1);
-                curl_setopt($ch, CURLOPT_POSTFIELDS, $this->request_body);
-                break;
-            case 'get':
-                break;
-            case 'delete':
-                curl_setopt($ch, CURLOPT_CUSTOMREQUEST, 'DELETE');
-                break;
-            case 'patch':
-                curl_setopt($ch, CURLOPT_CUSTOMREQUEST, 'PATCH');
-                curl_setopt($ch, CURLOPT_POSTFIELDS, $this->request_body);
-                break;
-            case 'put':
-                curl_setopt($ch, CURLOPT_CUSTOMREQUEST, 'PUT');
-                curl_setopt($ch, CURLOPT_POSTFIELDS, $this->request_body);
-                break;
+        if (!isset($headers['referer'])) {
+	        $headers['referer'] = $this->getWebsite();
         }
 
+        // Split headers into key-value array
+	    $headers_key_value = array();
+	    foreach ($headers as $header) {
+		    $tmp = explode(': ', $header, 2);
+		    if (isset($tmp[1])) {
+			    $headers_key_value[$tmp[0]] = $tmp[1];
+		    }
+	    }
+
+	    // Make request
+	    $res = wp_remote_request($this->request_endpoint, array(
+		    'method'     => strtoupper($http_verb),
+		    'user-agent' => $this->getUserAgent(),
+			'headers'    => array(
+				'Accept' => 'application/json',
+				'Content-Type' => 'application/json',
+			),//$headers_key_value,
+		    'body'       => $this->request_body,
+		    'timeout'    => $timeout,
+	    ));
+
         // execute request
-        $this->response_body = curl_exec($ch);
+        $this->response_body = $res['body'];
 
         // Save http status code and headers
-        $this->debug = curl_getinfo($ch);
-        $this->request_headers = curl_getinfo($ch, CURLINFO_HEADER_OUT);
-        $this->http_status_code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-        $this->content_type = curl_getinfo($ch, CURLINFO_CONTENT_TYPE);
+        $this->debug = $res;
+        $this->request_headers = $res['headers'];
+        $this->http_status_code = $res['response']['code'];
+        $this->content_type = $res['headers']['content-type'];
 
-        if (curl_errno($ch)) {
+        if (empty($res)) {
             $this->success = false;
 
             $error = new Error();
             $error->links = null;
             $error->id = null;
-            $error->code = curl_errno($ch);
-            $error->message = curl_error($ch);
+            $error->code = 500;
+            $error->message = 'No response from Smart Send';
             $error->errors = array();
 
             $this->error = $error;
             return $this->success;
         }
-
-        // close connection
-        curl_close($ch);
 
         // If response is JSON, then json_decode
         if (strpos($this->content_type, 'application/json') !== false || strpos($this->content_type, 'text/json') !== false) {
