@@ -192,6 +192,7 @@ This box appears when a "Select Pick-up Point" shipping method is selected, but 
 == Changelog ==
 
 = 8.0.13 =
+* Bugfix: City was not used when looking for closest pick-up points
 * Change from cURL to wp_remote_request
 
 = 8.0.12 =
