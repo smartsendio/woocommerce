@@ -19,40 +19,51 @@ class Receiver implements \JsonSerializable
 
     public function __construct($receiver=array())
     {
-        if(isset($receiver['internal_id'])) {
+        if (isset($receiver['internal_id'])) {
             $this->setInternalId($receiver['internal_id']);
         }
-        if(isset($receiver['internal_reference'])) {
+
+        if (isset($receiver['internal_reference'])) {
             $this->setInternalReference($receiver['internal_reference']);
         }
-        if(isset($receiver['company'])) {
+
+        if (isset($receiver['company'])) {
             $this->setCompany($receiver['company']);
         }
-        if(isset($receiver['name_line1'])) {
+
+        if (isset($receiver['name_line1'])) {
             $this->setName1($receiver['name_line1']);
         }
-        if(isset($receiver['name_line2'])) {
+
+        if (isset($receiver['name_line2'])) {
             $this->setName2($receiver['name_line2']);
         }
-        if(isset($receiver['address_line1'])) {
+
+        if (isset($receiver['address_line1'])) {
             $this->setAddressLine1($receiver['address_line1']);
         }
-        if(isset($receiver['address_line2'])) {
+
+        if (isset($receiver['address_line2'])) {
             $this->setAddressLine2($receiver['address_line2']);
         }
-        if(isset($receiver['postal_code'])) {
+
+        if (isset($receiver['postal_code'])) {
             $this->setPostalCode($receiver['postal_code']);
         }
-        if(isset($receiver['city'])) {
+
+        if (isset($receiver['city'])) {
             $this->setCity($receiver['city']);
         }
-        if(isset($receiver['country'])) {
+
+        if (isset($receiver['country'])) {
             $this->setCountry($receiver['country']);
         }
-        if(isset($receiver['sms'])) {
+
+        if (isset($receiver['sms'])) {
             $this->setSms($receiver['sms']);
         }
-        if(isset($receiver['email'])) {
+
+        if (isset($receiver['email'])) {
             $this->setEmail($receiver['email']);
         }
     }

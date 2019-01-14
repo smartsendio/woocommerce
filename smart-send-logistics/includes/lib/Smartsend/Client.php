@@ -50,6 +50,7 @@ class Client
         if (substr($website, 0, strlen('www.')) == 'www.') {
             $website = substr($website, strlen('www.'));
         }
+
         $this->website = $website;
     }
 
@@ -58,23 +59,28 @@ class Client
         $this->demo = $demo;
     }
 
-    public function getApiEndpoint() {
+    public function getApiEndpoint() 
+    {
         return $this->getApiHost().($this->getDemo() ? 'demo/' : '')."website/".$this->getWebsite()."/";
     }
 
-    private function getApiHost() {
+    private function getApiHost() 
+    {
         return $this->api_host;
     }
 
-    private function getWebsite() {
+    private function getWebsite() 
+    {
         return $this->website;
     }
 
-    private function getApiToken() {
+    private function getApiToken() 
+    {
         return $this->api_token;
     }
 
-    public function getDemo() {
+    public function getDemo() 
+    {
         return $this->demo;
     }
 
@@ -146,26 +152,28 @@ class Client
         // Print error message
         $error_string = $error->message;
         // Print 'Read more here' link to error explenation
-        if(isset($error->links->about)) {
+        if (isset($error->links->about)) {
             $error_string .= $delimiter."- <a href='".$error->links->about."' target='_blank'>Read more here</a>";
         }
+
         // Print unique error ID if one exists
-        if(isset($error->id)) {
+        if (isset($error->id)) {
             $error_string .= $delimiter."Unique ID: ".$error->id;
         }
+
         // Print each error
-        if(isset($error->errors)) {
-            foreach($error->errors as $error_details) {
-                if(is_array($error_details)) {
-                    foreach($error_details as $error_description) {
+        if (isset($error->errors)) {
+            foreach ($error->errors as $error_details) {
+                if (is_array($error_details)) {
+                    foreach ($error_details as $error_description) {
                         $error_string .= $delimiter."- ".$error_description;
                     }
                 } else {
                     $error_string .= $delimiter."- ".$error_details;
                 }
-
             }
         }
+
         return $error_string;
     }
 
@@ -341,7 +349,7 @@ class Client
         }
 
         // If the headers where not set, then use default
-        if(empty($headers)) {
+        if (empty($headers)) {
             $headers = array(
                 'Accept: application/json',
                 'Content-Type: application/json',
@@ -357,14 +365,14 @@ class Client
         // Set URL (inc parameters $args)
         $this->request_endpoint = $this->getApiEndpoint().$method;
 
-        if(!empty($args) && strpos($this->request_endpoint,'?') !== false) {
+        if (!empty($args) && strpos($this->request_endpoint, '?') !== false) {
             $this->request_endpoint .= '&'.http_build_query($args, '', '&');
-        } elseif(!empty($args)) {
+        } elseif (!empty($args)) {
             $this->request_endpoint .= '?'.http_build_query($args, '', '&');
         }
 
         // Set body (if $http_verb not delete)
-        if($http_verb != 'get' && $http_verb != 'delete') {
+        if ($http_verb != 'get' && $http_verb != 'delete') {
             $this->request_body = ($body ? json_encode($body) : null);
         }
 
@@ -408,11 +416,11 @@ class Client
 
         // Save http status code and headers
         $this->debug = curl_getinfo($ch);
-        $this->request_headers = curl_getinfo($ch,CURLINFO_HEADER_OUT);
+        $this->request_headers = curl_getinfo($ch, CURLINFO_HEADER_OUT);
         $this->http_status_code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
         $this->content_type = curl_getinfo($ch, CURLINFO_CONTENT_TYPE);
 
-        if(curl_errno($ch)) {
+        if (curl_errno($ch)) {
             $this->success = false;
 
             $error = new Error();
@@ -425,21 +433,21 @@ class Client
             $this->error = $error;
             return $this->success;
         }
+
         // close connection
         curl_close($ch);
 
         // If response is JSON, then json_decode
-        if(strpos($this->content_type, 'application/json') !== false || strpos($this->content_type, 'text/json') !== false) {
+        if (strpos($this->content_type, 'application/json') !== false || strpos($this->content_type, 'text/json') !== false) {
             $this->response = json_decode($this->response_body);
         }
 
         //Error if response is not 2xx
-        if( $this->http_status_code < 200 || $this->http_status_code > 299 )
-        {
+        if ($this->http_status_code < 200 || $this->http_status_code > 299 ) {
             $this->success = false;
-            if(!empty($this->response->message)) {
+            if (!empty($this->response->message)) {
                 $this->error = $this->response;
-            } elseif(empty($this->response_body)) {
+            } elseif (empty($this->response_body)) {
                 $error = new Error();
                 $error->links = null;
                 $error->id = null;
@@ -447,7 +455,7 @@ class Client
                 $error->message = 'No API response';
                 $error->errors = array();
                 $this->error = $error;
-            } elseif(empty($this->response)) {
+            } elseif (empty($this->response)) {
                 $error = new Error();
                 $error->links = null;
                 $error->id = null;
@@ -464,18 +472,19 @@ class Client
                 $error->errors = array();
                 $this->error = $error;
             }
+
             return $this->success;
         }
 
         // if no response->data
-        if(empty($this->response->data)) {
-            if( $http_verb == 'delete') {
+        if (empty($this->response->data)) {
+            if ($http_verb == 'delete') {
                 //Return TRUE for DELETE with no BODY
                 $this->success = true;
-            } elseif(!empty($this->response->message)) {
+            } elseif (!empty($this->response->message)) {
                 $this->error = $this->response;
                 $this->success = false;
-            } elseif(empty($this->response_body)) {
+            } elseif (empty($this->response_body)) {
                 $error = new Error();
                 $error->links = null;
                 $error->id = null;
@@ -484,7 +493,7 @@ class Client
                 $error->errors = array();
                 $this->error = $error;
                 $this->success = false;
-            } elseif(isset($this->response->data)) {
+            } elseif (isset($this->response->data)) {
                 $error = new Error();
                 $error->links = null;
                 $error->id = null;
@@ -504,12 +513,14 @@ class Client
                 $this->success = false;
             }
         } else {
-            if(isset($this->response->links)) {
+            if (isset($this->response->links)) {
                 $this->links = $this->response->links;
             }
+
             $this->success = true;
             $this->data = $this->response->data;
         }
+
         return $this->success;
     }
 

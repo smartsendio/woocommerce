@@ -37,58 +37,75 @@ class Shipment implements \JsonSerializable
 
     public function __construct(Array $shipment=null)
     {
-        if(isset($shipment['internal_id'])) {
+        if (isset($shipment['internal_id'])) {
             $this->setInternalId($shipment['internal_id']);
         }
-        if(isset($shipment['internal_reference'])) {
+
+        if (isset($shipment['internal_reference'])) {
             $this->setInternalReference($shipment['internal_reference']);
         }
-        if(isset($shipment['shipping_carrier'])) {
+
+        if (isset($shipment['shipping_carrier'])) {
             $this->setShippingCarrier($shipment['shipping_carrier']);
         }
-        if(isset($shipment['shipping_method'])) {
+
+        if (isset($shipment['shipping_method'])) {
             $this->setShippingMethod($shipment['shipping_method']);
         }
-        if(isset($shipment['shipping_date'])) {
+
+        if (isset($shipment['shipping_date'])) {
             $this->setShippingDate($shipment['shipping_date']);
         }
-        if(isset($shipment['sender'])) {
+
+        if (isset($shipment['sender'])) {
             $this->setSender($shipment['sender']);
         }
-        if(isset($shipment['receiver'])) {
+
+        if (isset($shipment['receiver'])) {
             $this->setReceiver($shipment['receiver']);
         }
-        if(isset($shipment['agent'])) {
+
+        if (isset($shipment['agent'])) {
             $this->setAgent($shipment['agent']);
         }
-        if(isset($shipment['parcels'])) {
+
+        if (isset($shipment['parcels'])) {
             $this->setParcels($shipment['parcels']);
         }
-        if(isset($shipment['services'])) {
+
+        if (isset($shipment['services'])) {
             $this->setServices($shipment['services']);
         }
-        if(isset($shipment['subtotal_price_excluding_tax'])) {
+
+        if (isset($shipment['subtotal_price_excluding_tax'])) {
             $this->setSubtotalPriceExcludingTax($shipment['subtotal_price_excluding_tax']);
         }
-        if(isset($shipment['subtotal_price_including_tax'])) {
+
+        if (isset($shipment['subtotal_price_including_tax'])) {
             $this->setSubtotalPriceIncludingTax($shipment['subtotal_price_including_tax']);
         }
-        if(isset($shipment['shipping_price_excluding_tax'])) {
+
+        if (isset($shipment['shipping_price_excluding_tax'])) {
             $this->setShippingPriceExcludingTax($shipment['shipping_price_excluding_tax']);
         }
-        if(isset($shipment['shipping_price_including_tax'])) {
+
+        if (isset($shipment['shipping_price_including_tax'])) {
             $this->setShippingPriceIncludingTax($shipment['shipping_price_including_tax']);
         }
-        if(isset($shipment['total_price_excluding_tax'])) {
+
+        if (isset($shipment['total_price_excluding_tax'])) {
             $this->setTotalPriceExcludingTax($shipment['total_price_excluding_tax']);
         }
-        if(isset($shipment['total_price_including_tax'])) {
+
+        if (isset($shipment['total_price_including_tax'])) {
             $this->setTotalPriceIncludingTax($shipment['total_price_including_tax']);
         }
-        if(isset($shipment['total_tax_amount'])) {
+
+        if (isset($shipment['total_tax_amount'])) {
             $this->setTotalTaxAmount($shipment['total_tax_amount']);
         }
-        if(isset($shipment['currency'])) {
+
+        if (isset($shipment['currency'])) {
             $this->setCurrency($shipment['currency']);
         }
 
@@ -262,11 +279,12 @@ class Shipment implements \JsonSerializable
      */
     public function addParcel(Parcel $parcel)
     {
-        if(is_array($this->parcels)) {
+        if (is_array($this->parcels)) {
             $this->parcels[] = $parcel;
         } else {
             $this->setParcels(array($parcel));
         }
+
         return $this;
     }
 

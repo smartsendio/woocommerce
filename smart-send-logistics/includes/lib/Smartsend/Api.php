@@ -41,14 +41,18 @@ class Api extends Client
 
     public function getAgent($id)
     {
-        return $this->httpGet($method='agents/',
-            $args = array(), $headers = array(), $body=null, $timeout=$this->getAgentTimeout());
+        return $this->httpGet(
+            $method = 'agents/',
+            $args = array(), $headers = array(), $body = null, $timeout = $this->getAgentTimeout()
+        );
     }
 
     public function getAgentByAgentNo($carrier, $country, $agent_no)
     {
-        return $this->httpGet($method='agents/carrier/'.$carrier.'/country/'.$country.'/agentno/'.$agent_no,
-            $args = array(), $headers = array(), $body=null, $timeout=$this->getAgentTimeout());
+        return $this->httpGet(
+            $method = 'agents/carrier/'.$carrier.'/country/'.$country.'/agentno/'.$agent_no,
+            $args = array(), $headers = array(), $body = null, $timeout = $this->getAgentTimeout()
+        );
     }
 
     public function findFirstAgent($criteria)
@@ -68,7 +72,7 @@ class Api extends Client
 
     public function createAgent(Agent $agent)
     {
-        return $this->httpPost('agents/', array(), array(),$agent);
+        return $this->httpPost('agents/', array(), array(), $agent);
     }
 
     /*
@@ -81,8 +85,10 @@ class Api extends Client
      */
     public function getAgentsByCountry($carrier, $country)
     {
-        return $this->httpGet($method='agents/carrier/'.$carrier.'/country/'.$country,
-            $args = array(), $headers = array(), $body=null, $timeout=$this->getAgentTimeout());
+        return $this->httpGet(
+            $method = 'agents/carrier/'.$carrier.'/country/'.$country,
+            $args = array(), $headers = array(), $body = null, $timeout = $this->getAgentTimeout()
+        );
     }
 
     /*
@@ -96,8 +102,10 @@ class Api extends Client
      */
     public function getAgentsByPostalCode($carrier, $country, $postal_code)
     {
-        return $this->httpGet($method='agents/carrier/'.$carrier.'/country/'.$country.'/postalcode/'.$postal_code,
-            $args = array(), $headers = array(), $body=null, $timeout=$this->getAgentTimeout());
+        return $this->httpGet(
+            $method = 'agents/carrier/'.$carrier.'/country/'.$country.'/postalcode/'.$postal_code,
+            $args = array(), $headers = array(), $body = null, $timeout = $this->getAgentTimeout()
+        );
     }
 
     /*
@@ -112,8 +120,10 @@ class Api extends Client
      */
     public function getAgentsByAddress($carrier, $country, $postal_code, $street)
     {
-        return $this->httpGet($method='agents/carrier/'.$carrier.'/country/'.$country.'/postalcode/'.$postal_code.'/street/'.$street,
-            $args = array(), $headers = array(), $body=null, $timeout=$this->getAgentTimeout());
+        return $this->httpGet(
+            $method = 'agents/carrier/'.$carrier.'/country/'.$country.'/postalcode/'.$postal_code.'/street/'.$street,
+            $args = array(), $headers = array(), $body = null, $timeout = $this->getAgentTimeout()
+        );
     }
 
     /*
@@ -140,7 +150,7 @@ class Api extends Client
                 .'/longitude/min/'.$min_longitude.'/max/'.$max_longitude;
         }
 
-        return $this->httpGet($method, $args = array(), $headers = array(), $body=null, $timeout=$this->getAgentTimeout());
+        return $this->httpGet($method, $args = array(), $headers = array(), $body = null, $timeout = $this->getAgentTimeout());
     }
 
     /*
@@ -154,8 +164,10 @@ class Api extends Client
      */
     public function findClosestAgentByPostalCode($carrier, $country, $postal_code)
     {
-        return $this->httpGet($method='agents/closest/carrier/'.$carrier.'/country/'.$country.'/postalcode/'.$postal_code,
-            $args = array(), $headers = array(), $body=null, $timeout=$this->getAgentTimeout());
+        return $this->httpGet(
+            $method = 'agents/closest/carrier/'.$carrier.'/country/'.$country.'/postalcode/'.$postal_code,
+            $args = array(), $headers = array(), $body = null, $timeout = $this->getAgentTimeout()
+        );
     }
 
     /*
@@ -175,9 +187,12 @@ class Api extends Client
         if ($city) {
             $method .= '/city/'.$city;
         }
+
         $method .= '/street/'.$street;
-        return $this->httpGet($method,
-            $args = array(), $headers = array(), $body=null, $timeout=$this->getAgentTimeout());
+        return $this->httpGet(
+            $method,
+            $args = array(), $headers = array(), $body = null, $timeout = $this->getAgentTimeout()
+        );
     }
 
     /*
@@ -192,8 +207,10 @@ class Api extends Client
      */
     public function findClosestAgentByGpsCoordinates($carrier, $country, $latitude, $longitude)
     {
-        return $this->httpGet($method='agents/closest/carrier/'.$carrier.'/country/'.$country.'/coordinates/latitude/'.$latitude.'/longitude/'.$longitude,
-            $args = array(), $headers = array(), $body=null, $timeout=$this->getAgentTimeout());
+        return $this->httpGet(
+            $method = 'agents/closest/carrier/'.$carrier.'/country/'.$country.'/coordinates/latitude/'.$latitude.'/longitude/'.$longitude,
+            $args = array(), $headers = array(), $body = null, $timeout = $this->getAgentTimeout()
+        );
     }
 
 // Shipment API
@@ -226,7 +243,7 @@ class Api extends Client
 // Label API
     public function getLabels($shipment_id, $parcel_id=null)
     {
-        if($parcel_id) {
+        if ($parcel_id) {
             return $this->httpGet('shipments/'.$shipment_id.'/parcels/'.$parcel_id.'/label');
         } else {
             return $this->httpGet('shipments/'.$shipment_id.'/labels');
@@ -235,7 +252,7 @@ class Api extends Client
 
     public function getPdfLabels($shipment_id, $parcel_id=null)
     {
-        if($parcel_id) {
+        if ($parcel_id) {
             return $this->httpGet('shipments/'.$shipment_id.'/parcels/'.$parcel_id.'/label/pdf');
         } else {
             return $this->httpGet('shipments/'.$shipment_id.'/labels/pdf');
@@ -254,7 +271,7 @@ class Api extends Client
 
     public function createShipmentAndLabels($shipment)
     {
-        return $this->httpPost('shipments/labels',array(),array(),$shipment);
+        return $this->httpPost('shipments/labels', array(), array(), $shipment);
     }
 
     public function combineLabelsForShipments($shipments=array())
@@ -262,11 +279,11 @@ class Api extends Client
         $request = array(
             'shipments' => array()
         );
-        foreach($shipments as $shipment) {
+        foreach ($shipments as $shipment) {
             $request["shipments"][] = array("shipment_id" => $shipment);
         }
 
-        return $this->httpPost('shipments/labels/combine',array(),array(),$request);
+        return $this->httpPost('shipments/labels/combine', array(), array(), $request);
     }
 
 
@@ -337,7 +354,7 @@ class Api extends Client
      */
     public function next()
     {
-        return $this->httpGet( $this->stripEndpointFromLink($this->getNextLink()) );
+        return $this->httpGet($this->stripEndpointFromLink($this->getNextLink()));
     }
 
     /**
@@ -347,7 +364,7 @@ class Api extends Client
      */
     public function previous()
     {
-        return $this->httpGet( $this->stripEndpointFromLink($this->getPreviousLink()) );
+        return $this->httpGet($this->stripEndpointFromLink($this->getPreviousLink()));
     }
 
     /**
@@ -357,7 +374,7 @@ class Api extends Client
      */
     public function last()
     {
-        return $this->httpGet( $this->stripEndpointFromLink($this->getLastLink()) );
+        return $this->httpGet($this->stripEndpointFromLink($this->getLastLink()));
     }
 
     /**
@@ -365,7 +382,8 @@ class Api extends Client
      * @url  string
      * @return  string
      */
-    private function stripEndpointFromLink($url) {
+    private function stripEndpointFromLink($url) 
+    {
         $api_endpoint = $this->getApiEndpoint();
         if (substr($url, 0, strlen($api_endpoint)) == $api_endpoint) {
             return substr($url, strlen($api_endpoint));

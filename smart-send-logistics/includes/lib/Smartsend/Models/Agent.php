@@ -247,11 +247,12 @@ class Agent implements \JsonSerializable
      */
     public function addOpeningHours(OpeningHour $opening_hour)
     {
-        if(is_array($this->opening_hours)) {
+        if (is_array($this->opening_hours)) {
             $this->opening_hours[] = $opening_hour;
         } else {
             $this->setOpeningHours(array($opening_hour));
         }
+
         return $this;
     }
 
