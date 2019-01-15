@@ -23,49 +23,63 @@ class Item implements \JsonSerializable
 
     public function __construct($item=array())
     {
-        if(isset($item['internal_id'])) {
+        if (isset($item['internal_id'])) {
             $this->setInternalId($item['internal_id']);
         }
-        if(isset($item['internal_reference'])) {
+
+        if (isset($item['internal_reference'])) {
             $this->setInternalReference($item['internal_reference']);
         }
-        if(isset($item['sku'])) {
+
+        if (isset($item['sku'])) {
             $this->setSku($item['sku']);
         }
-        if(isset($item['name'])) {
+
+        if (isset($item['name'])) {
             $this->setName($item['name']);
         }
-        if(isset($item['description'])) {
+
+        if (isset($item['description'])) {
             $this->setDescription($item['description']);
         }
-        if(isset($item['hs_code'])) {
+
+        if (isset($item['hs_code'])) {
             $this->setHsCode($item['hs_code']);
         }
-        if(isset($item['country_of_origin'])) {
+
+        if (isset($item['country_of_origin'])) {
             $this->setCountryOfOrigin($item['country_of_origin']);
         }
-        if(isset($item['image_url'])) {
+
+        if (isset($item['image_url'])) {
             $this->setImageUrl($item['image_url']);
         }
-        if(isset($item['unit_weight'])) {
+
+        if (isset($item['unit_weight'])) {
             $this->setUnitWeight($item['unit_weight']);
         }
-        if(isset($item['unit_price_excluding_tax'])) {
+
+        if (isset($item['unit_price_excluding_tax'])) {
             $this->setUnitPriceExcludingTax($item['unit_price_excluding_tax']);
         }
-        if(isset($item['unit_price_including_tax'])) {
+
+        if (isset($item['unit_price_including_tax'])) {
             $this->setUnitPriceIncludingTax($item['unit_price_including_tax']);
         }
-        if(isset($item['quantity'])) {
+
+        if (isset($item['quantity'])) {
             $this->setQuantity($item['quantity']);
         }
-        if(isset($item['total_price_excluding_tax'])) {
+
+        if (isset($item['total_price_excluding_tax'])) {
             $this->setTotalPriceExcludingTax($item['total_price_excluding_tax']);
         }
-        if(isset($item['total_price_including_tax'])) {
+
+        if (isset($item['total_price_including_tax'])) {
             $this->setTotalPriceIncludingTax($item['total_price_including_tax']);
         }
-        if(isset($item['total_tax_amount'])) {
+
+        if (isset($item['total_tax_amount'])) {
             $this->setTotalTaxAmount($item['total_tax_amount']);
         }
     }

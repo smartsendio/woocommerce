@@ -22,40 +22,51 @@ class Parcel implements \JsonSerializable
 
     public function __construct($parcel=array())
     {
-        if(isset($parcel['internal_id'])) {
+        if (isset($parcel['internal_id'])) {
             $this->setInternalId($parcel['internal_id']);
         }
-        if(isset($parcel['internal_reference'])) {
+
+        if (isset($parcel['internal_reference'])) {
             $this->setInternalReference($parcel['internal_reference']);
         }
-        if(isset($parcel['weight'])) {
+
+        if (isset($parcel['weight'])) {
             $this->setWeight($parcel['weight']);
         }
-        if(isset($parcel['height'])) {
+
+        if (isset($parcel['height'])) {
             $this->setHeight($parcel['height']);
         }
-        if(isset($parcel['width'])) {
+
+        if (isset($parcel['width'])) {
             $this->setWidth($parcel['width']);
         }
-        if(isset($parcel['length'])) {
+
+        if (isset($parcel['length'])) {
             $this->setLength($parcel['length']);
         }
-        if(isset($parcel['freetext'])) {
+
+        if (isset($parcel['freetext'])) {
             $this->setFreetext($parcel['freetext']);
         }
-        if(isset($parcel['items'])) {
+
+        if (isset($parcel['items'])) {
             $this->setItems($parcel['items']);
         }
-        if(isset($parcel['city'])) {
+
+        if (isset($parcel['city'])) {
             $this->setCity($parcel['city']);
         }
-        if(isset($parcel['total_price_excluding_tax'])) {
+
+        if (isset($parcel['total_price_excluding_tax'])) {
             $this->setTotalPriceExcludingTax($parcel['total_price_excluding_tax']);
         }
-        if(isset($parcel['total_price_including_tax'])) {
+
+        if (isset($parcel['total_price_including_tax'])) {
             $this->setTotalPriceIncludingTax($parcel['total_price_including_tax']);
         }
-        if(isset($parcel['total_tax_amount'])) {
+
+        if (isset($parcel['total_tax_amount'])) {
             $this->setTotalTaxAmount($parcel['total_tax_amount']);
         }
     }
@@ -210,11 +221,12 @@ class Parcel implements \JsonSerializable
      */
     public function addItem(Item $item)
     {
-        if(is_array($this->items)) {
+        if (is_array($this->items)) {
             $this->items[] = $item;
         } else {
             $this->setItems(array($item));
         }
+
         return $this;
     }
 

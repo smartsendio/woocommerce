@@ -8,7 +8,7 @@ Developer URI: https://smartsend.io/
 Tags: smartsend, smart send, shipping, shipping label, pickup, pick-up, pakkelabel, pakkelabels, pakkeboks, pakkeshop, hente selv, døgnboks, postnord, post nord, post danmark, gls, swipbox, bring, dao, dao365, dao 365, carrier, pacsoft, yourgls, mybring, postage, shipping method, your-gls, my-bring, pacosft-online, pacsoftonline, denmark, sweeden, posten, norway, post 
 Requires at least: 3.0.1
 Tested up to: 5.0
-Stable tag: 8.0.12
+Stable tag: 8.0.13
 License: GNU General Public License v3.0
 License URI: http://www.gnu.org/licenses/gpl-3.0.html
 WC requires at least: 3.0.0
@@ -143,6 +143,13 @@ The following filters are inherited from WooCommerce and can be used as well:
 * **woocommerce_shipping_instance_form_fields_smart_send_shipping**
     A filter to override shipping method settings.
 
+The plugin shows the selected pick-up point relevant places using these two hooks:
+
+* **woocommerce_order_details_after_order_table**
+    Show the selected pick-up point below the table of order items
+* **woocommerce_email_after_order_table**
+   Show the selected pick-up point below the table of order items
+
 = Meta fields =
 
 The following meta fields are used by the plugin:
@@ -190,6 +197,10 @@ This box appears when a "Select Pick-up Point" shipping method is selected, but 
 
 
 == Changelog ==
+
+= 8.0.13 =
+* Bugfix: City was not used when looking for closest pick-up points
+* Change from cURL to wp_remote_request
 
 = 8.0.12 =
 * Add city to request when searching for closest agents for improved accuracy

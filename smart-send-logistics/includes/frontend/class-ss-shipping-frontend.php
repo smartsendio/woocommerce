@@ -74,7 +74,7 @@ if (!class_exists('SS_Shipping_Frontend')) :
                 if (!empty($_POST['s_country']) && !empty($_POST['s_postcode']) && !empty($_POST['s_address'])) {
                     $country = wc_clean($_POST['s_country']);
                     $postal_code = wc_clean($_POST['s_postcode']);
-	                $city = (empty($_POST['s_city']) ? wc_clean($_POST['s_city']) : null);//not required but preferred
+	                $city = (!empty($_POST['s_city']) ? wc_clean($_POST['s_city']) : null);//not required but preferred
                     $street = wc_clean($_POST['s_address']);
 
                     $carrier = SS_SHIPPING_WC()->get_shipping_method_carrier($meta_data['smart_send_shipping_method']);

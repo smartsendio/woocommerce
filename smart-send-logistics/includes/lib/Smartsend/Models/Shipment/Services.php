@@ -10,13 +10,15 @@ class Services  implements \JsonSerializable
 
     public function __construct(Array $services=array())
     {
-        if(isset($services['email_notification'])) {
+        if (isset($services['email_notification'])) {
             $this->setEmailNotification($services['email_notification']);
         }
-        if(isset($services['sms_notification'])) {
+
+        if (isset($services['sms_notification'])) {
             $this->setSmsNotification($services['sms_notification']);
         }
-        if(isset($services['flex_delivery'])) {
+
+        if (isset($services['flex_delivery'])) {
             $this->setFlexDelivery($services['flex_delivery']);
         }
     }

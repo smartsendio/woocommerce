@@ -11,7 +11,7 @@ class Client
 {
     const TIMEOUT = 30;
 
-    private $api_host = 'https://app.smartsend.io/api/v1/';
+    private $api_host = 'https://smartsend-prod.apigee.net/api/v1/';
     private $website;
     private $api_token;
     private $demo;
@@ -50,6 +50,7 @@ class Client
         if (substr($website, 0, strlen('www.')) == 'www.') {
             $website = substr($website, strlen('www.'));
         }
+
         $this->website = $website;
     }
 
@@ -58,23 +59,28 @@ class Client
         $this->demo = $demo;
     }
 
-    public function getApiEndpoint() {
+    public function getApiEndpoint() 
+    {
         return $this->getApiHost().($this->getDemo() ? 'demo/' : '')."website/".$this->getWebsite()."/";
     }
 
-    private function getApiHost() {
+    private function getApiHost() 
+    {
         return $this->api_host;
     }
 
-    private function getWebsite() {
+    private function getWebsite() 
+    {
         return $this->website;
     }
 
-    private function getApiToken() {
+    private function getApiToken() 
+    {
         return $this->api_token;
     }
 
-    public function getDemo() {
+    public function getDemo() 
+    {
         return $this->demo;
     }
 
@@ -146,26 +152,28 @@ class Client
         // Print error message
         $error_string = $error->message;
         // Print 'Read more here' link to error explenation
-        if(isset($error->links->about)) {
+        if (isset($error->links->about)) {
             $error_string .= $delimiter."- <a href='".$error->links->about."' target='_blank'>Read more here</a>";
         }
+
         // Print unique error ID if one exists
-        if(isset($error->id)) {
+        if (isset($error->id)) {
             $error_string .= $delimiter."Unique ID: ".$error->id;
         }
+
         // Print each error
-        if(isset($error->errors)) {
-            foreach($error->errors as $error_details) {
-                if(is_array($error_details)) {
-                    foreach($error_details as $error_description) {
+        if (isset($error->errors)) {
+            foreach ($error->errors as $error_details) {
+                if (is_array($error_details)) {
+                    foreach ($error_details as $error_description) {
                         $error_string .= $delimiter."- ".$error_description;
                     }
                 } else {
                     $error_string .= $delimiter."- ".$error_details;
                 }
-
             }
         }
+
         return $error_string;
     }
 
@@ -335,13 +343,8 @@ class Client
      */
     private function makeRequest($http_verb, $method, $args = array(), $headers=array(), $body=null, $timeout = self::TIMEOUT)
     {
-        // Throw an error if curl is not present
-        if (!function_exists('curl_init') || !function_exists('curl_setopt')) {
-            throw new \Exception("cURL support is required, but can't be found.");
-        }
-
         // If the headers where not set, then use default
-        if(empty($headers)) {
+        if (empty($headers)) {
             $headers = array(
                 'Accept: application/json',
                 'Content-Type: application/json',
@@ -357,89 +360,81 @@ class Client
         // Set URL (inc parameters $args)
         $this->request_endpoint = $this->getApiEndpoint().$method;
 
-        if(!empty($args) && strpos($this->request_endpoint,'?') !== false) {
+        if (!empty($args) && strpos($this->request_endpoint, '?') !== false) {
             $this->request_endpoint .= '&'.http_build_query($args, '', '&');
-        } elseif(!empty($args)) {
+        } elseif (!empty($args)) {
             $this->request_endpoint .= '?'.http_build_query($args, '', '&');
         }
 
         // Set body (if $http_verb not delete)
-        if($http_verb != 'get' && $http_verb != 'delete') {
+        if ($http_verb != 'get' && $http_verb != 'delete') {
             $this->request_body = ($body ? json_encode($body) : null);
         }
 
-        // Make request
-        $ch = curl_init();
-        curl_setopt($ch, CURLOPT_URL, $this->request_endpoint);
-
-        curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
-        curl_setopt($ch, CURLOPT_USERAGENT, $this->getUserAgent());
-        curl_setopt($ch, CURLOPT_REFERER, $this->getWebsite());
-        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-        curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
-        curl_setopt($ch, CURLOPT_TIMEOUT, $timeout);
-        curl_setopt($ch, CURLINFO_HEADER_OUT, true);
-
-        curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, 0);
-        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, 0);
-
-        switch ($http_verb) {
-            case 'post':
-                curl_setopt($ch, CURLOPT_POST, 1);
-                curl_setopt($ch, CURLOPT_POSTFIELDS, $this->request_body);
-                break;
-            case 'get':
-                break;
-            case 'delete':
-                curl_setopt($ch, CURLOPT_CUSTOMREQUEST, 'DELETE');
-                break;
-            case 'patch':
-                curl_setopt($ch, CURLOPT_CUSTOMREQUEST, 'PATCH');
-                curl_setopt($ch, CURLOPT_POSTFIELDS, $this->request_body);
-                break;
-            case 'put':
-                curl_setopt($ch, CURLOPT_CUSTOMREQUEST, 'PUT');
-                curl_setopt($ch, CURLOPT_POSTFIELDS, $this->request_body);
-                break;
+        if (!isset($headers['referer'])) {
+	        $headers['referer'] = $this->getWebsite();
         }
 
+        // Split headers into key-value array
+	    $headers_key_value = array();
+	    foreach ($headers as $header) {
+		    $tmp = explode(': ', $header, 2);
+		    if (isset($tmp[1])) {
+			    $headers_key_value[$tmp[0]] = $tmp[1];
+		    }
+	    }
+
+	    // Make request
+	    $res = wp_remote_request($this->request_endpoint, array(
+		    'method'     => strtoupper($http_verb),
+		    'user-agent' => $this->getUserAgent(),
+			'headers'    => $headers_key_value,
+		    'body'       => $this->request_body,
+		    'timeout'    => $timeout,
+		    'httpversion' => '1.1',
+	    ));
+
         // execute request
-        $this->response_body = curl_exec($ch);
+	    $this->response_body = wp_remote_retrieve_body($res);
 
         // Save http status code and headers
-        $this->debug = curl_getinfo($ch);
-        $this->request_headers = curl_getinfo($ch,CURLINFO_HEADER_OUT);
-        $this->http_status_code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-        $this->content_type = curl_getinfo($ch, CURLINFO_CONTENT_TYPE);
+	    $this->debug = $res;
+	    $this->request_headers = wp_remote_retrieve_headers($res);
+	    $this->http_status_code = wp_remote_retrieve_response_code($res);
+	    $this->content_type = wp_remote_retrieve_header($res, 'content-type');
 
-        if(curl_errno($ch)) {
+        if (is_wp_error($res)) {
             $this->success = false;
-
             $error = new Error();
-            $error->links = null;
-            $error->id = null;
-            $error->code = curl_errno($ch);
-            $error->message = curl_error($ch);
-            $error->errors = array();
 
+	        if ($res->get_error_message() == 'cURL error 35: SSL connect error') {
+		        $error->links = null;
+		        $error->id = null;
+		        $error->code = 'curl-35';
+		        $error->message =  'Unsupported cURL version. This is a security issue. Please ask your host to update cURL.';
+	        } else {
+		        $error->links = null;
+		        $error->id = null;
+		        $error->code = $res->get_error_code();
+		        $error->message =  $res->get_error_message();
+	        }
+
+            $error->errors = array();
             $this->error = $error;
             return $this->success;
         }
-        // close connection
-        curl_close($ch);
 
         // If response is JSON, then json_decode
-        if(strpos($this->content_type, 'application/json') !== false || strpos($this->content_type, 'text/json') !== false) {
+        if (strpos($this->content_type, 'application/json') !== false || strpos($this->content_type, 'text/json') !== false) {
             $this->response = json_decode($this->response_body);
         }
 
         //Error if response is not 2xx
-        if( $this->http_status_code < 200 || $this->http_status_code > 299 )
-        {
+        if ($this->http_status_code < 200 || $this->http_status_code > 299 ) {
             $this->success = false;
-            if(!empty($this->response->message)) {
+            if (!empty($this->response->message)) {
                 $this->error = $this->response;
-            } elseif(empty($this->response_body)) {
+            } elseif (empty($this->response_body)) {
                 $error = new Error();
                 $error->links = null;
                 $error->id = null;
@@ -447,15 +442,7 @@ class Client
                 $error->message = 'No API response';
                 $error->errors = array();
                 $this->error = $error;
-            } elseif(empty($this->response)) {
-                $error = new Error();
-                $error->links = null;
-                $error->id = null;
-                $error->code = (int) $this->http_status_code;
-                $error->message = $this->response;
-                $error->errors = array();
-                $this->error = $error;
-            } else {
+            } elseif (empty($this->response)) {
                 $error = new Error();
                 $error->links = null;
                 $error->id = null;
@@ -463,19 +450,28 @@ class Client
                 $error->message = 'Unknown API response';
                 $error->errors = array();
                 $this->error = $error;
+            } else {
+                $error = new Error();
+                $error->links = null;
+                $error->id = null;
+                $error->code = (int) $this->http_status_code;
+                $error->message = $this->response;
+                $error->errors = array();
+                $this->error = $error;
             }
+
             return $this->success;
         }
 
         // if no response->data
-        if(empty($this->response->data)) {
-            if( $http_verb == 'delete') {
+        if (empty($this->response->data)) {
+            if ($http_verb == 'delete') {
                 //Return TRUE for DELETE with no BODY
                 $this->success = true;
-            } elseif(!empty($this->response->message)) {
+            } elseif (!empty($this->response->message)) {
                 $this->error = $this->response;
                 $this->success = false;
-            } elseif(empty($this->response_body)) {
+            } elseif (empty($this->response_body)) {
                 $error = new Error();
                 $error->links = null;
                 $error->id = null;
@@ -484,7 +480,7 @@ class Client
                 $error->errors = array();
                 $this->error = $error;
                 $this->success = false;
-            } elseif(isset($this->response->data)) {
+            } elseif (isset($this->response->data)) {
                 $error = new Error();
                 $error->links = null;
                 $error->id = null;
@@ -504,12 +500,14 @@ class Client
                 $this->success = false;
             }
         } else {
-            if(isset($this->response->links)) {
+            if (isset($this->response->links)) {
                 $this->links = $this->response->links;
             }
+
             $this->success = true;
             $this->data = $this->response->data;
         }
+
         return $this->success;
     }
 
