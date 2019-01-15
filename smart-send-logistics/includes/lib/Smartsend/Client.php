@@ -11,7 +11,7 @@ class Client
 {
     const TIMEOUT = 30;
 
-    private $api_host = 'https://app.smartsend.io/api/v1/';
+    private $api_host = 'https://smartsend-prod.apigee.net/api/v1/';
     private $website;
     private $api_token;
     private $demo;
