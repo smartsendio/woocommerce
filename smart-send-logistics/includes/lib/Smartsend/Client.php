@@ -388,33 +388,38 @@ class Client
 	    $res = wp_remote_request($this->request_endpoint, array(
 		    'method'     => strtoupper($http_verb),
 		    'user-agent' => $this->getUserAgent(),
-			'headers'    => array(
-				'Accept' => 'application/json',
-				'Content-Type' => 'application/json',
-			),//$headers_key_value,
+			'headers'    => $headers_key_value,
 		    'body'       => $this->request_body,
 		    'timeout'    => $timeout,
+		    'httpversion' => '1.1',
 	    ));
 
         // execute request
-        $this->response_body = $res['body'];
+	    $this->response_body = wp_remote_retrieve_body($res);
 
         // Save http status code and headers
-        $this->debug = $res;
-        $this->request_headers = $res['headers'];
-        $this->http_status_code = $res['response']['code'];
-        $this->content_type = $res['headers']['content-type'];
+	    $this->debug = $res;
+	    $this->request_headers = wp_remote_retrieve_headers($res);
+	    $this->http_status_code = wp_remote_retrieve_response_code($res);
+	    $this->content_type = wp_remote_retrieve_header($res, 'content-type');
 
-        if (empty($res)) {
+        if (is_wp_error($res)) {
             $this->success = false;
-
             $error = new Error();
-            $error->links = null;
-            $error->id = null;
-            $error->code = 500;
-            $error->message = 'No response from Smart Send';
-            $error->errors = array();
 
+	        if ($res->get_error_message() == 'cURL error 35: SSL connect error') {
+		        $error->links = null;
+		        $error->id = null;
+		        $error->code = 'curl-35';
+		        $error->message =  'Unsupported cURL version. This is a security issue. Please ask your host to update cURL.';
+	        } else {
+		        $error->links = null;
+		        $error->id = null;
+		        $error->code = $res->get_error_code();
+		        $error->message =  $res->get_error_message();
+	        }
+
+            $error->errors = array();
             $this->error = $error;
             return $this->success;
         }
@@ -442,7 +447,7 @@ class Client
                 $error->links = null;
                 $error->id = null;
                 $error->code = (int) $this->http_status_code;
-                $error->message = $this->response;
+                $error->message = 'Unknown API response';
                 $error->errors = array();
                 $this->error = $error;
             } else {
@@ -450,7 +455,7 @@ class Client
                 $error->links = null;
                 $error->id = null;
                 $error->code = (int) $this->http_status_code;
-                $error->message = 'Unknown API response';
+                $error->message = $this->response;
                 $error->errors = array();
                 $this->error = $error;
             }
