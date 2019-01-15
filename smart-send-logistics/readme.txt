@@ -143,6 +143,13 @@ The following filters are inherited from WooCommerce and can be used as well:
 * **woocommerce_shipping_instance_form_fields_smart_send_shipping**
     A filter to override shipping method settings.
 
+The plugin shows the selected pick-up point relevant places using these two hooks:
+
+* **woocommerce_order_details_after_order_table**
+    Show the selected pick-up point below the table of order items
+* **woocommerce_email_after_order_table**
+   Show the selected pick-up point below the table of order items
+
 = Meta fields =
 
 The following meta fields are used by the plugin:
