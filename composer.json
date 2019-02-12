@@ -1,0 +1,16 @@
+{
+  "name": "smartsend/woocommerce",
+  "description": "Smart Send plugin for WooCommerce",
+  "minimum-stability": "stable",
+  "license": "proprietary",
+  "authors": [
+    {
+      "name": "Smart Send",
+      "email": "support@smartsend.io"
+    }
+  ],
+  "require-dev": {
+    "squizlabs/php_codesniffer": "3.4.0",
+    "wp-coding-standards/wpcs": "2.0.0"
+  }
+}
