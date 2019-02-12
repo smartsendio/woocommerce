@@ -353,7 +353,9 @@ if (!class_exists('SS_Shipping_WC')) :
         }
 
         /**
-         * Shipping Method Carrier
+         * Get the Carrier of the shipping method
+         *
+         * @return string
          */
         public function get_shipping_method_carrier($ship_method)
         {
@@ -370,7 +372,9 @@ if (!class_exists('SS_Shipping_WC')) :
         }
 
         /**
-         * Shipping Method Type
+         * Get the Method of the shipping method
+         *
+         * @return string
          */
         public function get_shipping_method_type($ship_method)
         {
@@ -388,6 +392,8 @@ if (!class_exists('SS_Shipping_WC')) :
 
         /**
          * Shipping Method helper function
+         *
+         * @return array
          */
         protected function get_shipping_method_part($ship_method)
         {
@@ -419,16 +425,16 @@ if (!class_exists('SS_Shipping_WC')) :
         }
 
         /**
-         * Get the url of the current site
+         * Get the url of the current site like example.com
          *
-         * @return string | website url like example.com
+         * @return string
          */
         public function get_website_url()
         {
             return parse_url(get_site_url(), PHP_URL_HOST);
         }
 
-        /*
+        /**
          * Get the setting 'demo-mode'
          *
          * @return boolean
@@ -439,7 +445,7 @@ if (!class_exists('SS_Shipping_WC')) :
             return empty($ss_shipping_settings['demo']) ? true : ($ss_shipping_settings['demo'] == 'yes' ? true : false);
         }
 
-        /*
+        /**
          * Get the setting 'save_shipping_labels_in_uploads'
          *
          * @return boolean
@@ -450,7 +456,7 @@ if (!class_exists('SS_Shipping_WC')) :
             return empty($ss_shipping_settings['save_shipping_labels_in_uploads']) ? false : ($ss_shipping_settings['save_shipping_labels_in_uploads'] == 'yes' ? true : false);
         }
 
-        /*
+        /**
          * Get the url of the current site
          *
          * @return string
@@ -461,6 +467,11 @@ if (!class_exists('SS_Shipping_WC')) :
             return empty($ss_shipping_settings['api_token']) ? null : $ss_shipping_settings['api_token'];
         }
 
+	    /**
+	     * Validate the API token
+	     *
+	     * @return boolean
+	     */
         public function validate_api_token()
         {
 
