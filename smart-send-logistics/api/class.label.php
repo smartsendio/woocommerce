@@ -329,11 +329,11 @@ class Smartsend_Logistics_Label {
         switch ($this->getRequestType()) {
 			case 'bulk':
 				//Label was created from order list
-				$url = 'http://smartsend-prod.apigee.net/v7/booking/orders';
+				$url = 'https://app.smartsend.dk/booking/orders';
 				break;
 			case 'single':
 				//Label was created from order info page
-				$url = 'http://smartsend-prod.apigee.net/v7/booking/order';
+				$url = 'https://app.smartsend.dk/booking/order';
 				break;
 			default:
 				throw new Exception( $this->getMessageString(2201) );

@@ -69,7 +69,7 @@
       		return;
       	}
 	
-		$url = "http://smartsend-prod.apigee.net/v7/pickup/";
+		$url = "https://app.smartsend.dk/pickup/";
 		$url .= $carrier.'?'.http_build_query(array(
 			'street' 		=> $address_1.($address_2 =! '' ? ' ' : '').$address_2,
 			'city' 			=> $city,
@@ -171,7 +171,7 @@
 		$ch = curl_init();
 
         /* Script URL */
-        $url = 'http://smartsend-prod.apigee.net/v7/verify_user';
+        $url = 'https://app.smartsend.dk/verify_user';
 
         curl_setopt($ch, CURLOPT_URL, $url);               //curl url
         curl_setopt($ch, CURLOPT_HTTPGET, true);               //curl request method
