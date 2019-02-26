@@ -266,6 +266,9 @@ This box appears when a "Select Pick-up Point" shipping method is selected, but 
 * Includes more information about pick-up points in checkout page
 * Limit shipping methods by weight, price, user role, shipping zone, shipping class and much more
 
+= 7.2.0 =
+* Update API endpoint
+
 = 7.1.18 =
 * Fix for international delivery with vConnect All in 1 plugin to PostNord
 
