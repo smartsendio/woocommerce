@@ -7,7 +7,7 @@
 	Author URI: http://www.smartsend.dk
 	Text Domain: smart-send-logistics
 	Domain Path: /lang
-	Version: 7.1.18
+	Version: 7.2.0
 	WC requires at least: 2.6.0
 	WC tested up to: 3.4
 
