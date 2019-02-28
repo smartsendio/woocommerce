@@ -461,5 +461,8 @@ This box appears when a "Select Pick-up Point" shipping method is selected, but 
 
 == Upgrade Notice ==
 
-= 8.0.0 =
-8.0 is a major update. Shipping methods moved to WooCommerce Shipping Zones. Make a full site backup, and [review update best practices](https://docs.woocommerce.com/document/how-to-update-your-site) before upgrading.
+= 8.0 =
+8.0 is a major update. Shipping methods moved to WooCommerce Shipping Zones and must be setup again after upgrading. Make a full site backup, and [review update best practices](https://docs.woocommerce.com/document/how-to-update-your-site) before upgrading.
+
+= 7.2 =
+Version 7.1 is deprecated. Upgrading to 7.2 can be done at no risk, but is needed for continuous use of the plugin.
