@@ -82,7 +82,7 @@ Easily create:
 
 [youtube https://www.youtube.com/watch?v=Vl_rPb-t8xE]
 
-This plugin replaces the two previous modules “Smart Send Labelgenerator” and “Smart Send Pickup Shipping”.
+This plugin replaces the two previous modules *Smart Send Labelgenerator* and *Smart Send Pickup Shipping*.
 
 == Installation ==
 
