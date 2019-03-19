@@ -53,7 +53,7 @@ if (!class_exists('SS_Shipping_Shipment')) :
         /**
          * Create single order
          *
-         * @return bolean
+         * @return boolean
          */
         public function make_single_shipment_api_call()
         {
@@ -90,7 +90,7 @@ if (!class_exists('SS_Shipping_Shipment')) :
         /**
          * Get shipment object
          *
-         * @return object
+         * @return \Smartsend\Models\Shipment
          */
         public function get_shipment()
         {
@@ -99,6 +99,8 @@ if (!class_exists('SS_Shipping_Shipment')) :
 
         /**
          * Create Payload for API request
+         *
+         * @return void
          */
         protected function make_single_shipment_api_payload()
         {
