@@ -292,7 +292,7 @@ if (!class_exists('SS_Shipping_Shipment')) :
                     if ($ss_settings['include_order_comment'] == 'yes') {
                         $order_note = $this->order->customer_note;
                     }
-                    $order_currency = $this->order->get_order_currency();
+                    $order_currency = $this->order->get_currency();
                 }
 
                 /*
@@ -309,7 +309,7 @@ if (!class_exists('SS_Shipping_Shipment')) :
                 $order_total_excl = $order_total - $order_total_tax;
 
                 // Shipping totals
-                $order_shipping = $this->order->get_total_shipping();
+                $order_shipping = $this->order->get_shipping_total();
                 $order_shipping_tax = $this->order->get_shipping_tax();
                 $order_shipping_excl = $order_shipping - $order_shipping_tax;
 

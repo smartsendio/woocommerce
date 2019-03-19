@@ -198,6 +198,8 @@ This box appears when a "Select Pick-up Point" shipping method is selected, but 
 
 == Changelog ==
 
+* Fix usage of deprecated methods get_order_currency() and get_total_shipping()
+
 = 8.0.14 =
 * Bugfix: Invalid API endpoint for old cURL versions
 
