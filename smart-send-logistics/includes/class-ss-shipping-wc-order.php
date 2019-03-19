@@ -121,6 +121,7 @@ if (!class_exists('SS_Shipping_WC_Order')) :
             $shipping_ss_settings = SS_SHIPPING_WC()->get_ss_shipping_settings();
 
             $ss_shipping_method_id = $this->get_smart_send_method_id($order_id);
+            $ss_shipping_method_name = SS_SHIPPING_WC()->get_shipping_method_name( $ss_shipping_method_id );
 
             // Get order agent object
             $ss_shipping_order_agent = $this->get_ss_shipping_order_agent($order_id);
@@ -137,7 +138,7 @@ if (!class_exists('SS_Shipping_WC_Order')) :
             $shipping_method_type = ucfirst(SS_SHIPPING_WC()->get_shipping_method_type($ss_shipping_method_id));
 
             echo '<h3>' . __('Shipping Method', 'smart-send-logistics') . '</h3>';
-            echo '<p>' . $shipping_method_carrier . ' - ' . $shipping_method_type . '</p>';
+            echo '<p>' . $ss_shipping_method_name . '</p>';
 
             // If debug is enabled then show the shipping method id and instance id
             if (isset($shipping_ss_settings['ss_debug']) && $shipping_ss_settings['ss_debug'] == 'yes') {

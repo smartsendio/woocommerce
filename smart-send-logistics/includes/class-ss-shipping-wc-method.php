@@ -1160,6 +1160,33 @@ if (!class_exists('SS_Shipping_WC_Method')) :
             return apply_filters('woocommerce_shipping_' . $this->id . '_is_free_shipping', $is_available, $package,
                 $this);
         }
+
+        /**
+         * Get the shipping name given the id
+         *
+         * @param shipping_method_id
+         * @return string
+         */
+        public function get_shipping_method_name( $shipping_method_id ) {
+
+            if( $this->shipping_method ) {
+
+                foreach ($this->shipping_method as $carrier_key => $carrier_value) {
+
+                    if ( is_array( $carrier_value ) ) {
+
+                        foreach ($carrier_value as $shipping_method_key => $shipping_method_value) {
+
+                            if ( $shipping_method_key == $shipping_method_id ) {
+                                return $shipping_method_value;
+                            }
+                        }
+                    }
+                }
+            }
+
+            return '';
+        }
     }
 
 endif;

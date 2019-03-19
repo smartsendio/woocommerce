@@ -6,7 +6,7 @@
  * Author: Smart Send ApS
  * Author URI: https://www.smartsend.io
  * Text Domain: smart-send-logistics
- * Version: 8.0.14
+ * Version: 8.0.15
  * WC requires at least: 2.6.0
  * WC tested up to: 3.5
  *
@@ -34,7 +34,7 @@ if (!class_exists('SS_Shipping_WC')) :
     class SS_Shipping_WC
     {
 
-        private $version = "8.0.14";
+        private $version = "8.0.15";
 
         /**
          * Instance to call certain functions globally within the plugin
@@ -350,6 +350,30 @@ if (!class_exists('SS_Shipping_WC')) :
         public function get_ss_shipping_wc_order()
         {
             return $this->ss_shipping_wc_order;
+        }
+
+        /**
+         * Get the name of the shipping method
+         *
+         * @return string
+         */
+        public function get_shipping_method_name($ship_method)
+        {
+
+            $shipping_methods = WC()->shipping->get_shipping_methods();
+
+            if ( $shipping_methods ) {
+                
+                foreach ($shipping_methods as $shipping_method_key => $shipping_method_value) {
+                    
+                    if ($shipping_method_value instanceof SS_Shipping_WC_Method) {
+
+                        return $shipping_method_value->get_shipping_method_name( $ship_method );
+                    }
+                }
+            }
+
+            return '';
         }
 
         /**
