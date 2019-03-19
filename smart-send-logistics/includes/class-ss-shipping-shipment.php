@@ -106,8 +106,11 @@ if (!class_exists('SS_Shipping_Shipment')) :
 
             // Get address related information
             $billing_address = $this->order->get_address();
-            $shipping_address = apply_filters('smart_send_order_receiver', $this->order->get_address('shipping'),
-                $this->getOrderId($this->order));
+            $shipping_address = apply_filters(
+            	'smart_send_order_receiver',
+	            $this->order->get_address('shipping'),
+                $this->getOrderId($this->order)
+            );
 
             // If shipping phone number doesn't exist, try to get billing phone number
             if (!isset($shipping_address['phone']) && isset($billing_address['phone'])) {
@@ -140,10 +143,12 @@ if (!class_exists('SS_Shipping_Shipment')) :
             // Add the sender to the shipment (we use the system default for now)
             //$this->shipment->setSender(Sender $sender);
 
-            // $ss_agent = $this->get_ss_shipping_order_agent( $this->getOrderId($this->order) );
-
-            if (!empty($this->ss_args['ss_agent'])) {
-                $ss_agent = $this->ss_args['ss_agent'];
+	        $ss_agent = apply_filters(
+	        	'smart_send_order_agent',
+		        empty($this->ss_args['ss_agent']) ? null : $this->ss_args['ss_agent'],
+		        $this->getOrderId($this->order)
+	        );
+            if (!empty($ss_agent)) {
 
                 // Add an agent (pick-up point) to the shipment
                 $agent = new Smartsend\Models\Shipment\Agent();
@@ -350,10 +355,16 @@ if (!class_exists('SS_Shipping_Shipment')) :
                                 array_push($product_items, $data['product_item']);
                             }
 
+							$parcel_total_weight = apply_filters(
+								'smart_send_parcel_weight',
+								$item_weight_total ? $item_weight_total : null,
+								$this->getOrderId($this->order)
+							);
+
                             $parcel = new \Smartsend\Models\Shipment\Parcel();
                             $parcel->setInternalId($this->getOrderId($this->order) ?: null)
                                 ->setInternalReference($this->order->get_order_number() ?: null)
-                                ->setWeight($item_weight_total ?: null)
+                                ->setWeight($parcel_total_weight)
                                 ->setHeight(null)
                                 ->setWidth(null)
                                 ->setLength(null)
@@ -388,12 +399,8 @@ if (!class_exists('SS_Shipping_Shipment')) :
             $services->setSmsNotification($receiver->getSms())//Always enable SMS notification
             ->setEmailNotification($receiver->getEmail()); //Always enable Email notification
 
-            // $ss_shipping_method_id = $this->get_smart_send_method_id( $this->getOrderId($this->order), $this->return );
-
             // Determine shipping method and carrier from return settings
-            // $shipping_method_carrier = SS_SHIPPING_WC()->get_shipping_method_carrier( $ss_shipping_method_id );
             $shipping_method_carrier = $this->ss_args['ss_carrier'];
-            // $shipping_method_type = SS_SHIPPING_WC()->get_shipping_method_type( $ss_shipping_method_id );
             $shipping_method_type = $this->ss_args['ss_type'];
 
             // Add final parameters to shipment
@@ -412,9 +419,6 @@ if (!class_exists('SS_Shipping_Shipment')) :
                 ->setShippingPriceIncludingTax($order_shipping ?: null)
                 ->setTotalTaxAmount($order_total_tax ?: null)
                 ->setCurrency($order_currency ?: null);
-
-            // Send the shipment object. The new object will be almost identical, but will have 'id' and 'type' fields
-            // return $this->shipment;
         }
 
         /**
