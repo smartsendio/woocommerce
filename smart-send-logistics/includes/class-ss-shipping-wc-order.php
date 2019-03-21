@@ -50,8 +50,10 @@ if (!class_exists('SS_Shipping_WC_Order')) :
 
             // Order page metabox actions
             add_action('add_meta_boxes', array($this, 'add_meta_box'), 20);
-            add_action('woocommerce_process_shop_order_meta', array($this, 'save_meta_box'), 0, 2);
+            // add_action('woocommerce_process_shop_order_meta', array($this, 'save_meta_box'), 0, 2);
             add_action('wp_ajax_ss_shipping_generate_label', array($this, 'save_meta_box_ajax'));
+            
+            add_filter('update_post_metadata_by_mid', array($this, 'agent_updated'), 10, 4);
 
             $subs_version = class_exists('WC_Subscriptions') && !empty(WC_Subscriptions::$version) ? WC_Subscriptions::$version : null;
             // Prevent data being copied to subscriptions
@@ -155,7 +157,7 @@ if (!class_exists('SS_Shipping_WC_Order')) :
             if (stripos($shipping_method_type, 'agent') !== false) {
 
                 echo '<h3>' . __('Pick-up Point', 'smart-send-logistics') . '</h3>';
-
+                /*
                 woocommerce_wp_text_input(array(
                     'id'          => 'ss_shipping_agent_no',
                     'label'       => __('Agent No.', 'smart-send-logistics'),
@@ -165,7 +167,9 @@ if (!class_exists('SS_Shipping_WC_Order')) :
                     'value'       => $ss_shipping_order_agent_no,
                     'class'       => '',
                     'type'        => 'number',
-                ));
+                ));*/
+
+                echo '<strong>' . __('Agent No.:', 'smart-send-logistics') . $ss_shipping_order_agent_no . '</strong>';
 
                 echo $this->get_formatted_address($ss_shipping_order_agent);
             }
@@ -362,6 +366,24 @@ if (!class_exists('SS_Shipping_WC_Order')) :
             return '';
         }
 
+
+        /**
+         * Agent meta data updated
+         */
+        public function agent_updated($null, $meta_id, $meta_value, $meta_key) {
+           
+            if ($meta_key == 'ss_shipping_order_agent_no') {
+                $meta = get_metadata_by_mid( 'post', $meta_id );
+                $object_id    = $meta->post_id;
+                // the agent was not found so do NOT save
+                if( $this->save_shipping_agent( $object_id, true, $meta_value ) !== false ) {
+                    $null = true;
+                }
+            }
+            
+            return $null;
+        }
+
         /**
          * Save meta box; used by WP hook and AJAX save
          */
@@ -374,42 +396,48 @@ if (!class_exists('SS_Shipping_WC_Order')) :
             }
 
             $ss_shipping_agent_no = wc_clean($_POST['ss_shipping_agent_no']);
+
             $saved_ss_shipping_agent_no = $this->get_ss_shipping_order_agent_no($post_id);
 
             // Make API call ONLY IF shipping agent is different
             if (!empty($ss_shipping_agent_no) && ($ss_shipping_agent_no != $saved_ss_shipping_agent_no)) {
-                $ss_shipping_method_id = $this->get_smart_send_method_id($post_id);
 
-                if (!empty($ss_shipping_method_id)) {
-                    $shipping_method_carrier = SS_SHIPPING_WC()->get_shipping_method_carrier($ss_shipping_method_id);
+                return save_shipping_agent( $post_id, $doing_ajax, $ss_shipping_agent_no );
+            }
+        }
 
-                    $order = wc_get_order($post_id);
-                    $shipping_address = $order->get_address('shipping');
+        protected function save_shipping_agent( $post_id, $doing_ajax, $ss_shipping_agent_no ) {
+            $ss_shipping_method_id = $this->get_smart_send_method_id($post_id);
 
-                    if (!empty($shipping_method_carrier) && !empty($shipping_address['country'])) {
+            if (!empty($ss_shipping_method_id)) {
+                $shipping_method_carrier = SS_SHIPPING_WC()->get_shipping_method_carrier($ss_shipping_method_id);
 
-                        SS_SHIPPING_WC()->log_msg('Called "getAgentByAgentNo" with carrier = ' . $shipping_method_carrier . ', country = ' . $shipping_address['country'] . ', ss_shipping_agent_no = ' . $ss_shipping_agent_no);
-                        // API call to get agent info by agent no.
-                        if (SS_SHIPPING_WC()->get_api_handle()->getAgentByAgentNo($shipping_method_carrier,
-                            $shipping_address['country'], $ss_shipping_agent_no)) {
+                $order = wc_get_order($post_id);
+                $shipping_address = $order->get_address('shipping');
 
-                            SS_SHIPPING_WC()->log_msg('Agent found and saved.');
+                if (!empty($shipping_method_carrier) && !empty($shipping_address['country'])) {
 
-                            $this->save_ss_shipping_order_agent_no($post_id, $ss_shipping_agent_no);
-                            $this->save_ss_shipping_order_agent($post_id,
-                                SS_SHIPPING_WC()->get_api_handle()->getData());
+                    SS_SHIPPING_WC()->log_msg('Called "getAgentByAgentNo" with carrier = ' . $shipping_method_carrier . ', country = ' . $shipping_address['country'] . ', ss_shipping_agent_no = ' . $ss_shipping_agent_no);
+                    // API call to get agent info by agent no.
+                    if (SS_SHIPPING_WC()->get_api_handle()->getAgentByAgentNo($shipping_method_carrier,
+                        $shipping_address['country'], $ss_shipping_agent_no)) {
+
+                        SS_SHIPPING_WC()->log_msg('Agent found and saved.');
+
+                        $this->save_ss_shipping_order_agent_no($post_id, $ss_shipping_agent_no);
+                        $this->save_ss_shipping_order_agent($post_id,
+                            SS_SHIPPING_WC()->get_api_handle()->getData());
+                    } else {
+
+                        SS_SHIPPING_WC()->log_msg('Agent NOT found.');
+
+                        $error_msg = sprintf(__('The agent number entered, %s, was not found.',
+                            'smart-send-logistics'), $ss_shipping_agent_no);
+
+                        if ($doing_ajax) {
+                            return $error_msg;
                         } else {
-
-                            SS_SHIPPING_WC()->log_msg('Agent NOT found.');
-
-                            $error_msg = sprintf(__('The agent number entered, %s, was not found.',
-                                'smart-send-logistics'), $ss_shipping_agent_no);
-
-                            if ($doing_ajax) {
-                                return $error_msg;
-                            } else {
-                                WC_Admin_Meta_Boxes::add_error($error_msg);
-                            }
+                            WC_Admin_Meta_Boxes::add_error($error_msg);
                         }
                     }
                 }
@@ -429,11 +457,12 @@ if (!class_exists('SS_Shipping_WC_Order')) :
             $return = boolval($_POST['return_label']);
             $split_parcel = boolval($_POST['ss_shipping_split_parcel']);
 
+            /*
             // Save inputted data first, if a message was returned there was an error
             if ($msg = $this->save_meta_box($order_id, null, true)) {
                 wp_send_json(array('error' => array('message' => $msg)));
                 wp_die();
-            }
+            }*/
 
             // Save parcels input if set:
             $parcels = ($split_parcel) ? $_POST['ss_shipping_parcels'] : array();
