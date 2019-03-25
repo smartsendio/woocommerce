@@ -11,12 +11,20 @@ jQuery(function($) {
 
 	function showDisplayMinAmount(e) {
 		var shipping_requires = $('#woocommerce_smart_send_shipping_requires').val();
+
+	    if( ( shipping_requires != 'disabled' ) ) {
+			$('#woocommerce_smart_send_shipping_flatfee_cost').closest('tr').show();
+	    } else {
+			$('#woocommerce_smart_send_shipping_flatfee_cost').closest('tr').hide();
+	    }
+
 	    if( ( shipping_requires == 'min_amount' ) || ( shipping_requires == 'either' ) || ( shipping_requires == 'both') ) {
-	        $('#woocommerce_smart_send_shipping_requires').closest('tr').next().show();
+			$('#woocommerce_smart_send_shipping_min_amount').closest('tr').show();
 
 	    } else {
-	        $('#woocommerce_smart_send_shipping_requires').closest('tr').next().hide();
+			$('#woocommerce_smart_send_shipping_min_amount').closest('tr').hide();
 	    }
+
 	}
 
 	$( document ).ready(function() {

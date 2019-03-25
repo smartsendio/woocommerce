@@ -494,7 +494,7 @@ if (!class_exists('SS_Shipping_WC_Method')) :
                     'type' => 'cost_weight',
                 ),
                 'requires'                   => array(
-                    'title'   => __('Free shipping requires...', 'smart-send-logistics'),
+                    'title'   => __('Flat rate requires...', 'smart-send-logistics'),
                     'type'    => 'select',
                     'class'   => 'wc-enhanced-select',
                     'default' => '',
@@ -506,6 +506,15 @@ if (!class_exists('SS_Shipping_WC_Method')) :
                         'either'     => __('A minimum order amount OR a coupon', 'smart-send-logistics'),
                         'both'       => __('A minimum order amount AND a coupon', 'smart-send-logistics'),
                     ),
+                ),
+                'flatfee_cost'    => array(
+                    'title'       => __('Flat fee cost', 'smart-send-logistics'),
+                    'type'        => 'price',
+                    'placeholder' => wc_format_localized_price(0),
+                    'description' => __('Shipping method cost if rules apply. To apply free shipping the value must be "0".',
+                        'smart-send-logistics'),
+                    'default'     => '0',
+                    'desc_tip'    => true,
                 ),
                 'min_amount'                 => array(
                     'title'       => __('Minimum order amount', 'smart-send-logistics'),
@@ -926,10 +935,13 @@ if (!class_exists('SS_Shipping_WC_Method')) :
             // write id of shipping method to log
             SS_SHIPPING_WC()->log_msg('Handling shipping rate <' . $rate['id'] . '> with title: ' . $rate['label']);
 
+            // Set tax status based on selection otherwise always taxed
+            $this->tax_status = $this->get_option('tax_status');
+
             // Check if free shipping, otherwise claculate based on weight and evaluate formulas
             if ($this->is_free_shipping($package)) {
 
-                $rate['taxes'] = false;
+                $rate['cost'] = $this->get_option('flatfee_cost');
                 $this->add_rate($rate);
                 // write to log, that shipping rate is added
                 SS_SHIPPING_WC()->log_msg('Free shipping rate added (json decode for details): ' . json_encode($rate));
@@ -937,8 +949,6 @@ if (!class_exists('SS_Shipping_WC_Method')) :
             } else {
                 $cart_weight = WC()->cart->get_cart_contents_weight();
                 $weight_costs = $this->get_option('cost_weight', array());
-                // Set tax status based on selection otherwise always taxed
-                $this->tax_status = $this->get_option('tax_status');
 
                 if ($weight_costs) {
                     foreach ($weight_costs as $weight_cost) {
