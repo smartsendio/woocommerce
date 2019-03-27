@@ -170,6 +170,8 @@ if (!class_exists('SS_Shipping_WC')) :
 
             // Test connection
             add_action('wp_ajax_ss_test_connection', array($this, 'ss_test_connection_callback'));
+
+            add_action( 'in_plugin_update_message-smart-send-logistics/smart-send-logistics.php', array($this, 'ss_prefix_plugin_update_message' ), 10, 2 );
         }
 
 
@@ -592,6 +594,16 @@ if (!class_exists('SS_Shipping_WC')) :
 
             // return the rates
             return $available_shipping_methods;
+        }
+
+        public function ss_prefix_plugin_update_message( $data, $response ) {
+            if( isset( $data['upgrade_notice'] ) ) {
+               
+                printf(
+                    '<div class="update-message">%s</div>',
+                    wpautop( $data['upgrade_notice'] )
+                );
+            }
         }
     }
 
