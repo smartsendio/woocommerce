@@ -376,8 +376,9 @@ if (!class_exists('SS_Shipping_WC_Method')) :
                     $value = 1;
                 } else {
                     //Check if API Token is valid
-                    $website_url = SS_SHIPPING_WC()->get_website_url();
-                    $api_handle = new \Smartsend\Api($post_data['woocommerce_smart_send_shipping_api_token'],
+	                $website_url = SS_SHIPPING_WC()->get_website_url();
+	                $api_token = SS_SHIPPING_WC()->get_api_token_setting($post_data['woocommerce_smart_send_shipping_api_token']);
+                    $api_handle = new \Smartsend\Api($api_token,
                         $website_url, false);
                     if (!$api_handle->getAuthenticatedUser()) {
                         // The API Token was not valid for live mode, so need to shown an error and re-enable demo-mode

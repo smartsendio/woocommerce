@@ -427,11 +427,15 @@ if (!class_exists('SS_Shipping_WC')) :
         /**
          * Get the url of the current site like example.com
          *
+         * @param string|null $website url
          * @return string
          */
-        public function get_website_url()
+        public function get_website_url($website=null)
         {
-            return parse_url(get_site_url(), PHP_URL_HOST);
+            if (!$website) {
+	            $website = get_site_url();
+            }
+            return parse_url($website, PHP_URL_HOST);
         }
 
         /**
@@ -459,12 +463,34 @@ if (!class_exists('SS_Shipping_WC')) :
         /**
          * Get the url of the current site
          *
+         * @param string|null $api_token
          * @return string
          */
-        public function get_api_token_setting()
+        public function get_api_token_setting($api_token=null)
         {
-            $ss_shipping_settings = $this->get_ss_shipping_settings();
-            return empty($ss_shipping_settings['api_token']) ? null : $ss_shipping_settings['api_token'];
+	        if (!$api_token) {
+		        $ss_shipping_settings = $this->get_ss_shipping_settings();
+		        $api_token = empty($ss_shipping_settings['api_token']) ? null : $ss_shipping_settings['api_token'];
+	        }
+
+	        if (strpos($api_token, ',') && strpos($api_token, ':')) {
+		        //The API Token field contains multiple tokens in the format:
+		        //site1:apitoken1,site2:apitoken2,....
+		        $tokens = array();
+		        $site_and_tokens = explode(',', $api_token);
+		        foreach ($site_and_tokens as $site_and_token) {
+			        $parts = explode(':', $site_and_token);
+			        if (!empty($parts[0]) && !empty($parts[1])) {
+				        $tokens[$parts[0]] = $parts[1];//key=site, value=apitoken
+			        }
+		        }
+
+		        if (!empty($tokens[$this->get_website_url()])) {
+			        return $tokens[$this->get_website_url()];
+		        }
+	        }
+
+	        return $api_token;
         }
 
 	    /**

@@ -199,6 +199,7 @@ This box appears when a "Select Pick-up Point" shipping method is selected, but 
 == Changelog ==
 
 * Add field name to error message when failing to create shipping labels
+* Add support for using multiple API Tokens on one site (useful for WPML and other plugins)
 * Fix usage of deprecated methods get_order_currency() and get_total_shipping()
 
 = 8.0.14 =
