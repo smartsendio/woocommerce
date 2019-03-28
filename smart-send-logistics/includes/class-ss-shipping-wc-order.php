@@ -50,8 +50,7 @@ if (!class_exists('SS_Shipping_WC_Order')) :
 
             // Order page metabox actions
             add_action('add_meta_boxes', array($this, 'add_meta_box'), 20);
-            // add_action('woocommerce_process_shop_order_meta', array($this, 'save_meta_box'), 0, 2);
-            add_action('wp_ajax_ss_shipping_generate_label', array($this, 'save_meta_box_ajax'));
+            add_action('wp_ajax_ss_shipping_generate_label', array($this, 'generate_label'));
             
             add_filter('update_post_metadata_by_mid', array($this, 'agent_updated'), 10, 4);
 
@@ -277,7 +276,7 @@ if (!class_exists('SS_Shipping_WC_Order')) :
         /**
          * Return ordered Smart Send shipping method, OR Free Shipping linked to Smart Send shipping method, otherwise empty string
          */
-        protected function get_smart_send_method_id($order_id, $return = false)
+        public function get_smart_send_method_id($order_id, $return = false)
         {
             $order = wc_get_order($order_id);
 
@@ -384,28 +383,6 @@ if (!class_exists('SS_Shipping_WC_Order')) :
             return $null;
         }
 
-        /**
-         * Save meta box; used by WP hook and AJAX save
-         */
-        public function save_meta_box($post_id, $post = null, $doing_ajax = false)
-        {
-
-            // If no agent no. passed, there is nothing to save
-            if (!isset($_POST['ss_shipping_agent_no'])) {
-                return false;
-            }
-
-            $ss_shipping_agent_no = wc_clean($_POST['ss_shipping_agent_no']);
-
-            $saved_ss_shipping_agent_no = $this->get_ss_shipping_order_agent_no($post_id);
-
-            // Make API call ONLY IF shipping agent is different
-            if (!empty($ss_shipping_agent_no) && ($ss_shipping_agent_no != $saved_ss_shipping_agent_no)) {
-
-                return save_shipping_agent( $post_id, $doing_ajax, $ss_shipping_agent_no );
-            }
-        }
-
         protected function save_shipping_agent( $post_id, $doing_ajax, $ss_shipping_agent_no ) {
             $ss_shipping_method_id = $this->get_smart_send_method_id($post_id);
 
@@ -449,20 +426,13 @@ if (!class_exists('SS_Shipping_WC_Order')) :
         /**
          * Save Agent No. and Generate Label
          */
-        public function save_meta_box_ajax()
+        public function generate_label()
         {
             check_ajax_referer('create-ss-shipping-label',
                 'ss_shipping_label_nonce'); //This function dies if the referer is not correct
             $order_id = wc_clean($_POST['order_id']);
             $return = boolval($_POST['return_label']);
             $split_parcel = boolval($_POST['ss_shipping_split_parcel']);
-
-            /*
-            // Save inputted data first, if a message was returned there was an error
-            if ($msg = $this->save_meta_box($order_id, null, true)) {
-                wp_send_json(array('error' => array('message' => $msg)));
-                wp_die();
-            }*/
 
             // Save parcels input if set:
             $parcels = ($split_parcel) ? $_POST['ss_shipping_parcels'] : array();
@@ -530,43 +500,10 @@ if (!class_exists('SS_Shipping_WC_Order')) :
         {
             // Load WC Order
             $order = wc_get_order($order_id);
-            $ss_args = array();
+            
+            $ss_order_api = new SS_Shipping_Shipment($order, $this);
 
-            // Get shipping method
-            $ss_shipping_method_id = $this->get_smart_send_method_id($order_id, $return);
-
-            if ($return && isset($ss_shipping_method_id['smart_send_return_method'])) {
-                // If no return method set return error
-                if (empty($ss_shipping_method_id['smart_send_return_method'])) {
-                    return array('error' => __('No return method set', 'smart-send-logistics'));
-                } else {
-                    $ss_shipping_method_id = $ss_shipping_method_id['smart_send_return_method'];
-                }
-
-            } else {
-                $ss_args['ss_agent'] = $this->get_ss_shipping_order_agent($order_id);
-            }
-
-            // Determine shipping method and carrier from return settings
-            $shipping_method_carrier = SS_SHIPPING_WC()->get_shipping_method_carrier($ss_shipping_method_id);
-            $shipping_method_type = SS_SHIPPING_WC()->get_shipping_method_type($ss_shipping_method_id);
-
-            $ss_args['ss_carrier'] = $shipping_method_carrier;
-            $ss_args['ss_type'] = $shipping_method_type;
-            $ss_args['ss_parcels'] = $this->get_ss_shipping_order_parcels($order_id);
-
-            /*
-             * Filter the arguments used when creating a shipping label
-             *
-             * @param array $ss_args contains info about shipping carrier, shipping method, agent and parcels
-             * @param int  $order_id  Order ID
-             * @param boolean $return Whether or not the label is return (true) or normal (false)
-             */
-            $ss_args = apply_filters('smart_send_shipping_label_args', $ss_args, $order_id, $return);
-
-            $ss_order_api = new SS_Shipping_Shipment($order, $ss_args);
-
-            if ($ss_order_api->make_single_shipment_api_call()) {
+            if ($ss_order_api->make_single_shipment_api_call( $return )) {
 
                 //The request was successful, lets update WooCommerce
                 $response = $ss_order_api->get_shipping_data();
