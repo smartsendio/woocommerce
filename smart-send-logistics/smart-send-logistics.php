@@ -85,6 +85,13 @@ if (!class_exists('SS_Shipping_WC')) :
         protected $api_handle = null;
 
         /**
+         * Smart Send Plugin Screen Updates
+         *
+         * @var object
+         */
+        protected $ss_plugin_screen_updates = null;
+
+        /**
          * Construct the plugin.
          */
         public function __construct()
@@ -170,8 +177,6 @@ if (!class_exists('SS_Shipping_WC')) :
 
             // Test connection
             add_action('wp_ajax_ss_test_connection', array($this, 'ss_test_connection_callback'));
-
-            add_action( 'in_plugin_update_message-smart-send-logistics/smart-send-logistics.php', array($this, 'ss_prefix_plugin_update_message' ), 10, 2 );
         }
 
 
@@ -186,6 +191,7 @@ if (!class_exists('SS_Shipping_WC')) :
                 $this->ss_shipping_frontend = new SS_Shipping_Frontend();
                 $this->ss_shipping_wc_order = new SS_Shipping_WC_Order();
                 $this->ss_shipping_wc_product = new SS_Shipping_WC_Product();
+                $this->ss_plugin_screen_updates = new SS_Plugins_Screen_Updates();
             } else {
                 // Throw an admin error informing the user this plugin needs WooCommerce to function
                 add_action('admin_notices', array($this, 'notice_wc_required'));
@@ -594,16 +600,6 @@ if (!class_exists('SS_Shipping_WC')) :
 
             // return the rates
             return $available_shipping_methods;
-        }
-
-        public function ss_prefix_plugin_update_message( $data, $response ) {
-            if( isset( $data['upgrade_notice'] ) ) {
-               
-                printf(
-                    '<div class="update-message">%s</div>',
-                    wpautop( $data['upgrade_notice'] )
-                );
-            }
         }
     }
 
