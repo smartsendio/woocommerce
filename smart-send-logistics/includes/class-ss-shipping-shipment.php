@@ -18,16 +18,18 @@ if (!class_exists('SS_Shipping_Shipment')) :
     {
 
         protected $order = null;
-        // SS_Shipping_WC_Order object
+        
+        /*
+         * SS_Shipping_WC_Order object
+         */
         protected $shipping_order = null;
-        // protected $ss_args = array();
         protected $shipment = null;
 
 
         /**
          * Init and hook in the integration.
          *
-         * @param mixed $order
+         * @param WC_Order|integer $order
          * @param array $shipping_order
          */
         public function __construct($order, $shipping_order)
@@ -55,7 +57,8 @@ if (!class_exists('SS_Shipping_Shipment')) :
         /**
          * Create single order
          *
-         * @return bolean
+         * @param boolean $return
+         * @return boolean
          */
         public function make_single_shipment_api_call( $return )
         {
@@ -101,6 +104,9 @@ if (!class_exists('SS_Shipping_Shipment')) :
 
         /**
          * Create Payload for API request
+         *
+         * @param boolean $return
+         * @return void
          */
         protected function make_single_shipment_api_payload( $return )
         {
@@ -450,13 +456,12 @@ if (!class_exists('SS_Shipping_Shipment')) :
                 ->setShippingPriceIncludingTax($order_shipping ?: null)
                 ->setTotalTaxAmount($order_total_tax ?: null)
                 ->setCurrency($order_currency ?: null);
-
-            // Send the shipment object. The new object will be almost identical, but will have 'id' and 'type' fields
-            // return $this->shipment;
         }
 
         /**
          * Call Smart Send Shipment API, log response
+         *
+         * @return void
          */
         protected function make_single_shipment_api_request()
         {
@@ -474,6 +479,12 @@ if (!class_exists('SS_Shipping_Shipment')) :
             }
         }
 
+        /**
+         * Get the order id
+         *
+         * @param WC_Order
+         * @return string
+         */
         protected function getOrderId($order)
         {
             // WC 3.0 code!
