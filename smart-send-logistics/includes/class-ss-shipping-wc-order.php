@@ -154,22 +154,8 @@ if (!class_exists('SS_Shipping_WC_Order')) :
 
             // Display Agent No. field if pickup-point shipping method selected
             if (stripos($shipping_method_type, 'agent') !== false) {
-
                 echo '<h3>' . __('Pick-up Point', 'smart-send-logistics') . '</h3>';
-                /*
-                woocommerce_wp_text_input(array(
-                    'id'          => 'ss_shipping_agent_no',
-                    'label'       => __('Agent No.', 'smart-send-logistics'),
-                    'placeholder' => '',
-                    'description' => sprintf(__('Search for an "Agent No." <a href="%s" target="_blank">here</a>',
-                        'smart-send-logistics'), esc_url('https://smartsend.io/pick-up-points')),
-                    'value'       => $ss_shipping_order_agent_no,
-                    'class'       => '',
-                    'type'        => 'number',
-                ));*/
-
                 echo '<strong>' . __('Agent No.:', 'smart-send-logistics') . $ss_shipping_order_agent_no . '</strong>';
-
                 echo $this->get_formatted_address($ss_shipping_order_agent);
             }
 
