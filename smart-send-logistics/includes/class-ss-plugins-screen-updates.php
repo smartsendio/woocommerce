@@ -49,7 +49,7 @@ class SS_Plugins_Screen_Updates {
 	 */
 	protected function get_upgrade_notice( $version ) {
 		$transient_name = 'ss_upgrade_notice_' . $version;
-		$upgrade_notice = get_transient( $transient_name );
+		$upgrade_notice = get_transient( $transient_name );//Set to false to skip cashing for debugging
 
 		if ( false === $upgrade_notice ) {
 			$response = wp_safe_remote_get( 'https://plugins.svn.wordpress.org/smart-send-logistics/trunk/readme.txt' );
@@ -95,7 +95,7 @@ class SS_Plugins_Screen_Updates {
 
 				if ( version_compare( trim( $matches[1] ), $check_version, '=' ) ) {
 					$upgrade_notice .= '<p class="wc_plugin_upgrade_notice">';
-					$upgrade_notice .= $notices[0];
+					$upgrade_notice .= preg_replace('/\[([^\[]+)\]\(([^\)]+)\)/', "<a href='$2' target='_blank'>$1</a>", $notices[0]);//Replace markdown links
 					$upgrade_notice .= '</p>';
 				}
 			}
