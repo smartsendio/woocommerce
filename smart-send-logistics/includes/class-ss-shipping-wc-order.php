@@ -53,6 +53,8 @@ if (!class_exists('SS_Shipping_WC_Order')) :
             add_action('wp_ajax_ss_shipping_generate_label', array($this, 'generate_label'));
             
             add_filter('update_post_metadata_by_mid', array($this, 'agent_updated'), 10, 4);
+            add_filter('add_post_metadata', array($this, 'agent_added'), 10, 5);
+            add_action('deleted_post_meta', array($this, 'agent_deleted'), 10, 4);
 
             $subs_version = class_exists('WC_Subscriptions') && !empty(WC_Subscriptions::$version) ? WC_Subscriptions::$version : null;
             // Prevent data being copied to subscriptions
@@ -352,11 +354,39 @@ if (!class_exists('SS_Shipping_WC_Order')) :
         }
 
 
-        /**
+	    /**
+         * Agent meta data added
+         *
+	     * @param $null
+	     * @param $object_id
+	     * @param $meta_key
+	     * @param $meta_value
+	     * @param $unique
+	     *
+	     * @return bool
+	     */
+        public function agent_added($null, $object_id, $meta_key, $meta_value, $unique) {
+            if ($meta_key == 'ss_shipping_order_agent_no') {
+                // the agent was not found so do NOT save
+                if( $this->save_shipping_agent( $object_id, true, $meta_value ) !== false ) {
+                    $null = true;
+                }
+            }
+
+            return $null;
+        }
+
+	    /**
          * Agent meta data updated
-         */
+         *
+	     * @param $null
+	     * @param $meta_id
+	     * @param $meta_value
+	     * @param $meta_key
+	     *
+	     * @return bool
+	     */
         public function agent_updated($null, $meta_id, $meta_value, $meta_key) {
-           
             if ($meta_key == 'ss_shipping_order_agent_no') {
                 $meta = get_metadata_by_mid( 'post', $meta_id );
                 $object_id    = $meta->post_id;
@@ -369,7 +399,33 @@ if (!class_exists('SS_Shipping_WC_Order')) :
             return $null;
         }
 
+	    /**
+         * Agent meta deleted
+         *
+	     * @param $meta_id
+	     * @param $object_id
+	     * @param $meta_key
+	     * @param $meta_value
+	     */
+        public function agent_deleted($meta_id, $object_id, $meta_key, $meta_value) {
+           
+            if ($meta_key == 'ss_shipping_order_agent_no') {
+                $this->delete_ss_shipping_order_agent( $object_id );
+            }
+            
+        }
+
+	    /**
+         * Call the API if needed and save the shipping agent address
+         *
+	     * @param $post_id
+	     * @param $doing_ajax
+	     * @param $ss_shipping_agent_no
+	     *
+	     * @return bool|string
+	     */
         protected function save_shipping_agent( $post_id, $doing_ajax, $ss_shipping_agent_no ) {
+
             $ss_shipping_method_id = $this->get_smart_send_method_id($post_id);
 
             if (!empty($ss_shipping_method_id)) {
@@ -387,7 +443,6 @@ if (!class_exists('SS_Shipping_WC_Order')) :
 
                         SS_SHIPPING_WC()->log_msg('Agent found and saved.');
 
-                        $this->save_ss_shipping_order_agent_no($post_id, $ss_shipping_agent_no);
                         $this->save_ss_shipping_order_agent($post_id,
                             SS_SHIPPING_WC()->get_api_handle()->getData());
                     } else {
@@ -741,6 +796,15 @@ if (!class_exists('SS_Shipping_WC_Order')) :
         public function save_ss_shipping_order_agent($order_id, $agent)
         {
             update_post_meta($order_id, '_ss_shipping_order_agent', $agent);
+        }
+
+	    /**
+         * Delete shippng agent object
+         *
+	     * @param $order_id
+	     */
+        public function delete_ss_shipping_order_agent($order_id) {
+            delete_post_meta($order_id, '_ss_shipping_order_agent');
         }
 
         /*
