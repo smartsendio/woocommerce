@@ -77,6 +77,10 @@ class SS_Plugins_Screen_Updates {
 			$version_parts[0] . '.' . $version_parts[1], // Minor.
 			$version_parts[0] . '.' . $version_parts[1] . '.' . $version_parts[2], // Patch.
 		);
+
+		// Remove any duplicates to not display the message twice
+		$check_for_notices = array_unique( $check_for_notices );
+
 		$notice_regexp     = '~==\s*Upgrade Notice\s*==\s*=\s*(.*)\s*=(.*)(=\s*' . preg_quote( $new_version ) . '\s*=|$)~Uis';
 		$upgrade_notice    = '';
 
