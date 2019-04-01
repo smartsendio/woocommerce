@@ -369,9 +369,9 @@ if (!class_exists('SS_Shipping_WC_Order')) :
             if ($meta_key == 'ss_shipping_order_agent_no') {
                 $meta = get_metadata_by_mid( 'post', $meta_id );
                 $object_id    = $meta->post_id;
-                // the agent was not found so do NOT save
-                if( $this->save_shipping_agent( $object_id, true, $meta_value ) !== false ) {
-	                $check = true;
+                if ($this->save_shipping_agent( $object_id, true, $meta_value ) !== true) {
+	                // the agent was not found so do NOT save the new agent_no
+                    $check = false;
                 }
             }
 
@@ -404,7 +404,7 @@ if (!class_exists('SS_Shipping_WC_Order')) :
 	     * @param $doing_ajax
 	     * @param $ss_shipping_agent_no
 	     *
-	     * @return bool|string
+	     * @return bool|string         Returns true for success and false or a string when failing
 	     */
         protected function save_shipping_agent( $post_id, $doing_ajax, $ss_shipping_agent_no ) {
 
@@ -427,6 +427,7 @@ if (!class_exists('SS_Shipping_WC_Order')) :
 
                         $this->save_ss_shipping_order_agent($post_id,
                             SS_SHIPPING_WC()->get_api_handle()->getData());
+                        return true;
                     } else {
 
                         SS_SHIPPING_WC()->log_msg('Agent NOT found.');
@@ -438,6 +439,7 @@ if (!class_exists('SS_Shipping_WC_Order')) :
                             return $error_msg;
                         } else {
                             WC_Admin_Meta_Boxes::add_error($error_msg);
+                            return false;
                         }
                     }
                 }
