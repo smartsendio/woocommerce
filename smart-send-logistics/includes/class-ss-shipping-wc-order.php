@@ -51,9 +51,9 @@ if (!class_exists('SS_Shipping_WC_Order')) :
             // Order page metabox actions
             add_action('add_meta_boxes', array($this, 'add_meta_box'), 20);
             add_action('wp_ajax_ss_shipping_generate_label', array($this, 'generate_label'));
-            
-            add_filter('update_post_metadata_by_mid', array($this, 'agent_updated'), 10, 4);
-            add_filter('add_post_metadata', array($this, 'filter_add_agent_meta'), 10, 5);
+
+            // Meta field for storing the selected agent_no
+            add_filter('update_post_metadata_by_mid', array($this, 'filter_update_agent_meta'), 10, 4);//For Wordpress 5.0.0+
             add_action('deleted_post_meta', array($this, 'action_deleted_agent_meta'), 10, 4);
 
             $subs_version = class_exists('WC_Subscriptions') && !empty(WC_Subscriptions::$version) ? WC_Subscriptions::$version : null;
@@ -353,54 +353,29 @@ if (!class_exists('SS_Shipping_WC_Order')) :
             return '';
         }
 
-
-	    /**
-         * Agent meta data added
-         * Filters whether to add metadata of a specific type.
-         *
-	     * @since 3.1.0
-	     *
-	     * @param null|bool $check      Whether to allow adding metadata for the given type.
-	     * @param int       $object_id  Object ID.
-	     * @param string    $meta_key   Meta key.
-	     * @param mixed     $meta_value Meta value. Must be serializable if non-scalar.
-	     * @param bool      $unique     Whether the specified meta key should be unique
-	     *                              for the object. Optional. Default false.
-	     * @return bool                 Returning a non-null value will effectively short-circuit the function.
-	     */
-        public function filter_add_agent_meta($check, $object_id, $meta_key, $meta_value, $unique) {
-            if ($meta_key == 'ss_shipping_order_agent_no') {
-                // the agent was not found so do NOT save
-                if( $this->save_shipping_agent( $object_id, true, $meta_value ) !== false ) {
-	                $check = false;
-                }
-            }
-
-            return $check;
-        }
-
 	    /**
          * Agent meta data updated
          *
          *
-	     * @param $null
-	     * @param $meta_id
-	     * @param $meta_value
-	     * @param $meta_key
+	     * @since 5.0.0
 	     *
-	     * @return bool
+	     * @param null|bool   $check      Whether to allow updating metadata for the given type.
+	     * @param int         $meta_id    Meta ID.
+	     * @param mixed       $meta_value Meta value. Must be serializable if non-scalar.
+	     * @param string|bool $meta_key   Meta key, if provided.
+         * @return bool                   Returning a non-null value will effectively short-circuit the function.
 	     */
-        public function agent_updated($null, $meta_id, $meta_value, $meta_key) {
+        public function filter_update_agent_meta($check, $meta_id, $meta_value, $meta_key) {
             if ($meta_key == 'ss_shipping_order_agent_no') {
                 $meta = get_metadata_by_mid( 'post', $meta_id );
                 $object_id    = $meta->post_id;
                 // the agent was not found so do NOT save
                 if( $this->save_shipping_agent( $object_id, true, $meta_value ) !== false ) {
-                    $null = true;
+	                $check = true;
                 }
             }
 
-            return $null;
+            return $check;
         }
 
 	    /**
