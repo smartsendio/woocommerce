@@ -201,6 +201,7 @@ This box appears when a "Select Pick-up Point" shipping method is selected, but 
 * Add field name to error message when failing to create shipping labels
 * Add support for using multiple API Tokens on one site (useful for WPML and other plugins)
 * Fix usage of deprecated methods get_order_currency() and get_total_shipping()
+* Bugfix: Order status was changed before saving meta data, tracking data and other important information
 
 = 8.0.14 =
 * Bugfix: Invalid API endpoint for old cURL versions

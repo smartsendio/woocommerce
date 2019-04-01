@@ -563,11 +563,6 @@ if (!class_exists('SS_Shipping_WC_Order')) :
                     $response, $return);
                 $response->woocommerce['return'] = $return;
 
-                // Set order status after label generation
-                if (!$return) {
-                    $this->set_order_status_after_label_generated($order);
-                }
-
                 // Save order note
                 if ($setting_save_order_note) {
                     /*
@@ -591,6 +586,12 @@ if (!class_exists('SS_Shipping_WC_Order')) :
                             $response->carrier_name, $date_shipped = null);
                     }
                 }
+
+	            // Set order status after label generation
+                // Important to update AFTER saving meta fields and tracking information (otherwise not included in email via Shipment Tracking)
+	            if (!$return) {
+		            $this->set_order_status_after_label_generated($order);
+	            }
 
                 // Action when a shipping label has been created
                 do_action('smart_send_shipping_label_created', $order_id, $response);
