@@ -53,8 +53,8 @@ if (!class_exists('SS_Shipping_WC_Order')) :
             add_action('wp_ajax_ss_shipping_generate_label', array($this, 'generate_label'));
             
             add_filter('update_post_metadata_by_mid', array($this, 'agent_updated'), 10, 4);
-            add_filter('add_post_metadata', array($this, 'agent_added'), 10, 5);
-            add_action('deleted_post_meta', array($this, 'agent_deleted'), 10, 4);
+            add_filter('add_post_metadata', array($this, 'filter_add_agent_meta'), 10, 5);
+            add_action('deleted_post_meta', array($this, 'action_deleted_agent_meta'), 10, 4);
 
             $subs_version = class_exists('WC_Subscriptions') && !empty(WC_Subscriptions::$version) ? WC_Subscriptions::$version : null;
             // Prevent data being copied to subscriptions
@@ -356,28 +356,32 @@ if (!class_exists('SS_Shipping_WC_Order')) :
 
 	    /**
          * Agent meta data added
+         * Filters whether to add metadata of a specific type.
          *
-	     * @param $null
-	     * @param $object_id
-	     * @param $meta_key
-	     * @param $meta_value
-	     * @param $unique
+	     * @since 3.1.0
 	     *
-	     * @return bool
+	     * @param null|bool $check      Whether to allow adding metadata for the given type.
+	     * @param int       $object_id  Object ID.
+	     * @param string    $meta_key   Meta key.
+	     * @param mixed     $meta_value Meta value. Must be serializable if non-scalar.
+	     * @param bool      $unique     Whether the specified meta key should be unique
+	     *                              for the object. Optional. Default false.
+	     * @return bool                 Returning a non-null value will effectively short-circuit the function.
 	     */
-        public function agent_added($null, $object_id, $meta_key, $meta_value, $unique) {
+        public function filter_add_agent_meta($check, $object_id, $meta_key, $meta_value, $unique) {
             if ($meta_key == 'ss_shipping_order_agent_no') {
                 // the agent was not found so do NOT save
                 if( $this->save_shipping_agent( $object_id, true, $meta_value ) !== false ) {
-                    $null = true;
+	                $check = false;
                 }
             }
 
-            return $null;
+            return $check;
         }
 
 	    /**
          * Agent meta data updated
+         *
          *
 	     * @param $null
 	     * @param $meta_id
@@ -395,19 +399,22 @@ if (!class_exists('SS_Shipping_WC_Order')) :
                     $null = true;
                 }
             }
-            
+
             return $null;
         }
 
 	    /**
          * Agent meta deleted
-         *
-	     * @param $meta_id
-	     * @param $object_id
-	     * @param $meta_key
-	     * @param $meta_value
+         * Fires immediately after deleting metadata of a specific type.
+	     *
+	     * @since WP 2.9.0
+	     *
+	     * @param array  $meta_ids    An array of deleted metadata entry IDs.
+	     * @param int    $object_id   Object ID.
+	     * @param string $meta_key    Meta key.
+	     * @param mixed  $_meta_value Meta value.
 	     */
-        public function agent_deleted($meta_id, $object_id, $meta_key, $meta_value) {
+        public function action_deleted_agent_meta($meta_ids, $object_id, $meta_key, $_meta_value) {
            
             if ($meta_key == 'ss_shipping_order_agent_no') {
                 $this->delete_ss_shipping_order_agent( $object_id );
