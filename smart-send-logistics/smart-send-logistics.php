@@ -361,9 +361,9 @@ if (!class_exists('SS_Shipping_WC')) :
         }
 
         /**
-         * Get the name of the shipping method
+         * Get the name of the Smart Send shipping method, given the id
          *
-         * @param TODO ADD TYPE AND DESCRIPTION OF $ship_method
+         * @param string $ship_method - shipment method id that identifies the Smart Send method
          * @return string
          */
         public function get_shipping_method_name($ship_method)
