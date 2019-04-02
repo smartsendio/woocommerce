@@ -17,12 +17,19 @@ if (!class_exists('SS_Shipping_Shipment')) :
     class SS_Shipping_Shipment
     {
 
+    	/*
+    	 * WC_Order object
+    	 */
         protected $order = null;
         
         /*
          * SS_Shipping_WC_Order object
          */
         protected $shipping_order = null;
+
+        /*
+         * \Smartsend\Models\Shipment object
+         */
         protected $shipment = null;
 
 

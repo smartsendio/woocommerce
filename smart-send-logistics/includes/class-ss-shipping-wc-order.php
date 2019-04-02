@@ -124,7 +124,7 @@ if (!class_exists('SS_Shipping_WC_Order')) :
             $shipping_ss_settings = SS_SHIPPING_WC()->get_ss_shipping_settings();
 
             $ss_shipping_method_id = $this->get_smart_send_method_id($order_id);
-            $ss_shipping_method_name = SS_SHIPPING_WC()->get_shipping_method_name( $ss_shipping_method_id );
+            $ss_shipping_method_name = SS_SHIPPING_WC()->get_shipping_method_name($ss_shipping_method_id);
 
             // Get order agent object
             $ss_shipping_order_agent = $this->get_ss_shipping_order_agent($order_id);
@@ -246,7 +246,7 @@ if (!class_exists('SS_Shipping_WC_Order')) :
         }
 
         /**
-         * Return formatted agent address
+         * Return HTML formatted agent address
          *
          * @param object $ss_shipping_order_agent
          * @return string
@@ -263,10 +263,14 @@ if (!class_exists('SS_Shipping_WC_Order')) :
 
         /**
          * Return ordered Smart Send shipping method, OR Free Shipping linked to Smart Send shipping method, otherwise empty string
+         *
+         * @param integer $order_id     Post object or post ID of the order.
+         * @param boolean $return       Whether or not the label is return (true) or normal (false)
+         * @return string               Unique Smart Send name of shipping method. Example 'postnord_agent'
          */
         public function get_smart_send_method_id($order_id, $return = false)
         {
-            $order = wc_get_order($order_id);
+            $order = wc_get_order($order_id);//Accepts Post object or post ID of the order.
 
             if (!$order) {
                 return '';

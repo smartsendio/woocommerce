@@ -363,24 +363,19 @@ if (!class_exists('SS_Shipping_WC')) :
         /**
          * Get the name of the shipping method
          *
+         * @param TODO ADD TYPE AND DESCRIPTION OF $ship_method
          * @return string
          */
         public function get_shipping_method_name($ship_method)
         {
-
             $shipping_methods = WC()->shipping->get_shipping_methods();
-
             if ( $shipping_methods ) {
-                
                 foreach ($shipping_methods as $shipping_method_key => $shipping_method_value) {
-                    
                     if ($shipping_method_value instanceof SS_Shipping_WC_Method) {
-
-                        return $shipping_method_value->get_shipping_method_name( $ship_method );
+                        return $shipping_method_value->get_shipping_method_name($ship_method);
                     }
                 }
             }
-
             return '';
         }
 
