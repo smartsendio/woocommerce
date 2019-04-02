@@ -17,18 +17,29 @@ if (!class_exists('SS_Shipping_Shipment')) :
     class SS_Shipping_Shipment
     {
 
+    	/*
+    	 * WC_Order object
+    	 */
         protected $order = null;
-        protected $ss_args = array();
+        
+        /*
+         * SS_Shipping_WC_Order object
+         */
+        protected $shipping_order = null;
+
+        /*
+         * \Smartsend\Models\Shipment object
+         */
         protected $shipment = null;
 
 
         /**
          * Init and hook in the integration.
          *
-         * @param mixed $order
-         * @param array $ss_args
+         * @param WC_Order|integer $order
+         * @param array $shipping_order
          */
-        public function __construct($order, $ss_args)
+        public function __construct($order, $shipping_order)
         {
 
             if (is_numeric($order) && $order > 0) {
@@ -44,7 +55,7 @@ if (!class_exists('SS_Shipping_Shipment')) :
                 return;
             }
 
-            $this->ss_args = $ss_args;
+            $this->shipping_order = $shipping_order;
 
             //New shipment model
             $this->shipment = new \Smartsend\Models\Shipment();
@@ -53,11 +64,12 @@ if (!class_exists('SS_Shipping_Shipment')) :
         /**
          * Create single order
          *
+         * @param boolean $return
          * @return boolean
          */
-        public function make_single_shipment_api_call()
+        public function make_single_shipment_api_call( $return )
         {
-            $this->make_single_shipment_api_payload();
+            $this->make_single_shipment_api_payload( $return );
             $this->make_single_shipment_api_request();
 
             if (SS_SHIPPING_WC()->get_api_handle()->isSuccessful()) {
@@ -100,10 +112,47 @@ if (!class_exists('SS_Shipping_Shipment')) :
         /**
          * Create Payload for API request
          *
+         * @param boolean $return
          * @return void
          */
-        protected function make_single_shipment_api_payload()
+        protected function make_single_shipment_api_payload( $return )
         {
+            $order_id = $this->getOrderId($this->order);
+            
+            $ss_args = array();
+
+            // Get shipping method
+            $ss_shipping_method_id = $this->shipping_order->get_smart_send_method_id($order_id, $return);
+
+            if ($return && isset($ss_shipping_method_id['smart_send_return_method'])) {
+                // If no return method set return error
+                if (empty($ss_shipping_method_id['smart_send_return_method'])) {
+                    return array('error' => __('No return method set', 'smart-send-logistics'));
+                } else {
+                    $ss_shipping_method_id = $ss_shipping_method_id['smart_send_return_method'];
+                }
+
+            } else {
+                $ss_args['ss_agent'] = $this->shipping_order->get_ss_shipping_order_agent($order_id);
+            }
+
+            // Determine shipping method and carrier from return settings
+            $shipping_method_carrier = SS_SHIPPING_WC()->get_shipping_method_carrier($ss_shipping_method_id);
+            $shipping_method_type = SS_SHIPPING_WC()->get_shipping_method_type($ss_shipping_method_id);
+
+            $ss_args['ss_carrier'] = $shipping_method_carrier;
+            $ss_args['ss_type'] = $shipping_method_type;
+            $ss_args['ss_parcels'] = $this->shipping_order->get_ss_shipping_order_parcels($order_id);
+
+            /*
+             * Filter the arguments used when creating a shipping label
+             *
+             * @param array $ss_args contains info about shipping carrier, shipping method, agent and parcels
+             * @param int  $order_id  Order ID
+             * @param boolean $return Whether or not the label is return (true) or normal (false)
+             */
+            $ss_args = apply_filters('smart_send_shipping_label_args', $ss_args, $order_id, $return);
+
             $ss_settings = SS_SHIPPING_WC()->get_ss_shipping_settings();
 
             // Get address related information
@@ -145,13 +194,13 @@ if (!class_exists('SS_Shipping_Shipment')) :
             // Add the sender to the shipment (we use the system default for now)
             //$this->shipment->setSender(Sender $sender);
 
-	        $ss_agent = apply_filters(
-	        	'smart_send_order_agent',
-		        empty($this->ss_args['ss_agent']) ? null : $this->ss_args['ss_agent'],
-		        $this->getOrderId($this->order)
-	        );
-            if (!empty($ss_agent)) {
+            $ss_agent = apply_filters(
+              'smart_send_order_agent',
+              empty($ss_args['ss_agent']) ? null : $ss_args['ss_agent'],
+              $this->getOrderId($this->order)
+            );
 
+            if (!empty($ss_agent)) {
                 // Add an agent (pick-up point) to the shipment
                 $agent = new Smartsend\Models\Shipment\Agent();
                 $agent->setInternalId(isset($ss_agent->id) ? $ss_agent->id : $ss_agent->agent_no)
@@ -326,11 +375,11 @@ if (!class_exists('SS_Shipping_Shipment')) :
                 $order_subtotal_excl = $order_total_excl - $order_subtotal_tax;
 
                 $parcels = array();
-                if (!empty($this->ss_args['ss_parcels'])) {
-                    if (is_array($this->ss_args['ss_parcels'])) {
+                if (!empty($ss_args['ss_parcels'])) {
+                    if (is_array($ss_args['ss_parcels'])) {
 
                         $boxes = array();
-                        foreach ($this->ss_args['ss_parcels'] as $parcel) {
+                        foreach ($ss_args['ss_parcels'] as $parcel) {
                             $boxes[$parcel['value']][] = array(
                                 'id'   => $parcel['id'],
                                 'name' => $parcel['name'],
@@ -402,8 +451,8 @@ if (!class_exists('SS_Shipping_Shipment')) :
             ->setEmailNotification($receiver->getEmail()); //Always enable Email notification
 
             // Determine shipping method and carrier from return settings
-            $shipping_method_carrier = $this->ss_args['ss_carrier'];
-            $shipping_method_type = $this->ss_args['ss_type'];
+            $shipping_method_carrier = $ss_args['ss_carrier'];
+            $shipping_method_type = $ss_args['ss_type'];
 
             // Add final parameters to shipment
             $this->shipment->setInternalId($this->getOrderId($this->order) ?: null)
@@ -425,6 +474,8 @@ if (!class_exists('SS_Shipping_Shipment')) :
 
         /**
          * Call Smart Send Shipment API, log response
+         *
+         * @return void
          */
         protected function make_single_shipment_api_request()
         {
@@ -442,6 +493,12 @@ if (!class_exists('SS_Shipping_Shipment')) :
             }
         }
 
+        /**
+         * Get the order id
+         *
+         * @param WC_Order
+         * @return string
+         */
         protected function getOrderId($order)
         {
             // WC 3.0 code!
