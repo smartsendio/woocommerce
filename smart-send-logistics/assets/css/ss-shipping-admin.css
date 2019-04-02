@@ -15,3 +15,7 @@
 	margin-top: 5px !important;
 	margin-left: 5px !important;
 }
+
+#smart-send-logistics-update .dummy {
+	display: none;
+}

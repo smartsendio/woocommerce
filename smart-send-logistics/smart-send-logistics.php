@@ -6,7 +6,7 @@
  * Author: Smart Send ApS
  * Author URI: https://www.smartsend.io
  * Text Domain: smart-send-logistics
- * Version: 8.0.14
+ * Version: 8.0.15
  * WC requires at least: 2.6.0
  * WC tested up to: 3.5
  *
@@ -34,7 +34,7 @@ if (!class_exists('SS_Shipping_WC')) :
     class SS_Shipping_WC
     {
 
-        private $version = "8.0.14";
+        private $version = "8.0.15";
 
         /**
          * Instance to call certain functions globally within the plugin
@@ -83,6 +83,13 @@ if (!class_exists('SS_Shipping_WC')) :
          * @var object
          */
         protected $api_handle = null;
+
+        /**
+         * Smart Send Plugin Screen Updates
+         *
+         * @var object
+         */
+        protected $ss_plugin_screen_updates = null;
 
         /**
          * Construct the plugin.
@@ -184,6 +191,7 @@ if (!class_exists('SS_Shipping_WC')) :
                 $this->ss_shipping_frontend = new SS_Shipping_Frontend();
                 $this->ss_shipping_wc_order = new SS_Shipping_WC_Order();
                 $this->ss_shipping_wc_product = new SS_Shipping_WC_Product();
+                $this->ss_plugin_screen_updates = new SS_Plugins_Screen_Updates();
             } else {
                 // Throw an admin error informing the user this plugin needs WooCommerce to function
                 add_action('admin_notices', array($this, 'notice_wc_required'));
@@ -353,6 +361,37 @@ if (!class_exists('SS_Shipping_WC')) :
         }
 
         /**
+         * Get the human readable name of the Smart Send shipping method
+         * Example: 'PostNord: Closest pick-up point (MyPack Collect)'
+         *
+         * Details: This method loops over all WC_Shipping methods and finds the
+         * instance of SS_Shipping_WC_Method. It then takes the SS_Shipping_WC_Method
+         * instance and finds the human readable shipping method name using this.
+         *
+         * @param string $shipping_method_code    Id that identifies the Smart Send method. Example 'postnord_collect'
+         * @return string
+         */
+        public function get_shipping_method_name_from_all_shipping_method_instances($shipping_method_code)
+        {
+            /*
+             * Returns all registered shipping methods for usage.
+             *
+             * @access public
+             * @return array
+             */
+            $shipping_methods = WC()->shipping->get_shipping_methods();
+
+            if (is_array($shipping_methods)) {
+                foreach ($shipping_methods as $key => $shipping_method_instance) {
+                    if ($shipping_method_instance instanceof SS_Shipping_WC_Method) {
+                        return $shipping_method_instance->get_shipping_method_name($shipping_method_code);
+                    }
+                }
+            }
+            return '';
+        }
+
+        /**
          * Get the Carrier of the shipping method
          *
          * @return string
@@ -427,11 +466,15 @@ if (!class_exists('SS_Shipping_WC')) :
         /**
          * Get the url of the current site like example.com
          *
+         * @param string|null $website url
          * @return string
          */
-        public function get_website_url()
+        public function get_website_url($website=null)
         {
-            return parse_url(get_site_url(), PHP_URL_HOST);
+            if (!$website) {
+	            $website = get_site_url();
+            }
+            return parse_url($website, PHP_URL_HOST);
         }
 
         /**
@@ -459,12 +502,34 @@ if (!class_exists('SS_Shipping_WC')) :
         /**
          * Get the url of the current site
          *
+         * @param string|null $api_token
          * @return string
          */
-        public function get_api_token_setting()
+        public function get_api_token_setting($api_token=null)
         {
-            $ss_shipping_settings = $this->get_ss_shipping_settings();
-            return empty($ss_shipping_settings['api_token']) ? null : $ss_shipping_settings['api_token'];
+	        if (!$api_token) {
+		        $ss_shipping_settings = $this->get_ss_shipping_settings();
+		        $api_token = empty($ss_shipping_settings['api_token']) ? null : $ss_shipping_settings['api_token'];
+	        }
+
+	        if (strpos($api_token, ',') && strpos($api_token, ':')) {
+		        //The API Token field contains multiple tokens in the format:
+		        //site1:apitoken1,site2:apitoken2,....
+		        $tokens = array();
+		        $site_and_tokens = explode(',', $api_token);
+		        foreach ($site_and_tokens as $site_and_token) {
+			        $parts = explode(':', $site_and_token);
+			        if (!empty($parts[0]) && !empty($parts[1])) {
+				        $tokens[$parts[0]] = $parts[1];//key=site, value=apitoken
+			        }
+		        }
+
+		        if (!empty($tokens[$this->get_website_url()])) {
+			        return $tokens[$this->get_website_url()];
+		        }
+	        }
+
+	        return $api_token;
         }
 
 	    /**

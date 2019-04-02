@@ -8,7 +8,7 @@ Developer URI: https://smartsend.io/
 Tags: smartsend, smart send, shipping, shipping label, pickup, pick-up, pakkelabel, pakkelabels, pakkeboks, pakkeshop, hente selv, døgnboks, postnord, post nord, post danmark, gls, swipbox, bring, dao, dao365, dao 365, carrier, pacsoft, yourgls, mybring, postage, shipping method, your-gls, my-bring, pacosft-online, pacsoftonline, denmark, sweeden, posten, norway, post 
 Requires at least: 3.0.1
 Tested up to: 5.1
-Stable tag: 8.0.14
+Stable tag: 8.0.15
 License: GNU General Public License v3.0
 License URI: http://www.gnu.org/licenses/gpl-3.0.html
 WC requires at least: 3.0.0
@@ -197,6 +197,16 @@ This box appears when a "Select Pick-up Point" shipping method is selected, but 
 
 
 == Changelog ==
+
+= 8.0.15 =
+* Add new PostNord shipping methods: Valuable parcel, Registred letter, Tracked letter, Untracked letter
+* Add field name to error message when failing to create shipping labels
+* Add support for using multiple API Tokens on one site (useful for WPML and other plugins)
+* Update PostNord shipping method order
+* Remove input field to change pick-up point while creating a label
+* Show upgrade notices in Wordpress Plugin list
+* Bugfix: Drop usage of deprecated methods get_order_currency() and get_total_shipping()
+* Bugfix: Order status was changed before saving meta data, tracking data and other important information
 
 = 8.0.14 =
 * Bugfix: Invalid API endpoint for old cURL versions

@@ -4,4 +4,5 @@
 
 select.ss-agent-list {
     width: 95%;
+    min-width: 200px;
 }

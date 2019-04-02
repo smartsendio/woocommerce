@@ -146,35 +146,42 @@ class Client
      */
     public function getErrorString($delimiter='<br>')
     {
-        // Fetch error:
-        $error = $this->getError();
+	    // Fetch error:
+	    $error = $this->getError();
 
-        // Print error message
-        $error_string = $error->message;
-        // Print 'Read more here' link to error explenation
-        if (isset($error->links->about)) {
-            $error_string .= $delimiter."- <a href='".$error->links->about."' target='_blank'>Read more here</a>";
-        }
+	    // Print error message
+	    $error_string = $error->message;
+	    // Print 'Read more here' link to error explenation
+	    if (isset($error->links->about)) {
+		    $error_string .= $delimiter."- <a href='".$error->links->about."' target='_blank'>Read more here</a>";
+	    }
 
-        // Print unique error ID if one exists
-        if (isset($error->id)) {
-            $error_string .= $delimiter."Unique ID: ".$error->id;
-        }
+	    // Print unique error ID if one exists
+	    if (isset($error->id)) {
+		    $error_string .= $delimiter."Unique ID: ".$error->id;
+	    }
 
-        // Print each error
-        if (isset($error->errors)) {
-            foreach ($error->errors as $error_details) {
-                if (is_array($error_details)) {
-                    foreach ($error_details as $error_description) {
-                        $error_string .= $delimiter."- ".$error_description;
-                    }
-                } else {
-                    $error_string .= $delimiter."- ".$error_details;
-                }
-            }
-        }
+	    // Print each error
+	    if (isset($error->errors)) {
+		    foreach ($error->errors as $error_field => $error_details) {
+			    if (is_array($error_details)) {
+				    if (count($error_details) > 1) {
+					    $error_string .= $delimiter . $error_field .':';
+					    foreach ($error_details as $error_description) {
+						    $error_string .= $delimiter . "- ". $error_description;
+					    }
+				    } else {
+					    foreach ($error_details as $error_description) {
+						    $error_string .= $delimiter . "- " . $error_field . ': ' . $error_description;
+					    }
+				    }
+			    } else {
+				    $error_string .= $delimiter . "- " . $error_field . ': ' . $error_details;
+			    }
+		    }
+	    }
 
-        return $error_string;
+	    return $error_string;
     }
 
     /**

@@ -85,23 +85,24 @@ if (!class_exists('SS_Shipping_Frontend')) :
 
                         $ss_setting = SS_SHIPPING_WC()->get_ss_shipping_settings();
 
-                        ?>
-                        <select name="ss_shipping_store_pickup" class="ss-agent-list">
-                            <?php
-                            // Select the closest pick-up point by default or have the customer select one
-                            if (!isset($ss_setting['default_select_agent']) || $ss_setting['default_select_agent'] == 'no') {
-                                echo '<option value="0">' . __('- Select Pick-up Point -',
-                                        'smart-send-logistics') . '</option>';
-                            }
+                        $ss_agent_options = array();
+                        if (!isset($ss_setting['default_select_agent']) || $ss_setting['default_select_agent'] == 'no') {
+                            $ss_agent_options[0] = __('- Select Pick-up Point -',
+                                    'smart-send-logistics');
+                        }
 
-                            foreach ($ss_agents as $key => $agent) {
-                                $formatted_address = $this->get_formatted_address($agent);
-                                ?>
-                                <option value="<?php echo $agent->agent_no; ?>"><?php echo $formatted_address ?></option>
-                            <?php } ?>
+                        foreach ($ss_agents as $key => $agent) {
+                            $formatted_address = $this->get_formatted_address($agent);
+                            $ss_agent_options[ $agent->agent_no ] = $formatted_address;
+                        }
 
-                        </select>
-                        <?php
+                        woocommerce_form_field( 'ss_shipping_store_pickup', array(
+                            'type'          => 'select',
+                            'options'       => $ss_agent_options,
+                            'input_class'   => array('ss-agent-list'),
+                            )
+                        );
+
                     } else {
                         echo '<div class="woocommerce-info ss-agent-info">' . __('Shipping to closest pick-up point',
                                 'smart-send-logistics') . '</div>';
