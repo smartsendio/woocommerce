@@ -371,7 +371,7 @@ if (!class_exists('SS_Shipping_WC')) :
          * @param string $shipping_method_code    Id that identifies the Smart Send method. Example 'postnord_collect'
          * @return string
          */
-        public function get_shipping_method_name_all_shipping_method_instances($shipping_method_code)
+        public function get_shipping_method_name_from_all_shipping_method_instances($shipping_method_code)
         {
             /*
              * Returns all registered shipping methods for usage.
@@ -382,7 +382,7 @@ if (!class_exists('SS_Shipping_WC')) :
             $shipping_methods = WC()->shipping->get_shipping_methods();
 
             if (is_array($shipping_methods)) {
-                foreach ($shipping_methods as $shipping_method_instance) {
+                foreach ($shipping_methods as $key => $shipping_method_instance) {
                     if ($shipping_method_instance instanceof SS_Shipping_WC_Method) {
                         return $shipping_method_instance->get_shipping_method_name($shipping_method_code);
                     }

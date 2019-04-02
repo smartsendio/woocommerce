@@ -1192,11 +1192,11 @@ if (!class_exists('SS_Shipping_WC_Method')) :
 	     */
         public function get_shipping_method_name($shipping_method_code) {
             if( $this->shipping_method ) {
-                foreach ($this->shipping_method as $carrier_key => $carrier_value) {
-                    if ( is_array( $carrier_value ) ) {
-                        foreach ($carrier_value as $shipping_method_key => $shipping_method_value) {
-                            if ( $shipping_method_key == $shipping_method_code ) {
-                                return $shipping_method_value;
+                foreach ($this->shipping_method as $carrier_name => $carrier_code) {
+                    if ( is_array( $carrier_code ) ) {
+                        foreach ($carrier_code as $method_code => $method_name) {
+                            if ( $method_code == $shipping_method_code ) {
+                                return $method_name;
                             }
                         }
                     }
