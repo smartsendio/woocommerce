@@ -1180,18 +1180,22 @@ if (!class_exists('SS_Shipping_WC_Method')) :
                 $this);
         }
 
-        /**
-         * Get the Smart Send shipping name, given the id
-         *
-         * @param string $ship_method_id - shipment method id that identifies the Smart Send method
-         * @return string
-         */
-        public function get_shipping_method_name($shipping_method_id) {
+	    /**
+	     * Get the human readable name of the Smart Send shipping method
+	     * Example: 'PostNord: Closest pick-up point (MyPack Collect)'
+	     *
+	     * Details: This method look for valid method with code $shipping_method_code
+         * in the $shipping_method array from this SS_Shipping_WC_Method class
+	     *
+	     * @param string $shipping_method_code    Id that identifies the Smart Send method. Example 'postnord_collect'
+	     * @return string
+	     */
+        public function get_shipping_method_name($shipping_method_code) {
             if( $this->shipping_method ) {
                 foreach ($this->shipping_method as $carrier_key => $carrier_value) {
                     if ( is_array( $carrier_value ) ) {
                         foreach ($carrier_value as $shipping_method_key => $shipping_method_value) {
-                            if ( $shipping_method_key == $shipping_method_id ) {
+                            if ( $shipping_method_key == $shipping_method_code ) {
                                 return $shipping_method_value;
                             }
                         }
