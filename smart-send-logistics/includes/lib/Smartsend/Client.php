@@ -394,7 +394,7 @@ class Client
 	    if ($method == 'shipments/labels/async') {
 		    // We will mockup the API call for now:
 
-		    $SIMLATE_SUCCESS = true;// TRUE: simulate successful api call, FALSE: simulate error
+		    $SIMULATE_SUCCESS = true;// TRUE: simulate successful api call, FALSE: simulate error
 
 		    $res = array(
 			    "meta" => array(
@@ -424,7 +424,7 @@ class Client
 			    $res['data']['shipments'][] = $tmp;
 		    }
 
-		    if ($SIMLATE_SUCCESS) {
+		    if ($SIMULATE_SUCCESS) {
 			    $res = json_encode($res);
 		    } else {
 			    $res = '
