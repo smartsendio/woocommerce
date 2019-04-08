@@ -274,6 +274,28 @@ class Api extends Client
         return $this->httpPost('shipments/labels', array(), array(), $shipment);
     }
 
+    /*
+     * Create shipments directly and queue label generation.
+     * Once each label is handled then a POST request will be made to the
+     * provided callback url
+     *
+     * @param array $shipments          Array of Shipment objects
+     * @param string $callback_url      Url used for callback once processed
+     * @return object
+     */
+	public function createShipmentAndLabelsAsync($shipments, $callback_url)
+	{
+		$data = array(
+			'notification' => array(
+				'callback' => array(
+					'url' => $callback_url,
+				),
+			),
+			'shipments' => $shipments,
+		);
+		return $this->httpPost('shipments/labels/async', array(), array(), $data);
+	}
+
     public function combineLabelsForShipments($shipments=array())
     {
         $request = array(

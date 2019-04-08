@@ -391,24 +391,86 @@ class Client
 		    }
 	    }
 
-	    // Make request
-	    $res = wp_remote_request($this->request_endpoint, array(
-		    'method'     => strtoupper($http_verb),
-		    'user-agent' => $this->getUserAgent(),
-			'headers'    => $headers_key_value,
-		    'body'       => $this->request_body,
-		    'timeout'    => $timeout,
-		    'httpversion' => '1.1',
-	    ));
+	    if ($method == 'shipments/labels/async') {
+		    // We will mockup the API call for now:
 
-        // execute request
-	    $this->response_body = wp_remote_retrieve_body($res);
+		    $SIMLATE_SUCCESS = true;// TRUE: simulate successful api call, FALSE: simulate error
 
-        // Save http status code and headers
-	    $this->debug = $res;
-	    $this->request_headers = wp_remote_retrieve_headers($res);
-	    $this->http_status_code = wp_remote_retrieve_response_code($res);
-	    $this->content_type = wp_remote_retrieve_header($res, 'content-type');
+		    $res = array(
+			    "meta" => array(
+				    "author" => "Smart Send",
+			    ),
+			    "data" => array(
+				    "message" => "Shipments queued successfully",
+				    "notification" => array(
+					    "callback" => array(
+						    "url" => $body['notification']['callback']['url'],
+					    ),
+				    ),
+				    "shipments" => array(),
+			    ),
+		    );
+
+		    $shipments = json_decode(json_encode($body['shipments']));
+		    foreach ($shipments as $shipment) {
+			    $tmp = array(
+				    "shipment_id" => uniqid(),
+				    "internal_id" => $shipment->internal_id,
+				    "internal_reference" => $shipment->internal_reference,
+				    "shipping_carrier" => $shipment->shipping_carrier,
+				    "shipping_method" => $shipment->shipping_method,
+				    "shipping_date" => $shipment->shipping_date,
+			    );
+			    $res['data']['shipments'][] = $tmp;
+		    }
+
+		    if ($SIMLATE_SUCCESS) {
+			    $res = json_encode($res);
+		    } else {
+			    $res = '
+					{
+						"links": {
+							"about": "http://dumbledore.test/errors/ValidationException"
+						},
+						"id": "UUID-123456-ABCDE-558ABC",
+						"code": "ValidationException",
+						"message": "The given data was invalid.",
+						"errors": {
+							"shipments.1.internal_id": [
+								"Test error"
+							]
+						}
+					}';
+		    }
+
+		    // execute request
+		    $this->response_body = $res;
+
+		    // Save http status code and headers
+		    $this->debug = $res;
+		    $this->request_headers = array();
+		    $this->http_status_code = $SIMLATE_SUCCESS ? 200 : 404;
+		    $this->content_type = 'application/json';
+	    } else {
+		    // Make request
+		    $res = wp_remote_request($this->request_endpoint, array(
+			    'method'     => strtoupper($http_verb),
+			    'user-agent' => $this->getUserAgent(),
+			    'headers'    => $headers_key_value,
+			    'body'       => $this->request_body,
+			    'timeout'    => $timeout,
+			    'httpversion' => '1.1',
+		    ));
+
+		    // execute request
+		    $this->response_body = wp_remote_retrieve_body($res);
+
+		    // Save http status code and headers
+		    $this->debug = $res;
+		    $this->request_headers = wp_remote_retrieve_headers($res);
+		    $this->http_status_code = wp_remote_retrieve_response_code($res);
+		    $this->content_type = wp_remote_retrieve_header($res, 'content-type');
+	    }
 
         if (is_wp_error($res)) {
             $this->success = false;
