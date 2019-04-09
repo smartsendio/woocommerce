@@ -68,7 +68,7 @@ if (!class_exists('SS_Shipping_WC_Method')) :
 	                        'smart-send-logistics'),
                         'postnord_lettertracked'           => __('PostNord: Tracked letter',
 	                        'smart-send-logistics'),
-                        'postnord_letteruntrackedi'        => __('PostNord: Untracked letter',
+                        'postnord_letteruntracked'         => __('PostNord: Untracked letter',
 	                        'smart-send-logistics'),
                     ),
                 'GLS'               =>

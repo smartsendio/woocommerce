@@ -198,6 +198,8 @@ This box appears when a "Select Pick-up Point" shipping method is selected, but 
 
 == Changelog ==
 
+    * Bugfix: Change unique shipping code used for PostNord: Untracked letter
+
 = 8.0.15 =
 * Add new PostNord shipping methods: Valuable parcel, Registred letter, Tracked letter, Untracked letter
 * Add field name to error message when failing to create shipping labels
