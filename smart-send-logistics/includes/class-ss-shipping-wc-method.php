@@ -1170,9 +1170,9 @@ if (!class_exists('SS_Shipping_WC_Method')) :
 
             if ($free_log_message) {
                 if ($is_available) {
-                    SS_SHIPPING_WC()->log_msg('Free shipping IS available' . $free_log_message);
+                    SS_SHIPPING_WC()->log_msg('Flat rate shipping IS available' . $free_log_message);
                 } else {
-                    SS_SHIPPING_WC()->log_msg('Free shipping is NOT available' . $free_log_message);
+                    SS_SHIPPING_WC()->log_msg('Flat rate shipping is NOT available' . $free_log_message);
                 }
             }
 
