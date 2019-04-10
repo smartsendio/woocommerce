@@ -36,39 +36,55 @@ if (!class_exists('SS_Shipping_WC_Product')) :
 
             $thepostid = empty($thepostid) ? $post->ID : $thepostid;
 
-            woocommerce_wp_text_input(
-                array(
-                    'id'          => '_ss_hs_code',
-                    'label'       => __('Harmonized Tariff Schedule (Smart Send)', 'smart-send-logistics'),
-                    'description' => __('Harmonized Tariff Schedule is a number assigned to every possible commodity that can be imported or exported from any country.',
-                        'smart-send-logistics'),
-                    'desc_tip'    => 'true',
-                    'placeholder' => 'HsCode',
-                )
-            );
+	        $countries_obj   = new WC_Countries();
+	        $options = $countries_obj->__get('countries');
+	        $options = array('' => __('Select country', 'smart-send-logistics')) + $options;// A select to the top
+	        woocommerce_wp_select(
+		        array(
+			        'id'          => '_ss_country_of_origin',
+			        'label'       => __('Country of origin', 'smart-send-logistics'),
+			        'description' => __('ISO3166-alpha2 code of the country where the item was produced', 'smart-send-logistics'),
+			        'desc_tip'    => 'true',
+			        'options'     => $options,
+		        )
+	        );
 
-            woocommerce_wp_text_input(
-                array(
-                    'id'          => '_ss_customs_desc',
-                    'label'       => __('Customs description', 'smart-send-logistics'),
-                    'description' => '',
-                    'desc_tip'    => 'false',
-                    'placeholder' => '',
-                )
-            );
+	        woocommerce_wp_text_input(
+		        array(
+			        'id'          => '_ss_customs_desc',
+			        'label'       => __('Customs description', 'smart-send-logistics'),
+			        'description' => '',
+			        'desc_tip'    => 'false',
+			        'placeholder' => __('Example: T-shirt', 'smart-send-logistics'),
+		        )
+	        );
+
+	        woocommerce_wp_text_input(
+		        array(
+			        'id'          => '_ss_hs_code',
+			        'label'       => __('Harmonized Tariff Schedule', 'smart-send-logistics'),
+			        'description' => __('Harmonized Tariff Schedule is a number assigned to every possible commodity that can be imported or exported from any country.',
+				        'smart-send-logistics'),
+			        'desc_tip'    => 'true',
+			        'placeholder' => __('Example: 12345678', 'smart-send-logistics'),
+		        )
+	        );
         }
 
         public function save_additional_product_shipping_options($post_id)
         {
-            //HS code value
-            if (isset($_POST['_ss_hs_code'])) {
-                update_post_meta($post_id, '_ss_hs_code', wc_clean($_POST['_ss_hs_code']));
-            }
-
-            //Custom description value
-            if (isset($_POST['_ss_customs_desc'])) {
-                update_post_meta($post_id, '_ss_customs_desc', wc_clean($_POST['_ss_customs_desc']));
-            }
+	        //Country of origin
+	        if (isset($_POST['_ss_country_of_origin'])) {
+		        update_post_meta($post_id, '_ss_country_of_origin', wc_clean($_POST['_ss_country_of_origin']));
+	        }
+	        //Custom description value
+	        if (isset($_POST['_ss_customs_desc'])) {
+		        update_post_meta($post_id, '_ss_customs_desc', wc_clean($_POST['_ss_customs_desc']));
+	        }
+	        //HS code value
+	        if (isset($_POST['_ss_hs_code'])) {
+		        update_post_meta($post_id, '_ss_hs_code', wc_clean($_POST['_ss_hs_code']));
+	        }
         }
     }
 

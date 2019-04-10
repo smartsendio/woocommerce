@@ -174,6 +174,8 @@ The following meta fields are used by the plugin:
     Hidden field used to store the customs HS code for products in WooCommerce
 * **_ss_customs_desc**
     Hidden field used to store the customs description for products in WooCommerce
+* **_ss_country_of_origin**
+    Hidden field used to store the country of origin for products in WooCommerce
 
 == Frequently Asked Questions ==
 
@@ -197,6 +199,8 @@ This box appears when a "Select Pick-up Point" shipping method is selected, but 
 
 
 == Changelog ==
+
+* Add hidden product meta field **_ss_country_of_origin** used for custom declarations
 
 = 8.0.16 =
 * Bugfix: Change unique shipping code used for PostNord: Untracked letter
