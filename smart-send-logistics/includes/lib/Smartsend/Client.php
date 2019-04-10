@@ -449,7 +449,7 @@ class Client
 		    // Save http status code and headers
 		    $this->debug = $res;
 		    $this->request_headers = array();
-		    $this->http_status_code = $SIMLATE_SUCCESS ? 200 : 404;
+		    $this->http_status_code = $SIMULATE_SUCCESS ? 200 : 404;
 		    $this->content_type = 'application/json';
 	    } else {
 		    // Make request

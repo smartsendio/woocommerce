@@ -115,7 +115,7 @@ if (!class_exists('SS_Shipping_Shipment')) :
          * @param boolean $return
          * @return void
          */
-        protected function make_single_shipment_api_payload( $return )
+        public function make_single_shipment_api_payload( $return )
         {
             $order_id = $this->getOrderId($this->order);
             
