@@ -8,7 +8,7 @@ Developer URI: https://smartsend.io/
 Tags: smartsend, smart send, shipping, shipping label, pickup, pick-up, pakkelabel, pakkelabels, pakkeboks, pakkeshop, hente selv, døgnboks, postnord, post nord, post danmark, gls, swipbox, bring, dao, dao365, dao 365, carrier, pacsoft, yourgls, mybring, postage, shipping method, your-gls, my-bring, pacosft-online, pacsoftonline, denmark, sweeden, posten, norway, post 
 Requires at least: 3.0.1
 Tested up to: 5.1
-Stable tag: 8.0.16
+Stable tag: 8.0.17
 License: GNU General Public License v3.0
 License URI: http://www.gnu.org/licenses/gpl-3.0.html
 WC requires at least: 3.0.0
@@ -174,6 +174,8 @@ The following meta fields are used by the plugin:
     Hidden field used to store the customs HS code for products in WooCommerce
 * **_ss_customs_desc**
     Hidden field used to store the customs description for products in WooCommerce
+* **_ss_country_of_origin**
+    Hidden field used to store the country of origin for products in WooCommerce
 
 == Frequently Asked Questions ==
 
@@ -197,6 +199,9 @@ This box appears when a "Select Pick-up Point" shipping method is selected, but 
 
 
 == Changelog ==
+
+= 8.0.17 =
+* Add hidden product meta field **_ss_country_of_origin** used for custom declarations
 
 = 8.0.16 =
 * Bugfix: Change unique shipping code used for PostNord: Untracked letter
