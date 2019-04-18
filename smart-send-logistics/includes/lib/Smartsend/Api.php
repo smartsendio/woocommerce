@@ -246,7 +246,13 @@ class Api extends Client
         if ($parcel_id) {
             return $this->httpGet('shipments/'.$shipment_id.'/parcels/'.$parcel_id.'/label');
         } else {
-            return $this->httpGet('shipments/'.$shipment_id.'/labels');
+	        $endpoint = 'shipments/'.$shipment_id.'/labels';
+	        // TODO: Remove this before committing. Uncomment one of these:
+	        //$endpoint .= '/mockup/unauthenticated';//Incorrect API Token
+	        //$endpoint .= '/mockup/forbidden';//User without the required subscription
+	        //$endpoint .= '/invalid';//An invalid request (problem with one of the shipments)
+	        $endpoint .= '/success';//An invalid request (problem with one of the shipments)
+            return $this->httpGet($endpoint);
         }
     }
 
@@ -293,7 +299,15 @@ class Api extends Client
 			),
 			'shipments' => $shipments,
 		);
-		return $this->httpPost('shipments/labels/async', array(), array(), $data);
+
+		$endpoint = 'shipments/labels/async';
+		// TODO: Remove this before committing. Uncomment one of these:
+		//$endpoint .= '/mockup/unauthenticated';//Incorrect API Token
+		//$endpoint .= '/mockup/forbidden';//User without the required subscription
+		//$endpoint .= '/invalid';//An invalid request (problem with one of the shipments)
+		// If you do not enable one of the above, then the endpoint will validate each shipment
+
+		return $this->httpPost($endpoint, array(), array(), $data);
 	}
 
     public function combineLabelsForShipments($shipments=array())
