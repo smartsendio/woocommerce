@@ -155,7 +155,6 @@ if (!class_exists('SS_Shipping_WC_Order_Bulk')) :
                             'type'    => 'error',
                         ));
                     } elseif ($orders_count > 5) {
-                        // IF 403 RETURNED THEN USER DOESNT HAVE PRO ACCOUNT
                         $array_combo_messages = $this->smart_send_bulk_queue( $order_ids, $return );
 
                         $array_messages = array_merge($array_messages, $array_combo_messages);
@@ -180,12 +179,22 @@ if (!class_exists('SS_Shipping_WC_Order_Bulk')) :
             }
         }
 
+        /**
+         * Queue an array of WC Orders for generation of shipping labels
+         *
+         * Smart Send will either accept or reject the shipments. If the shipments are accepted
+         * then Smart Send will ping the callback url once each time a shipment has been processed.
+         *
+         * @param array   $order_ids    WC Orders or order id's to create shipping label for
+         * @param boolean $return       Whether or not the label is return (true) or normal (false)
+         * @return array                Array of messages (type:error/success)
+         */
         protected function smart_send_bulk_queue( $order_ids, $return ) {
             $array_messages = array();
             $array_messages_success = array();
             $array_messages_error = array();
             $array_shipments = array();
-            $array_orderids = array();
+	        $array_order_ids = array();
 
             foreach ($order_ids as $order_id) {
                 $order = wc_get_order($order_id);
@@ -198,7 +207,7 @@ if (!class_exists('SS_Shipping_WC_Order_Bulk')) :
                     $shipment_arr = $this->ss_order->create_shipment_for_single_order_maybe_return($order_id, $return, true);
 
                     $array_shipments = array_merge($array_shipments, $shipment_arr);
-                    $array_orderids[] = $order_id;
+	                $array_order_ids[] = $order_id;
 
                     // Set order status to 'Smart Send Queue'
                     $order->update_status('wc-ss-queue');
@@ -218,19 +227,12 @@ if (!class_exists('SS_Shipping_WC_Order_Bulk')) :
             if (!empty($array_shipments)) {
                 $response = SS_SHIPPING_WC()->get_api_handle()->createShipmentAndLabelsAsync($array_shipments, SS_QUEUE_CALLBACK_URL );
 
-                // if 403 then don't have PRO account!
-                if ( false ) {
-                    array_push($array_messages, array(
-                        'message' => __('You can only process 5 orders at a time, since you do not have a Smart Send PRO account.', 'smart-send-logistics'),
-                        'type'    => 'error',
-                    ));
-                } else {
-
-                    $queue_count = count($array_orderids);
-                    $order_ids_str = __('Orders: #', 'smart-send-logistics') . implode(', #', $array_orderids);
+                if ( SS_SHIPPING_WC()->get_api_handle()->isSuccessful() ) {
+                    $queue_count = count($array_order_ids);
+                    $order_ids_str = '#' . implode(', #', $array_order_ids);
 
                     array_push($array_messages_success, array(
-                        'message' => sprintf(__('%s orders have been added to the Smart Send label creation queue:',
+                        'message' => sprintf(__('Smart Send will create labels for the %s selected orders:',
                                 'smart-send-logistics'), $queue_count)
                             . '<br/>' . $order_ids_str,
                         'type'    => 'success',
@@ -239,6 +241,13 @@ if (!class_exists('SS_Shipping_WC_Order_Bulk')) :
 
                     $data = SS_SHIPPING_WC()->get_api_handle()->getData();
                     error_log(print_r($data,true));
+                } else {
+                    // Either some of the shipments failed validation or user
+                    // does not have access to the async label generation
+	                array_push($array_messages, array(
+		                'message' => SS_SHIPPING_WC()->get_api_handle()->getErrorString(),
+		                'type'    => 'error',
+	                ));
                 }
             }
             
@@ -368,7 +377,7 @@ if (!class_exists('SS_Shipping_WC_Order_Bulk')) :
                 $order_id_list = wp_list_pluck($array_shipment_ids, 'order_id');
                 $order_id_list = array_unique($order_id_list);
                 $label_count = count($order_id_list);
-                $order_ids_str = __('Orders: #', 'smart-send-logistics') . implode(', #', $order_id_list);
+                $order_ids_str = '#' . implode(', #', $order_id_list);
 
                 array_push($array_messages, array(
                     'message' => sprintf(__('Shipping labels created by Smart Send for %s orders: <a href="%s" target="_blank">Download combined pdf</a>',
