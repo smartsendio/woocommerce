@@ -916,7 +916,26 @@ if (!class_exists('SS_Shipping_WC_Order')) :
             }
         }
 
-        /*
+        /**
+         * Get the Shipment ID from post_meta.
+         *
+         * @param int $order_id Order ID
+         * @param boolean $return Whether or not the label is return (true) or normal (false)
+         *
+         * @return string $shipment_id Shipment ID
+         */
+        public function get_ss_shipment_id_from_order_meta($order_id, $return)
+        {
+            if ($return) {
+                $shipment_id = get_post_meta($order_id, '_ss_shipping_return_label_id', true);
+            } else {
+                $shipment_id = get_post_meta($order_id, '_ss_shipping_label_id', true);
+            }
+
+            return $shipment_id;
+        }
+
+        /**
          * Gets label URL post meta array for an order
          *
          * @param int  $order_id  Order ID
@@ -926,11 +945,8 @@ if (!class_exists('SS_Shipping_WC_Order')) :
          */
         public function get_label_url_from_order_id($order_id, $return)
         {
-            if ($return) {
-                $shipment_id = get_post_meta($order_id, '_ss_shipping_return_label_id', true);
-            } else {
-                $shipment_id = get_post_meta($order_id, '_ss_shipping_label_id', true);
-            }
+            $shipment_id = $this->get_ss_shipment_id_from_order_meta($order_id, $return);
+            
             return $this->get_label_url_from_shipment_id($shipment_id);
         }
 
