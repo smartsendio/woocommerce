@@ -241,11 +241,10 @@ if (!class_exists('SS_Shipping_WC_Order_Bulk')) :
                     $data = SS_SHIPPING_WC()->get_api_handle()->getData();
                     error_log(print_r($data,true));
                 } else {
-                    error_log(print_r(SS_SHIPPING_WC()->get_api_handle()->getErrorString(),true));
                     // Either some of the shipments failed validation or user
                     // does not have access to the async label generation
 	                array_push($array_messages_error, array(
-		                'message' => '"createShipmentAndLabelsAsync" failed',
+		                'message' => SS_SHIPPING_WC()->get_api_handle()->getErrorString(),
 		                'type'    => 'error',
 	                ));
                 }
@@ -470,31 +469,40 @@ if (!class_exists('SS_Shipping_WC_Order_Bulk')) :
 
 
         public function queue_response() {
-            error_log('queue_response');
+            // error_log('queue_response');
             $return = false;
             if ( isset( $_GET['order_id'] ) ) {
                 // error_log(print_r($_GET['order_id'],true));
                 $order_id = wc_clean( $_GET['order_id'] );
+                $order = wc_get_order( $order_id );
+                // error_log($order->get_status());
                 
-                if ( isset( $_GET['return'] ) ) {
-                    $return = true;
-                }
+                // Only handle request if the order was queued to Smart Send server
+                if( 'ss-queue' == $order->get_status() ) {
 
-                $shipment_id = $ss_order->get_ss_shipment_id_from_order_meta( $order_id, $return );
-                // MAKE API CALL TO GET STATUS
-                $response = SS_SHIPPING_WC()->get_api_handle()->getLabels( $shipment_id );
-                error_log(print_r($response,true));
+                    if ( isset( $_GET['return'] ) ) {
+                        $return = true;
+                    }
 
-                // If label creation failed
-                if ( isset( $response['errors'] ) ) {
-                    $this->ss_order->set_order_status_after_label_failed( wc_get_order( $order_id ) );
-                } elseif( isset( $response['data'] ) ) {
-                    $this->ss_order->create_pdf_set_wc( $response, $order_id, false, true );
-                } else {
-                    error_log('nothing set');
+                    $shipment_id = $this->ss_order->get_ss_shipment_id_from_order_meta( $order_id, $return );
+                    // error_log($shipment_id);
+                    // MAKE API CALL TO GET STATUS
+                    SS_SHIPPING_WC()->get_api_handle()->getLabels( $shipment_id );
+                    if ( SS_SHIPPING_WC()->get_api_handle()->isSuccessful() ) {
+
+                        $response = SS_SHIPPING_WC()->get_api_handle()->getData();
+                        // error_log(print_r($response,true));
+                        $this->ss_order->create_pdf_set_wc( $response, $order_id, false, true );
+
+                        SS_SHIPPING_WC()->log_msg('Response from "getLabels" : ' . SS_SHIPPING_WC()->get_api_handle()->getResponseBody());
+                    } else {
+                        $this->ss_order->set_order_status_after_label_failed( wc_get_order( $order_id ) );
+
+                        SS_SHIPPING_WC()->log_msg('Error response from "getLabels" : ' . SS_SHIPPING_WC()->get_api_handle()->getResponseBody());
+                    }
                 }
             }
-            
+
             // wp_die();
         }
     }

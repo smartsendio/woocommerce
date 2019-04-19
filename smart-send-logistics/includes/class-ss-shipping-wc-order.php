@@ -672,7 +672,7 @@ if (!class_exists('SS_Shipping_WC_Order')) :
         /**
          * If set to change order after order generated, update order status
          */
-        protected function set_order_status_after_label_failed($order)
+        public function set_order_status_after_label_failed($order)
         {
 
             $ss_settings = SS_SHIPPING_WC()->get_ss_shipping_settings();

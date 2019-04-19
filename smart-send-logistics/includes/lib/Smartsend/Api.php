@@ -248,8 +248,8 @@ class Api extends Client
         } else {
 	        $endpoint = 'shipments/'.$shipment_id.'/labels';
 	        // TODO: Remove this before committing. Uncomment one of these:
-	        //$endpoint .= '/mockup/unauthenticated';//Incorrect API Token
-	        //$endpoint .= '/mockup/forbidden';//User without the required subscription
+	        // $endpoint .= '/mockup/unauthenticated';//Incorrect API Token
+	        // $endpoint .= '/mockup/forbidden';//User without the required subscription
 	        //$endpoint .= '/invalid';//An invalid request (problem with one of the shipments)
 	        $endpoint .= '/success';//An invalid request (problem with one of the shipments)
             return $this->httpGet($endpoint);
