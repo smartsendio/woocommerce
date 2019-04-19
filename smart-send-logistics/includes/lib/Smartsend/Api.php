@@ -300,7 +300,7 @@ class Api extends Client
 			'shipments' => $shipments,
 		);
 
-		$endpoint = 'shipments/labels/async';
+		$endpoint = 'shipments/labels/asynchronous';
 		// TODO: Remove this before committing. Uncomment one of these:
 		//$endpoint .= '/mockup/unauthenticated';//Incorrect API Token
 		//$endpoint .= '/mockup/forbidden';//User without the required subscription
