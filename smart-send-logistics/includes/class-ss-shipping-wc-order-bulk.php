@@ -169,7 +169,6 @@ if (!class_exists('SS_Shipping_WC_Order_Bulk')) :
                         $array_combo_messages = $this->smart_send_bulk_iteration( $order_ids, $return );
 
                         $array_messages = array_merge($array_messages, $array_combo_messages);
-
                     }
 
                     /* @see render_messages() */
@@ -198,7 +197,7 @@ if (!class_exists('SS_Shipping_WC_Order_Bulk')) :
 
             foreach ($order_ids as $order_id) {
                 $order = wc_get_order($order_id);
-                error_log($order_id);
+                // error_log($order_id);
                 // Ensure the selected orders have a Smart Send Shipping method
                 $ss_shipping_method_id = $this->ss_order->get_smart_send_method_id($order_id);
 
@@ -222,8 +221,8 @@ if (!class_exists('SS_Shipping_WC_Order_Bulk')) :
                 }
             }
 
-            error_log(print_r($array_shipments,true));
-            error_log(SS_QUEUE_CALLBACK_URL);
+            // error_log(print_r($array_shipments,true));
+            // error_log(SS_QUEUE_CALLBACK_URL);
             if (!empty($array_shipments)) {
                 $response = SS_SHIPPING_WC()->get_api_handle()->createShipmentAndLabelsAsync($array_shipments, SS_QUEUE_CALLBACK_URL );
 
@@ -242,10 +241,11 @@ if (!class_exists('SS_Shipping_WC_Order_Bulk')) :
                     $data = SS_SHIPPING_WC()->get_api_handle()->getData();
                     error_log(print_r($data,true));
                 } else {
+                    error_log(print_r(SS_SHIPPING_WC()->get_api_handle()->getErrorString(),true));
                     // Either some of the shipments failed validation or user
                     // does not have access to the async label generation
-	                array_push($array_messages, array(
-		                'message' => SS_SHIPPING_WC()->get_api_handle()->getErrorString(),
+	                array_push($array_messages_error, array(
+		                'message' => '"createShipmentAndLabelsAsync" failed',
 		                'type'    => 'error',
 	                ));
                 }
@@ -471,13 +471,19 @@ if (!class_exists('SS_Shipping_WC_Order_Bulk')) :
 
         public function queue_response() {
             error_log('queue_response');
-            
+            $return = false;
             if ( isset( $_GET['order_id'] ) ) {
-                error_log(print_r($_GET['order_id'],true));
+                // error_log(print_r($_GET['order_id'],true));
                 $order_id = wc_clean( $_GET['order_id'] );
+                
+                if ( isset( $_GET['return'] ) ) {
+                    $return = true;
+                }
 
+                $shipment_id = $ss_order->get_ss_shipment_id_from_order_meta( $order_id, $return );
                 // MAKE API CALL TO GET STATUS
-                // $response = SS_SHIPPING_WC()->get_api_handle()->getShipmentStatus( $order_id )
+                $response = SS_SHIPPING_WC()->get_api_handle()->getLabels( $shipment_id );
+                error_log(print_r($response,true));
 
                 // If label creation failed
                 if ( isset( $response['errors'] ) ) {
