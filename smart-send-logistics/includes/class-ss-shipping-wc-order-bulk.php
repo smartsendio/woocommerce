@@ -37,7 +37,7 @@ if (!class_exists('SS_Shipping_WC_Order_Bulk')) :
          */
         protected function define_constants()
         {
-            SS_SHIPPING_WC()->define('SS_QUEUE_CALLBACK_URL', WC()->api_request_url( 'smart-send-queue-response') );
+            SS_SHIPPING_WC()->define('SS_QUEUE_CALLBACK_URL', WC()->api_request_url( 'smart-send-queue-response') . '?order_id=:internal_id' );
         }
 
         /**
