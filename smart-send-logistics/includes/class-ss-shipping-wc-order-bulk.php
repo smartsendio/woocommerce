@@ -492,7 +492,7 @@ if (!class_exists('SS_Shipping_WC_Order_Bulk')) :
 
                         $response = SS_SHIPPING_WC()->get_api_handle()->getData();
                         // error_log(print_r($response,true));
-                        $this->ss_order->create_pdf_set_wc( $response, $order_id, false, true );
+                        $this->ss_order->create_pdf_set_wc( $response, $order_id, $return, true );
 
                         SS_SHIPPING_WC()->log_msg('Response from "getLabels" : ' . SS_SHIPPING_WC()->get_api_handle()->getResponseBody());
                     } else {
