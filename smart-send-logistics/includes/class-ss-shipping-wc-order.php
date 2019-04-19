@@ -580,7 +580,7 @@ if (!class_exists('SS_Shipping_WC_Order')) :
                 //The request was successful, lets update WooCommerce
                 $response = $ss_order_api->get_shipping_data();
 
-                $this->create_pdf_set_wc( $response, $order_id, $setting_save_order_note );
+                $this->create_pdf_set_wc( $response, $order_id, $return, $setting_save_order_note );
 
                 // return the success data
                 return array('success' => $response, 'shipment' => $ss_order_api->get_shipment());
