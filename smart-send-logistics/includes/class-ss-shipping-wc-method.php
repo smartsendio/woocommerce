@@ -294,7 +294,7 @@ if (!class_exists('SS_Shipping_WC_Method')) :
                     'default' => 'no',
                     'type'    => 'select',
                     'class'   => 'wc-enhanced-select',
-                    'options' => array_merge(array('0' => __("Don't change order status", 'smart-send-logistics')),
+                    'options' => array_merge(array('0' => __("Do not change order status", 'smart-send-logistics')),
                         wc_get_order_statuses()),
                 ),
                 'shipping_method_for_free_shipping' => array(
