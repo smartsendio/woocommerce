@@ -291,20 +291,19 @@ if (!class_exists('SS_Shipping_WC_Method')) :
                 'order_status'                      => array(
                     'title'   => __('Set order status after label print', 'smart-send-logistics'),
                     'id'      => 'smart_send_shipping_order_status',
-                    'default' => 'no',
+                    'default' => '0',
                     'type'    => 'select',
                     'class'   => 'wc-enhanced-select',
                     'options' => array_merge(array('0' => __("Don't change order status", 'smart-send-logistics')),
                         wc_get_order_statuses()),
                 ),
-                'order_status_failed'                      => array(
+                'order_status_failed'               => array(
                     'title'   => __('Set order status if label creation failed', 'smart-send-logistics'),
                     'id'      => 'smart_send_shipping_order_status_failed',
-                    'default' => 'no',
+                    'default' => 'wc-failed',
                     'type'    => 'select',
                     'class'   => 'wc-enhanced-select',
-                    'options' => array_merge(array('0' => __("Don't change order status", 'smart-send-logistics')),
-                        wc_get_order_statuses()),
+                    'options' => wc_get_order_statuses(),
                 ),
                 'shipping_method_for_free_shipping' => array(
                     'title'       => __('Shipping method used for WooCommerce method Free Shipping',
