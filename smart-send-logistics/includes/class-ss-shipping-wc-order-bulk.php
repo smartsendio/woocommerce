@@ -154,7 +154,7 @@ if (!class_exists('SS_Shipping_WC_Order_Bulk')) :
                                 'smart-send-logistics'),
                             'type'    => 'error',
                         ));
-                    } elseif ($orders_count > 5) {
+                    } elseif ($orders_count > 1) {//TODO: Change back to 5 - only for testing
                         $array_combo_messages = $this->smart_send_bulk_queue( $order_ids, $return );
 
                         $array_messages = array_merge($array_messages, $array_combo_messages);
@@ -197,7 +197,7 @@ if (!class_exists('SS_Shipping_WC_Order_Bulk')) :
 
             foreach ($order_ids as $order_id) {
                 $order = wc_get_order($order_id);
-                // error_log($order_id);
+                // error_log($order_id);//TODO: Delete
                 // Ensure the selected orders have a Smart Send Shipping method
                 $ss_shipping_method_id = $this->ss_order->get_smart_send_method_id($order_id);
 
@@ -218,11 +218,11 @@ if (!class_exists('SS_Shipping_WC_Order_Bulk')) :
                 }
             }
 
-            // error_log(print_r($array_shipments,true));
-            // error_log(SS_QUEUE_CALLBACK_URL);
+            // error_log(print_r($array_shipments,true));//TODO: Delete
+            // error_log(SS_QUEUE_CALLBACK_URL);//TODO: Delete
             if (!empty($array_shipments)) {
                 $response = SS_SHIPPING_WC()->get_api_handle()->createShipmentAndLabelsAsync($array_shipments, SS_QUEUE_CALLBACK_URL );
-
+	            //error_log(SS_SHIPPING_WC()->get_api_handle()->isSuccessful() ? 'true' : 'false');//TODO: Delete
                 if ( SS_SHIPPING_WC()->get_api_handle()->isSuccessful() ) {
                     $queue_count = count($array_order_ids);
                     $order_ids_str = '#' . implode(', #', $array_order_ids);
@@ -236,7 +236,7 @@ if (!class_exists('SS_Shipping_WC_Order_Bulk')) :
 
 
                     $data = SS_SHIPPING_WC()->get_api_handle()->getData();
-                    error_log(print_r($data,true));
+                    //error_log(print_r($data,true));//TODO: Delete
                     // Save 'shipment_id' for each order
                     foreach ($data->shipments as $shipment_key => $shipment_value) {
 
@@ -418,9 +418,6 @@ if (!class_exists('SS_Shipping_WC_Order_Bulk')) :
             return hash('sha256', $shipment_ids_str);
         }
 
-        /**
-         * Display messages on order view screen
-         */
         public function render_messages($current_screen = null)
         {
             if (!$current_screen instanceof WP_Screen) {
@@ -462,6 +459,9 @@ if (!class_exists('SS_Shipping_WC_Order_Bulk')) :
             }
         }
 
+	    /**
+	     * TODO: Add DocBlock
+	     */
         public function register_smart_send_statuses( $order_statuses ) {
             $smart_send_statuses['wc-ss-queue'] = array(
                 'label'                     => __('Smart Send Queue', 'smart-send-logistics'),
@@ -475,24 +475,29 @@ if (!class_exists('SS_Shipping_WC_Order_Bulk')) :
 
             return array_merge( $order_statuses, $smart_send_statuses);
         }
-        
+
+	    /**
+	     * TODO: Add DocBlock
+	     */
         public function add_smart_send_statuses( $order_statuses ) {
             $order_statuses['wc-ss-queue'] = __('Smart Send Queue', 'smart-send-logistics');
             return $order_statuses;
         }
 
 
-
+        /**
+         * TODO: Add DocBlock
+         */
         public function queue_response() {
-            // error_log('queue_response');
+            //error_log('queue_response');//TODO: Delete
             $return = false;
             if ( isset( $_GET['order_id'] ) && isset( $_GET['shipment_id'] ) ) {
-                // error_log(print_r($_GET['order_id'],true));
+                //error_log(print_r($_GET['order_id'],true));//TODO: Delete
                 $order_id = wc_clean( $_GET['order_id'] );
                 $order = wc_get_order( $order_id );
                 
                 $shipment_id = wc_clean( $_GET['shipment_id'] );
-                error_log($shipment_id);
+                //error_log($shipment_id);//TODO: Delete
                 
                 // Only handle request if the order was queued to Smart Send server
                 if( 'ss-queue' == $order->get_status() ) {
@@ -501,14 +506,14 @@ if (!class_exists('SS_Shipping_WC_Order_Bulk')) :
                         $return = true;
                     }
 
-                    // error_log($shipment_id);
+                    //error_log($shipment_id);//TODO: Delete
                     // Get label for 'shipment_id'
                     SS_SHIPPING_WC()->get_api_handle()->getLabels( $shipment_id );
 
                     if ( SS_SHIPPING_WC()->get_api_handle()->isSuccessful() ) {
 
                         $response = SS_SHIPPING_WC()->get_api_handle()->getData();
-                        // error_log(print_r($response,true));
+                        //error_log(print_r($response,true));//TODO: Delete
                         $this->ss_order->create_pdf_set_wc( $response, $order_id, $return, true );
 
                         SS_SHIPPING_WC()->log_msg('Response from "getLabels" : ' . SS_SHIPPING_WC()->get_api_handle()->getResponseBody());

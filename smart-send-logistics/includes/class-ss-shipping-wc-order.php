@@ -139,8 +139,16 @@ if (!class_exists('SS_Shipping_WC_Order')) :
             // If debug is enabled then show the shipping method id and instance id
             if (isset($shipping_ss_settings['ss_debug']) && $shipping_ss_settings['ss_debug'] == 'yes') {
                 foreach ($order->get_shipping_methods() as $method) {
-                    echo '<pre>' . __('Debug id', 'smart-send-logistics') . ': ' .
-                        $method->get_method_id() . ':' . $method->get_instance_id() . '</pre>';
+                	echo '<pre>';
+                    echo __('Debug id', 'smart-send-logistics') . ': ' .
+                        $method->get_method_id() . ':' . $method->get_instance_id() . '<br>';
+
+	                echo __('SS Shipment id', 'smart-send-logistics') . ': '
+	                     . $order->get_meta('_ss_shipping_label_id', true) . '<br>';
+
+	                echo __('SS Shipment return id', 'smart-send-logistics') . ': '
+	                     .  $order->get_meta( '_ss_shipping_return_label_id', true) . '<br>';
+	                echo '</pre>';
                 }
             }
 
