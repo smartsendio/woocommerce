@@ -203,7 +203,7 @@ if (!class_exists('SS_Shipping_WC_Order_Bulk')) :
 
                 if (!empty($ss_shipping_method_id)) {
 
-                    $shipment_arr = $this->ss_order->create_shipment_for_single_order_maybe_return($order_id, $return, true);
+                    $shipment_arr = $this->ss_order->get_shipment_object_array_for_single_order_maybe_return($order_id, $return);
 
                     $array_shipments = array_merge($array_shipments, $shipment_arr);
 	                $array_order_ids[] = $order_id;

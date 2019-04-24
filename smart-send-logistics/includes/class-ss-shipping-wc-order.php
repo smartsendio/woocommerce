@@ -476,18 +476,18 @@ if (!class_exists('SS_Shipping_WC_Order')) :
         }
 
         /**
-         * Create label for a single WooCommerce order and maybe auto generate return label
+         * Create shipment objects for a single WooCommerce order and maybe also for a return label
          *
-         * @param int $order_id Order ID
-         * @param boolean $return Whether or not the label is return (true) or normal (false)
-         * @param boolean $setting_save_order_note Whether or not to save an order note with information about label
+         * The shipments object are used when creating a shipping label via the Smart Send API.
+         * Will also generate a return shipment if return is false (normal) and the setting for auto-generating returns labels is on.
          *
+         * @param int $order_id     WC Order ID
+         * @param boolean $return   Whether or not the label is return (true) or normal (false)
          * @return array
          */
-        public function create_shipment_for_single_order_maybe_return(
+        public function get_shipment_object_array_for_single_order_maybe_return(
             $order_id,
-            $return = false,
-            $setting_save_order_note = true
+            $return = false
         ) {
 
             $reponse_arr = array();
