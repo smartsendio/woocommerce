@@ -200,6 +200,9 @@ This box appears when a "Select Pick-up Point" shipping method is selected, but 
 
 == Changelog ==
 
+= 8.1.0 =
+* Add asynchronous label generation for handling more than 5 orders
+
 = 8.0.17 =
 * Add hidden product meta field **_ss_country_of_origin** used for custom declarations
 
