@@ -37,7 +37,7 @@ if (!class_exists('SS_Shipping_WC_Order_Bulk')) :
          */
         protected function define_constants()
         {
-            SS_SHIPPING_WC()->define('SS_QUEUE_CALLBACK_URL', WC()->api_request_url( 'smart-send-queue-response') . '?order_id=:internal_id&shipment_id=:id' );
+            SS_SHIPPING_WC()->define('SS_QUEUE_CALLBACK_URL', WC()->api_request_url( 'smart-send-queue-ping') . '?order_id=:internal_id&shipment_id=:id' );
         }
 
         /**
@@ -60,8 +60,8 @@ if (!class_exists('SS_Shipping_WC_Order_Bulk')) :
             add_filter('wc_order_statuses', array($this, 'add_smart_send_statuses'), 10, 1 );
 
             // Call WC from Smart Send server with queue results 
-            // URL: "example.com/wc-api/smart-send-queue-response"
-            add_action( 'woocommerce_api_smart-send-queue-response' , array( $this, 'queue_response' ) );
+            // URL: "https://example.com/wc-api/smart-send-queue-ping"
+            add_action( 'woocommerce_api_smart-send-queue-ping' , array( $this, 'queue_ping' ) );
         }
 
         /**
@@ -221,7 +221,7 @@ if (!class_exists('SS_Shipping_WC_Order_Bulk')) :
             // error_log(print_r($array_shipments,true));//TODO: Delete
             // error_log(SS_QUEUE_CALLBACK_URL);//TODO: Delete
             if (!empty($array_shipments)) {
-                $response = SS_SHIPPING_WC()->get_api_handle()->createShipmentAndLabelsAsync($array_shipments, SS_QUEUE_CALLBACK_URL );
+                $response = SS_SHIPPING_WC()->get_api_handle()->createShipmentAndLabelsAsync($array_shipments, null, SS_QUEUE_CALLBACK_URL );
 	            //error_log(SS_SHIPPING_WC()->get_api_handle()->isSuccessful() ? 'true' : 'false');//TODO: Delete
                 if ( SS_SHIPPING_WC()->get_api_handle()->isSuccessful() ) {
                     $queue_count = count($array_order_ids);
@@ -488,8 +488,8 @@ if (!class_exists('SS_Shipping_WC_Order_Bulk')) :
         /**
          * TODO: Add DocBlock
          */
-        public function queue_response() {
-            //error_log('queue_response');//TODO: Delete
+        public function queue_ping() {
+            //error_log('queue_ping');//TODO: Delete
             $return = false;
             if ( isset( $_GET['order_id'] ) && isset( $_GET['shipment_id'] ) ) {
                 //error_log(print_r($_GET['order_id'],true));//TODO: Delete

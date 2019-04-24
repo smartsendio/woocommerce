@@ -285,17 +285,17 @@ class Api extends Client
      * Once each label is handled then a POST request will be made to the
      * provided callback url
      *
-     * @param array $shipments          Array of Shipment objects
-     * @param string $callback_url      Url used for callback once processed
+     * @param array $shipments              Array of Shipment objects
+     * @param string|null $callback_url     Url used for POST callback once processed
+     * @param string|null $ping_url         Url used for GET ping once processed
      * @return object
      */
-	public function createShipmentAndLabelsAsync($shipments, $callback_url)
+	public function createShipmentAndLabelsAsync($shipments, $callback_url=null, $ping_url=null)
 	{
 		$data = array(
 			'notification' => array(
-				'callback' => array(
-					'url' => $callback_url,
-				),
+				'callback' => $callback_url,
+				'ping_url' => $ping_url,
 			),
 			'shipments' => $shipments,
 		);
