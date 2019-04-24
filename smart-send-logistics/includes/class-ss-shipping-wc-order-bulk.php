@@ -208,9 +208,6 @@ if (!class_exists('SS_Shipping_WC_Order_Bulk')) :
                     $array_shipments = array_merge($array_shipments, $shipment_arr);
 	                $array_order_ids[] = $order_id;
 
-                    // Set order status to 'Smart Send Queue'
-                    $order->update_status('wc-ss-queue');
-
                 } else {
                     array_push($array_messages_error, array(
                         'message' => sprintf(__('Order #%s', 'smart-send-logistics'),
@@ -247,6 +244,13 @@ if (!class_exists('SS_Shipping_WC_Order_Bulk')) :
                             $return = true;
                         } else {
                             $return = false;
+                        }
+
+	                    $order = wc_get_order($shipment_value->internal_id);
+	                    // The order status might already have been updated to 'wc-ss-queue' (if we are handling the return label now for example)
+                        if ($order->get_status() != 'wc-ss-queue') {
+	                        // Set order status to 'Smart Send Queue'
+	                        $order->update_status('wc-ss-queue');
                         }
                         
                         $this->ss_order->save_ss_shipment_id_in_order_meta($shipment_value->internal_id, $shipment_value->shipment_id, $return);
