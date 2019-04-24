@@ -314,6 +314,7 @@ if (!class_exists('SS_Shipping_Shipment')) :
 
                     $hs_code = get_post_meta($item['product_id'], '_ss_hs_code', true);
                     $custom_desc = get_post_meta($item['product_id'], '_ss_customs_desc', true);
+	                $country_of_origin = get_post_meta($item['product_id'], '_ss_country_of_origin', true);
 
                     $items[$index] = new \Smartsend\Models\Shipment\Item();
                     $items[$index]->setInternalId($product_id ?: null)
@@ -322,6 +323,7 @@ if (!class_exists('SS_Shipping_Shipment')) :
                         ->setName($product->get_title() ?: null)
                         ->setDescription($custom_desc ?: null)//$product_description can be used, but is often to long (255)
                         ->setHsCode($hs_code ?: null)
+	                    ->setCountryOfOrigin($country_of_origin ?: null)
                         ->setImageUrl(null)//$product_img_url can be used, but sometimes include spaces (bug) which causes validation error
                         ->setUnitWeight($product_weight > 0 ? $product_weight : null)
                         ->setUnitPriceExcludingTax($product_val ?: null)
