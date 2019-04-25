@@ -294,8 +294,7 @@ if (!class_exists('SS_Shipping_WC_Method')) :
                     'default' => '0',
                     'type'    => 'select',
                     'class'   => 'wc-enhanced-select',
-                    'options' => array_merge(array('0' => __("Don't change order status", 'smart-send-logistics')),
-                        wc_get_order_statuses()),
+                    'options' => $this->get_status_options(true),
                 ),
                 'order_status_failed'               => array(
                     'title'   => __('Set order status if label creation failed', 'smart-send-logistics'),
@@ -303,7 +302,7 @@ if (!class_exists('SS_Shipping_WC_Method')) :
                     'default' => 'wc-failed',
                     'type'    => 'select',
                     'class'   => 'wc-enhanced-select',
-                    'options' => wc_get_order_statuses(),
+                    'options' => $this->get_status_options(false),
                 ),
                 'shipping_method_for_free_shipping' => array(
                     'title'       => __('Shipping method used for WooCommerce method Free Shipping',
@@ -366,6 +365,25 @@ if (!class_exists('SS_Shipping_WC_Method')) :
                         'smart-send-logistics'), '<a href="' . $log_path . '" target = "_blank">', '</a>'),
                 ),
             );
+        }
+
+	    /**
+	     * @param bool $null_value
+	     *
+	     * @return array
+	     */
+	    private function get_status_options($null_value = false)
+        {
+            $options = array();
+
+            if ($null_value) {
+	            $options = array('0' => __("Don't change order status", 'smart-send-logistics'));
+            }
+
+            $status_arr = wc_get_order_statuses();
+	        unset($status_arr['wc-ss-queue']);
+
+	        return array_merge($options, $status_arr );
         }
 
         /**
