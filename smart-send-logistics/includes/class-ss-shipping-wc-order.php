@@ -675,8 +675,8 @@ if (!class_exists('SS_Shipping_WC_Order')) :
 
             // Save order note
             if ($setting_save_order_note) {
-		        $tracking_note = '<label>' . ($return ? __('Return shipping label',
-				        'smart-send-logistics') : __('Shipping label', 'smart-send-logistics')) . ': </label>'
+		        $tracking_note = '<b><label>' . ($return ? __('Smart Send return label failed',
+				        'smart-send-logistics') : __('Smart Send shipping label failed', 'smart-send-logistics')) . ':</label></b><br>'
 		                         . SS_SHIPPING_WC()->get_api_handle()->getErrorString();
                 /*
                  * Filter the order comment that is saved. The order comment can be seen in the WooCommerce backend
@@ -766,12 +766,12 @@ if (!class_exists('SS_Shipping_WC_Order')) :
         protected function get_formatted_order_note_with_label_and_tracking($order_id, $api_shipment_response, $return)
         {
 
-            $tracking_note = '<label>' . ($return ? __('Return shipping label',
-                    'smart-send-logistics') : __('Shipping label', 'smart-send-logistics')) . ': </label>'
+            $tracking_note = '<b><label>' . ($return ? __('Smart Send return label',
+                    'smart-send-logistics') : __('Smart Send shipping label', 'smart-send-logistics')) . ':</label></b><br>'
                 . $this->get_ss_shipping_label_link($api_shipment_response->woocommerce['label_url'], $return);
 
             foreach ($api_shipment_response->parcels as $parcel) {
-                $tracking_note .= '<br><label>' . __('Tracking number', 'smart-send-logistics') . ': </label>'
+                $tracking_note .= '<br><label>' . __('Tracking number', 'smart-send-logistics') . ':</label><br>'
                     . '<a href="' . $parcel->tracking_link . '" target="_blank">' . $parcel->tracking_code . '</a>';
             }
 
@@ -1008,7 +1008,7 @@ if (!class_exists('SS_Shipping_WC_Order')) :
         public function get_ss_shipping_label_link($url, $return)
         {
             if ($return) {
-                $message = __('Download return shipping label', 'smart-send-logistics');
+                $message = __('Download return label', 'smart-send-logistics');
             } else {
                 $message = __('Download shipping label', 'smart-send-logistics');
             }
