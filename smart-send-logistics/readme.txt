@@ -119,7 +119,7 @@ The plugin implements a number of useful hooks (actions and filters) that can be
     An action that allows 3rd parties to add rates after the Smart Send rate is added.
 * **woocommerce_shipping_smart_send_shipping_is_available**
     A filter that allows 3rd parties to disable a shipping method
-* **woocommerce_shipping_smart_send_shipping_is_free_shipping**
+* **woocommerce_shipping_smart_send_shipping_is_flate_rate_shipping**
     A filter that allows 3rd parties to disable/enable free shipping for a method
 * **smart_send_agent_timeout**
     A filter to change the timeout used when searching for agents on checkout page
@@ -201,6 +201,7 @@ This box appears when a "Select Pick-up Point" shipping method is selected, but 
 == Changelog ==
 
 = 8.1.0 =
+* Rename filter woocommerce_shipping_smart_send_shipping_is_free_shipping to woocommerce_shipping_smart_send_shipping_is_flate_rate_shipping
 
 = 8.0.17 =
 * Add hidden product meta field **_ss_country_of_origin** used for custom declarations

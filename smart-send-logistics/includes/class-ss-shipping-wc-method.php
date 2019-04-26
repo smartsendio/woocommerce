@@ -947,7 +947,7 @@ if (!class_exists('SS_Shipping_WC_Method')) :
             $this->tax_status = $this->get_option('tax_status');
 
             // Check if free shipping, otherwise claculate based on weight and evaluate formulas
-            if ($this->is_free_shipping($package)) {
+            if ($this->is_flat_rate_shipping($package)) {
 
                 $rate['cost'] = $this->get_option('flatfee_cost');
                 $this->add_rate($rate);
@@ -1091,12 +1091,12 @@ if (!class_exists('SS_Shipping_WC_Method')) :
         }
 
         /**
-         * See if free shipping is available based on the package and cart.
+         * See if flat rate shipping is available based on the package and cart.
          *
          * @param array $package Shipping package.
          * @return bool
          */
-        public function is_free_shipping($package)
+        public function is_flat_rate_shipping($package)
         {
             $has_coupon = false;
             $has_met_min_amount = false;
@@ -1175,8 +1175,20 @@ if (!class_exists('SS_Shipping_WC_Method')) :
                 }
             }
 
-            return apply_filters('woocommerce_shipping_' . $this->id . '_is_free_shipping', $is_available, $package,
-                $this);
+            // This filter will be removed in future versions.
+	        $is_available = apply_filters_deprecated(
+		        'woocommerce_shipping_' . $this->id . '_is_free_shipping',
+                    array( $is_available, $package, $this ),
+                    '8.1.0',
+		        'woocommerce_shipping_smart_send_shipping_is_flat_rate_shipping'
+            );
+
+            // This is the recommended filter
+            return apply_filters(
+                    'woocommerce_shipping_smart_send_shipping_is_flat_rate_shipping',
+                    $is_available,
+                    $package, $this
+            );
         }
 
 	    /**
