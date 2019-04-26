@@ -89,6 +89,16 @@ if (!class_exists('SS_Shipping_Shipment')) :
             return SS_SHIPPING_WC()->get_api_handle()->getData();
         }
 
+	    /**
+	     * Get API call data
+	     *
+	     * @return object
+	     */
+	    public function get_shipping_error()
+	    {
+		    return SS_SHIPPING_WC()->get_api_handle()->getError();
+	    }
+
         /**
          * Get error message
          *

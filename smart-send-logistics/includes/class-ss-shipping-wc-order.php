@@ -589,7 +589,7 @@ if (!class_exists('SS_Shipping_WC_Order')) :
 
             if ($ss_order_api->make_single_shipment_api_call( $return )) {
 
-                //The request was successful, lets update WooCommerce
+                //The request was successful, update WooCommerce
                 $response = $ss_order_api->get_shipping_data();
 
                 $this->handle_generated_label( $order_id, $response, $return, $setting_save_order_note, $created_queued=false );
@@ -597,10 +597,11 @@ if (!class_exists('SS_Shipping_WC_Order')) :
                 // return the success data
                 return array('success' => $response, 'shipment' => $ss_order_api->get_shipment());
             } else {
+	            //The request was successful, update WooCommerce
+	            $response = $ss_order_api->get_shipping_error();
 
-                if (!$return) {
-                    $this->set_order_status_after_label_failed($order);//TODO CHANGE!
-                }
+	            $this->handle_failed_label( $order_id, $response, $return, $setting_save_order_note, $created_queued=false );
+
                 // Something failed. Let's return them, so the error can be shown to the user
                 return array('error' => $ss_order_api->get_error_msg());
             }
@@ -617,7 +618,7 @@ if (!class_exists('SS_Shipping_WC_Order')) :
 	     * @param bool $setting_save_order_note
 	     * @param bool $created_queued
 	     *
-	     * @return array
+	     * @return void
 	     */
 	    public function handle_generated_label($order_id, $response, $return = false, $setting_save_order_note = true, $created_queued=false)
         {
@@ -635,7 +636,7 @@ if (!class_exists('SS_Shipping_WC_Order')) :
 				        $return
 			        );
 		        } catch (Exception $e) {
-			        return array('error' => $e->getMessage());
+			        return array('error' => $e->getMessage());//TODO: Should not be returned
 		        }
 	        }
 
@@ -662,8 +663,8 @@ if (!class_exists('SS_Shipping_WC_Order')) :
 
 	        // Set order status after label generation
 	        // Important to update AFTER saving meta fields and tracking information (otherwise not included in email via Shipment Tracking)
-	        $default_order_status = $created_queued ? 'wc-processing' : null;//Order status MUST be changed for queued labels
-	        $this->set_order_status_after_label_failed($order, $default_order_status=null);
+	        $default_order_status = $created_queued ? 'wc-on-hold' : null;//Order status MUST be changed for queued labels
+	        $this->set_order_status_after_label_generated($order, $default_order_status);
 
 	        // Action when a shipping label has been created
 	        do_action('smart_send_shipping_label_created', $order_id, $response);
@@ -680,7 +681,7 @@ if (!class_exists('SS_Shipping_WC_Order')) :
 	     * @param bool $setting_save_order_note
 	     * @param bool $created_queued
 	     *
-	     * @return array
+	     * @return void
 	     */
         public function handle_failed_label( $order_id, $response, $return = false, $setting_save_order_note = true, $created_queued=false ) {
 
@@ -705,8 +706,8 @@ if (!class_exists('SS_Shipping_WC_Order')) :
             }
 
             // Set order status after label generation
-	        $default_order_status = $created_queued ? 'wc-failed' : null;//Order status MUST be changed for queued labels
-	        $this->set_order_status_after_label_failed($order, $default_order_status=null);
+	        $default_order_status = $created_queued ? 'wc-on-hold' : null;//Order status MUST be changed for queued labels
+	        $this->set_order_status_after_label_failed($order, $default_order_status);
 
             // Action when a shipping label has been created
             do_action('smart_send_shipping_label_failed', $order_id, $response, $return);
@@ -760,8 +761,8 @@ if (!class_exists('SS_Shipping_WC_Order')) :
         /**
          * If set to change order after order generated, update order status
          *
-         * @param \WC_Order     $order                  WC Order object
-         * @param string|null   $default_order_status   If the setting is disabled then we will force this order status
+         * @param \WC_Order     $order  WC Order object
+         * @param string|null   $default_order_status       If setting is disabled use this
          *
          * @return void
          */
@@ -780,8 +781,8 @@ if (!class_exists('SS_Shipping_WC_Order')) :
         /**
          * If set to change order after order generated, update order status
          *
-         * @param \WC_Order     $order                  WC Order object
-         * @param string|null   $default_order_status   If the setting is disabled then we will force this order status
+         * @param \WC_Order     $order  WC Order object
+         * @param string|null   $default_order_status       If setting is disabled use this
          *
          * @return void
          */
