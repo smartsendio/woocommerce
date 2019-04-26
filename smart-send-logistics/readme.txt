@@ -200,6 +200,8 @@ This box appears when a "Select Pick-up Point" shipping method is selected, but 
 
 == Changelog ==
 
+= 8.1.0 =
+
 = 8.0.17 =
 * Add hidden product meta field **_ss_country_of_origin** used for custom declarations
 
@@ -478,6 +480,9 @@ This box appears when a "Select Pick-up Point" shipping method is selected, but 
 * Initial release for Wordpress.org
 
 == Upgrade Notice ==
+
+= 8.1 =
+8.1 makes it possible to create up to 100 labels at a time. Users can upgrade from 8.0 if they are not extending the plugin core functions. We recommend to make a full site backup, and [review update best practices](https://docs.woocommerce.com/document/how-to-update-your-site) before upgrading.
 
 = 8.0 =
 8.0 is a major update. Shipping methods moved to WooCommerce Shipping Zones and must be setup again after upgrading. Make a full site backup, and [review update best practices](https://docs.woocommerce.com/document/how-to-update-your-site) before upgrading.
