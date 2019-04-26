@@ -315,7 +315,6 @@ if (!class_exists('SS_Shipping_WC_Method')) :
                     'class'       => 'wc-enhanced-select',
                     'description' => __('Selecting a shipping method will make it possible to make shipping labels for order places with WooCommerces native Free Shipping method.',
                         'smart-send-logistics'),
-                    'desc_tip'    => true,
                     'options'     => $this->shipping_method,
                 ),
                 'include_order_comment'             => array(
@@ -350,7 +349,7 @@ if (!class_exists('SS_Shipping_WC_Method')) :
                 'default_select_agent'              => array(
                     'title'       => __('Select Default', 'smart-send-logistics'),
                     'label'       => __('Enable Select Default', 'smart-send-logistics'),
-                    'description' => __('Select the first returned pick-up point.'),
+                    'description' => __('This will automatically select the closest pick-up point and let the customer change to a different pick-up point. This means that the customer will not be forced to select a pick-up point before completing the order.'),
                     'default'     => 'no',
                     'type'        => 'checkbox',
                     'desc_tip'    => true,
