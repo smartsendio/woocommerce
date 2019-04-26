@@ -524,11 +524,11 @@ if (!class_exists('SS_Shipping_WC_Order_Bulk')) :
                     $response = SS_SHIPPING_WC()->get_api_handle()->getData();
 
                     if ( SS_SHIPPING_WC()->get_api_handle()->isSuccessful() ) {
-                        $this->ss_order->create_pdf_set_wc( $response, $order_id, $return, true );
+	                    $this->ss_order->handle_generated_label($order_id, $response, $return, $setting_save_order_note = true, $created_queued=true);
 
                         SS_SHIPPING_WC()->log_msg('Response from "getLabels" : ' . SS_SHIPPING_WC()->get_api_handle()->getResponseBody());
                     } else {
-                        $this->ss_order->label_creation_failed( $response, $order_id, $return, true );
+                        $this->ss_order->label_creation_failed( $response, $order_id, $return, true, $created_queued=true );
 
                         SS_SHIPPING_WC()->log_msg('Error response from "getLabels" : ' . SS_SHIPPING_WC()->get_api_handle()->getResponseBody());
                     }

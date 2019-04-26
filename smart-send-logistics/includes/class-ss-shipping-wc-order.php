@@ -592,83 +592,97 @@ if (!class_exists('SS_Shipping_WC_Order')) :
                 //The request was successful, lets update WooCommerce
                 $response = $ss_order_api->get_shipping_data();
 
-                $this->create_pdf_set_wc( $response, $order_id, $return, $setting_save_order_note );
+                $this->handle_generated_label( $order_id, $response, $return, $setting_save_order_note, $created_queued=false );
 
                 // return the success data
                 return array('success' => $response, 'shipment' => $ss_order_api->get_shipment());
             } else {
 
                 if (!$return) {
-                    $this->set_order_status_after_label_failed($order);
+                    $this->set_order_status_after_label_failed($order);//TODO CHANGE!
                 }
                 // Something failed. Let's return them, so the error can be shown to the user
                 return array('error' => $ss_order_api->get_error_msg());
             }
         }
 
-        public function create_pdf_set_wc( $response, $order_id, $return = false, $setting_save_order_note = true ) {
+	    /**
+	     * Handle successfully label request
+	     *
+	     * This method will insert all relevant info in WooCommerce and trigger actions
+	     *
+	     * @param $order_id
+	     * @param $response
+	     * @param bool $return
+	     * @param bool $setting_save_order_note
+	     * @param bool $created_queued
+	     *
+	     * @return array
+	     */
+	    public function handle_generated_label($order_id, $response, $return = false, $setting_save_order_note = true, $created_queued=false)
+        {
 
-            // Load WC Order
-            $order = wc_get_order($order_id);
+	        // Load WC Order
+	        $order = wc_get_order($order_id);
 
-            if (SS_SHIPPING_WC()->get_setting_save_shipping_labels_in_uploads()) {
-                try {
-                    // Save the PDF file
-                    $labelUrl = $this->save_label_file($response->shipment_id, $response->pdf->base_64_encoded,
-                        $return);
-                } catch (Exception $e) {
-                    return array('error' => $e->getMessage());
-                }
-            }
+	        // Save label locally
+	        if (SS_SHIPPING_WC()->get_setting_save_shipping_labels_in_uploads()) {
+		        try {
+			        // Save the PDF file
+			        $labelUrl = $this->save_label_file(
+			        	$response->shipment_id,
+				        $response->pdf->base_64_encoded,
+				        $return
+			        );
+		        } catch (Exception $e) {
+			        return array('error' => $e->getMessage());
+		        }
+	        }
 
-            // Get the label link
-            $labelUrl = $response->pdf->link;
+	        // Get the label link
+	        $labelUrl = $response->pdf->link;
 
-            // save order meta data
-            $this->save_ss_shipment_id_in_order_meta($order_id, $response->shipment_id, $return);
+	        // save order meta data
+	        $this->save_ss_shipment_id_in_order_meta($order_id, $response->shipment_id, $return);
 
-            // Get formatted order comment
-            $response->woocommerce['label_url'] = $labelUrl;
-            $response->woocommerce['order_note'] = $this->get_formatted_order_note_with_label_and_tracking($order_id,
-                $response, $return);
-            $response->woocommerce['return'] = $return;
 
-            // Save order note
-            if ($setting_save_order_note) {
-                /*
-                 * Filter the order comment that is saved. The order comment can be seen in the WooCommerce backend
-                 *
-                 * @param string order note containing tracking link and link to pdf label
-                 * @param WC_Order object
-                 * @param boolean $return Whether or not the label is return (true) or normal (false)
-                 */
-                $order_note = apply_filters('smart_send_shipping_label_comment',
-                    $response->woocommerce['order_note'], $order, $return);
-                $order->add_order_note($order_note, 0, true);
-            }
+	        // Get formatted order comment
+	        $response->woocommerce['label_url'] = $labelUrl;
+	        $response->woocommerce['order_note'] = $this->get_formatted_order_note_with_label_and_tracking($order_id,
+		        $response, $return);
+	        $response->woocommerce['return'] = $return;
 
-            // Add tracking info to "WooCommerce Shipment Tracking" plugin
-            foreach ($response->parcels as $parcel) {
-                // Only add tracking info to "WooCommerce Shipment Tracking" plugin for non-return parcels
-                if (!$return) {
-                    $this->save_tracking_in_shipment_tracking($order_id, $parcel->tracking_code,
-                        $parcel->tracking_link,
-                        $response->carrier_name);
-                }
-            }
+	        // Save order note
+	        if ($setting_save_order_note) {
+				$this->save_order_comment($response->woocommerce['order_note'], $order, $return);
+	        }
 
-            // Set order status after label generation
-            // Important to update AFTER saving meta fields and tracking information (otherwise not included in email via Shipment Tracking)
-            if (!$return) {
-                $this->set_order_status_after_label_generated($order);
-            }
+	        // Save tracking information to
+			$this->save_tracking_information($order_id, $response, $return);
 
-            // Action when a shipping label has been created
-            do_action('smart_send_shipping_label_created', $order_id, $response);
+	        // Set order status after label generation
+	        // Important to update AFTER saving meta fields and tracking information (otherwise not included in email via Shipment Tracking)
+	        $default_order_status = $created_queued ? 'wc-processing' : null;//Order status MUST be changed for queued labels
+	        $this->set_order_status_after_label_failed($order, $default_order_status=null);
 
+	        // Action when a shipping label has been created
+	        do_action('smart_send_shipping_label_created', $order_id, $response);
         }
 
-        public function label_creation_failed( $response, $order_id, $return = false, $setting_save_order_note = true ) {
+	    /**
+	     * Handle failed label request
+	     *
+	     * This method will insert all relevant info in WooCommerce and trigger actions
+	     *
+	     * @param $order_id
+	     * @param $response
+	     * @param bool $return
+	     * @param bool $setting_save_order_note
+	     * @param bool $created_queued
+	     *
+	     * @return array
+	     */
+        public function handle_failed_label( $order_id, $response, $return = false, $setting_save_order_note = true, $created_queued=false ) {
 
             // Load WC Order
             $order = wc_get_order($order_id);
@@ -691,41 +705,95 @@ if (!class_exists('SS_Shipping_WC_Order')) :
             }
 
             // Set order status after label generation
-            // Important to update AFTER saving meta fields and tracking information (otherwise not included in email via Shipment Tracking)
-            if (!$return) {
-                $this->set_order_status_after_label_failed($order);
-            }
+	        $default_order_status = $created_queued ? 'wc-failed' : null;//Order status MUST be changed for queued labels
+	        $this->set_order_status_after_label_failed($order, $default_order_status=null);
 
             // Action when a shipping label has been created
-            do_action('smart_send_shipping_label_failed', $order_id, $response);
+            do_action('smart_send_shipping_label_failed', $order_id, $response, $return);
 
         }
 
+	    /**
+	     * Save the order comment. The order comment can be seen in the WooCommerce backend
+	     *
+	     * Filter: smart_send_shipping_label_comment
+	     *
+	     * @param string     $comment    Order note containing tracking link and link to pdf label
+	     * @param WC_Order   $order      WC Order object
+	     * @param boolean    $return     Whether or not the label is return (true) or normal (false)
+	     *
+	     * @return void
+	     */
+	    public function save_order_comment($comment, $order, $return)
+	    {
+		    $order_note = apply_filters(
+			    'smart_send_shipping_label_comment',
+			    $comment,
+			    $order,
+			    $return
+		    );
+		    $order->add_order_note($order_note, 0, true);
+	    }
+
+	    /**
+	     * Save tracking information in WooCommerce
+	     *
+	     * @param string    $order_id   Order Id
+	     * @param object    $response   Smart Send shipment response
+	     * @param boolean   $return     Whether or not the label is return (true) or normal (false)
+	     *
+	     * @return void
+	     */
+	    public function save_tracking_information($order_id, $response, $return)
+	    {
+		    // Add tracking info to "WooCommerce Shipment Tracking" plugin
+		    foreach ($response->parcels as $parcel) {
+			    // Only add tracking info to "WooCommerce Shipment Tracking" plugin for non-return parcels
+			    if (!$return) {
+				    $this->save_tracking_in_shipment_tracking($order_id, $parcel->tracking_code,
+					    $parcel->tracking_link,
+					    $response->carrier_name);
+			    }
+		    }
+	    }
+
         /**
          * If set to change order after order generated, update order status
+         *
+         * @param \WC_Order     $order                  WC Order object
+         * @param string|null   $default_order_status   If the setting is disabled then we will force this order status
+         *
+         * @return void
          */
-        protected function set_order_status_after_label_generated($order)
+        protected function set_order_status_after_label_generated($order, $default_order_status=null)
         {
 
             $ss_settings = SS_SHIPPING_WC()->get_ss_shipping_settings();
 
             if (!empty($ss_settings['order_status'])) {
-                $order->update_status($ss_settings['order_status']);
+	            $order->update_status($ss_settings['order_status']);
+            } elseif ($default_order_status) {
+	            $order->update_status($default_order_status);
             }
         }
 
         /**
          * If set to change order after order generated, update order status
+         *
+         * @param \WC_Order     $order                  WC Order object
+         * @param string|null   $default_order_status   If the setting is disabled then we will force this order status
+         *
+         * @return void
          */
-        public function set_order_status_after_label_failed($order)
+        public function set_order_status_after_label_failed($order, $default_order_status=null)
         {
 
             $ss_settings = SS_SHIPPING_WC()->get_ss_shipping_settings();
 
             if (!empty($ss_settings['order_status_failed'])) {
-                $order->update_status($ss_settings['order_status_failed']);
-            } else {
-                $order->update_status('wc-failed');
+            	$order->update_status($ss_settings['order_status_failed']);
+            } elseif ($default_order_status) {
+	            $order->update_status($default_order_status);
             }
         }
 
