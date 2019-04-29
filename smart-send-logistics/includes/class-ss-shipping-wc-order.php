@@ -455,6 +455,8 @@ if (!class_exists('SS_Shipping_WC_Order')) :
 
         /**
          * Save Agent No. and Generate Label
+         *
+         * Called via AJAX call wp_ajax_ss_shipping_generate_label() from the order page
          */
         public function generate_label()
         {
@@ -483,7 +485,7 @@ if (!class_exists('SS_Shipping_WC_Order')) :
          *
          * @param int $order_id     WC Order ID
          * @param boolean $return   Whether or not the label is return (true) or normal (false)
-         * @return array
+         * @return object           Smart Send Shipment object
          */
         public function get_shipment_object_for_order(
             $order_id,
@@ -569,7 +571,7 @@ if (!class_exists('SS_Shipping_WC_Order')) :
                 // return the success data
                 return array('success' => $response, 'shipment' => $ss_order_api->get_shipment());
             } else {
-	            //The request was successful, update WooCommerce
+	            //The request failed, update WooCommerce
 	            $response = $ss_order_api->get_shipping_error();
 
 	            $this->handle_failed_label( $order_id, $response, $return, $setting_save_order_note, $created_queued=false );
@@ -906,12 +908,12 @@ if (!class_exists('SS_Shipping_WC_Order')) :
             update_post_meta($order_id, 'ss_shipping_order_agent_no', $agent_no);
         }
 
-        /*
+        /**
          * Gets agent no from the post meta array for an order
          *
-         * @param int  $order_id  Order ID
+         * @param int       $order_id   Order ID
          *
-         * @return Agent No
+         * @return string               Agent Number
          */
         public function get_ss_shipping_order_agent_no($order_id)
         {
@@ -934,8 +936,8 @@ if (!class_exists('SS_Shipping_WC_Order')) :
         /**
          * Saves the agent object to post_meta.
          *
-         * @param int $order_id Order ID
-         * @param array $agent Agent Object
+         * @param int   $order_id   Order ID
+         * @param array $agent      Agent Object
          *
          * @return void
          */
@@ -945,7 +947,7 @@ if (!class_exists('SS_Shipping_WC_Order')) :
         }
 
 	    /**
-         * Delete shippng agent object
+         * Delete shipping agent object
          *
 	     * @param $order_id
 	     */
@@ -953,7 +955,7 @@ if (!class_exists('SS_Shipping_WC_Order')) :
             delete_post_meta($order_id, '_ss_shipping_order_agent');
         }
 
-        /*
+        /**
          * Gets agent object from the post meta array for an order
          *
          * @param int  $order_id  Order ID
@@ -1083,6 +1085,10 @@ if (!class_exists('SS_Shipping_WC_Order')) :
 
         /**
          * Prevents data being copied to subscription renewals
+         *
+         * @param string
+         *
+         * @return string
          */
         public function woocommerce_subscriptions_renewal_order_meta_query($order_meta_query)
         {
@@ -1091,7 +1097,7 @@ if (!class_exists('SS_Shipping_WC_Order')) :
             return $order_meta_query;
         }
 
-        /*
+        /**
          * Get an orders total weight
          *
          * @param WC_Order | $order

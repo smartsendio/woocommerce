@@ -95,12 +95,11 @@ if (!class_exists('SS_Shipping_WC_Order_Bulk')) :
 
         /**
          * Return Smart Send bulk actions
+         *
+         * @return array
          */
         public function get_bulk_actions()
         {
-
-            $shop_manager_actions = array();
-
             $shop_manager_actions = array(
                 'ss_shipping_label_bulk'  => (SS_SHIPPING_WC()->get_demo_mode_setting() ? __('DEMO MODE',
                             'smart-send-logistics') . ': ' : '') . __('Smart Send - Generate Labels',
@@ -115,6 +114,9 @@ if (!class_exists('SS_Shipping_WC_Order_Bulk')) :
 
         /**
          * Process bulk actions
+         *
+         * This method is fired when clicking one of the Smart Send bulk actions
+         * from the order list action dropdown
          */
         public function process_orders_bulk_actions()
         {
@@ -158,14 +160,7 @@ if (!class_exists('SS_Shipping_WC_Order_Bulk')) :
                         $array_combo_messages = $this->smart_send_bulk_queue( $order_ids, $return );
 
                         $array_messages = array_merge($array_messages, $array_combo_messages);
-                        /*
-                        array_push($array_messages, array(
-                            'message' => __('It is not possible to create labels for more than 5 orders at the moment. This feature is coming soon.',
-                                'smart-send-logistics'),
-                            'type'    => 'error',
-                        ));*/
                     } else {
-
                         $array_combo_messages = $this->smart_send_bulk_iteration( $order_ids, $return );
 
                         $array_messages = array_merge($array_messages, $array_combo_messages);
@@ -179,7 +174,9 @@ if (!class_exists('SS_Shipping_WC_Order_Bulk')) :
         }
 
         /**
-         * Queue an array of WC Orders for generation of shipping labels
+         * Queue an array of WC Orders for generation of shipping labels.
+         *
+         * This is fired whenever creating more than 5 labels due to timeout issues.
          *
          * Smart Send will either accept or reject the shipments. If the shipments are accepted
          * then Smart Send will ping the callback url once each time a shipment has been processed.
@@ -207,7 +204,14 @@ if (!class_exists('SS_Shipping_WC_Order_Bulk')) :
 
 		                $array_shipments[] = $this->ss_order->get_shipment_object_for_order($order_id, $return);
                         $array_order_ids[] = $order_id;
-	                }
+	                } else {
+		                array_push($array_messages_error, array(
+			                'message' => sprintf(__('Order #%s', 'smart-send-logistics'),
+					                $order->get_order_number()) . ': ' . __('The selected order is already queued by Smart Send',
+					                'smart-send-logistics'),
+			                'type'    => 'error',
+		                ));
+                    }
 
                 } else {
                     array_push($array_messages_error, array(
@@ -519,14 +523,15 @@ if (!class_exists('SS_Shipping_WC_Order_Bulk')) :
 
                     // Get label for 'shipment_id'
                     SS_SHIPPING_WC()->get_api_handle()->getLabels( $shipment_id );
-                    $response = SS_SHIPPING_WC()->get_api_handle()->getData();
 
                     if ( SS_SHIPPING_WC()->get_api_handle()->isSuccessful() ) {
+	                    $response = SS_SHIPPING_WC()->get_api_handle()->getData();
 	                    $this->ss_order->handle_generated_label($order_id, $response, $return, $setting_save_order_note = true, $created_queued=true);
 
                         SS_SHIPPING_WC()->log_msg('Response from "getLabels" : ' . SS_SHIPPING_WC()->get_api_handle()->getResponseBody());
                     } else {
-                        $this->ss_order->label_creation_failed( $response, $order_id, $return, true, $created_queued=true );
+	                    $error = SS_SHIPPING_WC()->get_api_handle()->getError();
+                        $this->ss_order->handle_failed_label( $error, $order_id, $return, true, $created_queued=true );
 
                         SS_SHIPPING_WC()->log_msg('Error response from "getLabels" : ' . SS_SHIPPING_WC()->get_api_handle()->getResponseBody());
                     }
