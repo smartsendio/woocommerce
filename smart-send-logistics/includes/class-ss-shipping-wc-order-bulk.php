@@ -205,9 +205,7 @@ if (!class_exists('SS_Shipping_WC_Order_Bulk')) :
 
 	                if ($order->get_status() != 'ss-queue') {
 
-                        $shipment_arr = $this->ss_order->get_shipment_object_array_for_single_order_maybe_return($order_id, $return);
-
-                        $array_shipments = array_merge($array_shipments, $shipment_arr);
+		                $array_shipments[] = $this->ss_order->get_shipment_object_for_order($order_id, $return);
                         $array_order_ids[] = $order_id;
 	                }
 

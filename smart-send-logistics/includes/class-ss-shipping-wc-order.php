@@ -485,44 +485,16 @@ if (!class_exists('SS_Shipping_WC_Order')) :
          * @param boolean $return   Whether or not the label is return (true) or normal (false)
          * @return array
          */
-        public function get_shipment_object_array_for_single_order_maybe_return(
+        public function get_shipment_object_for_order(
             $order_id,
             $return = false
         ) {
-
-            $reponse_arr = array();
-
-            $ss_shipping_method_id = $this->get_smart_send_method_id($order_id, true);
-
             // Load WC Order
             $order = wc_get_order($order_id);
 
-            // If creating normal label and auto generate return flag is enabled, create both
-            if (!$return &&
-                isset($ss_shipping_method_id['smart_send_auto_generate_return_label']) &&
-                $ss_shipping_method_id['smart_send_auto_generate_return_label'] == 'yes') {
-
-                $ss_order_api = new SS_Shipping_Shipment($order, $this);
-                $ss_order_api->make_single_shipment_api_payload( false );
-                $shipment = $ss_order_api->get_shipment();
-
-                array_push($reponse_arr, $shipment);
-
-                $ss_order_api = new SS_Shipping_Shipment($order, $this);
-                $ss_order_api->make_single_shipment_api_payload( true );
-                $shipment = $ss_order_api->get_shipment();
-
-                array_push($reponse_arr, $shipment);
-
-            } else {
-                $ss_order_api = new SS_Shipping_Shipment($order, $this);
-                $ss_order_api->make_single_shipment_api_payload( $return );
-                $shipment = $ss_order_api->get_shipment();
-
-                array_push($reponse_arr, $shipment);
-            }
-
-            return $reponse_arr;
+	        $ss_order_api = new SS_Shipping_Shipment($order, $this);
+	        $ss_order_api->make_single_shipment_api_payload( $return );
+	        return $ss_order_api->get_shipment();
         }
 
         /**
