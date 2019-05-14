@@ -191,7 +191,7 @@ if (!class_exists('SS_Shipping_WC_Order_Bulk')) :
             $array_messages_success = array();
             $array_messages_error = array();
             $array_shipments = array();
-	        $array_order_ids = array();
+	        $array_order_numbers = array();
 
             foreach ($order_ids as $order_id) {
                 $order = wc_get_order($order_id);
@@ -199,12 +199,12 @@ if (!class_exists('SS_Shipping_WC_Order_Bulk')) :
                 // Ensure the selected orders have a Smart Send Shipping method
                 $ss_shipping_method_id = $this->ss_order->get_smart_send_method_id($order_id);
 
-                if (!empty($ss_shipping_method_id)) {
+                if ($ss_shipping_method_id) {
 
-	                if ($order->get_status() != 'wc-ss-queue') {
+	                if ($order->get_status() != 'ss-queue') {
 
 		                $array_shipments[] = $this->ss_order->get_shipment_object_for_order($order_id, $return);
-                        $array_order_ids[] = $order_id;
+                        $array_order_numbers[] = $order->get_order_number();
 	                } else {
 		                array_push($array_messages_error, array(
 			                'message' => sprintf(__('Order #%s', 'smart-send-logistics'),
@@ -228,8 +228,8 @@ if (!class_exists('SS_Shipping_WC_Order_Bulk')) :
                 $response = SS_SHIPPING_WC()->get_api_handle()->createShipmentAndLabelsAsync($array_shipments, null, SS_QUEUE_CALLBACK_URL );
 
                 if ( SS_SHIPPING_WC()->get_api_handle()->isSuccessful() ) {
-                    $queue_count = count($array_order_ids);
-                    $order_ids_str = '#' . implode(', #', $array_order_ids);
+                    $queue_count = count($array_order_numbers);
+                    $order_ids_str = '#' . implode(', #', $array_order_numbers);
 
                     array_push($array_messages_success, array(
                         'message' => sprintf(__('Smart Send will create labels for the %s selected orders:',
@@ -284,9 +284,9 @@ if (!class_exists('SS_Shipping_WC_Order_Bulk')) :
                 // Ensure the selected orders have a Smart Send Shipping method
                 $ss_shipping_method_id = $this->ss_order->get_smart_send_method_id($order_id);
 
-                if (!empty($ss_shipping_method_id)) {
+                if ($ss_shipping_method_id) {
 
-	                if ($order->get_status() != 'wc-ss-queue') {
+	                if ($order->get_status() != 'ss-queue') {
 
 		                $response = $this->ss_order->create_label_for_single_order_maybe_return($order_id, $return, true);
 
@@ -340,8 +340,11 @@ if (!class_exists('SS_Shipping_WC_Order_Bulk')) :
                 }
             }
 
-            return $this->create_combo_file($array_messages_success, $array_messages_error,
-                $array_shipment_ids);
+	        return $this->create_combo_file(
+		        $array_messages_success,
+		        $array_messages_error,
+		        $array_shipment_ids
+	        );
         }
 
 	    /**
@@ -528,7 +531,7 @@ if (!class_exists('SS_Shipping_WC_Order_Bulk')) :
                 $shipment_id = wc_clean( $_GET['shipment_id'] );
 
                 // Only handle request if the order was queued to Smart Send server
-                if( $order->get_status() == 'wc-ss-queue' ) {
+                if( $order->get_status() == 'ss-queue' ) {
 
                     // Determine if the label is a return or normal
 	                $meta_shipment_id = $this->ss_order->get_ss_shipment_id_from_order_meta( $order_id, false );
@@ -552,8 +555,7 @@ if (!class_exists('SS_Shipping_WC_Order_Bulk')) :
 		                    SS_SHIPPING_WC()->log_msg('Response from "getLabels" : ' . SS_SHIPPING_WC()->get_api_handle()->getResponseBody());
 
 		                    $ss_shipping_method_id = $this->ss_order->get_smart_send_method_id($order_id, $return);
-		                    if ($return == false && isset($ss_shipping_method_id['smart_send_auto_generate_return_label']) &&
-			                    $ss_shipping_method_id['smart_send_auto_generate_return_label'] == 'yes') {
+		                    if ($return == false && $this->ss_order->should_auto_generate_return($order_id)) {
 
 		                        // We need to queue a return label for the order
 			                    $shipment = $this->ss_order->get_shipment_object_for_order($order_id, $return);

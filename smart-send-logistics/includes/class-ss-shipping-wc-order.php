@@ -262,19 +262,73 @@ if (!class_exists('SS_Shipping_WC_Order')) :
             return '<p class="ss_agent_address">' . $ss_shipping_order_agent->company . '</br>' . $ss_shipping_order_agent->address_line1 . '</br>' . $ss_shipping_order_agent->postal_code . ' ' . $ss_shipping_order_agent->city . '</p>';
         }
 
+	    /**
+	     * Return the WC_Order_Item_Shipping object of the Smart Send shipping
+	     * method and null if the order is not placed with a Smart Send method.
+	     *
+	     * @param integer $order_id     Post object or post ID of the order.
+	     *
+	     * @return WC_Order_Item_Shipping|null
+	     */
+	    private function get_smart_send_method($order_id)
+	    {
+		    $order = wc_get_order($order_id);//Accepts Post object or post ID of the order.
+
+		    if (!$order) {
+			    return null;
+		    }
+
+		    // Get shipping id to make sure its either Smart Send, Free Shipping or vConnect
+		    $order_shipping_methods = $order->get_shipping_methods();
+		    if (is_array($order_shipping_methods)) {
+
+			    foreach ( $order_shipping_methods as $item_id => $item ) {
+				    // Array access on 'WC_Order_Item_Shipping' works because it implements backwards compatibility
+				    $shipping_method_id = ! empty( $item['method_id'] ) ? esc_html( $item['method_id'] ) : NULL;
+
+				    // If Smart Send found, return id
+				    if ( stripos( $shipping_method_id, 'smart_send_shipping' ) !== FALSE ) {
+					    return $item;
+				    }
+			    }
+		    }
+		    return null;
+	    }
+
+	    /**
+	     * Check whether or not a return label should automatically be created
+	     * when creating a normal shipping label. This loops over the shipping
+	     * items and checks the meta fields of the Smart Send method
+	     *
+	     * @param string $order_id      Post object or post ID of the order.
+	     *
+	     * @return bool
+	     */
+	    public function should_auto_generate_return($order_id) {
+	    	$shipping_method = $this->get_smart_send_method($order_id);//WC_Order_Item_Shipping
+
+		    // Null if not a Smart Send method
+		    if ($shipping_method) {
+		    	if (!empty($item['smart_send_auto_generate_return_label'])) {
+					return ($item['smart_send_auto_generate_return_label'] == 'yes');
+			    }
+		    }
+		    return false;
+	    }
+
         /**
-         * Return ordered Smart Send shipping method, OR Free Shipping linked to Smart Send shipping method, otherwise empty string
+         * Return Smart Send shipping method, OR Free Shipping linked to Smart Send shipping method, otherwise empty string
          *
          * @param integer $order_id     Post object or post ID of the order.
          * @param boolean $return       Whether or not the label is return (true) or normal (false)
-         * @return string               Unique Smart Send name of shipping method. Example 'postnord_agent'
+         * @return string|null          Unique Smart Send name of shipping method. Example 'postnord_agent'
          */
         public function get_smart_send_method_id($order_id, $return = false)
         {
             $order = wc_get_order($order_id);//Accepts Post object or post ID of the order.
 
             if (!$order) {
-                return '';
+                return null;
             }
 
             // Get shipping id to make sure its either Smart Send, Free Shipping or vConnect
@@ -288,6 +342,7 @@ if (!class_exists('SS_Shipping_WC_Order')) :
                     // If Smart Send found, return id
                     if (stripos($shipping_method_id, 'smart_send_shipping') !== false) {
                         if ($return) {
+                        	return $item['smart_send_return_method'];
                             return array(
                                 'smart_send_return_method'              => $item['smart_send_return_method'],
                                 'smart_send_auto_generate_return_label' => $item['smart_send_auto_generate_return_label'],
@@ -344,9 +399,9 @@ if (!class_exists('SS_Shipping_WC_Order')) :
                                         return 'postnord_flexhome';
                                     } elseif ($flexDelivery && !$flexDeliveryOption && !$dayDelivery) {
                                         return 'postnord_doorstep';
-                                        // The chosen flexdelivy option must be used to tell PostNord where the parcel should be left
+                                        // The chosen flexdelivery option must be used to tell PostNord where the parcel should be left
                                     } elseif ($flexDelivery && $flexDeliveryOption && !$dayDelivery) {
-                                        // The chosen flexdelivy option must be used to tell PostNord where the parcel should be left
+                                        // The chosen flexdelivery option must be used to tell PostNord where the parcel should be left
                                     }
                                 }
                             }
@@ -355,7 +410,7 @@ if (!class_exists('SS_Shipping_WC_Order')) :
                 }
             }
 
-            return '';
+            return null;
         }
 
 	    /**
@@ -519,9 +574,7 @@ if (!class_exists('SS_Shipping_WC_Order')) :
             $ss_shipping_method_id = $this->get_smart_send_method_id($order_id, true);
 
             // If creating normal label and auto generate return flag is enabled, create both
-            if (!$return &&
-                isset($ss_shipping_method_id['smart_send_auto_generate_return_label']) &&
-                $ss_shipping_method_id['smart_send_auto_generate_return_label'] == 'yes') {
+            if ($return == false && $this->should_auto_generate_return($order_id)) {
 
                 // Create the normal label
                 $response = $this->create_label_for_single_order($order_id, false, $setting_save_order_note);
@@ -555,7 +608,7 @@ if (!class_exists('SS_Shipping_WC_Order')) :
             // Load WC Order
             $order = wc_get_order($order_id);
 
-	        if( 'ss-queue' == $order->get_status() ) {
+	        if ($order->get_status() == 'ss-queue') {
 		        return array('error' => __('Cannot create a label, the order is in the Smart Send queue.', 'smart-send-logistics'));
 	        }
 
