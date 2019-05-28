@@ -313,7 +313,7 @@ if (!class_exists('SS_Shipping_WC')) :
          */
         public function get_ss_shipping_settings()
         {
-            $settings = get_option('woocommerce_' . SS_SHIPPING_METHOD_ID . '_settings');
+            $settings = get_option('woocommerce_' . SS_SHIPPING_METHOD_ID . '_settings', array());
 
             // Set default values if they are not yet set
             $default_settings = array(
