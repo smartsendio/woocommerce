@@ -292,7 +292,7 @@ if (!class_exists('SS_Shipping_WC_Order_Bulk')) :
                 }
             }
             
-            $array_messages = array_merge($array_messages_success, $array_messages_error);// TODO: We don't need both type of arrays
+            $array_messages = array_merge($array_messages_success, $array_messages_error);
 
             return $array_messages;
         }
@@ -383,8 +383,7 @@ if (!class_exists('SS_Shipping_WC_Order_Bulk')) :
                 }
             }
 
-            // TODO: Try catch + show messages
-	        return $this->create_combo_file(
+            return $this->create_combo_file(
 		        $array_messages_success,
 		        $array_messages_error,
 		        $array_shipment_ids

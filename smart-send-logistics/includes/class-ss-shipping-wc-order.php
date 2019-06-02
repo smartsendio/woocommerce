@@ -541,6 +541,9 @@ if (!class_exists('SS_Shipping_WC_Order')) :
          *
          * @param int $order_id     WC Order ID
          * @param boolean $return   Whether or not the label is return (true) or normal (false)
+         *
+         * @throws Exception
+         *
          * @return object           Smart Send Shipment object
          */
         public function get_shipment_object_for_order(
@@ -608,6 +611,8 @@ if (!class_exists('SS_Shipping_WC_Order')) :
 	     * @param bool $setting_save_order_note
 	     * @param bool $created_queued
 	     *
+         * @throws Exception
+         *
 	     * @return void
 	     */
 	    public function handle_generated_label($order_id, $response, $return = false, $setting_save_order_note = true, $created_queued=false)
@@ -626,22 +631,19 @@ if (!class_exists('SS_Shipping_WC_Order')) :
                 );
 	        }
 
-	        // Get the label link
-	        $labelUrl = $response->pdf->link;
-
 	        // save order meta data
 	        $this->save_ss_shipment_id_in_order_meta($order_id, $response->shipment_id, $return);
 
-
 	        // Get formatted order comment
-	        $response->woocommerce['label_url'] = $labelUrl;
-	        $response->woocommerce['order_note'] = $this->get_formatted_order_note_with_label_and_tracking($order_id,
-		        $response, $return);
-	        $response->woocommerce['return'] = $return;
+	        $order_note = $this->get_formatted_order_note_with_label_and_tracking($order_id, $response, $return);
+
+	        // Add WooCommerce data to the response
+	        $response->order_note = $order_note;
+            $response->return = $return;
 
 	        // Save order note
 	        if ($setting_save_order_note) {
-				$this->save_order_comment($response->woocommerce['order_note'], $order, $return);
+				$this->save_order_comment($order_note, $order, $return);
 	        }
 
 	        // Save tracking information to
@@ -823,7 +825,7 @@ if (!class_exists('SS_Shipping_WC_Order')) :
 
             $tracking_note = '<b><label>' . ($return ? __('Smart Send return label',
                     'smart-send-logistics') : __('Smart Send shipping label', 'smart-send-logistics')) . ':</label></b><br>'
-                . $this->get_ss_shipping_label_link($api_shipment_response->woocommerce['label_url'], $return);
+                . $this->get_ss_shipping_label_link($api_shipment_response->pdf->link, $return);
 
             foreach ($api_shipment_response->parcels as $parcel) {
                 $tracking_note .= '<br><label>' . __('Tracking number', 'smart-send-logistics') . ':</label><br>'
