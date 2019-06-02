@@ -289,17 +289,29 @@ if (!class_exists('SS_Shipping_WC_Method')) :
                     'description' => __('Settings for generating shipping labels.', 'smart-send-logistics'),
                 ),
                 'order_status'                      => array(
-                    'title'   => __('Set order status after label print', 'smart-send-logistics'),
+                    'title'   => __('Set order status after label generated', 'smart-send-logistics'),
                     'id'      => 'smart_send_shipping_order_status',
-                    'default' => 'no',
+                    'default' => '0',
                     'type'    => 'select',
                     'class'   => 'wc-enhanced-select',
-                    'options' => array_merge(array('0' => __("Do not change order status", 'smart-send-logistics')),
-                        wc_get_order_statuses()),
+                    'description' => sprintf(__('The plugin will automatically update the order status once a label is successfully generated. If disabled then queued orders will be updated to %s anyway.',
+	                    'smart-send-logistics'), _x( 'Processing', 'Order status', 'woocommerce' )),
+                    'options' => $this->get_status_options(true),
+                ),
+                'order_status_failed'               => array(
+                    'title'   => __('Set order status if label creation failed', 'smart-send-logistics'),
+                    'id'      => 'smart_send_shipping_order_status_failed',
+                    'default' => 'wc-on-hold',
+                    'type'    => 'select',
+                    'class'   => 'wc-enhanced-select',
+                    'description' => __('This will only apply to orders where the label is created asynchronously by queuing (selecting many orders from the order list and waiting for the labels to be handled one by one).',
+	                    'smart-send-logistics'),
+                    'options' => $this->get_status_options(false),
                 ),
                 'shipping_method_for_free_shipping' => array(
                     'title'       => __('Shipping method used for WooCommerce method Free Shipping',
                         'smart-send-logistics'),
+                    'default'     => '',
                     'type'        => 'selectopt',
                     'class'       => 'wc-enhanced-select',
                     'description' => __('Selecting a shipping method will make it possible to make shipping labels for order places with WooCommerces native Free Shipping method.',
@@ -357,6 +369,25 @@ if (!class_exists('SS_Shipping_WC_Method')) :
                         'smart-send-logistics'), '<a href="' . $log_path . '" target = "_blank">', '</a>'),
                 ),
             );
+        }
+
+	    /**
+	     * @param bool $null_value
+	     *
+	     * @return array
+	     */
+	    private function get_status_options($null_value = false)
+        {
+            $options = array();
+
+            if ($null_value) {
+	            $options = array('0' => __("Don't change order status", 'smart-send-logistics'));
+            }
+
+            $status_arr = wc_get_order_statuses();
+	        unset($status_arr['wc-ss-queue']);
+
+	        return array_merge($options, $status_arr );
         }
 
         /**

@@ -6,7 +6,7 @@
  * Author: Smart Send ApS
  * Author URI: https://www.smartsend.io
  * Text Domain: smart-send-logistics
- * Version: 8.0.17
+ * Version: 8.1.0b1
  * WC requires at least: 2.6.0
  * WC tested up to: 3.6
  *
@@ -34,7 +34,7 @@ if (!class_exists('SS_Shipping_WC')) :
     class SS_Shipping_WC
     {
 
-        private $version = "8.0.17";
+        private $version = "8.1.0b1";
 
         /**
          * Instance to call certain functions globally within the plugin
@@ -308,14 +308,36 @@ if (!class_exists('SS_Shipping_WC')) :
 
         /**
          * Get Smart Send Shipping settings
+         *
+         * @return array
          */
         public function get_ss_shipping_settings()
         {
-            return get_option('woocommerce_' . SS_SHIPPING_METHOD_ID . '_settings');
+            $settings = get_option('woocommerce_' . SS_SHIPPING_METHOD_ID . '_settings', array());
+
+            // Set default values if they are not yet set
+            $default_settings = array(
+                'api_token'                         => '',
+                'demo'                              => 'yes',
+                'ss_debug'                          => 'no',
+                'order_status'                      => '0',
+                'order_status_failed'               => 'wc-on-hold',
+                'shipping_method_for_free_shipping' => '',
+                'include_order_comment'             => 'no',
+                'save_shipping_labels_in_uploads'   => 'no',
+                'dropdown_display_format'           => '4',
+                'default_select_agent'              => 'no',
+                'sort_methods_by_cost'              => 'no',
+            );
+
+            // Override the default settings with the actual settings if they are stored in database
+            return array_merge($default_settings, $settings);
         }
 
         /**
          * Log debug message
+         *
+         * @return void
          */
         public function log_msg($msg)
         {
@@ -331,6 +353,8 @@ if (!class_exists('SS_Shipping_WC')) :
 
         /**
          * Get debug log file URL
+         *
+         * @return string
          */
         public function get_log_url()
         {

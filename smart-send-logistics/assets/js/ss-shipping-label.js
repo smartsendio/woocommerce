@@ -61,57 +61,50 @@ jQuery(function ($) {
             $.post(woocommerce_admin_meta_boxes.ajax_url, data, function (response) {
                 // Unblock AJAX
                 $('#ss-shipping-label-form').unblock();
-
-                // Loop through response, could be two if we are creating return label as well as normal label
-                $.each( response, function( key, value ) {
                     
-                    // Add error to metabox if exists
-                    if (value.error) {
-                         $('#ss-shipping-label-form').append('<div id="ss-shipping-error" class="error ss-meta-message">' + value.error + '</div>'); 
-
-                    } else if (value.success.woocommerce) {
-                        
-                        // If return label, place correct link
-                        if( value.success.woocommerce.return ) {
-                            $('#ss-shipping-label-form').append('<div id="ss-label-created" class="updated ss-meta-message"><a href="' + value.success.woocommerce.label_url + '" target="_blank">' + ss_label_data.download_return_label + '</a></div>');
-                        } else {
-                            $('#ss-shipping-label-form').append('<div id="ss-label-created" class="updated ss-meta-message"><a href="' + value.success.woocommerce.label_url + '" target="_blank">' + ss_label_data.download_label + '</a></div>');
-                        }
-
-                        // Add order note with tracking info
-                        if (value.success.woocommerce.order_note) {
-
-                            $('#woocommerce-order-notes').block({
-                                message: null,
-                                overlayCSS: {
-                                    background: '#fff',
-                                    opacity: 0.6
-                                }
-                            });
-
-                            var data = {
-                                action: 'woocommerce_add_order_note',
-                                post_id: woocommerce_admin_meta_boxes.post_id,
-                                note_type: '',
-                                note: value.success.woocommerce.order_note,
-                                security: woocommerce_admin_meta_boxes.add_order_note_nonce
-                            };
-
-                            // Order note AJAX call
-                            $.post(woocommerce_admin_meta_boxes.ajax_url, data, function (response_note) {
-                                // alert(response_note);
-                                $('ul.order_notes').prepend(response_note);
-                                $('#woocommerce-order-notes').unblock();
-                                $('#add_order_note').val('');
-                            });
-                        }
-
+                // Add error to metabox if exists
+                if (response.error) {
+                    // Print error message
+                    $('#ss-shipping-label-form').append('<div id="ss-shipping-error" class="error ss-meta-message">' + value.error + '</div>');
+                } else if (response.pdf.link) {
+                    // If return label, place correct link
+                    if( response.return ) {
+                        $('#ss-shipping-label-form').append('<div id="ss-label-created" class="updated ss-meta-message"><a href="' + response.pdf.link + '" target="_blank">' + ss_label_data.download_return_label + '</a></div>');
                     } else {
-                        // Print error message
-                        $('#ss-shipping-label-form').append('<div id="ss-shipping-error" class="error ss-meta-message"><strong>' + ss_label_data.unexpected_error + '</strong></div>');
+                        $('#ss-shipping-label-form').append('<div id="ss-label-created" class="updated ss-meta-message"><a href="' + response.pdf.link + '" target="_blank">' + ss_label_data.download_label + '</a></div>');
                     }
-                });
 
+                    // Add order note with tracking info
+                    if (response.order_note) {
+
+                        $('#woocommerce-order-notes').block({
+                            message: null,
+                            overlayCSS: {
+                                background: '#fff',
+                                opacity: 0.6
+                            }
+                        });
+
+                        var data = {
+                            action: 'woocommerce_add_order_note',
+                            post_id: woocommerce_admin_meta_boxes.post_id,
+                            note_type: '',
+                            note: response.order_note,
+                            security: woocommerce_admin_meta_boxes.add_order_note_nonce
+                        };
+
+                        // Order note AJAX call
+                        $.post(woocommerce_admin_meta_boxes.ajax_url, data, function (response_note) {
+                            // alert(response_note);
+                            $('ul.order_notes').prepend(response_note);
+                            $('#woocommerce-order-notes').unblock();
+                            $('#add_order_note').val('');
+                        });
+                    }
+                } else {
+                    // Print unexpected error message
+                    $('#ss-shipping-label-form').append('<div id="ss-shipping-error" class="error ss-meta-message"><strong>' + ss_label_data.unexpected_error + '</strong></div>');
+                }
             });
 
             return false;

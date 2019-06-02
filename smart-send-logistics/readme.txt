@@ -202,6 +202,7 @@ This box appears when a "Select Pick-up Point" shipping method is selected, but 
 
 = 8.1.0 =
 * Rename filter woocommerce_shipping_smart_send_shipping_is_free_shipping to woocommerce_shipping_smart_send_shipping_is_flate_rate_shipping
+* Add asynchronous label generation for handling more than 5 orders
 
 = 8.0.17 =
 * Add hidden product meta field **_ss_country_of_origin** used for custom declarations

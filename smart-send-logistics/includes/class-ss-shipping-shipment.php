@@ -89,6 +89,16 @@ if (!class_exists('SS_Shipping_Shipment')) :
             return SS_SHIPPING_WC()->get_api_handle()->getData();
         }
 
+	    /**
+	     * Get API call data
+	     *
+	     * @return object
+	     */
+	    public function get_shipping_error()
+	    {
+		    return SS_SHIPPING_WC()->get_api_handle()->getError();
+	    }
+
         /**
          * Get error message
          *
@@ -115,7 +125,7 @@ if (!class_exists('SS_Shipping_Shipment')) :
          * @param boolean $return
          * @return void
          */
-        protected function make_single_shipment_api_payload( $return )
+        public function make_single_shipment_api_payload( $return )
         {
             $order_id = $this->getOrderId($this->order);
             
@@ -127,7 +137,7 @@ if (!class_exists('SS_Shipping_Shipment')) :
             if ($return && isset($ss_shipping_method_id['smart_send_return_method'])) {
                 // If no return method set return error
                 if (empty($ss_shipping_method_id['smart_send_return_method'])) {
-                    return array('error' => __('No return method set', 'smart-send-logistics'));
+                    throw new Exception(__('No return method set', 'smart-send-logistics'));
                 } else {
                     $ss_shipping_method_id = $ss_shipping_method_id['smart_send_return_method'];
                 }

@@ -395,16 +395,16 @@ class Client
 	    $res = wp_remote_request($this->request_endpoint, array(
 		    'method'     => strtoupper($http_verb),
 		    'user-agent' => $this->getUserAgent(),
-			'headers'    => $headers_key_value,
+		    'headers'    => $headers_key_value,
 		    'body'       => $this->request_body,
 		    'timeout'    => $timeout,
 		    'httpversion' => '1.1',
 	    ));
 
-        // execute request
+	    // execute request
 	    $this->response_body = wp_remote_retrieve_body($res);
 
-        // Save http status code and headers
+	    // Save http status code and headers
 	    $this->debug = $res;
 	    $this->request_headers = wp_remote_retrieve_headers($res);
 	    $this->http_status_code = wp_remote_retrieve_response_code($res);
