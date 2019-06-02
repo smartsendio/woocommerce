@@ -262,19 +262,71 @@ if (!class_exists('SS_Shipping_WC_Order')) :
             return '<p class="ss_agent_address">' . $ss_shipping_order_agent->company . '</br>' . $ss_shipping_order_agent->address_line1 . '</br>' . $ss_shipping_order_agent->postal_code . ' ' . $ss_shipping_order_agent->city . '</p>';
         }
 
+	    /**
+	     * Return the WC_Order_Item_Shipping object of the Smart Send shipping
+	     * method and null if the order is not placed with a Smart Send method.
+	     *
+	     * @param integer $order_id     Post object or post ID of the order.
+	     *
+	     * @return WC_Order_Item_Shipping|null
+	     */
+	    private function get_smart_send_method($order_id)
+	    {
+		    $order = wc_get_order($order_id);//Accepts Post object or post ID of the order.
+
+		    if (!$order) {
+			    return null;
+		    }
+
+		    // Get shipping id to make sure its either Smart Send, Free Shipping or vConnect
+		    $order_shipping_methods = $order->get_shipping_methods();
+		    if (is_array($order_shipping_methods)) {
+
+			    foreach ( $order_shipping_methods as $item_id => $item ) {
+				    // Array access on 'WC_Order_Item_Shipping' works because it implements backwards compatibility
+				    $shipping_method_id = ! empty( $item['method_id'] ) ? esc_html( $item['method_id'] ) : NULL;
+
+				    // If Smart Send found, return id
+				    if ( stripos( $shipping_method_id, 'smart_send_shipping' ) !== FALSE ) {
+					    return $item;
+				    }
+			    }
+		    }
+		    return null;
+	    }
+
+	    /**
+	     * Check whether or not a return label should automatically be created
+	     * when creating a normal shipping label. This loops over the shipping
+	     * items and checks the meta fields of the Smart Send method
+	     *
+	     * @param string $order_id      Post object or post ID of the order.
+	     *
+	     * @return bool
+	     */
+	    public function should_auto_generate_return($order_id) {
+	    	$shipping_method = $this->get_smart_send_method($order_id);//WC_Order_Item_Shipping
+
+		    // Null if not a Smart Send method
+		    if ($shipping_method) {
+                return $shipping_method->get_meta('smart_send_auto_generate_return_label') == 'yes' ? true : false;
+		    }
+		    return false;
+	    }
+
         /**
-         * Return ordered Smart Send shipping method, OR Free Shipping linked to Smart Send shipping method, otherwise empty string
+         * Return Smart Send shipping method, OR Free Shipping linked to Smart Send shipping method, otherwise empty string
          *
          * @param integer $order_id     Post object or post ID of the order.
          * @param boolean $return       Whether or not the label is return (true) or normal (false)
-         * @return string               Unique Smart Send name of shipping method. Example 'postnord_agent'
+         * @return string|null          Unique Smart Send name of shipping method. Example 'postnord_agent'
          */
         public function get_smart_send_method_id($order_id, $return = false)
         {
             $order = wc_get_order($order_id);//Accepts Post object or post ID of the order.
 
             if (!$order) {
-                return '';
+                return null;
             }
 
             // Get shipping id to make sure its either Smart Send, Free Shipping or vConnect
@@ -288,6 +340,7 @@ if (!class_exists('SS_Shipping_WC_Order')) :
                     // If Smart Send found, return id
                     if (stripos($shipping_method_id, 'smart_send_shipping') !== false) {
                         if ($return) {
+                        	return $item['smart_send_return_method'];
                             return array(
                                 'smart_send_return_method'              => $item['smart_send_return_method'],
                                 'smart_send_auto_generate_return_label' => $item['smart_send_auto_generate_return_label'],
@@ -344,9 +397,9 @@ if (!class_exists('SS_Shipping_WC_Order')) :
                                         return 'postnord_flexhome';
                                     } elseif ($flexDelivery && !$flexDeliveryOption && !$dayDelivery) {
                                         return 'postnord_doorstep';
-                                        // The chosen flexdelivy option must be used to tell PostNord where the parcel should be left
+                                        // The chosen flexdelivery option must be used to tell PostNord where the parcel should be left
                                     } elseif ($flexDelivery && $flexDeliveryOption && !$dayDelivery) {
-                                        // The chosen flexdelivy option must be used to tell PostNord where the parcel should be left
+                                        // The chosen flexdelivery option must be used to tell PostNord where the parcel should be left
                                     }
                                 }
                             }
@@ -355,7 +408,7 @@ if (!class_exists('SS_Shipping_WC_Order')) :
                 }
             }
 
-            return '';
+            return null;
         }
 
 	    /**
@@ -455,6 +508,8 @@ if (!class_exists('SS_Shipping_WC_Order')) :
 
         /**
          * Save Agent No. and Generate Label
+         *
+         * Called via AJAX call wp_ajax_ss_shipping_generate_label() from the order page
          */
         public function generate_label()
         {
@@ -469,7 +524,8 @@ if (!class_exists('SS_Shipping_WC_Order')) :
             $this->save_ss_shipping_order_parcels($order_id, $parcels);
 
 
-            $response = $this->create_label_for_single_order_maybe_return($order_id, $return, false);
+            $response = $this->create_label_for_single_order($order_id, $return, false);
+            // TODO: Here we could use a try/catch. If it's a normal label ($return == false) and we succeded (no exception), then we should maybe also create a return label
 
             wp_send_json($response);
             wp_die();
@@ -483,88 +539,21 @@ if (!class_exists('SS_Shipping_WC_Order')) :
          *
          * @param int $order_id     WC Order ID
          * @param boolean $return   Whether or not the label is return (true) or normal (false)
-         * @return array
+         *
+         * @throws Exception
+         *
+         * @return object           Smart Send Shipment object
          */
-        public function get_shipment_object_array_for_single_order_maybe_return(
+        public function get_shipment_object_for_order(
             $order_id,
             $return = false
         ) {
-
-            $reponse_arr = array();
-
-            $ss_shipping_method_id = $this->get_smart_send_method_id($order_id, true);
-
             // Load WC Order
             $order = wc_get_order($order_id);
 
-            // If creating normal label and auto generate return flag is enabled, create both
-            if (!$return &&
-                isset($ss_shipping_method_id['smart_send_auto_generate_return_label']) &&
-                $ss_shipping_method_id['smart_send_auto_generate_return_label'] == 'yes') {
-
-                $ss_order_api = new SS_Shipping_Shipment($order, $this);
-                $ss_order_api->make_single_shipment_api_payload( false );
-                $shipment = $ss_order_api->get_shipment();
-
-                array_push($reponse_arr, $shipment);
-
-                $ss_order_api = new SS_Shipping_Shipment($order, $this);
-                $ss_order_api->make_single_shipment_api_payload( true );
-                $shipment = $ss_order_api->get_shipment();
-
-                array_push($reponse_arr, $shipment);
-
-            } else {
-                $ss_order_api = new SS_Shipping_Shipment($order, $this);
-                $ss_order_api->make_single_shipment_api_payload( $return );
-                $shipment = $ss_order_api->get_shipment();
-
-                array_push($reponse_arr, $shipment);
-            }
-
-            return $reponse_arr;
-        }
-
-        /**
-         * Create label for a single WooCommerce order and maybe auto generate return label
-         *
-         * @param int $order_id Order ID
-         * @param boolean $return Whether or not the label is return (true) or normal (false)
-         * @param boolean $setting_save_order_note Whether or not to save an order note with information about label
-         *
-         * @return array
-         */
-        public function create_label_for_single_order_maybe_return(
-            $order_id,
-            $return = false,
-            $setting_save_order_note = true
-        ) {
-
-            $reponse_arr = array();
-
-            $ss_shipping_method_id = $this->get_smart_send_method_id($order_id, true);
-
-            // If creating normal label and auto generate return flag is enabled, create both
-            if (!$return &&
-                isset($ss_shipping_method_id['smart_send_auto_generate_return_label']) &&
-                $ss_shipping_method_id['smart_send_auto_generate_return_label'] == 'yes') {
-
-                // Create the normal label
-                $response = $this->create_label_for_single_order($order_id, false, $setting_save_order_note);
-                array_push($reponse_arr, $response);
-
-                // We're only creating the return label if the normal label creation is successful.
-                if (isset($response['success']->woocommerce)) {
-                    // Create the return label
-                    $response = $this->create_label_for_single_order($order_id, true, $setting_save_order_note);
-                    array_push($reponse_arr, $response);
-                }
-            } else {
-                $response = $this->create_label_for_single_order($order_id, $return, $setting_save_order_note);
-                array_push($reponse_arr, $response);
-            }
-
-            return $reponse_arr;
+	        $ss_order_api = new SS_Shipping_Shipment($order, $this);
+	        $ss_order_api->make_single_shipment_api_payload( $return );
+	        return $ss_order_api->get_shipment();
         }
 
         /**
@@ -574,101 +563,113 @@ if (!class_exists('SS_Shipping_WC_Order')) :
          * @param boolean $return Whether or not the label is return (true) or normal (false)
          * @param boolean $setting_save_order_note Whether or not to save an order note with information about label
          *
-         * @return array
+         * @throws Exception
+         *
+         * @return object
          */
-        protected function create_label_for_single_order($order_id, $return = false, $setting_save_order_note = true)
+        public function create_label_for_single_order($order_id, $return = false, $setting_save_order_note = true)
         {
             // Load WC Order
             $order = wc_get_order($order_id);
 
-	        if( 'ss-queue' == $order->get_status() ) {
-		        return array('error' => __('Cannot create a label, the order is in the Smart Send queue.', 'smart-send-logistics'));
+	        if ($order->get_status() == 'ss-queue') {
+	            throw new Exception(__('Cannot create a label, the order is in the Smart Send queue.', 'smart-send-logistics'));
 	        }
 
             $ss_order_api = new SS_Shipping_Shipment($order, $this);
 
-            if ($ss_order_api->make_single_shipment_api_call( $return )) {
+            if ($ss_order_api->make_single_shipment_api_call($return)) {
 
-                //The request was successful, lets update WooCommerce
+                //The request was successful, update WooCommerce
                 $response = $ss_order_api->get_shipping_data();
 
-                $this->create_pdf_set_wc( $response, $order_id, $return, $setting_save_order_note );
+                $this->handle_generated_label( $order_id, $response, $return, $setting_save_order_note, $created_queued=false );
 
                 // return the success data
-                return array('success' => $response, 'shipment' => $ss_order_api->get_shipment());
+                return $response;
             } else {
+	            //The request failed, update WooCommerce
+	            $response = $ss_order_api->get_shipping_error();
 
-                if (!$return) {
-                    $this->set_order_status_after_label_failed($order);
-                }
+	            $this->handle_failed_label( $order_id, $response, $return, $setting_save_order_note, $created_queued=false );
+
                 // Something failed. Let's return them, so the error can be shown to the user
-                return array('error' => $ss_order_api->get_error_msg());
+                throw new Exception($ss_order_api->get_error_msg());
             }
         }
 
-        public function create_pdf_set_wc( $response, $order_id, $return = false, $setting_save_order_note = true ) {
+	    /**
+	     * Handle successfully label request
+	     *
+	     * This method will insert all relevant info in WooCommerce and trigger actions
+	     *
+	     * @param $order_id
+	     * @param $response
+	     * @param bool $return
+	     * @param bool $setting_save_order_note
+	     * @param bool $created_queued
+	     *
+         * @throws Exception
+         *
+	     * @return void
+	     */
+	    public function handle_generated_label($order_id, $response, $return = false, $setting_save_order_note = true, $created_queued=false)
+        {
 
-            // Load WC Order
-            $order = wc_get_order($order_id);
+	        // Load WC Order
+	        $order = wc_get_order($order_id);
 
-            if (SS_SHIPPING_WC()->get_setting_save_shipping_labels_in_uploads()) {
-                try {
-                    // Save the PDF file
-                    $labelUrl = $this->save_label_file($response->shipment_id, $response->pdf->base_64_encoded,
-                        $return);
-                } catch (Exception $e) {
-                    return array('error' => $e->getMessage());
-                }
-            }
+	        // Save label locally
+	        if (SS_SHIPPING_WC()->get_setting_save_shipping_labels_in_uploads()) {
+                // Save the PDF file
+                $labelUrl = $this->save_label_file(
+                    $response->shipment_id,
+                    $response->pdf->base_64_encoded,
+                    $return
+                );
+	        }
 
-            // Get the label link
-            $labelUrl = $response->pdf->link;
+	        // save order meta data
+	        $this->save_ss_shipment_id_in_order_meta($order_id, $response->shipment_id, $return);
 
-            // save order meta data
-            $this->save_ss_shipment_id_in_order_meta($order_id, $response->shipment_id, $return);
+	        // Get formatted order comment
+	        $order_note = $this->get_formatted_order_note_with_label_and_tracking($order_id, $response, $return);
 
-            // Get formatted order comment
-            $response->woocommerce['label_url'] = $labelUrl;
-            $response->woocommerce['order_note'] = $this->get_formatted_order_note_with_label_and_tracking($order_id,
-                $response, $return);
-            $response->woocommerce['return'] = $return;
+	        // Add WooCommerce data to the response
+	        $response->order_note = $order_note;
+            $response->return = $return;
 
-            // Save order note
-            if ($setting_save_order_note) {
-                /*
-                 * Filter the order comment that is saved. The order comment can be seen in the WooCommerce backend
-                 *
-                 * @param string order note containing tracking link and link to pdf label
-                 * @param WC_Order object
-                 * @param boolean $return Whether or not the label is return (true) or normal (false)
-                 */
-                $order_note = apply_filters('smart_send_shipping_label_comment',
-                    $response->woocommerce['order_note'], $order, $return);
-                $order->add_order_note($order_note, 0, true);
-            }
+	        // Save order note
+	        if ($setting_save_order_note) {
+				$this->save_order_comment($order_note, $order, $return);
+	        }
 
-            // Add tracking info to "WooCommerce Shipment Tracking" plugin
-            foreach ($response->parcels as $parcel) {
-                // Only add tracking info to "WooCommerce Shipment Tracking" plugin for non-return parcels
-                if (!$return) {
-                    $this->save_tracking_in_shipment_tracking($order_id, $parcel->tracking_code,
-                        $parcel->tracking_link,
-                        $response->carrier_name);
-                }
-            }
+	        // Save tracking information to
+			$this->save_tracking_information($order_id, $response, $return);
 
-            // Set order status after label generation
-            // Important to update AFTER saving meta fields and tracking information (otherwise not included in email via Shipment Tracking)
-            if (!$return) {
-                $this->set_order_status_after_label_generated($order);
-            }
+	        // Set order status after label generation
+	        // Important to update AFTER saving meta fields and tracking information (otherwise not included in email via Shipment Tracking)
+	        $default_order_status = $created_queued ? 'wc-on-hold' : null;//Order status MUST be changed for queued labels
+	        $this->set_order_status_after_label_generated($order, $default_order_status);
 
-            // Action when a shipping label has been created
-            do_action('smart_send_shipping_label_created', $order_id, $response);
-
+	        // Action when a shipping label has been created
+	        do_action('smart_send_shipping_label_created', $order_id, $response);
         }
 
-        public function label_creation_failed( $response, $order_id, $return = false, $setting_save_order_note = true ) {
+	    /**
+	     * Handle failed label request
+	     *
+	     * This method will insert all relevant info in WooCommerce and trigger actions
+	     *
+	     * @param $order_id
+	     * @param $response
+	     * @param bool $return
+	     * @param bool $setting_save_order_note
+	     * @param bool $created_queued
+	     *
+	     * @return void
+	     */
+        public function handle_failed_label( $order_id, $response, $return = false, $setting_save_order_note = true, $created_queued=false ) {
 
             // Load WC Order
             $order = wc_get_order($order_id);
@@ -691,41 +692,95 @@ if (!class_exists('SS_Shipping_WC_Order')) :
             }
 
             // Set order status after label generation
-            // Important to update AFTER saving meta fields and tracking information (otherwise not included in email via Shipment Tracking)
-            if (!$return) {
-                $this->set_order_status_after_label_failed($order);
-            }
+	        $default_order_status = $created_queued ? 'wc-on-hold' : null;//Order status MUST be changed for queued labels
+	        $this->set_order_status_after_label_failed($order, $default_order_status);
 
             // Action when a shipping label has been created
-            do_action('smart_send_shipping_label_failed', $order_id, $response);
+            do_action('smart_send_shipping_label_failed', $order_id, $response, $return);
 
         }
 
+	    /**
+	     * Save the order comment. The order comment can be seen in the WooCommerce backend
+	     *
+	     * Filter: smart_send_shipping_label_comment
+	     *
+	     * @param string     $comment    Order note containing tracking link and link to pdf label
+	     * @param WC_Order   $order      WC Order object
+	     * @param boolean    $return     Whether or not the label is return (true) or normal (false)
+	     *
+	     * @return void
+	     */
+	    public function save_order_comment($comment, $order, $return)
+	    {
+		    $order_note = apply_filters(
+			    'smart_send_shipping_label_comment',
+			    $comment,
+			    $order,
+			    $return
+		    );
+		    $order->add_order_note($order_note, 0, true);
+	    }
+
+	    /**
+	     * Save tracking information in WooCommerce
+	     *
+	     * @param string    $order_id   Order Id
+	     * @param object    $response   Smart Send shipment response
+	     * @param boolean   $return     Whether or not the label is return (true) or normal (false)
+	     *
+	     * @return void
+	     */
+	    public function save_tracking_information($order_id, $response, $return)
+	    {
+		    // Add tracking info to "WooCommerce Shipment Tracking" plugin
+		    foreach ($response->parcels as $parcel) {
+			    // Only add tracking info to "WooCommerce Shipment Tracking" plugin for non-return parcels
+			    if (!$return) {
+				    $this->save_tracking_in_shipment_tracking($order_id, $parcel->tracking_code,
+					    $parcel->tracking_link,
+					    $response->carrier_name);
+			    }
+		    }
+	    }
+
         /**
          * If set to change order after order generated, update order status
+         *
+         * @param \WC_Order     $order  WC Order object
+         * @param string|null   $default_order_status       If setting is disabled use this
+         *
+         * @return void
          */
-        protected function set_order_status_after_label_generated($order)
+        protected function set_order_status_after_label_generated($order, $default_order_status=null)
         {
 
             $ss_settings = SS_SHIPPING_WC()->get_ss_shipping_settings();
 
             if (!empty($ss_settings['order_status'])) {
-                $order->update_status($ss_settings['order_status']);
+	            $order->update_status($ss_settings['order_status']);
+            } elseif ($default_order_status) {
+	            $order->update_status($default_order_status);
             }
         }
 
         /**
          * If set to change order after order generated, update order status
+         *
+         * @param \WC_Order     $order  WC Order object
+         * @param string|null   $default_order_status       If setting is disabled use this
+         *
+         * @return void
          */
-        public function set_order_status_after_label_failed($order)
+        public function set_order_status_after_label_failed($order, $default_order_status=null)
         {
 
             $ss_settings = SS_SHIPPING_WC()->get_ss_shipping_settings();
 
             if (!empty($ss_settings['order_status_failed'])) {
-                $order->update_status($ss_settings['order_status_failed']);
-            } else {
-                $order->update_status('wc-failed');
+            	$order->update_status($ss_settings['order_status_failed']);
+            } elseif ($default_order_status) {
+	            $order->update_status($default_order_status);
             }
         }
 
@@ -768,7 +823,7 @@ if (!class_exists('SS_Shipping_WC_Order')) :
 
             $tracking_note = '<b><label>' . ($return ? __('Smart Send return label',
                     'smart-send-logistics') : __('Smart Send shipping label', 'smart-send-logistics')) . ':</label></b><br>'
-                . $this->get_ss_shipping_label_link($api_shipment_response->woocommerce['label_url'], $return);
+                . $this->get_ss_shipping_label_link($api_shipment_response->pdf->link, $return);
 
             foreach ($api_shipment_response->parcels as $parcel) {
                 $tracking_note .= '<br><label>' . __('Tracking number', 'smart-send-logistics') . ':</label><br>'
@@ -865,12 +920,12 @@ if (!class_exists('SS_Shipping_WC_Order')) :
             update_post_meta($order_id, 'ss_shipping_order_agent_no', $agent_no);
         }
 
-        /*
+        /**
          * Gets agent no from the post meta array for an order
          *
-         * @param int  $order_id  Order ID
+         * @param int       $order_id   Order ID
          *
-         * @return Agent No
+         * @return string               Agent Number
          */
         public function get_ss_shipping_order_agent_no($order_id)
         {
@@ -893,8 +948,8 @@ if (!class_exists('SS_Shipping_WC_Order')) :
         /**
          * Saves the agent object to post_meta.
          *
-         * @param int $order_id Order ID
-         * @param array $agent Agent Object
+         * @param int   $order_id   Order ID
+         * @param array $agent      Agent Object
          *
          * @return void
          */
@@ -904,7 +959,7 @@ if (!class_exists('SS_Shipping_WC_Order')) :
         }
 
 	    /**
-         * Delete shippng agent object
+         * Delete shipping agent object
          *
 	     * @param $order_id
 	     */
@@ -912,7 +967,7 @@ if (!class_exists('SS_Shipping_WC_Order')) :
             delete_post_meta($order_id, '_ss_shipping_order_agent');
         }
 
-        /*
+        /**
          * Gets agent object from the post meta array for an order
          *
          * @param int  $order_id  Order ID
@@ -1042,6 +1097,10 @@ if (!class_exists('SS_Shipping_WC_Order')) :
 
         /**
          * Prevents data being copied to subscription renewals
+         *
+         * @param string
+         *
+         * @return string
          */
         public function woocommerce_subscriptions_renewal_order_meta_query($order_meta_query)
         {
@@ -1050,7 +1109,7 @@ if (!class_exists('SS_Shipping_WC_Order')) :
             return $order_meta_query;
         }
 
-        /*
+        /**
          * Get an orders total weight
          *
          * @param WC_Order | $order

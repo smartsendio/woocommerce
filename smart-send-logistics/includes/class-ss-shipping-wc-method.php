@@ -301,7 +301,7 @@ if (!class_exists('SS_Shipping_WC_Method')) :
                 'order_status_failed'               => array(
                     'title'   => __('Set order status if label creation failed', 'smart-send-logistics'),
                     'id'      => 'smart_send_shipping_order_status_failed',
-                    'default' => 'wc-failed',
+                    'default' => 'wc-on-hold',
                     'type'    => 'select',
                     'class'   => 'wc-enhanced-select',
                     'description' => __('This will only apply to orders where the label is created asynchronously by queuing (selecting many orders from the order list and waiting for the labels to be handled one by one).',
@@ -311,6 +311,7 @@ if (!class_exists('SS_Shipping_WC_Method')) :
                 'shipping_method_for_free_shipping' => array(
                     'title'       => __('Shipping method used for WooCommerce method Free Shipping',
                         'smart-send-logistics'),
+                    'default'     => '',
                     'type'        => 'selectopt',
                     'class'       => 'wc-enhanced-select',
                     'description' => __('Selecting a shipping method will make it possible to make shipping labels for order places with WooCommerces native Free Shipping method.',
