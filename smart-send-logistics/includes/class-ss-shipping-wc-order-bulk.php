@@ -144,12 +144,15 @@ if (!class_exists('SS_Shipping_WC_Order_Bulk')) :
 
                 if (substr($action, 0, strlen('ss_shipping_')) === 'ss_shipping_') {//Starts with 'ss_shipping_'?
                     // This is a Smart Send action, let handle it:
+                    SS_SHIPPING_WC()->log_msg('Smart Send bulk action: ' . $action);
+
                     switch ($action) {
                         case 'ss_shipping_label_bulk' || 'ss_shipping_return_bulk':
                             // Determine if the request is for a return label
                             $return = ('ss_shipping_return_bulk' === $action);
 
                             $orders_count = count($order_ids);
+                            SS_SHIPPING_WC()->log_msg('Order count: ' . $orders_count);
 
                             if ($orders_count < 1) {
                                 array_push($array_messages, array(
@@ -157,11 +160,15 @@ if (!class_exists('SS_Shipping_WC_Order_Bulk')) :
                                         'smart-send-logistics'),
                                     'type'    => 'error',
                                 ));
-                            } elseif ($orders_count > 1) {//TODO: Change back to 5 - only for testing
+                            } elseif ($orders_count > 2) {//TODO: Change back to 5 - only for testing
+                                SS_SHIPPING_WC()->log_msg('Handling orders asynchronously');
+
                                 $array_combo_messages = $this->smart_send_bulk_queue( $order_ids, $return );
 
                                 $array_messages = array_merge($array_messages, $array_combo_messages);
                             } else {
+                                SS_SHIPPING_WC()->log_msg('Handling orders synchronously');
+
                                 $array_combo_messages = $this->smart_send_bulk_iteration( $order_ids, $return );
 
                                 $array_messages = array_merge($array_messages, $array_combo_messages);
@@ -299,6 +306,8 @@ if (!class_exists('SS_Shipping_WC_Order_Bulk')) :
             foreach ($order_ids as $order_id) {
                 try {
                     $order = wc_get_order($order_id);
+                    SS_SHIPPING_WC()->log_msg('Creating a ' . ($return ? 'return ' : '')
+                        . 'label for order #' . $order->get_order_number() . ' with post_id='.$order_id);
 
                     // Ensure the selected orders have a Smart Send Shipping method
                     $ss_shipping_method_id = $this->ss_order->get_smart_send_method_id($order_id);
@@ -307,57 +316,66 @@ if (!class_exists('SS_Shipping_WC_Order_Bulk')) :
 
                         if ($order->get_status() != 'ss-queue') {
 
-                            $response = $this->ss_order->create_label_for_single_order_maybe_return($order_id, $return, true);
+                            $shipment_response = $this->ss_order->create_label_for_single_order($order_id, $return, true);
 
-                            foreach ($response as $key => $value) {
+                            $label_link = $this->ss_order->get_ss_shipping_label_link($shipment_response->pdf->link, $return);
+                            $message = sprintf(__('Order #%s', 'smart-send-logistics'), $order->get_order_number())
+                                . ': ' . ($return ? __('Return label created by Smart Send', 'smart-send-logistics')
+                                    : __('Shipping label created by Smart Send', 'smart-send-logistics'))
+                                . '. ' . $label_link;
 
-                                if (isset($value['success'])) {
-                                    array_push($array_messages_success, array(
-                                        'message' => sprintf(__('Order #%s', 'smart-send-logistics'),
-                                                $order->get_order_number()) . ': '
-                                            . (empty($value['success']->woocommerce['return']) ?
-                                                __('Shipping label created by Smart Send',
-                                                    'smart-send-logistics') : __('Return label created by Smart Send',
-                                                    'smart-send-logistics'))
-                                            . ': ' . $this->ss_order->get_ss_shipping_label_link($value['success']->woocommerce['label_url'],
-                                                !empty($value['success']->woocommerce['return'])),
-                                        'type' => 'success',
-                                    ));
-
-                                    array_push($array_shipment_ids, array(
-                                        'shipment_id' => $value['success']->shipment_id,
-                                        'order_id' => $order->get_order_number(),
-                                    ));
-
-                                } else {
-                                    // Print error message
-                                    $message = sprintf(__('Order #%s', 'smart-send-logistics'),
-                                            $order->get_order_number()) . ': ' . $value['error'];
-
-                                    array_push($array_messages_error, array(
-                                        'message' => $message,
-                                        'type' => 'error',
-                                    ));
-                                }
-                            }
-                        } else {
-                            array_push($array_messages_error, array(
-                                'message' => sprintf(__('Order #%s', 'smart-send-logistics'),
-                                        $order->get_order_number()) . ': ' . __('The selected order is already queued by Smart Send',
-                                        'smart-send-logistics'),
-                                'type' => 'error',
+                            array_push($array_messages_success, array(
+                                'message' =>  $message,
+                                'type' => 'success',
                             ));
+
+                            array_push($array_shipment_ids, array(
+                                'shipment_id' => $shipment_response->shipment_id,
+                                'order_id' => $order->get_order_number(),
+                            ));
+
+                            if (!$return && $this->ss_order->should_auto_generate_return($order_id)) {
+
+                                SS_SHIPPING_WC()->log_msg('Creating a ' . (!$return ? 'return ' : '')
+                                    . 'label for order #' . $order->get_order_number() . ' with post_id='.$order_id);
+
+                                $shipment_response = $this->ss_order->create_label_for_single_order($order_id, !$return, true);
+
+                                $label_link = $this->ss_order->get_ss_shipping_label_link($shipment_response->pdf->link, $return);
+                                $message = sprintf(__('Order #%s', 'smart-send-logistics'), $order->get_order_number())
+                                    . ': ' . (!$return ? __('Return label created by Smart Send', 'smart-send-logistics')
+                                        : __('Shipping label created by Smart Send', 'smart-send-logistics'))
+                                    . '. ' . $label_link;
+
+                                array_push($array_messages_success, array(
+                                    'message' =>  $message,
+                                    'type' => 'success',
+                                ));
+
+                                array_push($array_shipment_ids, array(
+                                    'shipment_id' => $shipment_response->shipment_id,
+                                    'order_id' => $order->get_order_number(),
+                                ));
+                            }
+
+                        } else {
+                            // Add error message
+                            $message = sprintf(__('Order #%s', 'smart-send-logistics'), $order->get_order_number())
+                                . ': ' .  __('The selected order is already queued by Smart Send', 'smart-send-logistics');
+
+                            throw new Exception($message);
                         }
 
                     } else {
-                        array_push($array_messages_error, array(
-                            'message' => sprintf(__('Order #%s', 'smart-send-logistics'),
-                                    $order->get_order_number()) . ': ' . __('The selected order did not include a Send Smart shipping method',
-                                    'smart-send-logistics'),
-                            'type' => 'error',
-                        ));
+                        // Add error message
+                        $message = sprintf(__('Order #%s', 'smart-send-logistics'), $order->get_order_number())
+                            . ': ' .  __('The selected order did not include a Send Smart shipping method', 'smart-send-logistics');
+
+                        throw new Exception($message);
                     }
                 } catch (Exception $exception) {
+                    SS_SHIPPING_WC()->log_msg('Failed to handle order. Exception with error: ' . $exception->getMessage());
+
                     array_push($array_messages_error, array(
                         'message' => $exception->getMessage(),
                         'type' => 'error',
@@ -492,6 +510,8 @@ if (!class_exists('SS_Shipping_WC_Order_Bulk')) :
                     foreach ($bulk_action_message_opt as $key => $value) {
                         $message = wp_kses_post($value['message']);
                         $type = wp_kses_post($value['type']);
+
+                        SS_SHIPPING_WC()->log_msg('Showing ' . $type . '-message: ' . $message);
 
                         switch ($type) {
                             case 'error':

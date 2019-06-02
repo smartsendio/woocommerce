@@ -526,7 +526,8 @@ if (!class_exists('SS_Shipping_WC_Order')) :
             $this->save_ss_shipping_order_parcels($order_id, $parcels);
 
 
-            $response = $this->create_label_for_single_order_maybe_return($order_id, $return, false);
+            $response = $this->create_label_for_single_order($order_id, $return, false);
+            // TODO: Here we could use a try/catch. If it's a normal label ($return == false) and we succeded (no exception), then we should maybe also create a return label
 
             wp_send_json($response);
             wp_die();
@@ -555,66 +556,28 @@ if (!class_exists('SS_Shipping_WC_Order')) :
         }
 
         /**
-         * Create label for a single WooCommerce order and maybe auto generate return label
-         *
-         * @param int $order_id Order ID
-         * @param boolean $return Whether or not the label is return (true) or normal (false)
-         * @param boolean $setting_save_order_note Whether or not to save an order note with information about label
-         *
-         * @return array
-         */
-        public function create_label_for_single_order_maybe_return(
-            $order_id,
-            $return = false,
-            $setting_save_order_note = true
-        ) {
-
-            $reponse_arr = array();
-
-            $ss_shipping_method_id = $this->get_smart_send_method_id($order_id, true);
-
-            // If creating normal label and auto generate return flag is enabled, create both
-            if ($return == false && $this->should_auto_generate_return($order_id)) {
-
-                // Create the normal label
-                $response = $this->create_label_for_single_order($order_id, false, $setting_save_order_note);
-                array_push($reponse_arr, $response);
-
-                // We're only creating the return label if the normal label creation is successful.
-                if (isset($response['success']->woocommerce)) {
-                    // Create the return label
-                    $response = $this->create_label_for_single_order($order_id, true, $setting_save_order_note);
-                    array_push($reponse_arr, $response);
-                }
-            } else {
-                $response = $this->create_label_for_single_order($order_id, $return, $setting_save_order_note);
-                array_push($reponse_arr, $response);
-            }
-
-            return $reponse_arr;
-        }
-
-        /**
          * Create label for a single WooCommerce order
          *
          * @param int $order_id Order ID
          * @param boolean $return Whether or not the label is return (true) or normal (false)
          * @param boolean $setting_save_order_note Whether or not to save an order note with information about label
          *
-         * @return array
+         * @throws Exception
+         *
+         * @return object
          */
-        protected function create_label_for_single_order($order_id, $return = false, $setting_save_order_note = true)
+        public function create_label_for_single_order($order_id, $return = false, $setting_save_order_note = true)
         {
             // Load WC Order
             $order = wc_get_order($order_id);
 
 	        if ($order->get_status() == 'ss-queue') {
-		        return array('error' => __('Cannot create a label, the order is in the Smart Send queue.', 'smart-send-logistics'));
+	            throw new Exception(__('Cannot create a label, the order is in the Smart Send queue.', 'smart-send-logistics'));
 	        }
 
             $ss_order_api = new SS_Shipping_Shipment($order, $this);
 
-            if ($ss_order_api->make_single_shipment_api_call( $return )) {
+            if ($ss_order_api->make_single_shipment_api_call($return)) {
 
                 //The request was successful, update WooCommerce
                 $response = $ss_order_api->get_shipping_data();
@@ -622,7 +585,7 @@ if (!class_exists('SS_Shipping_WC_Order')) :
                 $this->handle_generated_label( $order_id, $response, $return, $setting_save_order_note, $created_queued=false );
 
                 // return the success data
-                return array('success' => $response, 'shipment' => $ss_order_api->get_shipment());
+                return $response;
             } else {
 	            //The request failed, update WooCommerce
 	            $response = $ss_order_api->get_shipping_error();
@@ -630,7 +593,7 @@ if (!class_exists('SS_Shipping_WC_Order')) :
 	            $this->handle_failed_label( $order_id, $response, $return, $setting_save_order_note, $created_queued=false );
 
                 // Something failed. Let's return them, so the error can be shown to the user
-                return array('error' => $ss_order_api->get_error_msg());
+                throw new Exception($ss_order_api->get_error_msg());
             }
         }
 
@@ -655,16 +618,12 @@ if (!class_exists('SS_Shipping_WC_Order')) :
 
 	        // Save label locally
 	        if (SS_SHIPPING_WC()->get_setting_save_shipping_labels_in_uploads()) {
-		        try {
-			        // Save the PDF file
-			        $labelUrl = $this->save_label_file(
-			        	$response->shipment_id,
-				        $response->pdf->base_64_encoded,
-				        $return
-			        );
-		        } catch (Exception $e) {
-			        return array('error' => $e->getMessage());//TODO: Should not be returned
-		        }
+                // Save the PDF file
+                $labelUrl = $this->save_label_file(
+                    $response->shipment_id,
+                    $response->pdf->base_64_encoded,
+                    $return
+                );
 	        }
 
 	        // Get the label link
