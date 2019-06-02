@@ -160,7 +160,7 @@ if (!class_exists('SS_Shipping_WC_Order_Bulk')) :
                                         'smart-send-logistics'),
                                     'type'    => 'error',
                                 ));
-                            } elseif ($orders_count > 2) {//TODO: Change back to 5 - only for testing
+                            } elseif ($orders_count > 5) {
                                 SS_SHIPPING_WC()->log_msg('Handling orders asynchronously');
 
                                 $array_combo_messages = $this->smart_send_bulk_queue( $order_ids, $return );
