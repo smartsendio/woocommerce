@@ -309,9 +309,7 @@ if (!class_exists('SS_Shipping_WC_Order')) :
 
 		    // Null if not a Smart Send method
 		    if ($shipping_method) {
-		    	if (!empty($item['smart_send_auto_generate_return_label'])) {
-					return ($item['smart_send_auto_generate_return_label'] == 'yes');
-			    }
+                return $shipping_method->get_meta('smart_send_auto_generate_return_label') == 'yes' ? true : false;
 		    }
 		    return false;
 	    }

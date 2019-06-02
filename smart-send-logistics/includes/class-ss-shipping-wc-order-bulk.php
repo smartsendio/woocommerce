@@ -334,7 +334,12 @@ if (!class_exists('SS_Shipping_WC_Order_Bulk')) :
                                 'order_id' => $order->get_order_number(),
                             ));
 
-                            if (!$return && $this->ss_order->should_auto_generate_return($order_id)) {
+                            $auto_generate_return = (!$return && $this->ss_order->should_auto_generate_return($order_id));
+
+                            SS_SHIPPING_WC()->log_msg('Should ' . ($auto_generate_return ? '' : 'not ')
+                                . 'automatically generate a return label for order #' . $order->get_order_number() . ' with post_id='.$order_id);
+
+                            if ($auto_generate_return) {
 
                                 SS_SHIPPING_WC()->log_msg('Creating a ' . (!$return ? 'return ' : '')
                                     . 'label for order #' . $order->get_order_number() . ' with post_id='.$order_id);
