@@ -524,8 +524,7 @@ if (!class_exists('SS_Shipping_WC_Order')) :
             $this->save_ss_shipping_order_parcels($order_id, $parcels);
 
 
-            $response = $this->create_label_for_single_order($order_id, $return, false);
-            // TODO: Here we could use a try/catch. If it's a normal label ($return == false) and we succeded (no exception), then we should maybe also create a return label
+            $response = $this->create_label_for_single_order_maybe_return($order_id, $return, false);
 
             wp_send_json($response);
             wp_die();
@@ -598,7 +597,47 @@ if (!class_exists('SS_Shipping_WC_Order')) :
             }
         }
 
-	    /**
+        /**
+         * Create label for a single WooCommerce order and maybe auto generate return label
+         *
+         * @param int $order_id Order ID
+         * @param boolean $return Whether or not the label is return (true) or normal (false)
+         * @param boolean $setting_save_order_note Whether or not to save an order note with information about label
+         *
+         * @return array
+         */
+        public function create_label_for_single_order_maybe_return(
+            $order_id,
+            $return = false,
+            $setting_save_order_note = true
+        )
+        {
+            $reponse_array = array();
+
+            try {
+                // Create the first label
+                $response = $this->create_label_for_single_order($order_id, false, $setting_save_order_note);
+                array_push($reponse_array, $response);
+
+                // If this was normal label, let us check if we should automatically create a return label
+                if (!$return) {
+                    if ($this->should_auto_generate_return($order_id)) {
+                        // Create a return label as well
+                        $response = $this->create_label_for_single_order($order_id, true, $setting_save_order_note);
+                        array_push($reponse_array, $response);
+                    }
+                }
+            } catch (Exception $exception) {
+                array_push($reponse_array, array(
+                    'message' => $exception->getMessage(),
+                    'type'    => 'error',
+                ));
+            }
+
+            return $reponse_array;
+        }
+
+            /**
 	     * Handle successfully label request
 	     *
 	     * This method will insert all relevant info in WooCommerce and trigger actions
