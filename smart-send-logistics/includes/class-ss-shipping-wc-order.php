@@ -616,7 +616,7 @@ if (!class_exists('SS_Shipping_WC_Order')) :
 
             try {
                 // Create the first label
-                $response = $this->create_label_for_single_order($order_id, false, $setting_save_order_note);
+                $response = $this->create_label_for_single_order($order_id, $return, $setting_save_order_note);
                 array_push($reponse_array, $response);
 
                 // If this was normal label, let us check if we should automatically create a return label
