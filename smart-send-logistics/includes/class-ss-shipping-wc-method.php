@@ -942,6 +942,7 @@ if (!class_exists('SS_Shipping_WC_Method')) :
 
             // write id of shipping method to log
             SS_SHIPPING_WC()->log_msg('Handling shipping rate <' . $rate['id'] . '> with title: ' . $rate['label']);
+            SS_SHIPPING_WC()->log_msg('Rate details (json decode for details): ' . json_encode($rate));
 
             // Set tax status based on selection otherwise always taxed
             $this->tax_status = $this->get_option('tax_status');
@@ -952,7 +953,7 @@ if (!class_exists('SS_Shipping_WC_Method')) :
                 $rate['cost'] = $this->get_option('flatfee_cost');
                 $this->add_rate($rate);
                 // write to log, that shipping rate is added
-                SS_SHIPPING_WC()->log_msg('Free shipping rate added (json decode for details): ' . json_encode($rate));
+                SS_SHIPPING_WC()->log_msg('Free shipping rate added');
 
             } else {
                 $cart_weight = WC()->cart->get_cart_contents_weight();
