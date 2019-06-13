@@ -582,7 +582,7 @@ if (!class_exists('SS_Shipping_WC_Order_Bulk')) :
                 $shipment_id = wc_clean( $_GET['shipment_id'] );
 
                 // Only handle request if the order was queued to Smart Send server
-                if( $order->get_status() == 'ss-queue' ) {
+                if( $order && $order->get_status() == 'ss-queue' ) {
                     SS_SHIPPING_WC()->log_msg('Order was queued, will check for updates.');
 
                     // Determine if the label is a return or normal
