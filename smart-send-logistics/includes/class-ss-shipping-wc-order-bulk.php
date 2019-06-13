@@ -573,6 +573,7 @@ if (!class_exists('SS_Shipping_WC_Order_Bulk')) :
          * This function call the Smart Send API to verify a label status and get label data
 	     */
         public function queue_ping() {
+            SS_SHIPPING_WC()->log_msg('Queue Ping API request with parameters: ' . json_encode($_GET));
 
             if ( isset( $_GET['order_id'] ) && isset( $_GET['shipment_id'] ) ) {
                 $order_id = wc_clean( $_GET['order_id'] );
@@ -582,6 +583,7 @@ if (!class_exists('SS_Shipping_WC_Order_Bulk')) :
 
                 // Only handle request if the order was queued to Smart Send server
                 if( $order->get_status() == 'ss-queue' ) {
+                    SS_SHIPPING_WC()->log_msg('Order was queued, will check for updates.');
 
                     // Determine if the label is a return or normal
 	                $meta_shipment_id = $this->ss_order->get_ss_shipment_id_from_order_meta( $order_id, false );
@@ -628,6 +630,8 @@ if (!class_exists('SS_Shipping_WC_Order_Bulk')) :
 		                    SS_SHIPPING_WC()->log_msg('Error response from "getLabels" : ' . SS_SHIPPING_WC()->get_api_handle()->getResponseBody());
 	                    }
                     }
+                } else {
+                    SS_SHIPPING_WC()->log_msg('Order was not queued - stops here.');
                 }
             }
 

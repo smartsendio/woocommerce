@@ -65,6 +65,7 @@ if (!class_exists('SS_Shipping_Shipment')) :
          * Create single order
          *
          * @param boolean $return
+         * @throws Exception
          * @return boolean
          */
         public function make_single_shipment_api_call( $return )
@@ -123,6 +124,7 @@ if (!class_exists('SS_Shipping_Shipment')) :
          * Create Payload for API request
          *
          * @param boolean $return
+         * @throws Exception
          * @return void
          */
         public function make_single_shipment_api_payload( $return )

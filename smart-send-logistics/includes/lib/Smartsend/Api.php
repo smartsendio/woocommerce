@@ -246,13 +246,7 @@ class Api extends Client
         if ($parcel_id) {
             return $this->httpGet('shipments/'.$shipment_id.'/parcels/'.$parcel_id.'/label');
         } else {
-	        $endpoint = 'shipments/'.$shipment_id.'/labels';
-	        // TODO: Remove this before committing. Uncomment one of these:
-	        // $endpoint .= '/mockup/unauthenticated';//Incorrect API Token
-	        // $endpoint .= '/mockup/forbidden';//User without the required subscription
-	        // $endpoint .= '/invalid';//An invalid request (problem with one of the shipments)
-	        // $endpoint .= '/success';//An invalid request (problem with one of the shipments)
-            return $this->httpGet($endpoint);
+            return $this->httpGet('shipments/'.$shipment_id.'/labels');
         }
     }
 
@@ -280,7 +274,7 @@ class Api extends Client
         return $this->httpPost('shipments/labels', array(), array(), $shipment);
     }
 
-    /*
+    /**
      * Create shipments directly and queue label generation.
      * Once each label is handled then a POST request will be made to the
      * provided callback url
@@ -299,13 +293,7 @@ class Api extends Client
 			),
 			'shipments' => $shipments,
 		);
-
 		$endpoint = 'shipments/labels/asynchronous';
-		// TODO: Remove this before committing. Uncomment one of these:
-		//$endpoint .= '/mockup/unauthenticated';//Incorrect API Token
-		//$endpoint .= '/mockup/forbidden';//User without the required subscription
-		//$endpoint .= '/invalid';//An invalid request (problem with one of the shipments)
-		// If you do not enable one of the above, then the endpoint will validate each shipment
 
 		return $this->httpPost($endpoint, array(), array(), $data);
 	}
