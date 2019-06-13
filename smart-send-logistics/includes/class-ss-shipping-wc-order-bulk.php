@@ -38,7 +38,7 @@ if (!class_exists('SS_Shipping_WC_Order_Bulk')) :
          */
         protected function define_constants()
         {
-            SS_SHIPPING_WC()->define('SS_QUEUE_CALLBACK_URL', WC()->api_request_url( 'smart-send-queue-ping') . '?order_id=:internal_id&shipment_id=:id' );
+            SS_SHIPPING_WC()->define('SS_QUEUE_CALLBACK_URL', WC()->api_request_url( 'smart-send-queue-ping') . '?order_id={internal_id}&shipment_id={id}' );
         }
 
         /**
@@ -160,7 +160,7 @@ if (!class_exists('SS_Shipping_WC_Order_Bulk')) :
                                         'smart-send-logistics'),
                                     'type'    => 'error',
                                 ));
-                            } elseif ($orders_count > 5) {
+                            } elseif ($orders_count > 1) {
                                 SS_SHIPPING_WC()->log_msg('Handling orders asynchronously');
 
                                 $array_combo_messages = $this->smart_send_bulk_queue( $order_ids, $return );
