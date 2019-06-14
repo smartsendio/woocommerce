@@ -430,7 +430,7 @@ if (!class_exists('SS_Shipping_WC_Order')) :
         public function filter_update_agent_meta($check, $object_id, $meta_key, $meta_value, $prev_value) {
 
             if ($meta_key == 'ss_shipping_order_agent_no') {
-                if ($meta_value != $prev_value) {
+                if ($prev_value && $meta_value != $prev_value) {
                     // Trying to update the agent number meta data
                     if ($this->save_shipping_agent( $object_id, true, $meta_value ) !== true) {
                         // the agent was not found so do NOT save the new agent_no
