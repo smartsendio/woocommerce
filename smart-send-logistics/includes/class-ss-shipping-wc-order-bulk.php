@@ -620,15 +620,17 @@ if (!class_exists('SS_Shipping_WC_Order_Bulk')) :
 				                    $this->ss_order->save_ss_shipment_id_in_order_meta($response->internal_id, $response->shipment_id, $return);
 			                    } else {
 				                    $error = SS_SHIPPING_WC()->get_api_handle()->getError();
-				                    $this->ss_order->handle_failed_label( $error, $order_id, $return, true, $created_queued=true );
+				                    $this->ss_order->handle_failed_label( $order_id, $error, $return, true, $created_queued=true );
 			                    }
                             }
 	                    } else {
 		                    $error = SS_SHIPPING_WC()->get_api_handle()->getError();
-		                    $this->ss_order->handle_failed_label( $error, $order_id, $return, true, $created_queued=true );
+		                    $this->ss_order->handle_failed_label( $order_id, $error, $return, true, $created_queued=true );
 
 		                    SS_SHIPPING_WC()->log_msg('Error response from "getLabels" : ' . SS_SHIPPING_WC()->get_api_handle()->getResponseBody());
 	                    }
+                    } else {
+                        SS_SHIPPING_WC()->log_msg('Order did not match the shipment_id');
                     }
                 } else {
                     SS_SHIPPING_WC()->log_msg('Order was not queued - stops here.');
