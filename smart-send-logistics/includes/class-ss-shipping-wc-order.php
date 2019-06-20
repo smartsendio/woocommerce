@@ -55,8 +55,8 @@ if (!class_exists('SS_Shipping_WC_Order')) :
             add_action('wp_ajax_ss_shipping_generate_label', array($this, 'generate_label'));
 
             // Meta field for storing the selected agent_no
-            // See: https://developer.wordpress.org/reference/hooks/update_meta_type_metadata/
-            add_filter('update_post_metadata', array($this, 'filter_update_agent_meta'), 10, 5);//For Wordpress 3.1.0+
+            // See: https://developer.wordpress.org/reference/hooks/update_meta_type_metadata_by_mid/
+            add_filter('update_post_metadata_by_mid', array($this, 'filter_update_agent_meta'), 10, 4);//For Wordpress 5.0.0+
             add_action('deleted_post_meta', array($this, 'action_deleted_agent_meta'), 10, 4);
 
             $subs_version = class_exists('WC_Subscriptions') && !empty(WC_Subscriptions::$version) ? WC_Subscriptions::$version : null;
@@ -415,29 +415,27 @@ if (!class_exists('SS_Shipping_WC_Order')) :
 	    /**
          * Agent meta data updated
          *
-	     * @since 3.1.0 WordPress
+	     * @since 5.0.0 WordPress
          *
          * @param null|bool $check      Whether to allow updating metadata for the given type.
-         * @param int       $object_id  Object ID.
-         * @param string    $meta_key   Meta key.
+         * @param int       meta_id     Meta ID.
          * @param mixed     $meta_value Meta value. Must be serializable if non-scalar.
-         * @param mixed     $prev_value Optional. If specified, only update existing
-         *                              metadata entries with the specified value.
-         *                              Otherwise, update all entries.
+         * @param string    $meta_key   Meta key.
          *
          * @return null|bool $check
 	     */
-        public function filter_update_agent_meta($check, $object_id, $meta_key, $meta_value, $prev_value) {
+        public function filter_update_agent_meta($check, $meta_id, $meta_value, $meta_key) {
 
             if ($meta_key == 'ss_shipping_order_agent_no') {
-                if ($prev_value && $meta_value != $prev_value) {
-                    // Trying to update the agent number meta data
+                $meta = get_metadata_by_mid( 'post', $meta_id );
+                $object_id = $meta->post_id;
+                if ($meta->meta_value != $meta_value) {
+                    // Trying to update the agent number meta field, let us validate it first
                     if ($this->save_shipping_agent( $object_id, true, $meta_value ) !== true) {
                         // the agent was not found so do NOT save the new agent_no
                         $check = false; // this means: stop saving the value into the database
                     }
                 }
-
             }
 
             return $check;
