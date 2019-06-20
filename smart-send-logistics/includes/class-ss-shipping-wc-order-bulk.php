@@ -598,13 +598,13 @@ if (!class_exists('SS_Shipping_WC_Order_Bulk')) :
                     // Handle the label if the shipment_id matches
                     if (isset($return)) {
 	                    // Get label for 'shipment_id'
+                        SS_SHIPPING_WC()->log_msg('API request for getLabels()');
 	                    SS_SHIPPING_WC()->get_api_handle()->getLabels( $shipment_id );
+                        SS_SHIPPING_WC()->log_msg('API response for getLabels(): ' . SS_SHIPPING_WC()->get_api_handle()->getResponseBody());
 
 	                    if ( SS_SHIPPING_WC()->get_api_handle()->isSuccessful() ) {
 		                    $response = SS_SHIPPING_WC()->get_api_handle()->getData();
 		                    $this->ss_order->handle_generated_label($order_id, $response, $return, $setting_save_order_note = true, $created_queued=true);
-
-		                    SS_SHIPPING_WC()->log_msg('Response from "getLabels" : ' . SS_SHIPPING_WC()->get_api_handle()->getResponseBody());
 
 		                    $ss_shipping_method_id = $this->ss_order->get_smart_send_method_id($order_id, $return);
 		                    if ($return == false && $this->ss_order->should_auto_generate_return($order_id)) {
