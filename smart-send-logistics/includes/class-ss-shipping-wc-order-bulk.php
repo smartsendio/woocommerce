@@ -39,7 +39,7 @@ if (!class_exists('SS_Shipping_WC_Order_Bulk')) :
         protected function define_constants()
         {
             $url = WC()->api_request_url( 'smart-send-queue-ping');
-            $url .= (parse_url($url, PHP_URL_QUERY) ? '&' : '?') . '&order_id={internal_id}&shipment_id={id}';
+            $url .= (parse_url($url, PHP_URL_QUERY) ? '&' : '?') . 'order_id={internal_id}&shipment_id={id}';
             SS_SHIPPING_WC()->define('SS_QUEUE_CALLBACK_URL', $url);
         }
 
