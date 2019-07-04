@@ -1173,9 +1173,12 @@ if (!class_exists('SS_Shipping_WC_Order')) :
                     } else {
                         $product_variation = $product;
                     }
-                    $product_weight = round(wc_get_weight($product_variation->get_weight(), 'kg'), 2);
-                    if ($product_weight) {
-                        $weight_total += ($item['qty'] * $product_weight);
+
+                    if ($product_variation) {//null|false if unable to load product
+                        $product_weight = round(wc_get_weight($product_variation->get_weight(), 'kg'), 2);
+                        if ($product_weight) {
+                            $weight_total += ($item['qty'] * $product_weight);
+                        }
                     }
                 }
             }
