@@ -411,7 +411,6 @@ if (!class_exists('SS_Shipping_WC_Order_Bulk')) :
             $combo_name = $this->get_combo_label_file_name($array_shipment_ids);
             $combo_path = $this->ss_order->get_label_path_from_shipment_id($combo_name);
             $combo_url = '';
-            // $combine_shipments_payload = array_map(function($element) { return array('shipment_id' => $element); }, $array_shipment_ids);
 
             if (file_exists($combo_path)) {
                 $combo_url = $this->ss_order->get_label_url_from_shipment_id($combo_name);
@@ -429,19 +428,7 @@ if (!class_exists('SS_Shipping_WC_Order_Bulk')) :
                     if (SS_SHIPPING_WC()->get_api_handle()->isSuccessful()) {
 
                         $response = SS_SHIPPING_WC()->get_api_handle()->getData();
-                        if (SS_SHIPPING_WC()->get_setting_save_shipping_labels_in_uploads()) {
-                            try {
-                                // Save the PDF file and save order meta data
-                                $combo_url = $this->save_label_file($combo_name, $response->pdf->base_64_encoded, null);
-                            } catch (Exception $e) {
-                                array_push($array_messages, array(
-                                    'message' => $e->getMessage(),
-                                    'type'    => 'error',
-                                ));
-                            }
-                        }
 
-                        // Get the combined label link
                         $combo_url = $response->pdf->link;
 
                         // Write API response to log
