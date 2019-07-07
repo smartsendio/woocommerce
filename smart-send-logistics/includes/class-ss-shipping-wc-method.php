@@ -977,7 +977,7 @@ if (!class_exists('SS_Shipping_WC_Method')) :
             // Set tax status based on selection otherwise always taxed
             $this->tax_status = $this->get_option('tax_status');
 
-            // Check if free shipping, otherwise claculate based on weight and evaluate formulas
+            // Check if free shipping, otherwise calculate based on weight and evaluate formulas
             if ($this->is_flat_rate_shipping($package)) {
 
                 $rate['cost'] = $this->get_option('flatfee_cost');
@@ -989,14 +989,16 @@ if (!class_exists('SS_Shipping_WC_Method')) :
                 $cart_weight = WC()->cart->get_cart_contents_weight();
                 $weight_costs = $this->get_option('cost_weight', array());
 
+                SS_SHIPPING_WC()->log_msg('Handling weight based shipping cost for order with weight <' . $cart_weight . '>');
+
                 if ($weight_costs) {
                     foreach ($weight_costs as $weight_cost) {
 
-                        // If empty ignore field and continue, otherwise check if equal or greater than
+                        // Check minimum weight requirement (field empty or equal to or less than cart weight)
                         if (empty($weight_cost['ss_min_weight']) || ($cart_weight >= $weight_cost['ss_min_weight'])) {
-                            // IF empty ignore field and contine, otherwise check if less than
+                            // Check maximum weight requirement (field empty or greater than cart weight)
                             if (empty($weight_cost['ss_max_weight']) || ($cart_weight < $weight_cost['ss_max_weight'])) {
-                                // If cost NOT empty add a fee
+                                // If cost field is NOT empty add a fee
                                 if (!empty($weight_cost['ss_cost_weight'])) {
 
                                     $rate['cost'] = $this->evaluate_cost($weight_cost['ss_cost_weight'], array(
@@ -1011,6 +1013,8 @@ if (!class_exists('SS_Shipping_WC_Method')) :
                             }
                         }
                     }
+                } else {
+                    SS_SHIPPING_WC()->log_msg('No weight based shipping cost saved for this shipping method (json decode for details):' . json_encode($weight_costs));
                 }
             }
 
@@ -1145,16 +1149,8 @@ if (!class_exists('SS_Shipping_WC_Method')) :
                 }
             }
 
+            $total = $this->get_cart_subtotal(WC()->cart);
             if (in_array($requires, array('min_amount', 'either', 'both'))) {
-                $total = WC()->cart->get_displayed_subtotal();
-
-                if ('incl' === WC()->cart->tax_display_cart) {
-                    $total = round($total - (WC()->cart->get_cart_discount_total() + WC()->cart->get_cart_discount_tax_total()),
-                        wc_get_price_decimals());
-                } else {
-                    $total = round($total - WC()->cart->get_cart_discount_total(), wc_get_price_decimals());
-                }
-
                 if ($total >= $min_amount) {
                     $has_met_min_amount = true;
                 }
@@ -1164,46 +1160,43 @@ if (!class_exists('SS_Shipping_WC_Method')) :
                 case 'min_amount' :
                     $is_available = $has_met_min_amount;
 
-                    $free_log_message = ', because the total is ' . $total . ' a minimum order amount of ' . $min_amount . ' is needed.';
+                    $free_log_message = 'a minimum order amount of ' . $min_amount . ' is needed.';
                     break;
                 case 'coupon' :
                     $is_available = $has_coupon;
 
-                    $free_log_message = ', because a coupon is needed.';
+                    $free_log_message = 'a coupon is needed.';
                     break;
                 case 'both' :
                     $is_available = $has_met_min_amount && $has_coupon;
 
-                    $free_log_message = ', because the total is ' . $total . ' a minimum order amount of ' . $min_amount . ' is needed AND a coupon is needed.';
+                    $free_log_message = 'a minimum order amount of ' . $min_amount . ' is needed AND a coupon is needed.';
                     break;
                 case 'either' :
                     $is_available = $has_met_min_amount || $has_coupon;
 
-                    $free_log_message = ', because the total is ' . $total . ' a minimum order amount of ' . $min_amount . ' is needed OR a coupon is needed.';
+                    $free_log_message = 'a minimum order amount of ' . $min_amount . ' is needed OR a coupon is needed.';
                     break;
                 case 'enabled' :
                     $is_available = true;
 
-                    $free_log_message = ', because it is always enabled.';
+                    $free_log_message = 'it is always enabled.';
                     break;
                 case 'disabled' :
                     $is_available = false;
 
-                    $free_log_message = ', because it is always disabled.';
+                    $free_log_message = 'it is always disabled.';
                     break;
                 default :
                     $is_available = false;
 
-                    $free_log_message = ', because it is not available.';
+                    $free_log_message = 'it is not available (default).';
                     break;
             }
 
             if ($free_log_message) {
-                if ($is_available) {
-                    SS_SHIPPING_WC()->log_msg('Flat rate shipping IS available' . $free_log_message);
-                } else {
-                    SS_SHIPPING_WC()->log_msg('Flat rate shipping is NOT available' . $free_log_message);
-                }
+                $free_log_message = 'Flat rate shipping ' . ($is_available ? 'IS' : 'IS NOT') . ' available for order with subtotal <' . $total . '>, because ' . $free_log_message;
+                SS_SHIPPING_WC()->log_msg($free_log_message);
             }
 
             // This filter will be removed in future versions.
@@ -1245,6 +1238,35 @@ if (!class_exists('SS_Shipping_WC_Method')) :
                 }
             }
             return '';
+        }
+
+        /**
+         * Get cart subtotal.
+         *
+         * See more at: https://docs.woocommerce.com/wc-apidocs/source-class-WC_Cart.html
+         *
+         * @param WC_Cart $cart
+         * @return float
+         */
+        private function get_cart_subtotal($cart)
+        {
+            if (version_compare(WOOCOMMERCE_VERSION, '3.3.0', '<')) {
+                $subtotal = $cart->get_displayed_subtotal();// Since WC 2.6.0
+                if ('incl' === $cart->tax_display_cart) {
+                    $subtotal = round($subtotal - $cart->get_cart_discount_total() - $cart->get_cart_discount_tax_total(),
+                        wc_get_price_decimals());
+                } else {
+                    $subtotal = round($subtotal - $cart->get_cart_discount_total(), wc_get_price_decimals());
+                }
+            } else {// Minimum WC 3.3.0
+                if ($cart->display_prices_including_tax()) { // Method implemented in WC 3.3.0
+                    $subtotal = $cart->get_subtotal() + $cart->get_subtotal_tax(); // Since WC 3.2.0
+                } else {
+                    $subtotal = $cart->get_subtotal(); // Since WC 3.2.0
+                }
+            }
+
+            return $subtotal;
         }
     }
 
