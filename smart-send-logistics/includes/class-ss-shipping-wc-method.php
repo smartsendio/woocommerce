@@ -993,7 +993,7 @@ if (!class_exists('SS_Shipping_WC_Method')) :
 
                 if ($weight_costs) {
                     foreach ($weight_costs as $weight_cost) {
-
+                        SS_SHIPPING_WC()->log_msg('Handling weight rate from <' . $weight_cost['ss_min_weight'] . '> to <' . $weight_cost['ss_max_weight'] . '> at cost <' . $weight_cost['ss_cost_weight'] . '>');
                         // Check minimum weight requirement (field empty or equal to or less than cart weight)
                         if (empty($weight_cost['ss_min_weight']) || ($cart_weight >= $weight_cost['ss_min_weight'])) {
                             // Check maximum weight requirement (field empty or greater than cart weight)
