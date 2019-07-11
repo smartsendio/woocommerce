@@ -342,10 +342,6 @@ if (!class_exists('SS_Shipping_WC_Order')) :
                     if (stripos($shipping_method_id, 'smart_send_shipping') !== false) {
                         if ($return) {
                         	return $item['smart_send_return_method'];
-                            return array(
-                                'smart_send_return_method'              => $item['smart_send_return_method'],
-                                'smart_send_auto_generate_return_label' => $item['smart_send_auto_generate_return_label'],
-                            );
                         } else {
                             return $item['smart_send_shipping_method'];
                         }
