@@ -527,7 +527,6 @@ if (!class_exists('SS_Shipping_WC_Method')) :
                     'type'        => 'title',
                     'description' => __('Configure the shipping method cost and free shipping.',
                         'smart-send-logistics'),
-                    'class'       => '',
                 ),
                 'cost_weight'                => array(
                     'type' => 'cost_weight',
