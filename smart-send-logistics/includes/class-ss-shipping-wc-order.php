@@ -875,6 +875,8 @@ if (!class_exists('SS_Shipping_WC_Order')) :
 
         /**
          * Save label file in "uploads" folder
+         *
+         * @throws Exception
          */
         protected function save_label_file($shipment_id, $label_data, $return)
         {
@@ -888,7 +890,7 @@ if (!class_exists('SS_Shipping_WC_Order')) :
             }
 
             $label_data_decoded = base64_decode($label_data);
-            $file_ret = wp_upload_bits($this->get_label_name_from_shipment_id($shipment_id), null, $label_data_decoded,
+            $file_ret = wp_upload_bits($this->get_label_name_from_filename($shipment_id), null, $label_data_decoded,
                 null);
 
             if (empty($file_ret['url'])) {
@@ -899,24 +901,24 @@ if (!class_exists('SS_Shipping_WC_Order')) :
             return $file_ret['url'];
         }
 
-        protected function get_label_url_from_shipment_id($shipment_id)
+        protected function get_label_url_from_filename($filename)
         {
             $upload_path = wp_upload_dir();
-            return $upload_path['url'] . '/' . $this->get_label_name_from_shipment_id($shipment_id);
+            return $upload_path['url'] . '/' . $this->get_label_name_from_filename($filename);
         }
 
-        public function get_label_path_from_shipment_id($shipment_id)
+        public function get_label_path_from_filename($filename)
         {
             $upload_path = wp_upload_dir();
-            return $upload_path['path'] . '/' . $this->get_label_name_from_shipment_id($shipment_id);
+            return $upload_path['path'] . '/' . $this->get_label_name_from_filename($filename);
         }
 
-        protected function get_label_name_from_shipment_id($shipment_id)
+        protected function get_label_name_from_filename($filename)
         {
             if ($this->label_prefix) {
-                $shipment_id = $this->label_prefix . $shipment_id;
+                $filename = $this->label_prefix . $filename;
             }
-            return $shipment_id . '.pdf';
+            return $filename . '.pdf';
         }
 
 
@@ -1089,7 +1091,7 @@ if (!class_exists('SS_Shipping_WC_Order')) :
         {
             $shipment_id = $this->get_ss_shipment_id_from_order_meta($order_id, $return);
 
-            return $this->get_label_url_from_shipment_id($shipment_id);
+            return $this->get_label_url_from_filename($shipment_id);
         }
 
         /**
