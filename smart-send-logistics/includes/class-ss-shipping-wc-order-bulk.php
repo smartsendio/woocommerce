@@ -593,13 +593,15 @@ if (!class_exists('SS_Shipping_WC_Order_Bulk')) :
 
 		                        // We need to queue a return label for the order
 			                    $shipment = $this->ss_order->get_shipment_object_for_order($order_id, $return);
-			                    $response = SS_SHIPPING_WC()->get_api_handle()->createShipmentAndLabelsAsync(array($shipment), null, SS_QUEUE_CALLBACK_URL );
+			                    SS_SHIPPING_WC()->get_api_handle()->createShipmentAndLabelsAsync(array($shipment), null, SS_QUEUE_CALLBACK_URL );
 			                    if (SS_SHIPPING_WC()->get_api_handle()->isSuccessful() ) {
+                                    $response = SS_SHIPPING_WC()->get_api_handle()->getData();
+
 				                    // Update order status
 				                    $order->update_status('wc-ss-queue');
 
 				                    // Save meta information
-				                    $this->ss_order->save_ss_shipment_id_in_order_meta($response->internal_id, $response->shipment_id, $return);
+				                    $this->ss_order->save_ss_shipment_id_in_order_meta($response->shipments[0]->internal_id, $response->shipments[0]->shipment_id, $return);
 			                    } else {
 				                    $error = SS_SHIPPING_WC()->get_api_handle()->getError();
 				                    $this->ss_order->handle_failed_label( $order_id, $error, $return, true, $created_queued=true );
