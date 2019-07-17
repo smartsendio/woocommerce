@@ -136,15 +136,17 @@ if (!class_exists('SS_Shipping_Shipment')) :
             // Get shipping method
             $ss_shipping_method_id = $this->shipping_order->get_smart_send_method_id($order_id, $return);
 
-            if ($return && isset($ss_shipping_method_id['smart_send_return_method'])) {
-                // If no return method set return error
-                if (empty($ss_shipping_method_id['smart_send_return_method'])) {
-                    throw new Exception(__('No return method set', 'smart-send-logistics'));
+            // Throw exception if
+            if (empty($ss_shipping_method_id)) {
+                if ($return) {
+                    throw new Exception(__('No return method set for order.', 'smart-send-logistics'));
                 } else {
-                    $ss_shipping_method_id = $ss_shipping_method_id['smart_send_return_method'];
+                    throw new Exception(__('Unexpected error, unable to determine shipping method.', 'smart-send-logistics'));
                 }
+            }
 
-            } else {
+            // Set agent - but only for non-returns
+            if (!$return) {
                 $ss_args['ss_agent'] = $this->shipping_order->get_ss_shipping_order_agent($order_id);
             }
 
