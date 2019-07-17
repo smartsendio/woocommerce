@@ -638,7 +638,7 @@ if (!class_exists('SS_Shipping_WC_Order')) :
             return $reponse_array;
         }
 
-            /**
+        /**
 	     * Handle successfully label request
 	     *
 	     * This method will insert all relevant info in WooCommerce and trigger actions

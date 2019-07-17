@@ -147,6 +147,7 @@ if (!class_exists('SS_Shipping_WC_Order_Bulk')) :
                 if (substr($action, 0, strlen('ss_shipping_')) === 'ss_shipping_') {//Starts with 'ss_shipping_'?
                     // This is a Smart Send action, let handle it:
                     SS_SHIPPING_WC()->log_msg('Smart Send bulk action: ' . $action);
+                    SS_SHIPPING_WC()->log_msg('Demo mode: ' . (SS_SHIPPING_WC()->get_api_handle()->getDemo() ? 'yes' : 'no'));
 
                     switch ($action) {
                         case 'ss_shipping_label_bulk' || 'ss_shipping_return_bulk':
@@ -243,7 +244,9 @@ if (!class_exists('SS_Shipping_WC_Order_Bulk')) :
             }
 
             if (!empty($array_shipments)) {
+                SS_SHIPPING_WC()->log_msg('API request for createShipmentAndLabelsAsync() with parameters: ' . json_encode($array_shipments));
                 $response = SS_SHIPPING_WC()->get_api_handle()->createShipmentAndLabelsAsync($array_shipments, null, SS_QUEUE_CALLBACK_URL );
+                SS_SHIPPING_WC()->log_msg('API response for createShipmentAndLabelsAsync(): ' . SS_SHIPPING_WC()->get_api_handle()->getResponseBody());
 
                 if ( SS_SHIPPING_WC()->get_api_handle()->isSuccessful() ) {
                     $queue_count = count($array_order_numbers);
