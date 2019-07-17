@@ -596,8 +596,12 @@ if (!class_exists('SS_Shipping_WC_Order_Bulk')) :
 
 		                        // We need to queue a return label for the order
 			                    $shipment = $this->ss_order->get_shipment_object_for_order($order_id, $return);
+                                SS_SHIPPING_WC()->log_msg('Queuing a return label');
+                                SS_SHIPPING_WC()->log_msg('API request for createShipmentAndLabelsAsync() with parameters: ' . json_encode(array($shipment)));
 			                    SS_SHIPPING_WC()->get_api_handle()->createShipmentAndLabelsAsync(array($shipment), null, SS_QUEUE_CALLBACK_URL );
-			                    if (SS_SHIPPING_WC()->get_api_handle()->isSuccessful() ) {
+                                SS_SHIPPING_WC()->log_msg('API response for createShipmentAndLabelsAsync(): ' . SS_SHIPPING_WC()->get_api_handle()->getResponseBody());
+
+                                if (SS_SHIPPING_WC()->get_api_handle()->isSuccessful() ) {
                                     $response = SS_SHIPPING_WC()->get_api_handle()->getData();
 
 				                    // Update order status
