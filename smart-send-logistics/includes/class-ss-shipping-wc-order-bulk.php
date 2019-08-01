@@ -110,6 +110,9 @@ if (!class_exists('SS_Shipping_WC_Order_Bulk')) :
                 'ss_shipping_return_bulk' => (SS_SHIPPING_WC()->get_demo_mode_setting() ? __('DEMO MODE',
                             'smart-send-logistics') . ': ' : '') . __('Smart Send - Generate Return Labels',
                         'smart-send-logistics'),
+                'ss_shipping_combine_labels' => (SS_SHIPPING_WC()->get_demo_mode_setting() ? __('DEMO MODE',
+                            'smart-send-logistics') . ': ' : '') . __('Smart Send - Combine labels',
+                        'smart-send-logistics'),
             );
 
             return $shop_manager_actions;
@@ -149,13 +152,15 @@ if (!class_exists('SS_Shipping_WC_Order_Bulk')) :
                     SS_SHIPPING_WC()->log_msg('Smart Send bulk action: ' . $action);
                     SS_SHIPPING_WC()->log_msg('Demo mode: ' . (SS_SHIPPING_WC()->get_api_handle()->getDemo() ? 'yes' : 'no'));
 
+                    $orders_count = count($order_ids);
+                    SS_SHIPPING_WC()->log_msg('Order count: ' . $orders_count);
+
                     switch ($action) {
-                        case 'ss_shipping_label_bulk' || 'ss_shipping_return_bulk':
+                        case 'ss_shipping_return_bulk':
+                            // Do not break, but handle instead in next case 'ss_shipping_label_bulk'
+                        case 'ss_shipping_label_bulk':
                             // Determine if the request is for a return label
                             $return = ('ss_shipping_return_bulk' === $action);
-
-                            $orders_count = count($order_ids);
-                            SS_SHIPPING_WC()->log_msg('Order count: ' . $orders_count);
 
                             if ($orders_count < 1) {
                                 array_push($array_messages, array(
@@ -178,6 +183,11 @@ if (!class_exists('SS_Shipping_WC_Order_Bulk')) :
                             }
 
                             break;
+                        case 'ss_shipping_combine_labels':
+                            SS_SHIPPING_WC()->log_msg('Combining labels');
+                            $array_combo_messages = $this->smart_send_bulk_combine( $order_ids );
+                            $array_messages = array_merge($array_messages, $array_combo_messages);
+                            break;
                         default:
                             array_push($array_messages, array(
                                 'message' => __('Unknown Smart Send action',
@@ -191,6 +201,79 @@ if (!class_exists('SS_Shipping_WC_Order_Bulk')) :
                 }
             }
         }
+
+        /**
+         * Create one combined PDF containing labels for selected orders.
+         *
+         * @param array   $order_ids    WC Orders or order id's to create shipping label for
+         * @return array                Array of messages (type:error/success)
+         */
+        protected function smart_send_bulk_combine( $order_ids )
+        {
+            $array_messages = array();
+            $array_shipment_ids = array();
+
+            foreach ($order_ids as $order_id) {
+                $order = wc_get_order($order_id);
+
+                $smartsend_shipment_id_normal = $order->get_meta('_ss_shipping_label_id', true);
+                $smartsend_shipment_id_return = $order->get_meta( '_ss_shipping_return_label_id', true);
+
+                if (!$smartsend_shipment_id_normal && !$smartsend_shipment_id_return) {
+                    // A label has never been created for the order
+                    array_push($array_messages, array(
+                        'message' => sprintf(__('Order #%s has no shipping labels saved', 'smart-send-logistics'), $order->get_order_number()),
+                        'type'    => 'error',
+                    ));
+                } else {
+                    // At least a return label or a normal label has been created
+                    if ($smartsend_shipment_id_normal) {
+                        SS_SHIPPING_WC()->log_msg(sprintf('Adding normal shipment <%s> for order #%s', $smartsend_shipment_id_normal, $order->get_order_number()));
+                        $array_shipment_ids[] = array(
+                            'shipment_id' => $smartsend_shipment_id_normal,
+                            'order_id' => $order->get_order_number(),
+                        );
+                    }
+
+                    if ($smartsend_shipment_id_return) {
+                        SS_SHIPPING_WC()->log_msg(sprintf('Adding return shipment <%s> for order #%s', $smartsend_shipment_id_normal, $order->get_order_number()));
+                        $array_shipment_ids[] = array(
+                            'shipment_id' => $smartsend_shipment_id_return,
+                            'order_id' => $order->get_order_number(),
+                        );
+                    }
+                }
+            }
+
+            if (count($array_shipment_ids) > 1) {
+                $array_combo_messages = $this->create_combo_file($array_shipment_ids);
+                $array_messages = array_merge($array_messages, $array_combo_messages);
+            } elseif (count($array_shipment_ids) == 1) {
+                // Get label for 'shipment_id'
+                SS_SHIPPING_WC()->log_msg('Getting label for single shipment using getLabels()');
+                SS_SHIPPING_WC()->get_api_handle()->getLabels( $array_shipment_ids[0]['shipment_id'] );
+                SS_SHIPPING_WC()->log_msg('API response for getLabels(): ' . SS_SHIPPING_WC()->get_api_handle()->getResponseBody());
+
+                if ( SS_SHIPPING_WC()->get_api_handle()->isSuccessful() ) {
+                    $response = SS_SHIPPING_WC()->get_api_handle()->getData();
+
+                    array_push($array_messages, array(
+                        'message' => sprintf(__('<a href="%s" target="_blank">Download shipping label</a>',
+                                'smart-send-logistics'), $response->pdf->link),
+                        'type'    => 'success',
+                    ));
+                } else {
+                    array_push($array_messages, array(
+                        'message' => __('Error trying to download label:', 'smart-send-logistics') . ' ' . SS_SHIPPING_WC()->get_api_handle()->getErrorString(),
+                        'type'    => 'error',
+                    ));
+                }
+
+            }
+
+            return $array_messages;
+        }
+
 
         /**
          * Queue an array of WC Orders for generation of shipping labels.
@@ -394,20 +477,22 @@ if (!class_exists('SS_Shipping_WC_Order_Bulk')) :
             }
 
             return $this->create_combo_file(
-		        $array_messages_success,
-		        $array_messages_error,
-		        $array_shipment_ids
+		        $array_shipment_ids,
+                $array_messages_success,
+                $array_messages_error
 	        );
         }
 
 	    /**
-	     * @param $array_messages_success
-	     * @param $array_messages_error
+         * Create a combined PDF file.
+         *
 	     * @param $array_shipment_ids
+         * @param $array_messages_success
+	     * @param $array_messages_error
 	     *
 	     * @return array
 	     */
-        protected function create_combo_file($array_messages_success, $array_messages_error, $array_shipment_ids)
+        protected function create_combo_file($array_shipment_ids, $array_messages_success = array(), $array_messages_error = array())
         {
 
             $array_messages = array();
@@ -448,7 +533,7 @@ if (!class_exists('SS_Shipping_WC_Order_Bulk')) :
                 $order_ids_str = '#' . implode(', #', $order_id_list);
 
                 array_push($array_messages, array(
-                    'message' => sprintf(__('Shipping labels created by Smart Send for %s orders: <a href="%s" target="_blank">Download combined pdf</a>',
+                    'message' => sprintf(__('Shipping labels for %s orders: <a href="%s" target="_blank">Download combined pdf</a>',
                             'smart-send-logistics'), $label_count, $combo_url)
                         . '<br/>' . $order_ids_str,
                     'type'    => 'success',
