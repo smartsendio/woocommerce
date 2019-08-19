@@ -294,7 +294,7 @@ if (!class_exists('SS_Shipping_WC_Method')) :
                     'default' => 'no',
                     'type'    => 'select',
                     'class'   => 'wc-enhanced-select',
-                    'options' => array_merge(array('0' => __("Don't change order status", 'smart-send-logistics')),
+                    'options' => array_merge(array('0' => __("Do not change order status", 'smart-send-logistics')),
                         wc_get_order_statuses()),
                 ),
                 'shipping_method_for_free_shipping' => array(
@@ -304,7 +304,6 @@ if (!class_exists('SS_Shipping_WC_Method')) :
                     'class'       => 'wc-enhanced-select',
                     'description' => __('Selecting a shipping method will make it possible to make shipping labels for order places with WooCommerces native Free Shipping method.',
                         'smart-send-logistics'),
-                    'desc_tip'    => true,
                     'options'     => $this->shipping_method,
                 ),
                 'include_order_comment'             => array(
@@ -339,7 +338,7 @@ if (!class_exists('SS_Shipping_WC_Method')) :
                 'default_select_agent'              => array(
                     'title'       => __('Select Default', 'smart-send-logistics'),
                     'label'       => __('Enable Select Default', 'smart-send-logistics'),
-                    'description' => __('Select the first returned pick-up point.'),
+                    'description' => __('This will automatically select the closest pick-up point and let the customer change to a different pick-up point. This means that the customer will not be forced to select a pick-up point before completing the order.'),
                     'default'     => 'no',
                     'type'        => 'checkbox',
                     'desc_tip'    => true,
@@ -943,6 +942,7 @@ if (!class_exists('SS_Shipping_WC_Method')) :
 
             // write id of shipping method to log
             SS_SHIPPING_WC()->log_msg('Handling shipping rate <' . $rate['id'] . '> with title: ' . $rate['label']);
+            SS_SHIPPING_WC()->log_msg('Rate details (json decode for details): ' . json_encode($rate));
 
             // Set tax status based on selection otherwise always taxed
             $this->tax_status = $this->get_option('tax_status');
@@ -953,7 +953,7 @@ if (!class_exists('SS_Shipping_WC_Method')) :
                 $rate['cost'] = $this->get_option('flatfee_cost');
                 $this->add_rate($rate);
                 // write to log, that shipping rate is added
-                SS_SHIPPING_WC()->log_msg('Free shipping rate added (json decode for details): ' . json_encode($rate));
+                SS_SHIPPING_WC()->log_msg('Free shipping rate added');
 
             } else {
                 $cart_weight = WC()->cart->get_cart_contents_weight();

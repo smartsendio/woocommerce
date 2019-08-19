@@ -6,9 +6,9 @@
  * Author: Smart Send ApS
  * Author URI: https://www.smartsend.io
  * Text Domain: smart-send-logistics
- * Version: 8.0.17
+ * Version: 8.0.18
  * WC requires at least: 2.6.0
- * WC tested up to: 3.5
+ * WC tested up to: 3.7
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -34,7 +34,7 @@ if (!class_exists('SS_Shipping_WC')) :
     class SS_Shipping_WC
     {
 
-        private $version = "8.0.17";
+        private $version = "8.0.18";
 
         /**
          * Instance to call certain functions globally within the plugin
