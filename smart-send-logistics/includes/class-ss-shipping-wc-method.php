@@ -213,6 +213,15 @@ if (!class_exists('SS_Shipping_WC_Method')) :
         }
 
         /**
+         * Get shipping method ID the rate belongs to.
+         *
+         * @return string
+         */
+        public function get_method_id() {
+            return $this->id;
+        }
+
+        /**
          * load admin scripts on settings page only
          */
         public function load_admin_scripts($hook)
@@ -979,13 +988,13 @@ if (!class_exists('SS_Shipping_WC_Method')) :
             // Check if free shipping, otherwise calculate based on weight and evaluate formulas
             if ($this->is_flat_rate_shipping($package)) {
 
-                $rate['cost'] = $this->get_option('flatfee_cost');
+                $rate['cost'] = apply_filters('woocommerce_shipping_smart_send_shipping_flatfee_cost', $this->get_option('flatfee_cost'), $rate, $this);
                 $this->add_rate($rate);
                 // write to log, that shipping rate is added
                 SS_SHIPPING_WC()->log_msg('Free shipping rate added (json decode for details): ' . json_encode($rate));
 
             } else {
-                $cart_weight = WC()->cart->get_cart_contents_weight();
+                $cart_weight = apply_filters('woocommerce_shipping_smart_send_shipping_cart_weight', WC()->cart->get_cart_contents_weight(), $rate, $this);
                 $weight_costs = $this->get_option('cost_weight', array());
 
                 SS_SHIPPING_WC()->log_msg('Handling weight based shipping cost for order with weight <' . $cart_weight . '>');
@@ -999,11 +1008,14 @@ if (!class_exists('SS_Shipping_WC_Method')) :
                             if (empty($weight_cost['ss_max_weight']) || ($cart_weight < $weight_cost['ss_max_weight'])) {
                                 // If cost field is NOT empty add a fee
                                 if (!empty($weight_cost['ss_cost_weight'])) {
+                                	$weight_cost_expression = apply_filters('woocommerce_shipping_smart_send_shipping_weight_cost_expression', $weight_cost['ss_cost_weight'], $rate, $this);
 
-                                    $rate['cost'] = $this->evaluate_cost($weight_cost['ss_cost_weight'], array(
+                                    $weight_cost_rate = $this->evaluate_cost($weight_cost_expression, array(
                                         'qty'  => $this->get_package_item_qty($package),
                                         'cost' => $package['contents_cost'],
                                     ));
+                                    
+                                    $rate['cost'] = apply_filters('woocommerce_shipping_smart_send_shipping_weight_cost_rate', $weight_cost_rate, $rate, $this);
 
                                     $this->add_rate($rate);
                                     // write to log, that shipping rate is added
@@ -1148,9 +1160,9 @@ if (!class_exists('SS_Shipping_WC_Method')) :
                 }
             }
 
-            $total = $this->get_cart_subtotal(WC()->cart);
+            $subtotal = $this->get_cart_subtotal(WC()->cart);
             if (in_array($requires, array('min_amount', 'either', 'both'))) {
-                if ($total >= $min_amount) {
+                if ($subtotal >= $min_amount) {
                     $has_met_min_amount = true;
                 }
             }
@@ -1194,7 +1206,7 @@ if (!class_exists('SS_Shipping_WC_Method')) :
             }
 
             if ($free_log_message) {
-                $free_log_message = 'Flat rate shipping ' . ($is_available ? 'IS' : 'IS NOT') . ' available for order with subtotal <' . $total . '>, because ' . $free_log_message;
+                $free_log_message = 'Flat rate shipping ' . ($is_available ? 'IS' : 'IS NOT') . ' available for order with subtotal <' . $subtotal . '>, because ' . $free_log_message;
                 SS_SHIPPING_WC()->log_msg($free_log_message);
             }
 
@@ -1242,6 +1254,7 @@ if (!class_exists('SS_Shipping_WC_Method')) :
         /**
          * Get cart subtotal.
          *
+         * This method return a filtered subtotal value regardless or WooCommerce version
          * See more at: https://docs.woocommerce.com/wc-apidocs/source-class-WC_Cart.html
          *
          * @param WC_Cart $cart
@@ -1265,7 +1278,7 @@ if (!class_exists('SS_Shipping_WC_Method')) :
                 }
             }
 
-            return $subtotal;
+            return apply_filters('woocommerce_shipping_smart_send_shipping_cart_subtotal', $subtotal, $cart);
         }
     }
 

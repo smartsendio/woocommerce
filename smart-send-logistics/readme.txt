@@ -121,6 +121,16 @@ The plugin implements a number of useful hooks (actions and filters) that can be
     A filter that allows 3rd parties to disable a shipping method
 * **woocommerce_shipping_smart_send_shipping_is_flate_rate_shipping**
     A filter that allows 3rd parties to disable/enable free shipping for a method
+* **woocommerce_shipping_smart_send_shipping_flatfee_cost**
+    A filter that allows 3rd parties to change til flat fee shipping cost
+* **woocommerce_shipping_smart_send_shipping_cart_weight**
+    A filter that allows 3rd parties to change the cart weight used for shipping rate calculations
+* **woocommerce_shipping_smart_send_shipping_cart_subtotal**
+    A filter that allows 3rd parties to change the cart subtotal used for shipping rate calculations
+* **woocommerce_shipping_smart_send_shipping_weight_cost_expression**
+    A filter that allows 3rd parties to change the calculation expression used for weight based shipping rates
+* **woocommerce_shipping_smart_send_shipping_weight_cost_rate**
+    A filter that allows 3rd parties to change the calculated weight based rates
 * **smart_send_agent_timeout**
     A filter to change the timeout used when searching for agents on checkout page
 * **smart_send_shipping_label_args**
@@ -203,7 +213,11 @@ This box appears when a "Select Pick-up Point" shipping method is selected, but 
 = 8.1.0 =
 * Rename filter woocommerce_shipping_smart_send_shipping_is_free_shipping to woocommerce_shipping_smart_send_shipping_is_flate_rate_shipping
 * Add asynchronous label generation for handling more than 5 orders
+* Add filter **woocommerce_shipping_smart_send_shipping_flatfee_cost**
+* Add filter **woocommerce_shipping_smart_send_shipping_cart_weight**
+* Add filter **woocommerce_shipping_smart_send_shipping_cart_subtotal**
 * Bugfix: Validating agent number each time an order was updated
+* Add support for MultiCurrency plugin
 
 = 8.0.17 =
 * Add hidden product meta field **_ss_country_of_origin** used for custom declarations
