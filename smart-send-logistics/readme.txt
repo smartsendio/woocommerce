@@ -200,6 +200,8 @@ This box appears when a "Select Pick-up Point" shipping method is selected, but 
 
 == Changelog ==
 
+* Bugfix: Order page failed when purchased products had been deleted
+
 = 8.0.18 =
 * Add extra info about cart content to debug log
 
