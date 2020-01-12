@@ -127,7 +127,7 @@ if (!class_exists('SS_Shipping_Frontend')) :
 	     */
         public function find_closest_agents_by_address($carrier, $country, $postal_code, $city, $street)
         {
-	        SS_SHIPPING_WC()->log_msg('Called "findClosestAgentByAddress" with carrier = "' . $carrier . '", country = "' . $country . '", postcode = "' . $postal_code . '", city = "' . $city . '", street = "' . $street . '"');
+	        SS_SHIPPING_WC()->log_msg('Called "findClosestAgentByAddress" for website ' . SS_SHIPPING_WC()->get_website_url() . ' with carrier = "' . $carrier . '", country = "' . $country . '", postcode = "' . $postal_code . '", city = "' . $city . '", street = "' . $street . '"');
 
 	        if (SS_SHIPPING_WC()->get_api_handle()->findClosestAgentByAddress($carrier, $country, $postal_code, $city, $street)) {
 
