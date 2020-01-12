@@ -70,6 +70,12 @@ if (!class_exists('SS_Shipping_WC_Method')) :
 	                        'smart-send-logistics'),
                         'postnord_letteruntracked'         => __('PostNord: Untracked letter',
 	                        'smart-send-logistics'),
+                        'postnord_fullpallet'              => __('PostNord: Full size pallet',
+                            'smart-send-logistics'),
+                        'postnord_halfpallet'              => __('PostNord: Half size pallet',
+                            'smart-send-logistics'),
+                        'postnord_quarterpallet'           => __('PostNord: Quarter size pallet',
+                            'smart-send-logistics'),
                     ),
                 'GLS'               =>
                     array(
