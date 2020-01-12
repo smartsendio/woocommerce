@@ -70,6 +70,12 @@ if (!class_exists('SS_Shipping_WC_Method')) :
 	                        'smart-send-logistics'),
                         'postnord_letteruntracked'         => __('PostNord: Untracked letter',
 	                        'smart-send-logistics'),
+                        'postnord_fullpallet'              => __('PostNord: Full size pallet',
+                            'smart-send-logistics'),
+                        'postnord_halfpallet'              => __('PostNord: Half size pallet',
+                            'smart-send-logistics'),
+                        'postnord_quarterpallet'           => __('PostNord: Quarter size pallet',
+                            'smart-send-logistics'),
                     ),
                 'GLS'               =>
                     array(
@@ -250,6 +256,8 @@ if (!class_exists('SS_Shipping_WC_Method')) :
 
             $this->form_fields = array(
                 'api_token'                         => array(
+                    // Note that this can be input for multiple sites using
+                    // site1:apitoken1,site2:apitoken2,....
                     'title'       => __('API Token', 'smart-send-logistics'),
                     'type'        => 'text',
                     'default'     => '',
