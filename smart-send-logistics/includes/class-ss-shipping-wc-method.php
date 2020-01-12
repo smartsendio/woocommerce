@@ -250,6 +250,8 @@ if (!class_exists('SS_Shipping_WC_Method')) :
 
             $this->form_fields = array(
                 'api_token'                         => array(
+                    // Note that this can be input for multiple sites using
+                    // site1:apitoken1,site2:apitoken2,....
                     'title'       => __('API Token', 'smart-send-logistics'),
                     'type'        => 'text',
                     'default'     => '',
