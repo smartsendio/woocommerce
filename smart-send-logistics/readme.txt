@@ -7,12 +7,12 @@ Developer: SmartSend
 Developer URI: https://smartsend.io/
 Tags: smartsend, smart send, shipping, shipping label, pickup, pick-up, pakkelabel, pakkelabels, pakkeboks, pakkeshop, hente selv, døgnboks, postnord, post nord, post danmark, gls, swipbox, bring, dao, dao365, dao 365, carrier, pacsoft, yourgls, mybring, postage, shipping method, your-gls, my-bring, pacosft-online, pacsoftonline, denmark, sweeden, posten, norway, post 
 Requires at least: 3.0.1
-Tested up to: 5.3
+Tested up to: 5.4
 Stable tag: 8.0.20
 License: GNU General Public License v3.0
 License URI: http://www.gnu.org/licenses/gpl-3.0.html
 WC requires at least: 3.0.0
-WC tested up to: 3.9
+WC tested up to: 4.0
 Requires PHP: 5.6.0
 
 Complete WooCommerce shipping solution for PostNord, GLS, DAO and Bring.
