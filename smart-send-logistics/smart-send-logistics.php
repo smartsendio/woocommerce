@@ -8,7 +8,7 @@
  * Text Domain: smart-send-logistics
  * Version: 8.1.0b8
  * WC requires at least: 2.6.0
- * WC tested up to: 3.9
+ * WC tested up to: 4.0
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
