@@ -200,6 +200,8 @@ This box appears when a "Select Pick-up Point" shipping method is selected, but 
 
 == Changelog ==
 
+* Upated Bifrost shipping methods
+
 = 8.0.21 =
 * Add WooCommerce 4.1 support
 * Add WooCommerce 4.2 support
