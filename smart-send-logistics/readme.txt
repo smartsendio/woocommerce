@@ -12,7 +12,7 @@ Stable tag: 8.0.21
 License: GNU General Public License v3.0
 License URI: http://www.gnu.org/licenses/gpl-3.0.html
 WC requires at least: 3.0.0
-WC tested up to: 4.2
+WC tested up to: 5.0
 Requires PHP: 5.6.0
 
 Complete WooCommerce shipping solution for PostNord, GLS, DAO and Bring.
@@ -200,6 +200,7 @@ This box appears when a "Select Pick-up Point" shipping method is selected, but 
 
 == Changelog ==
 
+* Add WooCommerce 4.2-5.0 support
 * Upated Bifrost shipping methods
 
 = 8.0.21 =
