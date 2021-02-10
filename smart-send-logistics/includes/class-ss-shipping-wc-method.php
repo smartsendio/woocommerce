@@ -133,6 +133,12 @@ if (!class_exists('SS_Shipping_WC_Method')) :
                             'smart-send-logistics'),
                         'bifrost_etailgainlarge'          => __('Bifrost Logistics: eTail Gain large',
                             'smart-send-logistics'),
+                        // Express
+                        'bifrost_expresscollect'          => __('Bifrost Logistics: Nordic Express Collect',
+                            'smart-send-logistics'),
+                        'bifrost_expresshome'             => __('Bifrost Logistics: Nordic Express Home',
+                            'smart-send-logistics'),
+                        /*
                         // Letter Priority
                         'bifrost_letterprioritysmall'     => __('Bifrost Logistics: Letter priority small',
                             'smart-send-logistics'),
@@ -164,6 +170,7 @@ if (!class_exists('SS_Shipping_WC_Method')) :
                             'smart-send-logistics'),
                         'bifrost_ecomprioritymaxi'        => __('Bifrost Logistics: Ecom priority maxi',
                             'smart-send-logistics'),
+                        */
                     ),
             );
 
