@@ -90,9 +90,11 @@ if (!class_exists('SS_Shipping_WC_Method')) :
                     ),
                 'DAO'               =>
                     array(
-                        'dao_agent'    => __('DAO: Select pick-up point (ParcelShop)', 'smart-send-logistics'),
-                        'dao_collect'  => __('DAO: Closest pick-up point (ParcelShop)', 'smart-send-logistics'),
-                        'dao_doorstep' => __('DAO: Leave at door (Direct)', 'smart-send-logistics'),
+                        'dao_agent'           => __('DAO: Select pick-up point (ParcelShop)', 'smart-send-logistics'),
+                        'dao_collect'         => __('DAO: Closest pick-up point (ParcelShop)', 'smart-send-logistics'),
+                        'dao_doorstep'        => __('DAO: Leave at door (Direct)', 'smart-send-logistics'),
+                        'dao_dropoffagent'    => __('DAO: From pick-up point to pick-up point (Shop2Shop)', 'smart-send-logistics'),
+                        'dao_dropoffdoorstep' => __('DAO: From pick-up point to doorstep (ParcelShop to Direct)', 'smart-send-logistics'),
                     ),
                 'Bring'             =>
                     array(

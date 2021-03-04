@@ -203,6 +203,7 @@ This box appears when a "Select Pick-up Point" shipping method is selected, but 
 = 8.0.23
 * Add WordPress 5.7 support
 * Add WooCommerce 5.1 support
+* Add new DAO methods: dropoffagent, dropoffdoorstep
 
 = 8.0.22 =
 * Add WooCommerce 4.2-5.0 support
