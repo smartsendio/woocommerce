@@ -399,6 +399,7 @@ class Client
 		    'body'       => $this->request_body,
 		    'timeout'    => $timeout,
 		    'httpversion' => '1.1',
+            'sslverify'  => apply_filters('smart_send_sslverify', true),
 	    ));
 
         // execute request
