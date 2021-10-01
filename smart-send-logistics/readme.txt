@@ -200,6 +200,9 @@ This box appears when a "Select Pick-up Point" shipping method is selected, but 
 
 == Changelog ==
 
+= 8.0.24
+* Add filter smart_send_sslverify to fix ssl issues on older servers with incorrect SSL libraries
+
 = 8.0.23
 * Add WordPress 5.7 support
 * Add WooCommerce 5.1 support
