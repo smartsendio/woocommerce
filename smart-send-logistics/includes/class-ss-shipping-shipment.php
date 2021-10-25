@@ -163,12 +163,18 @@ if (!class_exists('SS_Shipping_Shipment')) :
                 $this->getOrderId($this->order)
             );
 
-            // If shipping phone number doesn't exist, try to get billing phone number
-            if (!isset($shipping_address['phone']) && isset($billing_address['phone'])) {
-                $shipping_address['phone'] = $billing_address['phone'];
+            // The shipping phone field was added in WooCommerce 5.6 but often added by hooks/plugins before that.
+            // Note that the field is not shown on checkout per default but can be enabled by filters/plugins.
+            // See: https://github.com/woocommerce/woocommerce/pull/30097#issuecomment-943114632
+            if (isset($shipping_address['phone']) && $shipping_address['phone']) { // Field did not exist prior to WooCommerce 5.6
+                $phone = $shipping_address['phone'];
+            } elseif ($shipping_address['country'] == $billing_address['country']) { // Require as only local phone numbers is accepted
+                $phone = $billing_address['phone'];
+            } else {
+                $phone = null;
             }
 
-            // If shipping email doesn't exist, try to get billing email
+            // The shipping email field does not exist in default WP installations but can be added by filters/hooks.
             if (!isset($shipping_address['email']) && isset($billing_address['email'])) {
                 $shipping_address['email'] = $billing_address['email'];
             }
@@ -185,7 +191,7 @@ if (!class_exists('SS_Shipping_Shipment')) :
                 ->setPostalCode($shipping_address['postcode'] ?: null)
                 ->setCity($shipping_address['city'] ?: null)
                 ->setCountry($shipping_address['country'] ?: null)
-                ->setSms($shipping_address['phone'] ?: null)
+                ->setSms($phone ?: null)
                 ->setEmail($shipping_address['email'] ?: null);
 
             // Add the receiver to the shipment

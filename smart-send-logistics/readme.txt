@@ -200,6 +200,9 @@ This box appears when a "Select Pick-up Point" shipping method is selected, but 
 
 == Changelog ==
 
+= 8.0.25 =
+* Fix issue with missing receiver phone on some WooCommerce versions (v5.6+)
+
 = 8.0.24 =
 * Add filter smart_send_sslverify to fix ssl issues on older servers with incorrect SSL libraries
 
