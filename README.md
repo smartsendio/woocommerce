@@ -1,6 +1,31 @@
 # WooCommerce
 Smart Send module for WooCommerce
 
+## SVN
+
+Wordpress Plugin releases are managed by [SVN](https://developer.wordpress.org/plugins/wordpress-org/how-to-use-subversion/#starting-a-new-plugin) and to sync the plugin to a local folder run:
+
+```bash
+svn co https://plugins.svn.wordpress.org/smart-send-logistics smart-send-logistics
+```
+
+To release a new version of the plugin:
+
+1. Update all mentions of the `Version`:
+  - `smart-send-logistics/smart-send-logistics.php`: Header
+  - `smart-send-logistics/smart-send-logistics.php`: private property `$version`
+  - `smart-send-logistics/readme.txt`: _Stable tag_-tag
+2. Add changelog entry in `smart-send-logistics/readme.txt`
+3. Copy folder `smart-send-logistics` to the `trunk` svn folder
+4. Copy the `trunk` folder content to a new tagged release using the command `svn cp trunk tags/8.0.0` (replace `8.0.0` with the new version number)
+5. Commit the work using the command `svn ci -m "tagging version 8.0.0"`
+
+Note that the following command can be used to check which files are modified/added/deleted:
+
+```bash
+svn stat
+```
+
 ## Development
 When developing then it can sometimes be relevant to use Smart Send's _staging_ environment. This is done by implementing the following [filter](https://developer.wordpress.org/reference/functions/add_filter/):
 ```
