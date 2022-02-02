@@ -169,7 +169,7 @@ class Api extends Client
         return $this->httpGet(
             $method,
             $args = array(), $headers = array(), $body = null, $timeout = $this->getAgentTimeout()
-	    );
+        );
     }
 
     /*
