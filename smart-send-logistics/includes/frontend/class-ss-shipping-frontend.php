@@ -95,7 +95,12 @@ if (!class_exists('SS_Shipping_Frontend')) :
 
                     $carrier = SS_SHIPPING_WC()->get_shipping_method_carrier($meta_data['smart_send_shipping_method']);
 
-	                $ss_agents = $this->find_closest_agents_by_address($carrier, $country, $postal_code, $city, $street);
+		            // Production API does not allow street addresses shorter than 5 characters
+		            if(empty($street) || strlen($street) < 5){
+			            $ss_agents = $this->find_closest_agents_by_postal_code($carrier, $country, $postal_code);
+		            }else{
+			            $ss_agents = $this->find_closest_agents_by_address($carrier, $country, $postal_code, $city, $street);
+		            }
 
                     if (!empty($ss_agents)) {
 
@@ -160,6 +165,35 @@ if (!class_exists('SS_Shipping_Frontend')) :
 		        return array();
 	        }
         }
+
+	    /**
+	     * Find the closest agents by postal code
+	     *
+	     * @param $carrier string Unique carrier code
+	     * @param $country string ISO3166-A2 Country code
+	     * @param $postal_code string
+	     *
+	     * @return array
+	     */
+	    public function find_closest_agents_by_postal_code($carrier, $country, $postal_code)
+	    {
+		    SS_SHIPPING_WC()->log_msg('Called "findClosestAgentByPostalCode" for website ' . SS_SHIPPING_WC()->get_website_url() . ' with carrier = "' . $carrier . '", country = "' . $country . '", postcode = "' . $postal_code . '"');
+
+		    if (SS_SHIPPING_WC()->get_api_handle()->findClosestAgentByPostalCode($carrier, $country, $postal_code)) {
+
+			    $ss_agents = SS_SHIPPING_WC()->get_api_handle()->getData();
+
+			    SS_SHIPPING_WC()->log_msg('Response from "findClosestAgentByPostalCode": ' . SS_SHIPPING_WC()->get_api_handle()->getResponseBody());
+			    // Save all of the agents in sessions
+			    WC()->session->set('ss_shipping_agents', $ss_agents);
+
+			    return $ss_agents;
+		    } else {
+			    SS_SHIPPING_WC()->log_msg( 'Response from "findClosestAgentByPostalCode": ' . SS_SHIPPING_WC()->get_api_handle()->getErrorString() );
+
+			    return array();
+		    }
+	    }
 
         /**
          * Get the formatted address to display on the frontend
