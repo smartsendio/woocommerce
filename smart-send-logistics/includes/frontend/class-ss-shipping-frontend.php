@@ -71,11 +71,27 @@ if (!class_exists('SS_Shipping_Frontend')) :
                 ($chosen_shipping == $shipping_id) &&
                 (stripos($meta_data['smart_send_shipping_method'], 'agent') !== false)) {
 
-                if (!empty($_POST['s_country']) && !empty($_POST['s_postcode']) && !empty($_POST['s_address'])) {
-                    $country = wc_clean($_POST['s_country']);
-                    $postal_code = wc_clean($_POST['s_postcode']);
-	                $city = (!empty($_POST['s_city']) ? wc_clean($_POST['s_city']) : null);//not required but preferred
-                    $street = wc_clean($_POST['s_address']);
+	            $country = apply_filters(
+		            'smart_send_agent_search_country',
+		            wc_clean(isset($_POST['s_country']) ? $_POST['s_country'] : '')
+	            );
+
+	            $postal_code = apply_filters(
+		            'smart_send_agent_search_postal_code',
+		            wc_clean(isset($_POST['s_postcode']) ? $_POST['s_postcode'] : '')
+	            );
+
+	            if (!empty($country) && !empty($postal_code)) {
+		            $city = isset($_POST['s_city']) ? $_POST['s_city'] : ''; // Not required but preferred
+		            $city = apply_filters(
+			            'smart_send_agent_search_city',
+			            !empty($city) ? wc_clean($city) : null
+		            );
+
+		            $street = apply_filters(
+			            'smart_send_agent_search_street',
+			            wc_clean(isset($_POST['s_address']) ? $_POST['s_address'] : '')
+		            );
 
                     $carrier = SS_SHIPPING_WC()->get_shipping_method_carrier($meta_data['smart_send_shipping_method']);
 
