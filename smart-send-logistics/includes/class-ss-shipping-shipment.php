@@ -69,7 +69,7 @@ if (!class_exists('SS_Shipping_Shipment')) :
 	     *
 	     * @return object
 	     */
-	    public function format_agent( $ss_agent, $order_id ) {
+	    public static function format_agent( $ss_agent, $order_id ) {
 		    if ( ! isset( $ss_agent->country ) ) {
 			    return $ss_agent;
 		    }
