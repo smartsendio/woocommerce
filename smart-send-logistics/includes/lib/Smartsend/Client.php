@@ -463,7 +463,7 @@ class Client
                 $error->links = null;
                 $error->id = null;
                 $error->code = (int) $this->http_status_code;
-                $error->message = $this->response;
+                $error->message = !empty($this->response->code) ? "API response code: {$this->response->code}" : wp_json_encode($this->response);
                 $error->errors = array();
                 $this->error = $error;
             }
