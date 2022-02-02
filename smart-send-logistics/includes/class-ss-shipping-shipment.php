@@ -373,14 +373,14 @@ if (!class_exists('SS_Shipping_Shipment')) :
                 $order_total_excl = $order_total - $order_total_tax;
 
                 // Shipping totals
-                $order_shipping = $this->order->get_shipping_total();
-                $order_shipping_tax = $this->order->get_shipping_tax();
-                $order_shipping_excl = $order_shipping - $order_shipping_tax;
+                $order_shipping_excl = (float)$this->order->get_shipping_total();
+                $order_shipping_tax = (float)$this->order->get_shipping_tax();
+                $order_shipping = $order_shipping_excl + $order_shipping_tax;
 
                 // Order totals without shipping
-                $order_subtotal = $order_total - $order_shipping;
                 $order_subtotal_tax = $order_total_tax - $order_shipping_tax;
-                $order_subtotal_excl = $order_subtotal - $order_subtotal_tax;
+                $order_subtotal_excl = $this->order->get_subtotal();
+                $order_subtotal = $order_subtotal_excl + $order_subtotal_tax;
 
                 $parcels = array();
                 if (!empty($ss_args['ss_parcels'])) {
