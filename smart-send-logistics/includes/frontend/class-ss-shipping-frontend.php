@@ -71,36 +71,36 @@ if (!class_exists('SS_Shipping_Frontend')) :
                 ($chosen_shipping == $shipping_id) &&
                 (stripos($meta_data['smart_send_shipping_method'], 'agent') !== false)) {
 
-	            $country = apply_filters(
-		            'smart_send_agent_search_country',
-		            wc_clean(isset($_POST['s_country']) ? $_POST['s_country'] : '')
-	            );
+                $country = apply_filters(
+                    'smart_send_agent_search_country',
+                    wc_clean(isset($_POST['s_country']) ? $_POST['s_country'] : '')
+                );
 
-	            $postal_code = apply_filters(
-		            'smart_send_agent_search_postal_code',
-		            wc_clean(isset($_POST['s_postcode']) ? $_POST['s_postcode'] : '')
-	            );
+                $postal_code = apply_filters(
+                    'smart_send_agent_search_postal_code',
+                    wc_clean(isset($_POST['s_postcode']) ? $_POST['s_postcode'] : '')
+                );
 
-	            if (!empty($country) && !empty($postal_code)) {
-		            $city = isset($_POST['s_city']) ? $_POST['s_city'] : ''; // Not required but preferred
-		            $city = apply_filters(
-			            'smart_send_agent_search_city',
-			            !empty($city) ? wc_clean($city) : null
-		            );
+                if (!empty($country) && !empty($postal_code)) {
+                    $city = isset($_POST['s_city']) ? $_POST['s_city'] : ''; // Not required but preferred
+                    $city = apply_filters(
+                        'smart_send_agent_search_city',
+                        !empty($city) ? wc_clean($city) : null
+                    );
 
-		            $street = apply_filters(
-			            'smart_send_agent_search_street',
-			            wc_clean(isset($_POST['s_address']) ? $_POST['s_address'] : '')
-		            );
+                    $street = apply_filters(
+                        'smart_send_agent_search_street',
+                        wc_clean(isset($_POST['s_address']) ? $_POST['s_address'] : '')
+                    );
 
                     $carrier = SS_SHIPPING_WC()->get_shipping_method_carrier($meta_data['smart_send_shipping_method']);
 
-		            // Production API does not allow street addresses shorter than 5 characters
-		            if(empty($street) || strlen($street) < 5){
-			            $ss_agents = $this->find_closest_agents_by_postal_code($carrier, $country, $postal_code);
-		            }else{
-			            $ss_agents = $this->find_closest_agents_by_address($carrier, $country, $postal_code, $city, $street);
-		            }
+                    // Production API does not allow street addresses shorter than 5 characters
+                    if(empty($street) || strlen($street) < 5){
+                        $ss_agents = $this->find_closest_agents_by_postal_code($carrier, $country, $postal_code);
+                    }else{
+                        $ss_agents = $this->find_closest_agents_by_address($carrier, $country, $postal_code, $city, $street);
+                    }
 
                     if (!empty($ss_agents)) {
 

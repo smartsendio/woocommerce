@@ -164,11 +164,11 @@ class Api extends Client
      */
     public function findClosestAgentByPostalCode($carrier, $country, $postal_code)
     {
-	    $method = 'agents/closest/carrier/'.$carrier.'/country/'.$country.'/postalcode/'.$postal_code;
+        $method = 'agents/closest/carrier/'.$carrier.'/country/'.$country.'/postalcode/'.$postal_code;
 
-	    return $this->httpGet(
-		    $method,
-		    $args = array(), $headers = array(), $body = null, $timeout = $this->getAgentTimeout()
+        return $this->httpGet(
+            $method,
+            $args = array(), $headers = array(), $body = null, $timeout = $this->getAgentTimeout()
 	    );
     }
 
