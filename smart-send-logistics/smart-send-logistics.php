@@ -178,7 +178,7 @@ if (!class_exists('SS_Shipping_WC')) :
             // Test connection
             add_action('wp_ajax_ss_test_connection', array($this, 'ss_test_connection_callback'));
 
-	        add_filter('smart_send_order_agent', array('SS_Shipping_Shipment', 'format_agent'), 10, 2);
+            add_filter('smart_send_order_agent', array('SS_Shipping_Shipment', 'format_agent'), 10, 2);
         }
 
 
