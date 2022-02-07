@@ -94,7 +94,7 @@ if (!class_exists('SS_Shipping_Frontend')) :
                         $ss_agents = $this->find_closest_agents_by_postal_code(
 				$carrier,
 				$agentSearchAddress['country'],
-				$agentSearchAddress['postal_code'],
+				$agentSearchAddress['postal_code']
 			);
                     }
 
