@@ -367,20 +367,28 @@ if (!class_exists('SS_Shipping_Shipment')) :
                  */
                 $order_note = apply_filters('smart_send_order_note', $order_note, $this->order);
 
+                $extra_line_items = $this->order->get_fees();
+                apply_filters( 'smart_send_order_custom_line_items', $extra_line_items, $this->order );
+                $extra_line_item_tax = 0.0;
+
+                foreach ( $extra_line_items as $line_item ) {
+                    $extra_line_item_tax += (float) $line_item->get_total_tax();
+                }
+
                 // Order totals
                 $order_total_incl_tax = $this->order->get_total();
-                $order_total_tax = $this->order->get_total_tax();
+                $order_total_tax      = $this->order->get_total_tax();
                 $order_total_excl_tax = $order_total_incl_tax - $order_total_tax;
 
                 // Shipping
-                $order_shipping_incl_tax = (float) $this->order->get_shipping_total(); // Note returns string for some reason
-                $order_shipping_tax = (float) $this->order->get_shipping_tax(); // Note returns string for some reason
-                $order_shipping_excl_tax = $order_shipping_incl_tax - $order_shipping_tax;
+                $order_shipping_excl_tax = (float) $this->order->get_shipping_total(); // Note returns string for some reason
+                $order_shipping_tax      = (float) $this->order->get_shipping_tax(); // Note returns string for some reason
+                $order_shipping_incl_tax = $order_shipping_excl_tax + $order_shipping_tax;
 
                 // Order subtotals (without shipping but with discount)
-                $order_subtotal_incl_tax = $this->order->get_subtotal() - $this->get_total_discount();
-                $order_subtotal_tax = $order_total_tax - $order_shipping_tax - $order->get_discount_tax();
-                $order_subtotal_excl_tax = $order_subtotal_incl_tax - $order_subtotal_tax;
+                $order_subtotal_tax      = $order_total_tax - $order_shipping_tax - $this->order->get_discount_tax() - $extra_line_item_tax;
+                $order_subtotal_incl_tax = $this->order->get_subtotal() + $order_subtotal_tax;
+                $order_subtotal_excl_tax = $this->order->get_subtotal();
 
                 $parcels = array();
                 if (!empty($ss_args['ss_parcels'])) {
