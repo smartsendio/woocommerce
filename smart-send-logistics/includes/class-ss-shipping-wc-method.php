@@ -1135,7 +1135,7 @@ if (!class_exists('SS_Shipping_WC_Method')) :
             if (in_array($requires, array('min_amount', 'either', 'both'))) {
                 $total = WC()->cart->get_displayed_subtotal();
 
-                if ('incl' === WC()->cart->tax_display_cart) {
+                if ('incl' === WC()->cart->get_tax_price_display_mode()) {
                     $total = round($total - (WC()->cart->get_cart_discount_total() + WC()->cart->get_cart_discount_tax_total()),
                         wc_get_price_decimals());
                 } else {
