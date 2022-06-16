@@ -70,11 +70,17 @@ if (!class_exists('SS_Shipping_WC_Method')) :
 	                        'smart-send-logistics'),
                         'postnord_letteruntracked'         => __('PostNord: Untracked letter',
 	                        'smart-send-logistics'),
+		    	'postnord_expressmail'             => __('PostNord: International Express Mail (EMS)',
+                            'smart-send-logistics'),
+			'postnord_expressletter'           => __('PostNord: Express Letter',
+                            'smart-send-logistics'), 
                         'postnord_fullpallet'              => __('PostNord: Full size pallet',
                             'smart-send-logistics'),
                         'postnord_halfpallet'              => __('PostNord: Half size pallet',
                             'smart-send-logistics'),
                         'postnord_quarterpallet'           => __('PostNord: Quarter size pallet',
+                            'smart-send-logistics'),
+			'postnord_specialpallet'           => __('PostNord: Speciel size pallet',
                             'smart-send-logistics'),
                     ),
                 'GLS'               =>
@@ -95,6 +101,14 @@ if (!class_exists('SS_Shipping_WC_Method')) :
                         'dao_doorstep'        => __('DAO: Leave at door (Direct)', 'smart-send-logistics'),
                         'dao_dropoffagent'    => __('DAO: From pick-up point to pick-up point (Shop2Shop)', 'smart-send-logistics'),
                         'dao_dropoffdoorstep' => __('DAO: From pick-up point to doorstep (ParcelShop to Direct)', 'smart-send-logistics'),
+                    ),
+		'Budbee'            =>
+                    array(
+                        'budbee_home'         => __('Budbee: Home', 'smart-send-logistics'),
+                    ),
+		'Burd'              =>
+                    array(
+                        'burd_home'           => __('Burd: Home Delivery', 'smart-send-logistics'),
                     ),
                 'Bring'             =>
                     array(
