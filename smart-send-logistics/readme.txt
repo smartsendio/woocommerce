@@ -5,7 +5,7 @@ Author: SmartSend
 Author URI: https://smartsend.io/
 Developer: SmartSend
 Developer URI: https://smartsend.io/
-Tags: smartsend, smart send, shipping, shipping label, pickup, pick-up, pakkelabel, pakkelabels, pakkeboks, pakkeshop, hente selv, døgnboks, postnord, post nord, post danmark, gls, swipbox, bring, dao, dao365, dao 365, carrier, pacsoft, yourgls, mybring, postage, shipping method, your-gls, my-bring, pacosft-online, pacsoftonline, denmark, sweeden, posten, norway, post 
+Tags: smartsend, smart send, shipping, shipping label, pickup, pick-up, pakkelabel, pakkelabels, pakkeboks, pakkeshop, hente selv, døgnboks, postnord, post nord, post danmark, gls, swipbox, bring, dao, dao365, dao 365, burd, budbee, carrier, pacsoft, yourgls, mybring, postage, shipping method, your-gls, my-bring, pacosft-online, pacsoftonline, denmark, sweeden, posten, norway, post 
 Requires at least: 3.0.1
 Tested up to: 5.9
 Stable tag: 8.0.25
@@ -15,11 +15,11 @@ WC requires at least: 3.0.0
 WC tested up to: 6.1
 Requires PHP: 5.6.0
 
-Complete WooCommerce shipping solution for PostNord, GLS, DAO and Bring.
+Complete WooCommerce shipping solution for PostNord, GLS, DAO, Burd, Budbee and Bring.
 
 == Description ==
 
-Complete shipping solution for PostNord, GLS, DAO and Bring. Setup shipping methods with rates calculated based on products, shipping address, weight, subtotal, user roles, shipping classes and much more. Show pick-up points to the customer during checkout and create shipping labels directly from the WooCommerce admin panel.
+Complete shipping solution for PostNord, GLS, DAO, Budbee, Burd and Bring. Setup shipping methods with rates calculated based on products, shipping address, weight, subtotal, user roles, shipping classes and much more. Show pick-up points to the customer during checkout and create shipping labels directly from the WooCommerce admin panel.
 
 From now on, everything is incorporated directly into your WooCommerce store.
 
@@ -27,10 +27,10 @@ Supported carriers:
 
 * GLS (YourGLS)
 * Bring (MyBring)
-* Post Nord (Pacsoft)
-* Post Danmark (Pacsoft)
-* Posten (Pacsoft)
+* Post Nord (Posten / Post Danmark)
 * DAO
+* Burd
+* Budbee
 
 Supports worldwide shipping from these countries:
 
