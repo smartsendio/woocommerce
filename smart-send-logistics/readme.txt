@@ -8,7 +8,7 @@ Developer URI: https://smartsend.io/
 Tags: smartsend, smart send, shipping, shipping label, pickup, pick-up, pakkelabel, pakkelabels, pakkeboks, pakkeshop, hente selv, døgnboks, postnord, post nord, post danmark, gls, swipbox, bring, dao, dao365, dao 365, burd, budbee, carrier, pacsoft, yourgls, mybring, postage, shipping method, your-gls, my-bring, pacosft-online, pacsoftonline, denmark, sweeden, posten, norway, post 
 Requires at least: 3.0.1
 Tested up to: 6.0
-Stable tag: 8.0.25
+Stable tag: 8.0.26
 License: GNU General Public License v3.0
 License URI: http://www.gnu.org/licenses/gpl-3.0.html
 WC requires at least: 3.0.0
@@ -199,6 +199,11 @@ This box appears when a "Select Pick-up Point" shipping method is selected, but 
 
 
 == Changelog ==
+
+= 8.0.26 =
+* Add carrier Burd
+* Add carrier Budbee
+* Add PostNord methods: International Express Mail (EMS), Express Letter and Speciel size pallet
 
 = 8.0.25 =
 * Fix issue with missing receiver phone on some WooCommerce versions (v5.6+)
