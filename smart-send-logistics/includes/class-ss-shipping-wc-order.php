@@ -1014,7 +1014,7 @@ if (!class_exists('SS_Shipping_WC_Order')) :
                         ));
                     } elseif ($orders_count > 5) {
                         array_push($array_messages, array(
-                            'message' => __('It is not possible to create labels for more than 5 orders at the moment. This feature is coming soon.',
+                            'message' => __('For now it is not possible to create labels for more than 5 orders at a time.',
                                 'smart-send-logistics'),
                             'type'    => 'error',
                         ));
