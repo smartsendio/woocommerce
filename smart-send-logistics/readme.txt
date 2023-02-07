@@ -201,6 +201,7 @@ This box appears when a "Select Pick-up Point" shipping method is selected, but 
 == Changelog ==
 
 * Remove PostNord EMS shipping method
+* Add PostNord Tracked Letter shipping method
 
 = 8.0.26 =
 * Add carrier Burd
