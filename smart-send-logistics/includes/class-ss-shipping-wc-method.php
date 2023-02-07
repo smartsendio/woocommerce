@@ -68,6 +68,8 @@ if (!class_exists('SS_Shipping_WC_Method')) :
 	                        'smart-send-logistics'),
                         'postnord_lettertracked'           => __('PostNord: Tracked letter',
 	                        'smart-send-logistics'),
+                        'postnord_lettertrackedlarge'      => __('PostNord: Tracked letter Large',
+                            'smart-send-logistics'),
                         'postnord_letteruntracked'         => __('PostNord: Untracked letter',
 	                        'smart-send-logistics'),
                         'postnord_expressletter'           => __('PostNord: Express Letter',
