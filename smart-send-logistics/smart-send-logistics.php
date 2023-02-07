@@ -6,7 +6,7 @@
  * Author: Smart Send ApS
  * Author URI: https://www.smartsend.io
  * Text Domain: smart-send-logistics
- * Version: 8.0.26
+ * Version: 8.0.27
  * WC requires at least: 3.0.1
  * WC tested up to: 6.6
  *
@@ -34,7 +34,7 @@ if (!class_exists('SS_Shipping_WC')) :
     class SS_Shipping_WC
     {
 
-        private $version = "8.0.26";
+        private $version = "8.0.27";
 
         /**
          * Instance to call certain functions globally within the plugin
