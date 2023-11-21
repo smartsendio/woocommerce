@@ -27,11 +27,11 @@ svn stat
 ```
 
 ## Development
-When developing then it can sometimes be relevant to use Smart Send's _staging_ environment. This is done by implementing the following [filter](https://developer.wordpress.org/reference/functions/add_filter/):
+When developing then it can sometimes be relevant to use Smart Send's _development_ environment. This is done by implementing the following [filter](https://developer.wordpress.org/reference/functions/add_filter/):
 ```
 function smart_send_api_endpoint_callback( $endpoint ) {
   	if ($endpoint == 'https://app.smartsend.io/api/v1/') {
-	  $endpoint = 'https://staging.smartsend.io/api/v1/';
+	  $endpoint = 'https://app.smartsend.dev/api/v1/';
 	}
     return $endpoint;
 }
