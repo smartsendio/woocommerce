@@ -2,8 +2,12 @@ name: 'Integration Test'
 
 on:
   push:
-    branches:
-      - main
+    branches: [main, develop, release, release/*]
+    tags: [ test, phpunit ]
+  pull_request:
+    branches: [main, develop, release, release/*]
+  schedule:
+    - cron: "0 0 * * *"
 
 jobs:
   build:
