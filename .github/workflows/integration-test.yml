@@ -65,8 +65,12 @@ jobs:
         bash bin/install-wp-tests.sh wordpress_test root 'password' 127.0.0.1 ${{ matrix.wp-version }}
         composer global require "phpunit/phpunit=*"
 
-    - name: Run PHPUnit Tests
+    - name: Run PHPUnit Tests single site
       if: matrix.wp-version != ''
       run: |
         phpunit
+
+    - name: Run PHPUnit Multisite
+      if: matrix.wp-version != ''
+      run: |
         WP_MULTISITE=1 phpunit
