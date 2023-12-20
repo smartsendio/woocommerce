@@ -11,6 +11,7 @@
   ],
   "require-dev": {
     "squizlabs/php_codesniffer": "3.4.0",
-    "wp-coding-standards/wpcs": "2.0.0"
+    "wp-coding-standards/wpcs": "2.0.0",
+    "yoast/phpunit-polyfills": "^2.0"
   }
 }
