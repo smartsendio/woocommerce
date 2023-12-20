@@ -27,7 +27,7 @@ jobs:
           - php-versions: '7.0'
             wp-version: 'latest'
           - php-versions: '5.6'
-            wp-version: '6.4'
+            wp-version: '6.2'
 
     services:
       mysql:
