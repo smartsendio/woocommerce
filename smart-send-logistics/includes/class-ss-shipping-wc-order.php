@@ -4,6 +4,9 @@ if (!defined('ABSPATH')) {
     exit; // Exit if accessed directly
 }
 
+use Automattic\WooCommerce\Utilities\OrderUtil;
+use Automattic\WooCommerce\Internal\DataStores\Orders\CustomOrdersTableController;
+
 /**
  * WooCommerce Smart Send Shipping Order.
  *
@@ -85,14 +88,17 @@ if (!class_exists('SS_Shipping_WC_Order')) :
             $order_id = $post->ID;
 
             $ss_shipping_method_id = $this->get_smart_send_method_id($order_id);
+            $screen = wc_get_container()->get( CustomOrdersTableController::class )->custom_orders_table_usage_is_enabled()
+                ? wc_get_page_screen_id( 'shop_order' )
+                : 'shop_order';
             // Only display Smart Shipping (SS) meta box is SS selected as shipping method OR free shipping is set to SS method
             if (!empty($ss_shipping_method_id)) {
 
                 add_meta_box('woocommerce-ss-shipping-label', __('Smart Send Shipping', 'smart-send-logistics'),
-                    array($this, 'meta_box'), 'shop_order', 'side', 'default');
+                    array($this, 'meta_box'), $screen, 'side', 'default');
             } else {
                 add_meta_box('woocommerce-ss-shipping-label', __('Smart Send Shipping', 'smart-send-logistics'),
-                    array($this, 'meta_box_non_smart_send'), 'shop_order', 'side', 'default');
+                    array($this, 'meta_box_non_smart_send'), $screen, 'side', 'default');
 
             }
         }
@@ -315,7 +321,8 @@ if (!class_exists('SS_Shipping_WC_Order')) :
                                 } elseif (stripos($shipping_method_id, '_commercial') !== false) {
                                     return 'postnord_commercial';
                                 } elseif (stripos($shipping_method_id, '_privatehome') !== false) {
-                                    $vc_aio_options = get_post_meta($order_id, '_vc_aio_options');
+                                    $order          = wc_get_order( $order_id );
+                                    $vc_aio_options = $order->get_meta( '_vc_aio_options', true );
                                     $flexDelivery = false;
                                     $flexDeliveryOption = false;
                                     $dayDelivery = false;
@@ -370,6 +377,7 @@ if (!class_exists('SS_Shipping_WC_Order')) :
          * @return bool                   Returning a non-null value will effectively short-circuit the function.
 	     */
         public function filter_update_agent_meta($check, $meta_id, $meta_value, $meta_key) {
+
             if ($meta_key == 'ss_shipping_order_agent_no') {
                 $meta = get_metadata_by_mid( 'post', $meta_id );
                 $object_id    = $meta->post_id;
@@ -719,7 +727,9 @@ if (!class_exists('SS_Shipping_WC_Order')) :
          */
         public function save_ss_shipping_order_parcels($order_id, $parcels)
         {
-            update_post_meta($order_id, 'ss_shipping_order_parcels', $parcels);
+            $order = wc_get_order($order_id);
+            $order->update_meta_data('ss_shipping_order_parcels', $parcels);
+            $order->save();
         }
 
         /**
@@ -732,7 +742,8 @@ if (!class_exists('SS_Shipping_WC_Order')) :
          */
         public function get_ss_shipping_order_parcels($order_id)
         {
-            return get_post_meta($order_id, 'ss_shipping_order_parcels', true);
+            $order = wc_get_order( $order_id );
+            return $order->get_meta( 'ss_shipping_order_parcels', true );
         }
 
 
@@ -746,7 +757,9 @@ if (!class_exists('SS_Shipping_WC_Order')) :
          */
         public function save_ss_shipping_order_agent_no($order_id, $agent_no)
         {
-            update_post_meta($order_id, 'ss_shipping_order_agent_no', $agent_no);
+            $order = wc_get_order($order_id);
+            $order->update_meta_data('ss_shipping_order_agent_no', $agent_no);
+            $order->save();
         }
 
         /*
@@ -758,14 +771,15 @@ if (!class_exists('SS_Shipping_WC_Order')) :
          */
         public function get_ss_shipping_order_agent_no($order_id)
         {
-            // Fecth agent_no from meta field saved by Smart Send
-            $ss_agent_number = get_post_meta($order_id, 'ss_shipping_order_agent_no', true);
+            // Fetch agent_no from meta field saved by Smart Send
+            $order = wc_get_order( $order_id );
+            $ss_agent_number = $order->get_meta( 'ss_shipping_order_agent_no', true );
             if ($ss_agent_number) {
                 // Return the agent_no found
                 return $ss_agent_number;
             } else {
                 // No Smart Send agent_no was found, check if the order has a vConnect agent_no
-                $vc_aio_meta = get_post_meta($order_id, '_vc_aio_options', true);
+                $vc_aio_meta = $order->get_meta( '_vc_aio_options', true );
                 if (!empty($vc_aio_meta['addressId']['value'])) {
                     return $vc_aio_meta['addressId']['value'];
                 } else {
@@ -784,7 +798,9 @@ if (!class_exists('SS_Shipping_WC_Order')) :
          */
         public function save_ss_shipping_order_agent($order_id, $agent)
         {
-            update_post_meta($order_id, '_ss_shipping_order_agent', $agent);
+            $order = wc_get_order($order_id);
+            $order->update_meta_data('_ss_shipping_order_agent', $agent);
+            $order->save();
         }
 
 	    /**
@@ -793,7 +809,8 @@ if (!class_exists('SS_Shipping_WC_Order')) :
 	     * @param $order_id
 	     */
         public function delete_ss_shipping_order_agent($order_id) {
-            delete_post_meta($order_id, '_ss_shipping_order_agent');
+            $order = wc_get_order( $order_id );
+            $order->delete_meta_data('_ss_shipping_order_agent');
         }
 
         /*
@@ -806,13 +823,14 @@ if (!class_exists('SS_Shipping_WC_Order')) :
         public function get_ss_shipping_order_agent($order_id)
         {
             // Fetch agent info from meta field saved by Smart Send
-            $ss_agent_info = get_post_meta($order_id, '_ss_shipping_order_agent', true);
+            $order         = wc_get_order( $order_id );
+            $ss_agent_info = $order->get_meta( '_ss_shipping_order_agent', true );
             if ($ss_agent_info) {
                 // Return the agent_no found
                 return $ss_agent_info;
             } else {
                 // No Smart Send agent_no was found, check if the order has a vConnect agent_no
-                $vc_aio_meta = get_post_meta($order_id, '_vc_aio_options', true);
+                $vc_aio_meta = $order->get_meta( '_vc_aio_options', true );
                 if (!empty($vc_aio_meta['addressId']['value'])) {
                     return (object)array(
                         'agent_no'      => isset($vc_aio_meta['addressId']['value']) ? $vc_aio_meta['addressId']['value'] : null,
@@ -840,11 +858,13 @@ if (!class_exists('SS_Shipping_WC_Order')) :
          */
         public function save_ss_shipment_id_in_order_meta($order_id, $shipment_id, $return)
         {
+            $order = wc_get_order($order_id);
             if ($return) {
-                update_post_meta($order_id, '_ss_shipping_return_label_id', $shipment_id);
+                $order->update_meta_data('_ss_shipping_return_label_id', $shipment_id);
             } else {
-                update_post_meta($order_id, '_ss_shipping_label_id', $shipment_id);
+                $order->update_meta_data('_ss_shipping_label_id', $shipment_id);
             }
+            $order->save();
         }
 
         /*
@@ -855,12 +875,13 @@ if (!class_exists('SS_Shipping_WC_Order')) :
          *
          * @return string URL label link
          */
-        public function get_label_url_from_order_id($order_id, $return)
+        public function get_label_url_from_order_id($order_id, $return): string
         {
+            $order = wc_get_order( $order_id );
             if ($return) {
-                $shipment_id = get_post_meta($order_id, '_ss_shipping_return_label_id', true);
+                $shipment_id = $order->get_meta( '_ss_shipping_return_label_id', true );
             } else {
-                $shipment_id = get_post_meta($order_id, '_ss_shipping_label_id', true);
+                $shipment_id = $order->get_meta( '_ss_shipping_label_id', true );
             }
             return $this->get_label_url_from_shipment_id($shipment_id);
         }
@@ -923,11 +944,9 @@ if (!class_exists('SS_Shipping_WC_Order')) :
          */
         public function add_order_bulk_actions()
         {
-            global $post_type, $post_status;
+            global $post, $post_type, $post_status;
 
-            if ($post_type === 'shop_order' && $post_status !== 'trash') :
-
-                ?>
+            if ('shop_order' === OrderUtil::get_order_type($post->ID) && $post_status !== 'trash') : ?>
                 <script type="text/javascript">
                     jQuery(document).ready(function ($) {
                         $('select[name^=action]').append(
