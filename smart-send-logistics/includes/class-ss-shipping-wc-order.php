@@ -48,7 +48,7 @@ if (!class_exists('SS_Shipping_WC_Order')) :
         protected function init_hooks()
         {
             // Order page metabox actions
-            add_action('add_meta_boxes', array($this, 'add_meta_box'), 20);
+            add_action('add_meta_boxes', array($this, 'add_smart_send_order_meta_box'), 20);
             add_action('wp_ajax_ss_shipping_generate_label', array($this, 'generate_label'));
 
             // Meta field for storing the selected agent_no
@@ -78,7 +78,7 @@ if (!class_exists('SS_Shipping_WC_Order')) :
         /**
          * Add the meta box for shipment info on the order page
          */
-        public function add_meta_box()
+        protected function add_smart_send_order_meta_box()
         {
             global $post, $theorder;
             $order_id = $post->ID ?? $theorder->ID;
