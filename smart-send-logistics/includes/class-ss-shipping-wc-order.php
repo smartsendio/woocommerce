@@ -6,6 +6,8 @@ if (!defined('ABSPATH')) {
 
 use Automattic\WooCommerce\Utilities\OrderUtil;
 use Automattic\WooCommerce\Internal\DataStores\Orders\CustomOrdersTableController;
+use WP_Post;
+use WooCommerce\Classes\WC_Order;
 
 /**
  * WooCommerce Smart Send Shipping Order.
@@ -80,54 +82,48 @@ if (!class_exists('SS_Shipping_WC_Order')) :
          */
         protected function add_smart_send_order_meta_box()
         {
-            global $post, $theorder;
-            $order_id = $post->ID ?? $theorder->ID;
-
-            $ss_shipping_method_id = $this->get_smart_send_method_id($order_id);
-            $screen = wc_get_container()->get( CustomOrdersTableController::class )->custom_orders_table_usage_is_enabled()
-                ? wc_get_page_screen_id( 'shop_order' )
+            // @see https://github.com/woocommerce/woocommerce/wiki/High-Performance-Order-Storage-Upgrade-Recipe-Book#audit-for-order-administration-screen-functions
+            $screen = class_exists( '\Automattic\WooCommerce\Internal\DataStores\Orders\CustomOrdersTableController' ) && wc_get_container()->get(CustomOrdersTableController::class)->custom_orders_table_usage_is_enabled()
+                ? wc_get_page_screen_id( 'shop-order' )
                 : 'shop_order';
 
-            // Only display Smart Shipping (SS) meta box is SS selected as shipping method OR free shipping is set to SS method
-            if (!empty($ss_shipping_method_id)) {
-
-                add_meta_box('woocommerce-ss-shipping-label', __('Smart Send Shipping', 'smart-send-logistics'),
-                    array($this, 'meta_box'), $screen, 'side', 'default');
-
-            } else {
-
-                add_meta_box('woocommerce-ss-shipping-label', __('Smart Send Shipping', 'smart-send-logistics'),
-                    array($this, 'meta_box_non_smart_send'), $screen, 'side', 'default');
-
-            }
+            add_meta_box(
+                'woocommerce-ss-shipping-label',
+                __('Smart Send Shipping', 'smart-send-logistics'),
+                array($this, 'render_smart_send_order_meta_box'),
+                $screen,
+                'side',
+                'default'
+            );
         }
 
         /**
-         * Show the meta box for shipment info on the order page
+         * Render the content of the order meta box.
          *
-         * This meta box is shown when the order does not have a Smart Send shipping method
+         * @param WP_Post|WC_Order $post_or_order_object
+         * @return void
          */
-        public function meta_box_non_smart_send()
+        protected function render_smart_send_order_meta_box($post_or_order_object)
         {
-            echo '<p>' . __('Order placed with a shipping method that is not from the Smart Send plugin',
-                    'smart-send-logistics') . '</p>';
-        }
+            /** @var WC_Order $order */
+            $order = ( $post_or_order_object instanceof WP_Post ) ? wc_get_order( $post_or_order_object->ID ) : $post_or_order_object;
 
-        /**
-         * Show the meta box for shipment info on the order page
-         *
-         * This meta box is shown when the order have a Smart Send shipping method
-         */
-        public function meta_box()
-        {
-            global $post, $theorder;
-            $order_id = $post->ID ?? $theorder->ID;
+            // ... rest of the code. $post_or_order_object should not be used directly below this point´
 
-            $order = wc_get_order($order_id);
+            $order_id = $order->ID;
 
             $shipping_ss_settings = SS_SHIPPING_WC()->get_ss_shipping_settings();
 
             $ss_shipping_method_id = $this->get_smart_send_method_id($order_id);
+
+            // Only display Smart Shipping (SS) meta box is SS selected as shipping method OR free shipping is set to SS method
+            if (! $ss_shipping_method_id) {
+                echo '<p>' . __('Order placed with a shipping method that is not from the Smart Send plugin',
+                        'smart-send-logistics') . '</p>';
+
+                return;
+            }
+
             $ss_shipping_method_name = SS_SHIPPING_WC()->get_shipping_method_name_from_all_shipping_method_instances($ss_shipping_method_id);
 
             // Get order agent object
