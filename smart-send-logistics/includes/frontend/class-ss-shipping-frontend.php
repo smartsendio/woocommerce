@@ -25,10 +25,7 @@ if (!class_exists('SS_Shipping_Frontend')) :
             $this->init_hooks();
         }
 
-        /**
-         * Init hooks
-         */
-        public function init_hooks()
+        protected function init_hooks()
         {
             add_action('woocommerce_after_shipping_rate', array($this, 'display_ss_pickup_points'), 10, 2);
             add_action('woocommerce_checkout_process', array($this, 'validate_agent_selected'));

@@ -170,7 +170,7 @@ if (!class_exists('SS_Shipping_WC')) :
             include_once('includes/lib/Smartsend/Api.php');
         }
 
-        public function init_hooks()
+        protected function init_hooks()
         {
             add_action('init', array($this, 'init'), 0);
             add_action('init', array($this, 'load_textdomain'));

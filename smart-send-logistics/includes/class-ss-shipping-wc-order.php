@@ -45,12 +45,8 @@ if (!class_exists('SS_Shipping_WC_Order')) :
                         'smart-send-logistics') . ': ' : '') . __('Generate return label', 'smart-send-logistics'));
         }
 
-        /**
-         * Init hooks
-         */
-        public function init_hooks()
+        protected function init_hooks()
         {
-
             // Order page metabox actions
             add_action('add_meta_boxes', array($this, 'add_meta_box'), 20);
             add_action('wp_ajax_ss_shipping_generate_label', array($this, 'generate_label'));
