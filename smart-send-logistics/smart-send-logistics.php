@@ -96,6 +96,8 @@ if (!class_exists('SS_Shipping_WC')) :
          */
         public function __construct()
         {
+            add_action('before_woocommerce_init', [$this, 'declaringExtensionCompatibility']);
+
             $this->define_constants();
             $this->includes();
             $this->init_hooks();
@@ -114,6 +116,13 @@ if (!class_exists('SS_Shipping_WC')) :
                         'smart-send-logistics') . ', ' . __('#City', 'smart-send-logistics'),
                 '7' => __('#Company', 'smart-send-logistics') . ', ' . __('#City', 'smart-send-logistics'),
             );
+        }
+
+        public function declaringExtensionCompatibility(): void
+        {
+            if ( class_exists( \Automattic\WooCommerce\Utilities\FeaturesUtil::class ) ) {
+                \Automattic\WooCommerce\Utilities\FeaturesUtil::declare_compatibility( 'custom_order_tables', __FILE__, true );
+            }
         }
 
         /**

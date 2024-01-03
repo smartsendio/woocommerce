@@ -84,19 +84,22 @@ if (!class_exists('SS_Shipping_WC_Order')) :
          */
         public function add_meta_box()
         {
-            global $woocommerce, $post;
-            $order_id = $post->ID;
+            global $post, $theorder;
+            $order_id = $post->ID ?? $theorder->ID;
 
             $ss_shipping_method_id = $this->get_smart_send_method_id($order_id);
             $screen = wc_get_container()->get( CustomOrdersTableController::class )->custom_orders_table_usage_is_enabled()
                 ? wc_get_page_screen_id( 'shop_order' )
                 : 'shop_order';
+
             // Only display Smart Shipping (SS) meta box is SS selected as shipping method OR free shipping is set to SS method
             if (!empty($ss_shipping_method_id)) {
 
                 add_meta_box('woocommerce-ss-shipping-label', __('Smart Send Shipping', 'smart-send-logistics'),
                     array($this, 'meta_box'), $screen, 'side', 'default');
+
             } else {
+
                 add_meta_box('woocommerce-ss-shipping-label', __('Smart Send Shipping', 'smart-send-logistics'),
                     array($this, 'meta_box_non_smart_send'), $screen, 'side', 'default');
 
@@ -110,8 +113,6 @@ if (!class_exists('SS_Shipping_WC_Order')) :
          */
         public function meta_box_non_smart_send()
         {
-            global $woocommerce, $post;
-            $order_id = $post->ID;
             echo '<p>' . __('Order placed with a shipping method that is not from the Smart Send plugin',
                     'smart-send-logistics') . '</p>';
         }
@@ -123,8 +124,9 @@ if (!class_exists('SS_Shipping_WC_Order')) :
          */
         public function meta_box()
         {
-            global $woocommerce, $post;
-            $order_id = $post->ID;
+            global $post, $theorder;
+            $order_id = $post->ID ?? $theorder->ID;
+
             $order = wc_get_order($order_id);
 
             $shipping_ss_settings = SS_SHIPPING_WC()->get_ss_shipping_settings();
