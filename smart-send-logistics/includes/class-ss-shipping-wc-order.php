@@ -6,7 +6,7 @@ if (!defined('ABSPATH')) {
 
 use Automattic\WooCommerce\Utilities\OrderUtil;
 use Automattic\WooCommerce\Internal\DataStores\Orders\CustomOrdersTableController;
-use WP_Post;
+use WooCommerce\Classes\WP_Post;
 use WooCommerce\Classes\WC_Order;
 
 /**
@@ -80,7 +80,7 @@ if (!class_exists('SS_Shipping_WC_Order')) :
         /**
          * Add the meta box for shipment info on the order page
          */
-        protected function add_smart_send_order_meta_box()
+        public function add_smart_send_order_meta_box()
         {
             // @see https://github.com/woocommerce/woocommerce/wiki/High-Performance-Order-Storage-Upgrade-Recipe-Book#audit-for-order-administration-screen-functions
             $screen = class_exists( '\Automattic\WooCommerce\Internal\DataStores\Orders\CustomOrdersTableController' ) && wc_get_container()->get(CustomOrdersTableController::class)->custom_orders_table_usage_is_enabled()
@@ -103,7 +103,7 @@ if (!class_exists('SS_Shipping_WC_Order')) :
          * @param WP_Post|WC_Order $post_or_order_object
          * @return void
          */
-        protected function render_smart_send_order_meta_box($post_or_order_object)
+        public function render_smart_send_order_meta_box($post_or_order_object)
         {
             /** @var WC_Order $order */
             $order = ( $post_or_order_object instanceof WP_Post ) ? wc_get_order( $post_or_order_object->ID ) : $post_or_order_object;
