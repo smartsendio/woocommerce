@@ -96,7 +96,7 @@ if (!class_exists('SS_Shipping_WC')) :
          */
         public function __construct()
         {
-            add_action('before_woocommerce_init', [$this, 'declaringExtensionCompatibility']);
+            add_action('before_woocommerce_init', [$this, 'declaring_hpos_compatibility']);
 
             $this->define_constants();
             $this->includes();
@@ -118,7 +118,7 @@ if (!class_exists('SS_Shipping_WC')) :
             );
         }
 
-        public function declaringExtensionCompatibility(): void
+        public function declaring_hpos_compatibility()
         {
             if ( class_exists( \Automattic\WooCommerce\Utilities\FeaturesUtil::class ) ) {
                 \Automattic\WooCommerce\Utilities\FeaturesUtil::declare_compatibility( 'custom_order_tables', __FILE__, true );
