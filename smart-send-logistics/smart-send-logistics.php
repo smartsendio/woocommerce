@@ -7,7 +7,7 @@
  * Author URI: https://www.smartsend.io
  * Text Domain: smart-send-logistics
  * Version: 8.1.0
- * WC requires at least: 3.0.1
+ * WC requires at least: 4.7.0
  * WC tested up to: 7.9
  *
  * This program is free software: you can redistribute it and/or modify
