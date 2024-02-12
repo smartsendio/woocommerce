@@ -6,7 +6,7 @@ if (!defined('ABSPATH')) {
 
 use Automattic\WooCommerce\Utilities\OrderUtil;
 use Automattic\WooCommerce\Internal\DataStores\Orders\CustomOrdersTableController;
-use WooCommerce\Classes\WP_Post;
+use WP_Post;
 use WooCommerce\Classes\WC_Order;
 
 /**
