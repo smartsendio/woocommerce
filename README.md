@@ -26,6 +26,14 @@ Note that the following command can be used to check which files are modified/ad
 svn stat
 ```
 
+## Zip
+
+To create a plugin zip file of a given branch/tag use:
+
+```bash
+git archive v8.1.0b4 --output="smart-send-shipping-woocommerce-v810b4.zip" "smart-send-logistics"
+```
+
 ## Development
 When developing then it can sometimes be relevant to use Smart Send's _development_ environment. This is done by implementing the following [filter](https://developer.wordpress.org/reference/functions/add_filter/):
 ```
