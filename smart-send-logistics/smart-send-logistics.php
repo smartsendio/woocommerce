@@ -6,8 +6,8 @@
  * Author: Smart Send ApS
  * Author URI: https://www.smartsend.io
  * Text Domain: smart-send-logistics
- * Version: 8.0.27
- * WC requires at least: 3.0.1
+ * Version: 8.1.0
+ * WC requires at least: 4.7.0
  * WC tested up to: 7.9
  *
  * This program is free software: you can redistribute it and/or modify
@@ -34,7 +34,7 @@ if (!class_exists('SS_Shipping_WC')) :
     class SS_Shipping_WC
     {
 
-        private $version = "8.0.27";
+        private $version = "8.1.0";
 
         /**
          * Instance to call certain functions globally within the plugin
@@ -96,6 +96,8 @@ if (!class_exists('SS_Shipping_WC')) :
          */
         public function __construct()
         {
+            add_action('before_woocommerce_init', [$this, 'declaring_hpos_compatibility']);
+
             $this->define_constants();
             $this->includes();
             $this->init_hooks();
@@ -114,6 +116,13 @@ if (!class_exists('SS_Shipping_WC')) :
                         'smart-send-logistics') . ', ' . __('#City', 'smart-send-logistics'),
                 '7' => __('#Company', 'smart-send-logistics') . ', ' . __('#City', 'smart-send-logistics'),
             );
+        }
+
+        public function declaring_hpos_compatibility()
+        {
+            if ( class_exists( \Automattic\WooCommerce\Utilities\FeaturesUtil::class ) ) {
+                \Automattic\WooCommerce\Utilities\FeaturesUtil::declare_compatibility( 'custom_order_tables', __FILE__, true );
+            }
         }
 
         /**
@@ -161,7 +170,7 @@ if (!class_exists('SS_Shipping_WC')) :
             include_once('includes/lib/Smartsend/Api.php');
         }
 
-        public function init_hooks()
+        protected function init_hooks()
         {
             add_action('init', array($this, 'init'), 0);
             add_action('init', array($this, 'load_textdomain'));
