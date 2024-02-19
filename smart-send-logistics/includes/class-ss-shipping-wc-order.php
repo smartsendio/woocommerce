@@ -6,7 +6,6 @@ if (!defined('ABSPATH')) {
 
 use Automattic\WooCommerce\Utilities\OrderUtil;
 use Automattic\WooCommerce\Internal\DataStores\Orders\CustomOrdersTableController;
-use WP_Post;
 use WooCommerce\Classes\WC_Order;
 
 /**
@@ -82,9 +81,10 @@ if (!class_exists('SS_Shipping_WC_Order')) :
          */
         private function register_bulk_order_actions()
         {
-            $screen = class_exists( '\Automattic\WooCommerce\Internal\DataStores\Orders\CustomOrdersTableController' ) && wc_get_container()->get(CustomOrdersTableController::class)->custom_orders_table_usage_is_enabled()
+            $screen = class_exists( '\Automattic\WooCommerce\Internal\DataStores\Orders\CustomOrdersTableController' )
+                && wc_get_container()->get(CustomOrdersTableController::class)->custom_orders_table_usage_is_enabled()
                 ? 'woocommerce_page_wc-orders' // function not available wc_get_page_screen_id( 'shop-order' )
-                : 'shop_order';
+                : 'edit-shop_order'; // Index page is called 'edit-shop_order' and not just 'shop_order' as stated in the url
 
             // An actions in the dropdown
             add_filter("bulk_actions-{$screen}", array($this, 'add_bulk_order_actions'));
