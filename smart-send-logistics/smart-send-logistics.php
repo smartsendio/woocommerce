@@ -7,6 +7,7 @@
  * Author URI: https://www.smartsend.io
  * Text Domain: smart-send-logistics
  * Version: 8.1.1
+ * Requires Plugins: woocommerce
  * WC requires at least: 4.7.0
  * WC tested up to: 7.9
  *
