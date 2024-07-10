@@ -26,9 +26,9 @@
  *
  */
 
-if (!defined('ABSPATH')) {
-    exit; // Exit if accessed directly.
-}
+
+// Exit if accessed directly.
+defined('ABSPATH') || exit;
 
 if (!class_exists('SS_Shipping_WC')) :
 
@@ -105,24 +105,34 @@ if (!class_exists('SS_Shipping_WC')) :
 
             $this->agents_address_format = array(
                 '1' => __('#Company', 'smart-send-logistics') . ', ' . __('#Street', 'smart-send-logistics'),
-                '2' => __('#Company', 'smart-send-logistics') . ', ' . __('#Street',
-                        'smart-send-logistics') . ', ' . __('#Zipcode', 'smart-send-logistics'),
-                '3' => __('#Company', 'smart-send-logistics') . ', ' . __('#Street',
-                        'smart-send-logistics') . ', ' . __('#City', 'smart-send-logistics'),
-                '4' => __('#Company', 'smart-send-logistics') . ', ' . __('#Street',
-                        'smart-send-logistics') . ', ' . __('#Zipcode', 'smart-send-logistics') . ' ' . __('#City',
-                        'smart-send-logistics'),
+                '2' => __('#Company', 'smart-send-logistics') . ', ' . __(
+                    '#Street',
+                    'smart-send-logistics'
+                ) . ', ' . __('#Zipcode', 'smart-send-logistics'),
+                '3' => __('#Company', 'smart-send-logistics') . ', ' . __(
+                    '#Street',
+                    'smart-send-logistics'
+                ) . ', ' . __('#City', 'smart-send-logistics'),
+                '4' => __('#Company', 'smart-send-logistics') . ', ' . __(
+                    '#Street',
+                    'smart-send-logistics'
+                ) . ', ' . __('#Zipcode', 'smart-send-logistics') . ' ' . __(
+                    '#City',
+                    'smart-send-logistics'
+                ),
                 '5' => __('#Company', 'smart-send-logistics') . ', ' . __('#Zipcode', 'smart-send-logistics'),
-                '6' => __('#Company', 'smart-send-logistics') . ', ' . __('#Zipcode',
-                        'smart-send-logistics') . ', ' . __('#City', 'smart-send-logistics'),
+                '6' => __('#Company', 'smart-send-logistics') . ', ' . __(
+                    '#Zipcode',
+                    'smart-send-logistics'
+                ) . ', ' . __('#City', 'smart-send-logistics'),
                 '7' => __('#Company', 'smart-send-logistics') . ', ' . __('#City', 'smart-send-logistics'),
             );
         }
 
         public function declaring_hpos_compatibility()
         {
-            if ( class_exists( \Automattic\WooCommerce\Utilities\FeaturesUtil::class ) ) {
-                \Automattic\WooCommerce\Utilities\FeaturesUtil::declare_compatibility( 'custom_order_tables', __FILE__, true );
+            if (class_exists(\Automattic\WooCommerce\Utilities\FeaturesUtil::class)) {
+                \Automattic\WooCommerce\Utilities\FeaturesUtil::declare_compatibility('custom_order_tables', __FILE__, true);
             }
         }
 
@@ -187,6 +197,32 @@ if (!class_exists('SS_Shipping_WC')) :
 
             // Test connection
             add_action('wp_ajax_ss_test_connection', array($this, 'ss_test_connection_callback'));
+            /**
+             * Include the dependencies needed to instantiate the block.
+             */
+            add_action('woocommerce_blocks_loaded', function () {
+                require_once __DIR__ . '/shipping-workshop-blocks-integration.php';
+                add_action(
+                    'woocommerce_blocks_checkout_block_registration',
+                    function ($integration_registry) {
+                        $integration_registry->register(new Shipping_Workshop_Blocks_Integration());
+                    }
+                );
+            });
+            // Define SHIPPING_WORKSHOP_VERSION.
+            $plugin_data = get_file_data(__FILE__, array('version' => 'version'));
+            define('SHIPPING_WORKSHOP_VERSION', $plugin_data['version']);
+
+
+            add_action( 'before_woocommerce_init', function() {
+                if ( class_exists( '\Automattic\WooCommerce\Utilities\FeaturesUtil' ) ) {
+                    \Automattic\WooCommerce\Utilities\FeaturesUtil::declare_compatibility( 'cart_checkout_blocks', __FILE__, true );
+                }
+            } );
+            /**
+             * Registers the slug as a block category with WordPress.
+             */
+            add_action('block_categories_all', array($this, 'register_Shipping_Workshop_block_category'), 10, 2);
         }
 
 
@@ -206,7 +242,6 @@ if (!class_exists('SS_Shipping_WC')) :
                 // Throw an admin error informing the user this plugin needs WooCommerce to function
                 add_action('admin_notices', array($this, 'notice_wc_required'));
             }
-
         }
 
         /**
@@ -216,7 +251,21 @@ if (!class_exists('SS_Shipping_WC')) :
         {
             load_plugin_textdomain('smart-send-logistics', false, dirname(plugin_basename(__FILE__)) . '/lang/');
         }
-
+        /**
+         * Registers the slug as a block category with WordPress.
+         */
+        public   function register_Shipping_Workshop_block_category($categories)
+        {
+            return array_merge(
+                $categories,
+                [
+                    [
+                        'slug'  => 'shipping-workshop',
+                        'title' => __('Shipping_Workshop Blocks', 'shipping-workshop'),
+                    ],
+                ]
+            );
+        }
         /**
          * Load Admin CSS
          */
@@ -230,8 +279,10 @@ if (!class_exists('SS_Shipping_WC')) :
          */
         public function ss_shipping_theme_enqueue_frontend_styles()
         {
-            wp_enqueue_style('ss-shipping-frontend-css',
-                SS_SHIPPING_PLUGIN_DIR_URL . '/assets/css/ss-shipping-frontend.css');
+            wp_enqueue_style(
+                'ss-shipping-frontend-css',
+                SS_SHIPPING_PLUGIN_DIR_URL . '/assets/css/ss-shipping-frontend.css'
+            );
         }
 
         /**
@@ -257,8 +308,10 @@ if (!class_exists('SS_Shipping_WC')) :
         public static function plugin_action_links($links)
         {
             $action_links = array(
-                'settings' => '<a href="' . admin_url('admin.php?page=wc-settings&tab=shipping&section=smart_send_shipping') . '" aria-label="' . esc_attr__('View WooCommerce settings',
-                        'smart-send-logistics') . '">' . esc_html__('Settings', 'smart-send-logistics') . '</a>',
+                'settings' => '<a href="' . admin_url('admin.php?page=wc-settings&tab=shipping&section=smart_send_shipping') . '" aria-label="' . esc_attr__(
+                    'View WooCommerce settings',
+                    'smart-send-logistics'
+                ) . '">' . esc_html__('Settings', 'smart-send-logistics') . '</a>',
             );
 
             return array_merge($action_links, $links);
@@ -276,14 +329,26 @@ if (!class_exists('SS_Shipping_WC')) :
 
             if (SS_SHIPPING_PLUGIN_BASENAME == $file) {
                 $row_meta = array(
-                    'configuration' => '<a href="' . esc_url(apply_filters('smart_send_configuration_url',
-                            'https://smartsend.io/woocommerce/configuration/')) . '" title="' . esc_attr(__('Configuration guide',
-                            'smart-send-logistics')) . '" target="_blank">' . __('Configuration guide',
-                            'smart-send-logistics') . '</a>',
-                    'support'       => '<a href="' . esc_url(apply_filters('smart_send_support_url',
-                            'https://smartsend.io/support/')) . '" title="' . esc_attr(__('Support',
-                            'smart-send-logistics')) . '" target="_blank">' . __('Support',
-                            'smart-send-logistics') . '</a>',
+                    'configuration' => '<a href="' . esc_url(apply_filters(
+                        'smart_send_configuration_url',
+                        'https://smartsend.io/woocommerce/configuration/'
+                    )) . '" title="' . esc_attr(__(
+                        'Configuration guide',
+                        'smart-send-logistics'
+                    )) . '" target="_blank">' . __(
+                        'Configuration guide',
+                        'smart-send-logistics'
+                    ) . '</a>',
+                    'support'       => '<a href="' . esc_url(apply_filters(
+                        'smart_send_support_url',
+                        'https://smartsend.io/support/'
+                    )) . '" title="' . esc_attr(__(
+                        'Support',
+                        'smart-send-logistics'
+                    )) . '" target="_blank">' . __(
+                        'Support',
+                        'smart-send-logistics'
+                    ) . '</a>',
                 );
 
                 return array_merge($links, $row_meta);
@@ -308,12 +373,14 @@ if (!class_exists('SS_Shipping_WC')) :
          */
         public function notice_wc_required()
         {
-            ?>
+?>
             <div class="error">
-                <p><?php _e('Smart Send Shipping requires WooCommerce 2.6 and above to be installed and activated!',
-                        'smart-send-logistics'); ?></p>
+                <p><?php _e(
+                        'Smart Send Shipping requires WooCommerce 2.6 and above to be installed and activated!',
+                        'smart-send-logistics'
+                    ); ?></p>
             </div>
-            <?php
+<?php
         }
 
         /**
@@ -467,7 +534,6 @@ if (!class_exists('SS_Shipping_WC')) :
                 $demo_mode = $this->get_demo_mode_setting();
                 $website_url = $this->get_website_url();
                 $this->api_handle = new \Smartsend\Api($api_token, $website_url, $demo_mode);
-
             }
 
             return $this->api_handle;
@@ -479,10 +545,10 @@ if (!class_exists('SS_Shipping_WC')) :
          * @param string|null $website url
          * @return string
          */
-        public function get_website_url($website=null)
+        public function get_website_url($website = null)
         {
             if (!$website) {
-	            $website = get_site_url();
+                $website = get_site_url();
             }
             return parse_url($website, PHP_URL_HOST);
         }
@@ -515,38 +581,38 @@ if (!class_exists('SS_Shipping_WC')) :
          * @param string|null $api_token
          * @return string
          */
-        public function get_api_token_setting($api_token=null)
+        public function get_api_token_setting($api_token = null)
         {
-	        if (!$api_token) {
-		        $ss_shipping_settings = $this->get_ss_shipping_settings();
-		        $api_token = empty($ss_shipping_settings['api_token']) ? null : $ss_shipping_settings['api_token'];
-	        }
+            if (!$api_token) {
+                $ss_shipping_settings = $this->get_ss_shipping_settings();
+                $api_token = empty($ss_shipping_settings['api_token']) ? null : $ss_shipping_settings['api_token'];
+            }
 
-	        if (strpos($api_token, ',') && strpos($api_token, ':')) {
-		        //The API Token field contains multiple tokens in the format:
-		        //site1:apitoken1,site2:apitoken2,....
-		        $tokens = array();
-		        $site_and_tokens = explode(',', $api_token);
-		        foreach ($site_and_tokens as $site_and_token) {
-			        $parts = explode(':', $site_and_token);
-			        if (!empty($parts[0]) && !empty($parts[1])) {
-				        $tokens[$parts[0]] = $parts[1];//key=site, value=apitoken
-			        }
-		        }
+            if (strpos($api_token, ',') && strpos($api_token, ':')) {
+                //The API Token field contains multiple tokens in the format:
+                //site1:apitoken1,site2:apitoken2,....
+                $tokens = array();
+                $site_and_tokens = explode(',', $api_token);
+                foreach ($site_and_tokens as $site_and_token) {
+                    $parts = explode(':', $site_and_token);
+                    if (!empty($parts[0]) && !empty($parts[1])) {
+                        $tokens[$parts[0]] = $parts[1]; //key=site, value=apitoken
+                    }
+                }
 
-		        if (!empty($tokens[$this->get_website_url()])) {
-			        return $tokens[$this->get_website_url()];
-		        }
-	        }
+                if (!empty($tokens[$this->get_website_url()])) {
+                    return $tokens[$this->get_website_url()];
+                }
+            }
 
-	        return $api_token;
+            return $api_token;
         }
 
-	    /**
-	     * Validate the API token
-	     *
-	     * @return boolean
-	     */
+        /**
+         * Validate the API token
+         *
+         * @return boolean
+         */
         public function validate_api_token()
         {
 
@@ -569,17 +635,26 @@ if (!class_exists('SS_Shipping_WC')) :
             check_ajax_referer('ss-test-connection', 'test_connection_nonce');
 
             if ($this->validate_api_token()) {
-                $connection_msg = sprintf(__('API Token verified: Connected to Smart Send as %s from %s',
-                    'smart-send-logistics'), $this->get_api_handle()->getData()->email,
-                    $this->get_api_handle()->getData()->website);
+                $connection_msg = sprintf(
+                    __(
+                        'API Token verified: Connected to Smart Send as %s from %s',
+                        'smart-send-logistics'
+                    ),
+                    $this->get_api_handle()->getData()->email,
+                    $this->get_api_handle()->getData()->website
+                );
                 $error = 0;
             } elseif ($this->get_api_handle()) {
-                $connection_msg = sprintf(__('API Token validation failed: %s. Make sure to save the settings before validating.',
-                    'smart-send-logistics'), $this->get_api_handle()->getError()->message);
+                $connection_msg = sprintf(__(
+                    'API Token validation failed: %s. Make sure to save the settings before validating.',
+                    'smart-send-logistics'
+                ), $this->get_api_handle()->getError()->message);
                 $error = 1;
             } else {
-                $connection_msg = __('API Token validation failed: Please enter an API Token and save the settings before validating.',
-                    'smart-send-logistics');
+                $connection_msg = __(
+                    'API Token validation failed: Please enter an API Token and save the settings before validating.',
+                    'smart-send-logistics'
+                );
                 $error = 1;
             }
 
@@ -594,19 +669,20 @@ if (!class_exists('SS_Shipping_WC')) :
             wp_die();
         }
 
-	    /**
-	     * Find the closest agents by address - Convenience wrapper
-	     *
-	     * @param $carrier string unique carrier code
-	     * @param $country string ISO3166-A2 Country code
-	     * @param $postal_code string
-	     * @param $street string
+        /**
+         * Find the closest agents by address - Convenience wrapper
+         *
+         * @param $carrier string unique carrier code
+         * @param $country string ISO3166-A2 Country code
+         * @param $postal_code string
+         * @param $street string
          * @param $city string optional but providing a city yields better accuracy for geocoding
-	     *
-	     * @return array
-	     */
-	    public function ss_find_closest_agents_by_address($carrier, $country, $postal_code, $street, $city=null) {
-	        return $this->ss_shipping_frontend
+         *
+         * @return array
+         */
+        public function ss_find_closest_agents_by_address($carrier, $country, $postal_code, $street, $city = null)
+        {
+            return $this->ss_shipping_frontend
                 ->find_closest_agents_by_address($carrier, $country, $postal_code, $city, $street);
         }
 
@@ -652,5 +728,4 @@ function SS_SHIPPING_WC()
 {
     return SS_Shipping_WC::instance();
 }
-
 $SS_Shipping_WC = SS_SHIPPING_WC();
