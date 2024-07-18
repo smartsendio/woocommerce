@@ -367,20 +367,28 @@ if (!class_exists('SS_Shipping_Shipment')) :
                  */
                 $order_note = apply_filters('smart_send_order_note', $order_note, $this->order);
 
+                $extra_line_items = $this->order->get_fees();
+                apply_filters( 'smart_send_order_custom_line_items', $extra_line_items, $this->order );
+                $extra_line_item_tax = 0.0;
+
+                foreach ( $extra_line_items as $line_item ) {
+                    $extra_line_item_tax += (float) $line_item->get_total_tax();
+                }
+
                 // Order totals
-                $order_total = $this->order->get_total();
-                $order_total_tax = $this->order->get_total_tax();
-                $order_total_excl = $order_total - $order_total_tax;
+                $order_total_incl_tax = $this->order->get_total();
+                $order_total_tax      = $this->order->get_total_tax();
+                $order_total_excl_tax = $order_total_incl_tax - $order_total_tax;
 
-                // Shipping totals
-                $order_shipping = $this->order->get_shipping_total();
-                $order_shipping_tax = $this->order->get_shipping_tax();
-                $order_shipping_excl = $order_shipping - $order_shipping_tax;
+                // Shipping
+                $order_shipping_excl_tax = (float) $this->order->get_shipping_total(); // Note returns string for some reason
+                $order_shipping_tax      = (float) $this->order->get_shipping_tax(); // Note returns string for some reason
+                $order_shipping_incl_tax = $order_shipping_excl_tax + $order_shipping_tax;
 
-                // Order totals without shipping
-                $order_subtotal = $order_total - $order_shipping;
-                $order_subtotal_tax = $order_total_tax - $order_shipping_tax;
-                $order_subtotal_excl = $order_total_excl - $order_subtotal_tax;
+                // Order subtotals (without shipping but with discount)
+                $order_subtotal_tax      = $order_total_tax - $order_shipping_tax - $this->order->get_discount_tax() - $extra_line_item_tax;
+                $order_subtotal_incl_tax = $this->order->get_subtotal() + $order_subtotal_tax;
+                $order_subtotal_excl_tax = $this->order->get_subtotal();
 
                 $parcels = array();
                 if (!empty($ss_args['ss_parcels'])) {
@@ -447,8 +455,8 @@ if (!class_exists('SS_Shipping_Shipment')) :
                         ->setLength(null)
                         ->setFreetext($order_note ?: null)
                         ->setItems($items)// Alternatively add each item using $parcel->addItem(Item $item)
-                        ->setTotalPriceExcludingTax($order_subtotal_excl ?: null)
-                        ->setTotalPriceIncludingTax($order_subtotal ?: null)
+                        ->setTotalPriceExcludingTax($order_subtotal_excl_tax ?: null)
+                        ->setTotalPriceIncludingTax($order_subtotal_incl_tax ?: null)
                         ->setTotalTaxAmount($order_subtotal_tax ?: null);
                 }
             }
@@ -470,12 +478,12 @@ if (!class_exists('SS_Shipping_Shipment')) :
                 ->setShippingDate(date('Y-m-d'))
                 ->setParcels($parcels)// Alternatively add each parcel using $this->shipment->addParcel(Parcel $parcel);
                 ->setServices($services)
-                ->setSubtotalPriceExcludingTax($order_subtotal_excl ?: null)
-                ->setSubtotalPriceIncludingTax($order_subtotal ?: null)
-                ->setTotalPriceExcludingTax($order_total_excl ?: null)
-                ->setTotalPriceIncludingTax($order_total ?: null)
-                ->setShippingPriceExcludingTax($order_shipping_excl ?: null)
-                ->setShippingPriceIncludingTax($order_shipping ?: null)
+                ->setSubtotalPriceExcludingTax($order_subtotal_excl_tax ?: null)
+                ->setSubtotalPriceIncludingTax($order_subtotal_incl_tax ?: null)
+                ->setTotalPriceExcludingTax($order_total_excl_tax ?: null)
+                ->setTotalPriceIncludingTax($order_total_incl_tax ?: null)
+                ->setShippingPriceExcludingTax($order_shipping_excl_tax ?: null)
+                ->setShippingPriceIncludingTax($order_shipping_incl_tax ?: null)
                 ->setTotalTaxAmount($order_total_tax ?: null)
                 ->setCurrency($order_currency ?: null);
         }
