@@ -67,16 +67,33 @@ if (!class_exists('SS_Shipping_Frontend')) :
                 ($method_id == 'smart_send_shipping') &&
                 ($chosen_shipping == $shipping_id) &&
                 (stripos($meta_data['smart_send_shipping_method'], 'agent') !== false)) {
+		    
+		$agentSearchAddress = apply_filters('smart_send_agent_search_address', [
+                    'country' => empty($_POST['s_country']) ? null : wc_clean($_POST['s_country']),
+                    'postal_code' => empty($_POST['s_postcode']) ? null : wc_clean($_POST['s_postcode']),
+                    'city' => empty($_POST['s_city']) ? null : wc_clean($_POST['s_city']),
+                    'address' => empty($_POST['s_address']) ? null : wc_clean($_POST['s_address']),
+                ]);
 
-                if (!empty($_POST['s_country']) && !empty($_POST['s_postcode']) && !empty($_POST['s_address'])) {
-                    $country = wc_clean($_POST['s_country']);
-                    $postal_code = wc_clean($_POST['s_postcode']);
-	                $city = (!empty($_POST['s_city']) ? wc_clean($_POST['s_city']) : null);//not required but preferred
-                    $street = wc_clean($_POST['s_address']);
-
+                if ($agentSearchAddress['country'] && $agentSearchAddress['postal_code']) {
                     $carrier = SS_SHIPPING_WC()->get_shipping_method_carrier($meta_data['smart_send_shipping_method']);
 
-	                $ss_agents = $this->find_closest_agents_by_address($carrier, $country, $postal_code, $city, $street);
+                    // Production API does not allow street addresses shorter than 5 characters
+                    if ($agentSearchAddress['address'] && strlen($agentSearchAddress['address']) >= 5) {
+                        $ss_agents = $this->find_closest_agents_by_address(
+				$carrier,
+				$agentSearchAddress['country'],
+				$agentSearchAddress['postal_code'],
+				$agentSearchAddress['city'],
+				$agentSearchAddress['address']
+			);                        
+                    } else {
+                        $ss_agents = $this->find_closest_agents_by_postal_code(
+				$carrier,
+				$agentSearchAddress['country'],
+				$agentSearchAddress['postal_code']
+			);
+                    }
 
                     if (!empty($ss_agents)) {
 
@@ -140,6 +157,35 @@ if (!class_exists('SS_Shipping_Frontend')) :
 
 		        return array();
 	        }
+        }
+
+        /**
+         * Find the closest agents by postal code
+         *
+         * @param $carrier string Unique carrier code
+         * @param $country string ISO3166-A2 Country code
+         * @param $postal_code string
+         *
+         * @return array
+         */
+        public function find_closest_agents_by_postal_code($carrier, $country, $postal_code)
+        {
+            SS_SHIPPING_WC()->log_msg('Called "findClosestAgentByPostalCode" for website ' . SS_SHIPPING_WC()->get_website_url() . ' with carrier = "' . $carrier . '", country = "' . $country . '", postcode = "' . $postal_code . '"');
+
+            if (SS_SHIPPING_WC()->get_api_handle()->findClosestAgentByPostalCode($carrier, $country, $postal_code)) {
+
+                $ss_agents = SS_SHIPPING_WC()->get_api_handle()->getData();
+
+                SS_SHIPPING_WC()->log_msg('Response from "findClosestAgentByPostalCode": ' . SS_SHIPPING_WC()->get_api_handle()->getResponseBody());
+                // Save all of the agents in sessions
+                WC()->session->set('ss_shipping_agents', $ss_agents);
+
+                return $ss_agents;
+	    } else {
+                SS_SHIPPING_WC()->log_msg( 'Response from "findClosestAgentByPostalCode": ' . SS_SHIPPING_WC()->get_api_handle()->getErrorString() );
+
+                return array();
+            }
         }
 
         /**
