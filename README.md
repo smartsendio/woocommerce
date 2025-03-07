@@ -1,7 +1,85 @@
 # WooCommerce
 Smart Send module for WooCommerce
 
-## SVN
+## Setup
+
+[WP CLI]([url](https://make.wordpress.org/cli/)) and [WooCommerce CLI]([url](https://developer.woocommerce.com/docs/category/wc-cli/)) can be used to setup a fresh WooCommerce installation for testing.
+
+### Install WP CLI
+
+Either as a [global composer package]([url](https://make.wordpress.org/cli/handbook/guides/installing/#installing-via-composer)):
+
+```bash
+composer global require "wp-cli/wp-cli-bundle:*"
+```
+
+or by [Downloading the Phar file](https://wp-cli.org/#installing) (recommended in eg CI/CD pipelines):
+
+```bash
+curl -O https://raw.githubusercontent.com/wp-cli/builds/gh-pages/phar/wp-cli.phar
+php wp-cli.phar --info
+```
+
+### Install WordPress
+
+```bash
+# Download wordpress
+wp core download --path=wordpress
+
+# Go to new installation
+cd wordpress
+
+# Generate a config file
+wp config create --dbhost="127.0.0.1" --dbname=wordpress --dbuser=root --dbpass=""
+
+# Remove any previous database if needed
+# wp db drop --yes
+
+# Create the database
+wp db create
+
+# Reset DB if ever needed
+# wp db reset --yes
+
+# Install WordPress
+wp core install --url=wordpress.test --title="WordPress Demo" --admin_user=wp --admin_password=wp --admin_email=wp@smartsend.io
+
+# Install admin command
+wp package install wp-cli/admin-command
+
+# Update all plugins
+wp plugin update --all
+````
+
+### Install WooCommerce
+
+[WooCommerce CLI](https://developer.woocommerce.com/docs/category/wc-cli/) is part of WooCommerce since version 3, so simply install WooCommerce using WP Cli:
+
+```bash
+wp plugin install woocommerce --activate
+```
+
+### Install Storefront theme
+
+The official [storefront theme](https://wordpress.org/themes/storefront/) should be used for development and testing:
+
+```bash
+wp theme install storefront --activate
+```
+
+### Import Sample data
+
+???
+
+### Install plugin
+
+? Locally symlinking ?
+
+### Go to admin
+
+```bash
+wp admin --user=wp
+```
 
 Wordpress Plugin releases are managed by [SVN](https://developer.wordpress.org/plugins/wordpress-org/how-to-use-subversion/#starting-a-new-plugin) and to sync the plugin to a local folder run:
 
