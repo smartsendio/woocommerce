@@ -81,6 +81,21 @@ wp plugin install wordpress-importer --activate
 wp import "wp-content/plugins/woocommerce/sample-data/sample_products.xml" --authors=create
 ```
 
+### Install plugin
+
+During development then it makes sense symlinking the working plugin folder `./smart-send-logistics` into the wordpress pluigns folder `wp-content/plugins`:
+
+```bash
+# Assuming that the repo is stored locally inside the folder ~/github.com/smartsendio/woocommerce
+ln -s ~/github.com/smartsendio/woocommerce/smart-send-logistics "wp-content/plugins/smart-send-logistics" 
+```
+
+After which the plugin can be activated
+
+```bash
+wp plugin activate smart-send-logistics
+```
+
 ### Setup WooCommerce
 
 A few modifications must be made to the default WooCommerce setup
@@ -105,26 +120,17 @@ wp db query "INSERT INTO wp_woocommerce_shipping_zone_locations (zone_id, locati
 wp db query "INSERT INTO wp_woocommerce_shipping_zone_locations (zone_id, location_code, location_type) VALUES (3, 'EU', 'continent')"
 ```
 
+Adding Smart Send shipping methods
+
+```bash
+wp wc shipping_zone_method create 1 --enabled=true --settings='{"title":"Smart Send Demo"}' --method_id=smart_send_shipping --user=wp
+```
+
 #### Enable payments
 
 ```bash
 wp wc payment_gateway update bacs --user=wp --enabled=true
 wp wc payment_gateway update cod --user=wp --enabled=true
-```
-
-### Install plugin
-
-During development then it makes sense symlinking the working plugin folder `./smart-send-logistics` into the wordpress pluigns folder `wp-content/plugins`:
-
-```bash
-# Assuming that the repo is stored locally inside the folder ~/github.com/smartsendio/woocommerce
-ln -s ~/github.com/smartsendio/woocommerce/smart-send-logistics "wp-content/plugins/smart-send-logistics" 
-```
-
-After which the plugin can be activated
-
-```bash
-wp plugin activate smart-send-logistics
 ```
 
 ### Go to admin
