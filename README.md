@@ -20,6 +20,8 @@ curl -O https://raw.githubusercontent.com/wp-cli/builds/gh-pages/phar/wp-cli.pha
 php wp-cli.phar --info
 ```
 
+Note there is also a [Github Actio]([url](https://github.com/marketplace/actions/setup-wp-cli)) for installing WP CLI.
+
 ### Install WordPress
 
 ```bash
@@ -69,7 +71,7 @@ wp theme install storefront --activate
 
 ### Import Sample data
 
-Installing the [WooCommerce Sample Data]() serves as a good starting point:
+Installing the [WooCommerce Sample Data](https://woocommerce.com/document/importing-woocommerce-sample-data/) serves as a good starting point:
 
 ```bash
 # Install the required plugin for importing
