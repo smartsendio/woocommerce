@@ -69,11 +69,29 @@ wp theme install storefront --activate
 
 ### Import Sample data
 
-???
+Installing the [WooCommerce Sample Data]() serves as a good starting point:
+
+```bash
+# Install the required plugin for importing
+wp plugin install wordpress-importer --activate
+
+# Import the WooCommerce sample data
+wp import "wp-content/plugins/woocommerce/sample-data/sample_products.xml" --authors=create
+```
 
 ### Install plugin
 
-? Locally symlinking ?
+During development then it makes sense symlinking the working plugin folder `./smart-send-logistics` into the wordpress pluigns folder `wp-content/plugins`:
+
+```bash
+ln -s "smart-send-logistics" "wordpress/wp-content/plugins/smart-send-logistics"
+```
+
+After which the plugin can be activated
+
+```bash
+wp plugin activate smart-send-logistics
+```
 
 ### Go to admin
 
