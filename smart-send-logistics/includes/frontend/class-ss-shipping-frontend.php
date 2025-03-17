@@ -20,6 +20,8 @@ if (!class_exists('SS_Shipping_Frontend')) :
         /**
          * Init and hook in the integration.
          */
+        public $carries = '';
+
         public function __construct()
         {
             $this->init_hooks();
@@ -32,6 +34,14 @@ if (!class_exists('SS_Shipping_Frontend')) :
             add_action('woocommerce_checkout_order_processed', array($this, 'process_ss_pickup_points'), 10, 2);
             add_action('woocommerce_order_details_after_order_table', array($this, 'display_ss_shipping_agent'), 10, 2);
             add_action('woocommerce_email_after_order_table', array($this, 'display_ss_shipping_agent'), 10, 2);
+
+            add_action('rest_api_init', function () {
+                register_rest_route('smart-send-logistics/v1', '/get-pickup-points-nearby', array(
+                    'methods' => 'POST',
+                    'callback' => array($this, 'get_pickup_points_callback'),
+                    'permission_callback' => "__return_true",
+                ));
+            });
         }
 
         /**
@@ -39,7 +49,6 @@ if (!class_exists('SS_Shipping_Frontend')) :
          */
         public function display_ss_pickup_points($method, $index)
         {
-
             // Only display agents on checkout
             if (!is_checkout()) {
                 return;
@@ -63,56 +72,113 @@ if (!class_exists('SS_Shipping_Frontend')) :
 
             $meta_data = $method->get_meta_data();
 
-            if ($chosen_shipping &&
+            if (
+                $chosen_shipping &&
                 ($method_id == 'smart_send_shipping') &&
                 ($chosen_shipping == $shipping_id) &&
-                (stripos($meta_data['smart_send_shipping_method'], 'agent') !== false)) {
+                (stripos($meta_data['smart_send_shipping_method'], 'agent') !== false)
+            ) {
 
                 if (!empty($_POST['s_country']) && !empty($_POST['s_postcode']) && !empty($_POST['s_address'])) {
                     $country = wc_clean($_POST['s_country']);
                     $postal_code = wc_clean($_POST['s_postcode']);
-	                $city = (!empty($_POST['s_city']) ? wc_clean($_POST['s_city']) : null);//not required but preferred
+                    $city = (!empty($_POST['s_city']) ? wc_clean($_POST['s_city']) : null); // not required but preferred
                     $street = wc_clean($_POST['s_address']);
 
                     $carrier = SS_SHIPPING_WC()->get_shipping_method_carrier($meta_data['smart_send_shipping_method']);
 
-	                $ss_agents = $this->find_closest_agents_by_address($carrier, $country, $postal_code, $city, $street);
+                    // Display carrier variable
+                    echo '<div class="woocommerce-info ss-carrier-info">' . __('Carrier: ', 'smart-send-logistics') . $carrier . '</div>';
+
+                    $this->carries = $carrier;
+                    $restapiend = '';
+                    $ss_agents = $this->find_closest_agents_by_address($carrier, $country, $postal_code, $city, $street, $restapiend);
 
                     if (!empty($ss_agents)) {
-
                         $ss_setting = SS_SHIPPING_WC()->get_ss_shipping_settings();
 
                         $ss_agent_options = array();
                         if (!isset($ss_setting['default_select_agent']) || $ss_setting['default_select_agent'] == 'no') {
-                            $ss_agent_options[0] = __('- Select Pick-up Point -',
-                                    'smart-send-logistics');
+                            $ss_agent_options[0] = __('- Select Pick-up Point -', 'smart-send-logistics');
                         }
 
                         foreach ($ss_agents as $key => $agent) {
                             $formatted_address = $this->get_formatted_address($agent);
-                            $ss_agent_options[ $agent->agent_no ] = $formatted_address;
+                            $ss_agent_options[$agent->agent_no] = $formatted_address;
                         }
 
-                        woocommerce_form_field( 'ss_shipping_store_pickup', array(
-                            'type'          => 'select',
-                            'options'       => $ss_agent_options,
-                            'input_class'   => array('ss-agent-list'),
-                            )
-                        );
-
+                        woocommerce_form_field('ss_shipping_store_pickup', array(
+                            'type' => 'select',
+                            'options' => $ss_agent_options,
+                            'input_class' => array('ss-agent-list'),
+                        ));
                     } else {
-                        echo '<div class="woocommerce-info ss-agent-info">' . __('Shipping to closest pick-up point',
-                                'smart-send-logistics') . '</div>';
+                        echo '<div class="woocommerce-info ss-agent-info">' . __('Shipping to closest pick-up point', 'smart-send-logistics') . '</div>';
                     }
                 } else {
-                    echo '<div class="woocommerce-info ss-agent-info">' . __('Enter shipping information',
-                            'smart-send-logistics') . '</div>';
+                    echo '<div class="woocommerce-info ss-agent-info">' . __('Enter shipping information', 'smart-send-logistics') . '</div>';
                 }
             }
         }
 
-	    /**
-	     * Find the closest agents by address
+        /**
+         * wordpress endpointn call registeration call back function
+         * @ $request
+         * 
+         * **/
+
+        function get_pickup_points_callback(WP_REST_Request $request)
+        {
+            $country = wc_clean($request->get_param('country'));
+            $postal_code = wc_clean($request->get_param('postCode'));
+            $city = (!empty($request->get_param('city')) ? wc_clean($request->get_param('city')) : null);
+            $street = wc_clean($request->get_param('street'));
+            $meta_data = wc_clean($request->get_param('meta_data'));
+
+            $carrier = 'gls';
+            $restapiend = 'yes';
+
+            $ss_agents = $this->find_closest_agents_by_address($carrier, $country, $postal_code, $city, $street, $restapiend);
+            if (!empty($ss_agents)) {
+                $ss_agent_options = array();
+                $ss_setting = SS_SHIPPING_WC()->get_ss_shipping_settings();
+
+                if (!isset($ss_setting['default_select_agent']) || $ss_setting['default_select_agent'] == 'no') {
+                    $ss_agent_options[0] = __('- Select Pick-up Point -', 'smart-send-logistics');
+                }
+                foreach ($ss_agents as $key => $agent) {
+                    $formatted_address = $this->get_formatted_address($agent);
+                    $ss_agent_options[$agent->agent_no] = $formatted_address;
+                }
+                return new WP_REST_Response($ss_agent_options, 200);
+            } else {
+                return new WP_REST_Response(array('message' => __('No pick-up points found', 'smart-send-logistics')), 404);
+            }
+        }
+        function get_shipping_method_meta_data($shipping_method_name)
+        {
+            // Get all shipping zones
+            $zones = WC_Shipping_Zones::get_zones();
+            $zones[0] = WC_Shipping_Zones::get_zone(0); // Adding the '0' zone for locations not covered by other zones
+
+            foreach ($zones as $zone) {
+                $zone_id = $zone['zone_id'];
+                $shipping_methods = WC_Shipping_Zones::get_zone($zone_id)->get_shipping_methods();
+
+                foreach ($shipping_methods as $method) {
+                    if ($method->method_title === $shipping_method_name) {
+                        // Found the shipping method, retrieve its meta data
+                        $meta_data = $method->settings;
+                        return $method;
+                    }
+                }
+            }
+
+            return null; // Shipping method not found
+        }
+
+        /**
+         * Find the closest agents by address
          *
          * @param $carrier string | unique carrier code
          * @param $country string | ISO3166-A2 Country code
@@ -121,25 +187,28 @@ if (!class_exists('SS_Shipping_Frontend')) :
          * @param $street string
          *
          * @return array
-	     */
-        public function find_closest_agents_by_address($carrier, $country, $postal_code, $city, $street)
+         */
+        public function find_closest_agents_by_address($carrier, $country, $postal_code, $city, $street, $restapiend)
         {
-	        SS_SHIPPING_WC()->log_msg('Called "findClosestAgentByAddress" for website ' . SS_SHIPPING_WC()->get_website_url() . ' with carrier = "' . $carrier . '", country = "' . $country . '", postcode = "' . $postal_code . '", city = "' . $city . '", street = "' . $street . '"');
+            SS_SHIPPING_WC()->log_msg('Called "findClosestAgentByAddress" for website ' . SS_SHIPPING_WC()->get_website_url() . ' with carrier = "' . $carrier . '", country = "' . $country . '", postcode = "' . $postal_code . '", city = "' . $city . '", street = "' . $street . '"');
 
-	        if (SS_SHIPPING_WC()->get_api_handle()->findClosestAgentByAddress($carrier, $country, $postal_code, $city, $street)) {
+            if (SS_SHIPPING_WC()->get_api_handle()->findClosestAgentByAddress($carrier, $country, $postal_code, $city, $street)) {
 
-		        $ss_agents = SS_SHIPPING_WC()->get_api_handle()->getData();
+                $ss_agents = SS_SHIPPING_WC()->get_api_handle()->getData();
 
-		        SS_SHIPPING_WC()->log_msg('Response from "findClosestAgentByAddress": ' . SS_SHIPPING_WC()->get_api_handle()->getResponseBody());
-		        // Save all of the agents in sessions
-		        WC()->session->set('ss_shipping_agents', $ss_agents);
+                SS_SHIPPING_WC()->log_msg('Response from "findClosestAgentByAddress": ' . SS_SHIPPING_WC()->get_api_handle()->getResponseBody());
+                // Save all of the agents in sessions
+                if (isset($restapiend) && !empty($restapiend)) {
+                    return $ss_agents;
+                } else {
+                    WC()->session->set('ss_shipping_agents', $ss_agents);
+                    return $ss_agents;
+                }
+            } else {
+                SS_SHIPPING_WC()->log_msg('Response from "findClosestAgentByAddress": ' . SS_SHIPPING_WC()->get_api_handle()->getErrorString());
 
-		        return $ss_agents;
-	        } else {
-		        SS_SHIPPING_WC()->log_msg( 'Response from "findClosestAgentByAddress": ' . SS_SHIPPING_WC()->get_api_handle()->getErrorString() );
-
-		        return array();
-	        }
+                return array();
+            }
         }
 
         /**
@@ -265,8 +334,10 @@ if (!class_exists('SS_Shipping_Frontend')) :
 
             // Saving posted agent information
             if (!empty($selected_agent_no)) {
-                SS_SHIPPING_WC()->get_ss_shipping_wc_order()->save_ss_shipping_order_agent_no($order_id,
-                    $selected_agent_no);
+                SS_SHIPPING_WC()->get_ss_shipping_wc_order()->save_ss_shipping_order_agent_no(
+                    $order_id,
+                    $selected_agent_no
+                );
                 SS_SHIPPING_WC()->get_ss_shipping_wc_order()->save_ss_shipping_order_agent($order_id, $selected_agent);
             }
         }
