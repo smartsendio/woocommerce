@@ -201,6 +201,9 @@ This box appears when a "Select Pick-up Point" shipping method is selected, but 
 
 == Changelog ==
 
+= 8.1.2 =
+* Gracefully handle when order cannot be loaded during deletion of agent meta data
+
 = 8.1.1 =
 * Tested with WordPress 6.8
 * Tested with WooCommerce 9.7
