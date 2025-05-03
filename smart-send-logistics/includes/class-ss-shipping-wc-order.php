@@ -935,6 +935,15 @@ if (!class_exists('SS_Shipping_WC_Order')) :
 	     */
         public function delete_ss_shipping_order_agent($order_id) {
             $order = wc_get_order( $order_id );
+
+            // There are situations where the order has been deleted and cannot be found.
+            // We should gracefully handle this situation of failing to load the order.
+            if (! $order ) {
+                SS_SHIPPING_WC()->log_msg('Failed to load WooCommerce order: '.$order_id);
+
+                return;
+            }
+
             $order->delete_meta_data('_ss_shipping_order_agent');
         }
 
