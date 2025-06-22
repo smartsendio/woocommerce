@@ -81,7 +81,7 @@ if [[ -d "$tag_path" ]]; then
 else
   echo "Tagging $version..."
   svn cp "$trunk_path" "$tag_path"
-  echo "Version $version has been tagged."
+  echo "Version $version has been tagged (copied to tags-folder)."
 fi
 
 # Tagging
