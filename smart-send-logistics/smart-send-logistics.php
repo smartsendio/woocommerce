@@ -6,7 +6,7 @@
  * Author: Smart Send ApS
  * Author URI: https://www.smartsend.io
  * Text Domain: smart-send-logistics
- * Version: 8.1.2
+ * Version: 8.1.3
  * Requires Plugins: woocommerce
  * WC requires at least: 4.7.0
  * WC tested up to: 9.7
@@ -35,7 +35,7 @@ if (!class_exists('SS_Shipping_WC')) :
     class SS_Shipping_WC
     {
 
-        private $version = "8.1.2";
+        private $version = "8.1.3";
 
         /**
          * Instance to call certain functions globally within the plugin
@@ -631,7 +631,8 @@ if (!class_exists('SS_Shipping_WC')) :
                 $prices = array();
                 foreach ($available_shipping_methods as $shipping_method) {
                     // the price is the cost + taxes
-                    $prices[] = $shipping_method->cost + array_sum($shipping_method->taxes);
+                    // Note that WC_Shipping_Rate::get_cost() can be a string, so we need to cast it to float. @see https://wordpress.org/support/topic/add-to-cart-not-working-after-update-from-9-8-5-9-9-3/
+                    $prices[] = floatval($shipping_method->cost) + array_sum($shipping_method->taxes);
                 }
 
                 // use the prices to sort the rates
