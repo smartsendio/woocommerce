@@ -8,7 +8,7 @@ Developer URI: https://smartsend.io/
 Tags: shipping, pick-up-points, shipping-label, postnord, smart send
 Requires at least: 3.0.1
 Tested up to: 6.8
-Stable tag: 8.1.2
+Stable tag: 8.1.3
 License: GNU General Public License v3.0
 License URI: http://www.gnu.org/licenses/gpl-3.0.html
 Requires Plugins: woocommerce
@@ -200,6 +200,9 @@ This box appears when a "Select Pick-up Point" shipping method is selected, but 
 
 
 == Changelog ==
+
+= 8.1.3 =
+* Fix issue when shipping cost is a string instead of a number (WC_Shipping_Rate::get_cost() can from WooCommerce 9.9.3 be a string)
 
 = 8.1.2 =
 * Gracefully handle when order cannot be loaded during deletion of agent meta data
