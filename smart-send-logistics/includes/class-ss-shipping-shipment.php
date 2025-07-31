@@ -61,6 +61,29 @@ if (!class_exists('SS_Shipping_Shipment')) :
             $this->shipment = new \Smartsend\Models\Shipment();
         }
 
+	    /**
+	     * Apply country-specific formatting to agent.
+	     *
+	     * @param object $ss_agent
+	     * @param string|int $order_id
+	     *
+	     * @return object
+	     */
+	    public static function format_agent( $ss_agent, $order_id ) {
+		    if ( ! isset( $ss_agent->country ) ) {
+			    return $ss_agent;
+		    }
+
+		    switch ( $ss_agent->country ) {
+			    case 'LV':
+				    if ( isset( $ss_agent->postal_code ) && preg_match( '/(?:LV)?-?(\d+)/i', $ss_agent->postal_code, $matches ) ) {
+					    $ss_agent->postal_code = count( $matches ) >= 2 ? "LV-$matches[1]" : $ss_agent->postal_code;
+				    }
+		    }
+
+		    return $ss_agent;
+	    }
+
         /**
          * Create single order
          *
