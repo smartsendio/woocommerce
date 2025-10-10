@@ -241,7 +241,7 @@ if (!class_exists('SS_Shipping_WC_Order')) :
 
             // ... rest of the code. $post_or_order_object should not be used directly below this point´
 
-            $order_id = $order->ID;
+            $order_id = $order->get_id();
 
             $shipping_ss_settings = SS_SHIPPING_WC()->get_ss_shipping_settings();
 
