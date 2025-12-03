@@ -9,7 +9,7 @@
  * Version: 8.1.3
  * Requires Plugins: woocommerce
  * WC requires at least: 4.7.0
- * WC tested up to: 9.7
+ * WC tested up to: 10.3
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
