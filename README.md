@@ -2,6 +2,7 @@
 The Smart Send plugin for WooCommerce
 
 - [Setup](#setup-locally)
+  - [Quick start (setup script)](#quick-start-setup-script)
   - [Install WP CLI](#install-wp-cli)
   - [Install WordPress](#install-wordpress)
   - [Install WooCommerce](#install-woocommerce)
@@ -19,6 +20,28 @@ The Smart Send plugin for WooCommerce
 ## Setup locally
 
 [WP CLI]([url](https://make.wordpress.org/cli/)) and [WooCommerce CLI]([url](https://developer.woocommerce.com/docs/category/wc-cli/)) can be used to setup a fresh WooCommerce installation for testing.
+
+### Quick start (setup script)
+
+The manual steps below are automated by [bin/setup-local-dev.sh](bin/setup-local-dev.sh), which sets up a complete local development store — WordPress + WooCommerce with the plugin from this repository symlinked in and activated, configured with a Danish store origin, DKK currency and metric units (kg/cm), plus sample products and a Denmark shipping zone:
+
+```bash
+bin/setup-local-dev.sh
+```
+
+By default it installs the latest WordPress and WooCommerce into `./local-dev/wordpress` using SQLite (via the official [SQLite Database Integration](https://github.com/WordPress/sqlite-database-integration) plugin), so no database server is required. Everything is configurable:
+
+```bash
+bin/setup-local-dev.sh \
+  --path ~/Sites/smartsend-dev \
+  --wp-version 6.8 \
+  --wc-version 9.8.5 \
+  --db-engine mysql --db-name wp_dev --db-user root --db-pass secret --db-host 127.0.0.1
+```
+
+Run `bin/setup-local-dev.sh --help` for all options. The script is idempotent — re-running re-applies configuration without reinstalling; use `--force` to start over. When it finishes it prints the admin credentials and the command to start the store with WP-CLI's built-in server.
+
+Note: SQLite is convenient for development but is not what production stores run; use `--db-engine mysql` when database parity matters (e.g. debugging SQL-level issues).
 
 ### Install WP CLI
 
