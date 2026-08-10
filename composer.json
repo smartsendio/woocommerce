@@ -10,7 +10,19 @@
     }
   ],
   "require-dev": {
-    "squizlabs/php_codesniffer": "3.4.0",
-    "wp-coding-standards/wpcs": "2.0.0"
+    "squizlabs/php_codesniffer": "^3.10",
+    "wp-coding-standards/wpcs": "^3.1",
+    "dealerdirect/phpcodesniffer-composer-installer": "^1.0",
+    "digitalrevolution/php-codesniffer-baseline": "^1.0"
+  },
+  "config": {
+    "allow-plugins": {
+      "dealerdirect/phpcodesniffer-composer-installer": true,
+      "digitalrevolution/php-codesniffer-baseline": true
+    }
+  },
+  "scripts": {
+    "phpcs": "phpcs",
+    "phpcs:fix": "phpcbf"
   }
 }

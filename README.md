@@ -12,6 +12,7 @@ The Smart Send plugin for WooCommerce
   - [Setup WooCommerce](#setup-woocommerce)
   - [Go to admin](#go-to-admin)
 - [Development](#development)
+  - [Coding standards](#coding-standards)
   - [SVN](#svn)
   - [Release a new version](#release-a-new-version)
   - [Exporting to a zip file](#exporting-to-a-zip-file)
@@ -178,6 +179,27 @@ wp admin --user=wp
 ```
 
 ## Development
+
+### Coding standards
+
+The plugin is checked against the [WordPress Coding Standards](https://github.com/WordPress/WordPress-Coding-Standards) with [PHP_CodeSniffer](https://github.com/PHPCSStandards/PHP_CodeSniffer). The ruleset lives in [phpcs.xml.dist](phpcs.xml.dist) and runs in CI on every pull request.
+
+```bash
+composer install
+composer phpcs
+```
+
+Auto-fix what can be fixed automatically with:
+
+```bash
+composer phpcs:fix
+```
+
+Pre-existing violations are recorded in [phpcs.baseline.xml](phpcs.baseline.xml) so they do not fail CI, while new violations do. When you fix a baselined violation, regenerate the baseline so it shrinks over time:
+
+```bash
+vendor/bin/phpcs --report=\\DR\\CodeSnifferBaseline\\Reports\\Baseline --report-file=phpcs.baseline.xml
+```
 
 ### SVN
 
