@@ -287,6 +287,9 @@ wp option update woocommerce_specific_allowed_countries '["DK","SE","NO","FI","D
 wp option update woocommerce_ship_to_countries "specific" >/dev/null
 wp option update woocommerce_specific_ship_to_countries '["DK","SE","NO","FI","DE"]' --format=json >/dev/null
 
+# Launch the store: WooCommerce enables "Coming soon" mode by default.
+wp option update woocommerce_coming_soon "no" >/dev/null
+
 # Skip the WooCommerce onboarding wizard.
 wp option update woocommerce_onboarding_profile '{"skipped":true}' --format=json >/dev/null
 wp option update woocommerce_task_list_hidden "yes" >/dev/null 2>&1 || true
