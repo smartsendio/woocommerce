@@ -1,0 +1,76 @@
+name: Browser Tests
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  pest:
+    name: Pest browser tests (WP ${{ matrix.wp-version }} / WC ${{ matrix.wc-version }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - wp-version: 'latest'
+            wc-version: 'latest'
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          coverage: none
+          tools: composer
+
+      - name: Cache Composer dependencies
+        uses: actions/cache@v4
+        with:
+          path: vendor
+          key: ${{ runner.os }}-composer-${{ hashFiles('composer.lock') }}
+          restore-keys: ${{ runner.os }}-composer-
+
+      - name: Install Composer dependencies
+        run: composer install --prefer-dist --no-progress
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Install Playwright
+        run: |
+          npm ci
+          npx playwright install --with-deps chromium
+
+      - name: Set up the development store
+        run: |
+          bin/setup-local-dev.sh \
+            --path ./local-dev/wordpress \
+            --url http://127.0.0.1:8181 \
+            --wp-version "${{ matrix.wp-version }}" \
+            --wc-version "${{ matrix.wc-version }}"
+
+      - name: Start the store
+        run: |
+          PHP_CLI_SERVER_WORKERS=4 php -d memory_limit=512M \
+            ./local-dev/wordpress/.wp-cli/wp-cli.phar \
+            --path=./local-dev/wordpress \
+            server --host=127.0.0.1 --port=8181 &
+          timeout 30 bash -c 'until curl -sf -o /dev/null http://127.0.0.1:8181/; do sleep 1; done'
+
+      - name: Run Pest browser tests
+        env:
+          WP_BASE_URL: http://127.0.0.1:8181
+        run: vendor/bin/pest
+
+      - name: Upload failure screenshots
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pest-browser-screenshots-${{ matrix.wp-version }}-${{ matrix.wc-version }}
+          path: tests/Browser/Screenshots
+          if-no-files-found: ignore
