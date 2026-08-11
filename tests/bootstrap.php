@@ -67,6 +67,38 @@ define('WP_USE_THEMES', false);
 
 require_once $wpLoad;
 
+/*
+|--------------------------------------------------------------------------
+| Warnings-to-failures (plugin code only)
+|--------------------------------------------------------------------------
+|
+| Any PHP warning, notice, or deprecation raised from a file inside
+| smart-send-logistics/ is converted into an ErrorException so the test
+| that triggered it fails. Noise from WordPress core, WooCommerce, or
+| other plugins is left to PHPUnit's regular reporting. Registered after
+| wp-load.php on purpose: loading WordPress itself is not ours to police.
+|
+*/
+
+const SS_STRICT_ERRNO = E_WARNING | E_NOTICE | E_DEPRECATED | E_USER_WARNING | E_USER_NOTICE | E_USER_DEPRECATED;
+
+function ss_strict_error_handler(int $errno, string $errstr, string $errfile = '', int $errline = 0): bool
+{
+    if (! (error_reporting() & $errno)) {
+        return false; // @-suppressed
+    }
+
+    $pluginDir = DIRECTORY_SEPARATOR . 'smart-send-logistics' . DIRECTORY_SEPARATOR;
+
+    if (($errno & SS_STRICT_ERRNO) && str_contains($errfile, $pluginDir)) {
+        throw new ErrorException($errstr, 0, $errno, $errfile, $errline);
+    }
+
+    return false; // defer to the default / PHPUnit handler
+}
+
+set_error_handler('ss_strict_error_handler');
+
 // Keep database driver noise out of the test output. With the SQLite dev
 // store, WooCommerce's coupon-hold "SELECT ... FOR UPDATE" queries fail (the
 // driver does not support row locks) and would otherwise print a full error

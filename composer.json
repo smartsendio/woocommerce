@@ -15,7 +15,8 @@
     "dealerdirect/phpcodesniffer-composer-installer": "^1.0",
     "digitalrevolution/php-codesniffer-baseline": "^1.0",
     "pestphp/pest": "^4.0",
-    "pestphp/pest-plugin-browser": "^4.0"
+    "pestphp/pest-plugin-browser": "^4.0",
+    "phpcompatibility/phpcompatibility-wp": "^2.1"
   },
   "config": {
     "allow-plugins": {
@@ -26,6 +27,7 @@
   },
   "scripts": {
     "phpcs": "phpcs",
+    "phpcs:compat": "phpcs --standard=phpcs.compat.xml.dist",
     "phpcs:fix": "phpcbf",
     "test": "pest",
     "test:integration": "pest --testsuite=Integration",
