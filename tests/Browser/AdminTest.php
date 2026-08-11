@@ -1,14 +1,5 @@
 <?php
 
-function login_as_admin()
-{
-    return visit(base_url('/wp-login.php'))
-        ->fill('#user_login', admin_username())
-        ->fill('#user_pass', admin_password())
-        ->click('#wp-submit')
-        ->assertPathContains('wp-admin');
-}
-
 it('can log in to wp-admin', function () {
     login_as_admin()->assertSee('Dashboard');
 });

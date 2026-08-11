@@ -27,3 +27,12 @@ function admin_password(): string
 {
     return getenv('WP_ADMIN_PASS') ?: 'password';
 }
+
+function login_as_admin()
+{
+    return visit(base_url('/wp-login.php'))
+        ->fill('#user_login', admin_username())
+        ->fill('#user_pass', admin_password())
+        ->click('#wp-submit')
+        ->assertPathContains('wp-admin');
+}
