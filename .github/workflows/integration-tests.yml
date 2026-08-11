@@ -1,0 +1,60 @@
+name: Integration Tests
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  pest:
+    name: Pest integration tests (WP ${{ matrix.wp-version }} / WC ${{ matrix.wc-version }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        # Unlike the browser tests, WordPress + WooCommerce run inside the
+        # Pest process here, so the PHP version is fixed by Pest's own
+        # requirement (8.2+). PHP-version coverage of the plugin comes from
+        # the browser test matrix.
+        wp-version: ['latest']
+        wc-version: ['latest']
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          coverage: none
+          tools: composer
+
+      - name: Cache Composer dependencies
+        uses: actions/cache@v4
+        with:
+          path: vendor
+          key: ${{ runner.os }}-composer-${{ hashFiles('composer.lock') }}
+          restore-keys: ${{ runner.os }}-composer-
+
+      - name: Install Composer dependencies
+        run: composer install --prefer-dist --no-progress
+
+      - name: Set up the development store
+        # SQLite is fine here: the suite runs in a single PHP process, so the
+        # concurrency-related SQLite crashes seen with php-fpm do not apply.
+        # No web server is needed either - WordPress is loaded in-process.
+        run: |
+          bin/setup-local-dev.sh \
+            --path ./local-dev/wordpress \
+            --url http://127.0.0.1:8181 \
+            --wp-version "${{ matrix.wp-version }}" \
+            --wc-version "${{ matrix.wc-version }}" \
+            --skip-seed
+
+      - name: Run Pest integration tests
+        run: vendor/bin/pest --testsuite=Integration
+
+      - name: Show WordPress debug log
+        if: failure()
+        run: tail -n 200 ./local-dev/wordpress/wp-content/debug.log || true

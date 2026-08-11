@@ -27,6 +27,8 @@
   "scripts": {
     "phpcs": "phpcs",
     "phpcs:fix": "phpcbf",
-    "test": "pest"
+    "test": "pest",
+    "test:integration": "pest --testsuite=Integration",
+    "test:browser": "pest --testsuite=Browser"
   }
 }
