@@ -1,0 +1,44 @@
+<?xml version="1.0"?>
+<ruleset name="Smart Send WooCommerce">
+    <description>WordPress coding standards for the Smart Send WooCommerce plugin.</description>
+
+    <file>smart-send-logistics</file>
+
+    <!-- The bundled Smart Send PHP API client follows PSR conventions, not WPCS. -->
+    <exclude-pattern>smart-send-logistics/includes/lib/*</exclude-pattern>
+    <exclude-pattern>*/vendor/*</exclude-pattern>
+    <exclude-pattern>*/local-dev/*</exclude-pattern>
+    <exclude-pattern>*.js</exclude-pattern>
+    <exclude-pattern>*.css</exclude-pattern>
+
+    <!-- Report paths relative to the repository root so the baseline is portable. -->
+    <arg name="basepath" value="."/>
+
+    <!-- Show progress, sniff codes, and use colors; check up to 20 files in parallel. -->
+    <arg value="ps"/>
+    <arg name="colors"/>
+    <arg name="parallel" value="20"/>
+    <arg name="extensions" value="php"/>
+
+    <!-- Minimum supported WordPress version for WPCS sniffs. -->
+    <config name="minimum_wp_version" value="4.9"/>
+
+    <rule ref="WordPress">
+        <!-- The plugin predates these standards; file/class naming will not be
+             changed as it would break the plugin structure on wordpress.org. -->
+        <exclude name="WordPress.Files.FileName"/>
+        <!-- Allow short array syntax and modern PHP conventions. -->
+        <exclude name="Universal.Arrays.DisallowShortArraySyntax"/>
+        <!-- Documentation-only sniffs are aspirational for the legacy codebase. -->
+        <exclude name="Squiz.Commenting"/>
+        <exclude name="Generic.Commenting"/>
+    </rule>
+
+    <rule ref="WordPress.WP.I18n">
+        <properties>
+            <property name="text_domain" type="array">
+                <element value="smart-send-logistics"/>
+            </property>
+        </properties>
+    </rule>
+</ruleset>

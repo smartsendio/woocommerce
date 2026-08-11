@@ -1,0 +1,175 @@
+name: Browser Tests
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  pest:
+    name: Pest browser tests (PHP ${{ matrix.php-version }} / WP ${{ matrix.wp-version }} / WC ${{ matrix.wc-version }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        # The store (WordPress + WooCommerce + the Smart Send plugin) runs on
+        # the matrix PHP version. Pest itself always runs on PHP 8.4 (see the
+        # tooling setup below) since its dependencies require it.
+        #
+        # PHP 7.4 is the floor for the latest WooCommerce; testing the plugin's
+        # older declared support (PHP 5.6+) would require pinning older
+        # WP/WC versions via extra include entries.
+        php-version: ['7.4', '8.0', '8.1', '8.2', '8.3', '8.4']
+        wp-version: ['latest']
+        wc-version: ['latest']
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up store PHP ${{ matrix.php-version }}
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '${{ matrix.php-version }}'
+          coverage: none
+
+      - name: Set up tooling PHP (Pest/Composer)
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          coverage: none
+          tools: composer
+
+      - name: Cache Composer dependencies
+        uses: actions/cache@v4
+        with:
+          path: vendor
+          key: ${{ runner.os }}-composer-${{ hashFiles('composer.lock') }}
+          restore-keys: ${{ runner.os }}-composer-
+
+      - name: Install Composer dependencies
+        run: composer install --prefer-dist --no-progress
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Install Playwright
+        run: |
+          npm ci
+          npx playwright install --with-deps chromium
+
+      - name: Start MySQL
+        # Use the runner's preinstalled MySQL: with SQLite, concurrent fpm
+        # workers intermittently segfaulted PHP inside the SQLite driver.
+        run: |
+          sudo systemctl start mysql
+          mysql -uroot -proot -e "SELECT VERSION();"
+
+      - name: Set up the development store
+        env:
+          PHP_BIN: php${{ matrix.php-version }}
+        run: |
+          $PHP_BIN --version
+          bin/setup-local-dev.sh \
+            --path ./local-dev/wordpress \
+            --url http://127.0.0.1:8181 \
+            --wp-version "${{ matrix.wp-version }}" \
+            --wc-version "${{ matrix.wc-version }}" \
+            --db-engine mysql \
+            --db-name smartsend_woo_test \
+            --db-user root \
+            --db-pass root \
+            --db-host 127.0.0.1
+
+      - name: Start the store (nginx + php-fpm)
+        # The PHP built-in CLI server segfaults intermittently under
+        # Playwright's parallel requests, so serve the store with nginx and
+        # php-fpm instead — fpm recycles a crashed worker without downtime.
+        run: |
+          PHPV="${{ matrix.php-version }}"
+          DOCROOT="$GITHUB_WORKSPACE/local-dev/wordpress"
+
+          sudo tee /etc/nginx/sites-available/default > /dev/null <<NGINX
+          server {
+              listen 8181;
+              root $DOCROOT;
+              index index.php;
+              location / {
+                  try_files \$uri \$uri/ /index.php?\$args;
+              }
+              location ~ \.php\$ {
+                  include snippets/fastcgi-php.conf;
+                  fastcgi_pass unix:/run/php/php$PHPV-fpm.sock;
+              }
+          }
+          NGINX
+
+          # The workspace lives under /home/runner, which www-data cannot read
+          # (and PHP needs write access for the SQLite database), so run the
+          # nginx workers and the fpm pool as the runner user.
+          sudo sed -i 's/^user .*/user runner;/' /etc/nginx/nginx.conf
+          sudo sed -i \
+            -e 's/^user = .*/user = runner/' \
+            -e 's/^group = .*/group = runner/' \
+            -e 's/^listen\.owner = .*/listen.owner = runner/' \
+            -e 's/^listen\.group = .*/listen.group = runner/' \
+            "/etc/php/$PHPV/fpm/pool.d/www.conf"
+
+          # PCRE JIT causes intermittent SIGSEGV in fpm workers rendering
+          # WooCommerce pages on some PHP versions; opcache is disabled too
+          # since compile speed is irrelevant for a short-lived test store.
+          printf 'pcre.jit=0\nopcache.enable=0\n' | \
+            sudo tee "/etc/php/$PHPV/fpm/conf.d/99-ci-stability.ini" > /dev/null
+
+          # Use a static pool: workers forked mid-run under load have been
+          # observed to crash within seconds; a fixed pool avoids forking
+          # while requests are in flight.
+          sudo tee -a "/etc/php/$PHPV/fpm/pool.d/www.conf" > /dev/null <<'POOL'
+          pm = static
+          pm.max_children = 8
+          POOL
+
+          sudo service "php$PHPV-fpm" restart
+          sudo service nginx restart
+          timeout 30 bash -c 'until curl -sf -o /dev/null http://127.0.0.1:8181/; do sleep 1; done'
+
+          # Warm the front page, shop and admin so the first browser test does
+          # not pay the cold-cache compile cost (it can exceed the 10s action
+          # timeout on a cold stack).
+          curl -sf -o /dev/null http://127.0.0.1:8181/shop/ || true
+          curl -sf -o /dev/null http://127.0.0.1:8181/wp-login.php || true
+
+      - name: Run Pest browser tests
+        timeout-minutes: 10
+        env:
+          WP_BASE_URL: http://127.0.0.1:8181
+        # The tests are self-contained, so retry the suite once to absorb
+        # rare fpm worker crashes; persistent failures still fail both runs.
+        run: |
+          vendor/bin/pest || {
+            echo "::warning::Browser test run failed - retrying once"
+            vendor/bin/pest
+          }
+
+      - name: Show server and WordPress logs
+        if: failure()
+        run: |
+          echo "::group::nginx error.log"
+          sudo tail -n 100 /var/log/nginx/error.log || true
+          echo "::endgroup::"
+          echo "::group::php-fpm log"
+          sudo tail -n 100 /var/log/php${{ matrix.php-version }}-fpm.log || true
+          echo "::endgroup::"
+          echo "::group::wp-content/debug.log"
+          tail -n 200 ./local-dev/wordpress/wp-content/debug.log || true
+          echo "::endgroup::"
+
+      - name: Upload failure screenshots
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pest-browser-screenshots-php${{ matrix.php-version }}-${{ matrix.wp-version }}-${{ matrix.wc-version }}
+          path: tests/Browser/Screenshots
+          if-no-files-found: ignore

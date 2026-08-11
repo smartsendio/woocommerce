@@ -1,0 +1,7 @@
+{
+  "name": "smartsend-woocommerce-dev",
+  "private": true,
+  "devDependencies": {
+    "playwright": "^1.62.1"
+  }
+}

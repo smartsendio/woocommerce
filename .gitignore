@@ -1,4 +1,7 @@
 /vendor
 /.idea
 /local-dev
+/node_modules
 .DS_Store
+.phpunit.cache
+tests/Browser/Screenshots/

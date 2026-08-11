@@ -12,6 +12,8 @@ The Smart Send plugin for WooCommerce
   - [Setup WooCommerce](#setup-woocommerce)
   - [Go to admin](#go-to-admin)
 - [Development](#development)
+  - [Coding standards](#coding-standards)
+  - [Browser tests](#browser-tests)
   - [SVN](#svn)
   - [Release a new version](#release-a-new-version)
   - [Exporting to a zip file](#exporting-to-a-zip-file)
@@ -178,6 +180,46 @@ wp admin --user=wp
 ```
 
 ## Development
+
+### Coding standards
+
+The plugin is checked against the [WordPress Coding Standards](https://github.com/WordPress/WordPress-Coding-Standards) with [PHP_CodeSniffer](https://github.com/PHPCSStandards/PHP_CodeSniffer). The ruleset lives in [phpcs.xml.dist](phpcs.xml.dist) and runs in CI on every pull request.
+
+```bash
+composer install
+composer phpcs
+```
+
+Auto-fix what can be fixed automatically with:
+
+```bash
+composer phpcs:fix
+```
+
+Pre-existing violations are recorded in [phpcs.baseline.xml](phpcs.baseline.xml) so they do not fail CI, while new violations do. When you fix a baselined violation, regenerate the baseline so it shrinks over time:
+
+```bash
+vendor/bin/phpcs --report=\\DR\\CodeSnifferBaseline\\Reports\\Baseline --report-file=phpcs.baseline.xml
+```
+
+### Browser tests
+
+End-to-end browser tests are written with [Pest](https://pestphp.com/docs/browser-testing) (backed by Playwright) and run against a store created by the setup script. Locally:
+
+```bash
+composer install
+npm install
+npx playwright install chromium
+
+# Set up and start the store (in a separate terminal, keep it running)
+bin/setup-local-dev.sh
+php -d memory_limit=512M local-dev/wordpress/.wp-cli/wp-cli.phar --path=local-dev/wordpress server --host=127.0.0.1 --port=8181
+
+# Run the tests
+composer test
+```
+
+The tests read `WP_BASE_URL`, `WP_ADMIN_USER` and `WP_ADMIN_PASS` from the environment (defaulting to the setup script's defaults: `http://127.0.0.1:8181`, `admin` / `password`). The same flow runs in CI via the Browser Tests workflow, which provisions the store with `bin/setup-local-dev.sh` on every pull request. Failure screenshots are saved to `tests/Browser/Screenshots/` and uploaded as workflow artifacts.
 
 ### SVN
 
