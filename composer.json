@@ -19,6 +19,9 @@
     "phpcompatibility/phpcompatibility-wp": "^2.1"
   },
   "config": {
+    "platform": {
+      "php": "8.3.0"
+    },
     "allow-plugins": {
       "dealerdirect/phpcodesniffer-composer-installer": true,
       "digitalrevolution/php-codesniffer-baseline": true,
