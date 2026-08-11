@@ -7,19 +7,32 @@ on:
 
 jobs:
   pest:
-    name: Pest browser tests (WP ${{ matrix.wp-version }} / WC ${{ matrix.wc-version }})
+    name: Pest browser tests (PHP ${{ matrix.php-version }} / WP ${{ matrix.wp-version }} / WC ${{ matrix.wc-version }})
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
-        include:
-          - wp-version: 'latest'
-            wc-version: 'latest'
+        # The store (WordPress + WooCommerce + the Smart Send plugin) runs on
+        # the matrix PHP version. Pest itself always runs on PHP 8.4 (see the
+        # tooling setup below) since its dependencies require it.
+        #
+        # PHP 7.4 is the floor for the latest WooCommerce; testing the plugin's
+        # older declared support (PHP 5.6+) would require pinning older
+        # WP/WC versions via extra include entries.
+        php-version: ['7.4', '8.0', '8.1', '8.2', '8.3', '8.4']
+        wp-version: ['latest']
+        wc-version: ['latest']
 
     steps:
       - uses: actions/checkout@v4
 
-      - name: Set up PHP
+      - name: Set up store PHP ${{ matrix.php-version }}
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '${{ matrix.php-version }}'
+          coverage: none
+
+      - name: Set up tooling PHP (Pest/Composer)
         uses: shivammathur/setup-php@v2
         with:
           php-version: '8.4'
@@ -47,7 +60,10 @@ jobs:
           npx playwright install --with-deps chromium
 
       - name: Set up the development store
+        env:
+          PHP_BIN: php${{ matrix.php-version }}
         run: |
+          $PHP_BIN --version
           bin/setup-local-dev.sh \
             --path ./local-dev/wordpress \
             --url http://127.0.0.1:8181 \
@@ -57,9 +73,11 @@ jobs:
       - name: Start the store
         # The PHP built-in server can occasionally crash under load, so run it
         # in a restart loop and keep its output for debugging.
+        env:
+          PHP_BIN: php${{ matrix.php-version }}
         run: |
           nohup bash -c 'while true; do
-            PHP_CLI_SERVER_WORKERS=4 php -d memory_limit=512M \
+            PHP_CLI_SERVER_WORKERS=4 '"$PHP_BIN"' -d memory_limit=512M \
               ./local-dev/wordpress/.wp-cli/wp-cli.phar \
               --path=./local-dev/wordpress \
               server --host=127.0.0.1 --port=8181 >> server.log 2>&1
@@ -87,6 +105,6 @@ jobs:
         if: failure()
         uses: actions/upload-artifact@v4
         with:
-          name: pest-browser-screenshots-${{ matrix.wp-version }}-${{ matrix.wc-version }}
+          name: pest-browser-screenshots-php${{ matrix.php-version }}-${{ matrix.wp-version }}-${{ matrix.wc-version }}
           path: tests/Browser/Screenshots
           if-no-files-found: ignore
