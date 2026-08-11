@@ -70,21 +70,31 @@ jobs:
             --wp-version "${{ matrix.wp-version }}" \
             --wc-version "${{ matrix.wc-version }}"
 
-      - name: Start the store
-        # The PHP built-in server can occasionally crash under load, so run it
-        # in a restart loop and keep its output for debugging.
-        env:
-          PHP_BIN: php${{ matrix.php-version }}
+      - name: Start the store (nginx + php-fpm)
+        # The PHP built-in CLI server segfaults intermittently under
+        # Playwright's parallel requests, so serve the store with nginx and
+        # php-fpm instead — fpm recycles a crashed worker without downtime.
         run: |
-          nohup bash -c 'while true; do
-            PHP_CLI_SERVER_WORKERS=4 '"$PHP_BIN"' -d memory_limit=512M \
-              -d opcache.enable_cli=0 -d opcache.jit=off -d pcre.jit=0 \
-              ./local-dev/wordpress/.wp-cli/wp-cli.phar \
-              --path=./local-dev/wordpress \
-              server --host=127.0.0.1 --port=8181 >> server.log 2>&1
-            echo "--- server exited with code $?, restarting ---" >> server.log
-            sleep 1
-          done' >/dev/null 2>&1 &
+          PHPV="${{ matrix.php-version }}"
+          DOCROOT="$GITHUB_WORKSPACE/local-dev/wordpress"
+
+          sudo tee /etc/nginx/sites-available/default > /dev/null <<NGINX
+          server {
+              listen 8181;
+              root $DOCROOT;
+              index index.php;
+              location / {
+                  try_files \$uri \$uri/ /index.php?\$args;
+              }
+              location ~ \.php\$ {
+                  include snippets/fastcgi-php.conf;
+                  fastcgi_pass unix:/run/php/php$PHPV-fpm.sock;
+              }
+          }
+          NGINX
+
+          sudo service "php$PHPV-fpm" start
+          sudo service nginx restart
           timeout 30 bash -c 'until curl -sf -o /dev/null http://127.0.0.1:8181/; do sleep 1; done'
 
       - name: Run Pest browser tests
@@ -95,8 +105,11 @@ jobs:
       - name: Show server and WordPress logs
         if: failure()
         run: |
-          echo "::group::server.log"
-          tail -n 200 server.log || true
+          echo "::group::nginx error.log"
+          sudo tail -n 100 /var/log/nginx/error.log || true
+          echo "::endgroup::"
+          echo "::group::php-fpm log"
+          sudo tail -n 100 /var/log/php${{ matrix.php-version }}-fpm.log || true
           echo "::endgroup::"
           echo "::group::wp-content/debug.log"
           tail -n 200 ./local-dev/wordpress/wp-content/debug.log || true
