@@ -59,6 +59,13 @@ jobs:
           npm ci
           npx playwright install --with-deps chromium
 
+      - name: Start MySQL
+        # Use the runner's preinstalled MySQL: with SQLite, concurrent fpm
+        # workers intermittently segfaulted PHP inside the SQLite driver.
+        run: |
+          sudo systemctl start mysql
+          mysql -uroot -proot -e "SELECT VERSION();"
+
       - name: Set up the development store
         env:
           PHP_BIN: php${{ matrix.php-version }}
@@ -68,7 +75,12 @@ jobs:
             --path ./local-dev/wordpress \
             --url http://127.0.0.1:8181 \
             --wp-version "${{ matrix.wp-version }}" \
-            --wc-version "${{ matrix.wc-version }}"
+            --wc-version "${{ matrix.wc-version }}" \
+            --db-engine mysql \
+            --db-name smartsend_woo_test \
+            --db-user root \
+            --db-pass root \
+            --db-host 127.0.0.1
 
       - name: Start the store (nginx + php-fpm)
         # The PHP built-in CLI server segfaults intermittently under
