@@ -93,7 +93,18 @@ jobs:
           }
           NGINX
 
-          sudo service "php$PHPV-fpm" start
+          # The workspace lives under /home/runner, which www-data cannot read
+          # (and PHP needs write access for the SQLite database), so run the
+          # nginx workers and the fpm pool as the runner user.
+          sudo sed -i 's/^user .*/user runner;/' /etc/nginx/nginx.conf
+          sudo sed -i \
+            -e 's/^user = .*/user = runner/' \
+            -e 's/^group = .*/group = runner/' \
+            -e 's/^listen\.owner = .*/listen.owner = runner/' \
+            -e 's/^listen\.group = .*/listen.group = runner/' \
+            "/etc/php/$PHPV/fpm/pool.d/www.conf"
+
+          sudo service "php$PHPV-fpm" restart
           sudo service nginx restart
           timeout 30 bash -c 'until curl -sf -o /dev/null http://127.0.0.1:8181/; do sleep 1; done'
 
