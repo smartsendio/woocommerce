@@ -1,4 +1,4 @@
 /vendor
 /.idea
+/local-dev
 .DS_Store
-/woocommerce
