@@ -147,9 +147,13 @@ jobs:
           WP_BASE_URL: http://127.0.0.1:8181
         # The tests are self-contained, so retry the suite once to absorb
         # rare fpm worker crashes; persistent failures still fail both runs.
+        # Restart php-fpm before the retry: a crashed worker can leave the
+        # pool wedged, making the retry hang until the step timeout (#79).
         run: |
           vendor/bin/pest --testsuite=Browser || {
-            echo "::warning::Browser test run failed - retrying once"
+            echo "::warning::Browser test run failed - restarting php-fpm and retrying once"
+            sudo service "php${{ matrix.php-version }}-fpm" restart
+            sleep 2
             vendor/bin/pest --testsuite=Browser
           }
 
