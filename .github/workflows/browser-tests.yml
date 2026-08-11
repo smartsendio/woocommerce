@@ -9,6 +9,7 @@ jobs:
   pest:
     name: Pest browser tests (PHP ${{ matrix.php-version }} / WP ${{ matrix.wp-version }} / WC ${{ matrix.wc-version }})
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     strategy:
       fail-fast: false
       matrix:
@@ -120,7 +121,14 @@ jobs:
           sudo service nginx restart
           timeout 30 bash -c 'until curl -sf -o /dev/null http://127.0.0.1:8181/; do sleep 1; done'
 
+          # Warm the front page, shop and admin so the first browser test does
+          # not pay the cold-cache compile cost (it can exceed the 10s action
+          # timeout on a cold stack).
+          curl -sf -o /dev/null http://127.0.0.1:8181/shop/ || true
+          curl -sf -o /dev/null http://127.0.0.1:8181/wp-login.php || true
+
       - name: Run Pest browser tests
+        timeout-minutes: 10
         env:
           WP_BASE_URL: http://127.0.0.1:8181
         run: vendor/bin/pest
