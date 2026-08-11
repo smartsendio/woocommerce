@@ -55,17 +55,33 @@ jobs:
             --wc-version "${{ matrix.wc-version }}"
 
       - name: Start the store
+        # The PHP built-in server can occasionally crash under load, so run it
+        # in a restart loop and keep its output for debugging.
         run: |
-          PHP_CLI_SERVER_WORKERS=4 php -d memory_limit=512M \
-            ./local-dev/wordpress/.wp-cli/wp-cli.phar \
-            --path=./local-dev/wordpress \
-            server --host=127.0.0.1 --port=8181 &
+          nohup bash -c 'while true; do
+            PHP_CLI_SERVER_WORKERS=4 php -d memory_limit=512M \
+              ./local-dev/wordpress/.wp-cli/wp-cli.phar \
+              --path=./local-dev/wordpress \
+              server --host=127.0.0.1 --port=8181 >> server.log 2>&1
+            echo "--- server exited with code $?, restarting ---" >> server.log
+            sleep 1
+          done' >/dev/null 2>&1 &
           timeout 30 bash -c 'until curl -sf -o /dev/null http://127.0.0.1:8181/; do sleep 1; done'
 
       - name: Run Pest browser tests
         env:
           WP_BASE_URL: http://127.0.0.1:8181
         run: vendor/bin/pest
+
+      - name: Show server and WordPress logs
+        if: failure()
+        run: |
+          echo "::group::server.log"
+          tail -n 200 server.log || true
+          echo "::endgroup::"
+          echo "::group::wp-content/debug.log"
+          tail -n 200 ./local-dev/wordpress/wp-content/debug.log || true
+          echo "::endgroup::"
 
       - name: Upload failure screenshots
         if: failure()
