@@ -148,9 +148,9 @@ jobs:
         # The tests are self-contained, so retry the suite once to absorb
         # rare fpm worker crashes; persistent failures still fail both runs.
         run: |
-          vendor/bin/pest || {
+          vendor/bin/pest --testsuite=Browser || {
             echo "::warning::Browser test run failed - retrying once"
-            vendor/bin/pest
+            vendor/bin/pest --testsuite=Browser
           }
 
       - name: Show server and WordPress logs

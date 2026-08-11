@@ -10,13 +10,22 @@ The actual plugin lives entirely in `smart-send-logistics/` — that folder is w
 
 ## Development environment
 
-There is no build step, test suite, or linter config in the repo. Development is done against a local WordPress + WooCommerce install with the plugin symlinked in:
+There is no build step. Development is done against a local WordPress + WooCommerce install created by `bin/setup-local-dev.sh` (default location `./local-dev/wordpress`, plugin symlinked in and activated). The README.md has further details on the development environment.
+
+## Testing
+
+Two Pest suites live in `tests/` (run on modern PHP; the plugin's PHP 5.6 floor only applies to `smart-send-logistics/` code):
+
+- **Browser** (`tests/Browser`) — end-to-end Playwright tests against a *running* store over HTTP (`WP_BASE_URL`, default `http://127.0.0.1:8181`). Few and slow; cover the big flows.
+- **Integration** (`tests/Integration`) — WordPress + WooCommerce loaded *in-process* by `tests/bootstrap.php` from the `bin/setup-local-dev.sh` install (override with `WP_DEV_PATH`); no web server needed. This is where scenario coverage lives (orders with coupons, discounts, fees → shipment payload, filters). Fixtures are built via the factories in `tests/Integration/Helpers.php`, which force-delete everything they create after each test — always create test data through them.
 
 ```bash
-ln -s ~/github.com/smartsendio/woocommerce/smart-send-logistics wp-content/plugins/smart-send-logistics
+composer test:integration   # or: vendor/bin/pest --testsuite=Integration
+composer test:browser       # needs the store running (see README)
+composer test               # both
 ```
 
-The README.md has full WP-CLI instructions for standing up a fresh WordPress + WooCommerce + Storefront environment with sample data, shipping zones, and Smart Send shipping methods.
+CI runs both suites (`.github/workflows/browser-tests.yml` and `integration-tests.yml`).
 
 `composer.json` requires `squizlabs/php_codesniffer` + `wp-coding-standards/wpcs` as dev dependencies (no ruleset file committed); run `composer install` then `vendor/bin/phpcs --standard=WordPress smart-send-logistics` if linting is needed.
 
