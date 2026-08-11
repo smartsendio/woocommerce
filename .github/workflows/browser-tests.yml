@@ -78,6 +78,7 @@ jobs:
         run: |
           nohup bash -c 'while true; do
             PHP_CLI_SERVER_WORKERS=4 '"$PHP_BIN"' -d memory_limit=512M \
+              -d opcache.enable_cli=0 -d opcache.jit=off -d pcre.jit=0 \
               ./local-dev/wordpress/.wp-cli/wp-cli.phar \
               --path=./local-dev/wordpress \
               server --host=127.0.0.1 --port=8181 >> server.log 2>&1
