@@ -11,6 +11,10 @@
 |
 */
 
+// Bound every browser operation so a broken page fails the test instead of
+// hanging the suite (observed in CI after an fpm worker crash).
+pest()->browser()->timeout(15_000);
+
 function base_url(string $path = '/'): string
 {
     $base = getenv('WP_BASE_URL') ?: 'http://127.0.0.1:8181';
