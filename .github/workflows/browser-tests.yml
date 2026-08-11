@@ -117,6 +117,12 @@ jobs:
             -e 's/^listen\.group = .*/listen.group = runner/' \
             "/etc/php/$PHPV/fpm/pool.d/www.conf"
 
+          # PCRE JIT causes intermittent SIGSEGV in fpm workers rendering
+          # WooCommerce pages on some PHP versions; opcache is disabled too
+          # since compile speed is irrelevant for a short-lived test store.
+          printf 'pcre.jit=0\nopcache.enable=0\n' | \
+            sudo tee "/etc/php/$PHPV/fpm/conf.d/99-ci-stability.ini" > /dev/null
+
           sudo service "php$PHPV-fpm" restart
           sudo service nginx restart
           timeout 30 bash -c 'until curl -sf -o /dev/null http://127.0.0.1:8181/; do sleep 1; done'
