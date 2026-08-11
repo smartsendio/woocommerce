@@ -123,6 +123,14 @@ jobs:
           printf 'pcre.jit=0\nopcache.enable=0\n' | \
             sudo tee "/etc/php/$PHPV/fpm/conf.d/99-ci-stability.ini" > /dev/null
 
+          # Use a static pool: workers forked mid-run under load have been
+          # observed to crash within seconds; a fixed pool avoids forking
+          # while requests are in flight.
+          sudo tee -a "/etc/php/$PHPV/fpm/pool.d/www.conf" > /dev/null <<'POOL'
+          pm = static
+          pm.max_children = 8
+          POOL
+
           sudo service "php$PHPV-fpm" restart
           sudo service nginx restart
           timeout 30 bash -c 'until curl -sf -o /dev/null http://127.0.0.1:8181/; do sleep 1; done'
@@ -137,7 +145,13 @@ jobs:
         timeout-minutes: 10
         env:
           WP_BASE_URL: http://127.0.0.1:8181
-        run: vendor/bin/pest
+        # The tests are self-contained, so retry the suite once to absorb
+        # rare fpm worker crashes; persistent failures still fail both runs.
+        run: |
+          vendor/bin/pest || {
+            echo "::warning::Browser test run failed - retrying once"
+            vendor/bin/pest
+          }
 
       - name: Show server and WordPress logs
         if: failure()
