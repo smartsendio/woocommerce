@@ -165,10 +165,10 @@ if ( ! class_exists( 'SS_Shipping_WC' ) ) :
 			require_once SS_SHIPPING_PLUGIN_DIR_PATH . '/includes/class-ss-shipping-order-data.php';
 
 			// Admin components.
-			require_once SS_SHIPPING_PLUGIN_DIR_PATH . '/includes/class-ss-plugins-screen-updates.php';
-			require_once SS_SHIPPING_PLUGIN_DIR_PATH . '/includes/class-ss-shipping-shipment.php';
-			require_once SS_SHIPPING_PLUGIN_DIR_PATH . '/includes/class-ss-shipping-wc-order.php';
-			require_once SS_SHIPPING_PLUGIN_DIR_PATH . '/includes/class-ss-shipping-wc-product.php';
+			require_once SS_SHIPPING_PLUGIN_DIR_PATH . '/admin/class-ss-plugins-screen-updates.php';
+			require_once SS_SHIPPING_PLUGIN_DIR_PATH . '/admin/class-ss-shipping-shipment.php';
+			require_once SS_SHIPPING_PLUGIN_DIR_PATH . '/admin/class-ss-shipping-wc-order.php';
+			require_once SS_SHIPPING_PLUGIN_DIR_PATH . '/admin/class-ss-shipping-wc-product.php';
 
 			// Frontend components.
 			require_once SS_SHIPPING_PLUGIN_DIR_PATH . '/public/class-ss-shipping-frontend.php';
@@ -184,7 +184,7 @@ if ( ! class_exists( 'SS_Shipping_WC' ) ) :
 		 * add_shipping_method(); require_once makes the call idempotent.
 		 */
 		public function include_shipping_method_class() {
-			require_once SS_SHIPPING_PLUGIN_DIR_PATH . '/includes/class-ss-shipping-wc-method.php';
+			require_once SS_SHIPPING_PLUGIN_DIR_PATH . '/admin/class-ss-shipping-wc-method.php';
 		}
 
         protected function init_hooks()
