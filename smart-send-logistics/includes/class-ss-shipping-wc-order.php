@@ -286,13 +286,14 @@ if (!class_exists('SS_Shipping_WC_Order')) :
 
             $ss_shipping_method_id = $this->get_smart_send_method_id($order_id);
 
-            // Only display Smart Shipping (SS) meta box is SS selected as shipping method OR free shipping is set to SS method
-            if (! $ss_shipping_method_id) {
-                echo '<p>' . __('Order placed with a shipping method that is not from the Smart Send plugin',
-                        'smart-send-logistics') . '</p>';
+			// Only display Smart Shipping (SS) meta box is SS selected as shipping method OR free shipping is set to SS method.
+			if ( ! $ss_shipping_method_id ) {
+				SS_Shipping_Logger::debug( 'No Smart Send shipping method on order - skipping meta box content', array( 'order_id' => $order_id ) );
 
-                return;
-            }
+				echo '<p>' . esc_html__( 'Order placed with a shipping method that is not from the Smart Send plugin', 'smart-send-logistics' ) . '</p>';
+
+				return;
+			}
 
             $ss_shipping_method_name = SS_SHIPPING_WC()->get_shipping_method_name_from_all_shipping_method_instances($ss_shipping_method_id);
 
@@ -597,14 +598,28 @@ if (!class_exists('SS_Shipping_WC_Order')) :
 					// API call to get agent info by agent no.
 					if ( SS_SHIPPING_WC()->get_api_handle()->getAgentByAgentNo( $shipping_method_carrier, $shipping_address['country'], $ss_shipping_agent_no ) ) {
 
-						SS_Shipping_Logger::log( 'Agent found and saved.' );
+						SS_Shipping_Logger::info(
+							'Pick-up point changed on order',
+							array(
+								'order_id' => $post_id,
+								'agent_no' => $ss_shipping_agent_no,
+								'carrier'  => $shipping_method_carrier,
+							)
+						);
 
                         $this->save_ss_shipping_order_agent($post_id,
                             SS_SHIPPING_WC()->get_api_handle()->getData());
                         return true;
                     } else {
 
-						SS_Shipping_Logger::log( 'Agent NOT found.' );
+						SS_Shipping_Logger::warning(
+							'Pick-up point not found - agent number rejected',
+							array(
+								'order_id' => $post_id,
+								'agent_no' => $ss_shipping_agent_no,
+								'carrier'  => $shipping_method_carrier,
+							)
+						);
 
                         $error_msg = sprintf(__('The agent number entered, %s, was not found.',
                             'smart-send-logistics'), $ss_shipping_agent_no);
@@ -733,6 +748,15 @@ if (!class_exists('SS_Shipping_WC_Order')) :
                 // save order meta data
                 $this->save_ss_shipment_id_in_order_meta($order_id, $response->shipment_id, $return);
 
+				SS_Shipping_Logger::info(
+					$return ? 'Return shipping label created' : 'Shipping label created',
+					array(
+						'order_id'    => $order_id,
+						'shipment_id' => $response->shipment_id,
+						'carrier'     => isset( $response->carrier_name ) ? $response->carrier_name : null,
+					)
+				);
+
                 // Get formatted order comment
                 $response->woocommerce['label_url'] = $labelUrl;
                 $response->woocommerce['order_note'] = $this->get_formatted_order_note_with_label_and_tracking($order_id,
@@ -741,27 +765,46 @@ if (!class_exists('SS_Shipping_WC_Order')) :
 
                 // Save order note
                 if ($setting_save_order_note) {
-                    /*
-                     * Filter the order comment that is saved. The order comment can be seen in the WooCommerce backend
-                     *
-                     * @param string order note containing tracking link and link to pdf label
-                     * @param WC_Order object
-                     * @param boolean $return Whether or not the label is return (true) or normal (false)
-                     */
-                    $order_note = apply_filters('smart_send_shipping_label_comment',
-                        $response->woocommerce['order_note'], $order, $return);
-                    $order->add_order_note($order_note, 0, true);
-                }
+					/*
+					 * Filter the order comment that is saved. The order comment can be seen in the WooCommerce backend
+					 *
+					 * @param string order note containing tracking link and link to pdf label
+					 * @param WC_Order object
+					 * @param boolean $return Whether or not the label is return (true) or normal (false)
+					 */
+					$order_note = apply_filters(
+						'smart_send_shipping_label_comment',
+						$response->woocommerce['order_note'],
+						$order,
+						$return
+					);
+					$order->add_order_note( $order_note, 0, true );
 
-                // Add tracking info to "WooCommerce Shipment Tracking" plugin
-                foreach ($response->parcels as $parcel) {
-                    // Only add tracking info to "WooCommerce Shipment Tracking" plugin for non-return parcels
-                    if (!$return) {
-                        $this->save_tracking_in_shipment_tracking($order_id, $parcel->tracking_code,
-                            $parcel->tracking_link,
-                            $response->carrier_name, $date_shipped = null);
-                    }
-                }
+					SS_Shipping_Logger::info( 'Order note with label and tracking added', array( 'order_id' => $order_id ) );
+				}
+
+				// Add tracking info to "WooCommerce Shipment Tracking" plugin.
+				foreach ( $response->parcels as $parcel ) {
+					// Only add tracking info to "WooCommerce Shipment Tracking" plugin for non-return parcels.
+					if ( ! $return ) {
+						$this->save_tracking_in_shipment_tracking(
+							$order_id,
+							$parcel->tracking_code,
+							$parcel->tracking_link,
+							$response->carrier_name,
+							null
+						);
+
+						SS_Shipping_Logger::info(
+							'Tracking number stored',
+							array(
+								'order_id'      => $order_id,
+								'tracking_code' => $parcel->tracking_code,
+								'carrier'       => $response->carrier_name,
+							)
+						);
+					}
+				}
 
 	            // Set order status after label generation
                 // Important to update AFTER saving meta fields and tracking information (otherwise not included in email via Shipment Tracking)
@@ -1003,7 +1046,7 @@ if (!class_exists('SS_Shipping_WC_Order')) :
 			// There are situations where the order has been deleted and cannot be found.
 			// We should gracefully handle this situation of failing to load the order.
 			if ( ! $order ) {
-				SS_Shipping_Logger::log( 'Failed to load WooCommerce order: ' . $order_id );
+				SS_Shipping_Logger::error( 'Failed to load WooCommerce order when deleting pick-up point meta - skipping', array( 'order_id' => $order_id ) );
 
                 return;
             }

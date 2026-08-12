@@ -569,7 +569,11 @@ if (!class_exists('SS_Shipping_WC')) :
                 $error = 1;
             }
 
-			SS_Shipping_Logger::log( $connection_msg );
+			if ( $error ) {
+				SS_Shipping_Logger::error( 'API token connection test failed', array( 'message' => $connection_msg ) );
+			} else {
+				SS_Shipping_Logger::info( 'API token connection test succeeded', array( 'message' => $connection_msg ) );
+			}
 
             wp_send_json(array(
                 'message'    => $connection_msg,
@@ -621,16 +625,44 @@ if (!class_exists('SS_Shipping_WC')) :
                     $prices[] = floatval($shipping_method->cost) + array_sum($shipping_method->taxes);
                 }
 
-                // use the prices to sort the rates
-                array_multisort($prices, $available_shipping_methods);
-
-				// write to log.
-				SS_Shipping_Logger::log( 'Shipping methods sorted by cost' );
+				// Use the prices to sort the rates.
+				array_multisort( $prices, $available_shipping_methods );
 			}
 
-            // return the rates
-            return $available_shipping_methods;
-        }
+			$this->report_smart_send_rates_for_package( $available_shipping_methods );
+
+			// Return the rates.
+			return $available_shipping_methods;
+		}
+
+		/**
+		 * Surface which Smart Send rates ended up offered for the package.
+		 *
+		 * Runs on woocommerce_package_rates after every shipping method has
+		 * calculated its rates, so this is the final set the shopper is
+		 * offered. The summary goes to the checkout shipping debug bar and
+		 * to the log as a developer trace.
+		 *
+		 * @param array $available_shipping_methods WC_Shipping_Rate objects keyed by rate id.
+		 */
+		protected function report_smart_send_rates_for_package( $available_shipping_methods ) {
+			$offered = array();
+
+			foreach ( $available_shipping_methods as $shipping_rate ) {
+				if ( $shipping_rate instanceof WC_Shipping_Rate && SS_SHIPPING_METHOD_ID === $shipping_rate->get_method_id() ) {
+					$offered[] = '"' . $shipping_rate->get_label() . '" (' . $shipping_rate->get_id() . ', cost ' . $shipping_rate->get_cost() . ')';
+				}
+			}
+
+			if ( empty( $offered ) ) {
+				$message = 'Smart Send: no Smart Send rates offered for this package.';
+			} else {
+				$message = 'Smart Send: rates offered for this package: ' . implode( ', ', $offered ) . '.';
+			}
+
+			SS_Shipping_Logger::debug( $message );
+			SS_Shipping_Checkout_Debug::add_notice( $message );
+		}
     }
 
 endif;

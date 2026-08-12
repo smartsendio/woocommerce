@@ -49,6 +49,22 @@ Two class layers with different conventions:
 
 2. **PSR-style API client** in `includes/lib/Smartsend/` — namespace `Smartsend`, classes `Api` (endpoint methods, extends `Client`) and `Client` (HTTP via `wp_remote_*` against `https://app.smartsend.io/api/v1/`), plus `Models/` value objects (`Shipment`, `Agent`, and their sub-models). This layer is deliberately WordPress-light; keep API concerns here rather than in the `SS_Shipping_*` classes.
 
+## Logging policy
+
+Two decoupled surfaces with distinct audiences — place every log/notice call deliberately on one of them (see issue #92):
+
+1. **Checkout shipping debug bar** (`SS_Shipping_Checkout_Debug::add_notice()`) — for the merchant diagnosing checkout live (WooCommerce → Settings → Shipping → "Enable debug mode"). Carries the rate evaluation trace, which Smart Send rates ended up offered for the package, the overlapping-weight-row outcome, and pick-up point lookup results/failures. It never writes to the log — call `SS_Shipping_Logger` separately when a log entry is also wanted. Notices are a no-op during checkout AJAX (matching WooCommerce core), so the log entry is then the only trace.
+2. **The WooCommerce log** (`SS_Shipping_Logger`, source `smart-send-logistics`) — an audit trail of business events (`info`) plus developer trace (`debug`).
+
+| Level | Use for | Example |
+|---|---|---|
+| `info` | Business events a merchant/support agent cares about after the fact; always logged (ungated audit trail) | "Shipping label created", "Tracking number stored", "Pick-up point selected at checkout" |
+| `debug` | Developer trace only, non-polluting — the ONLY level gated on the plugin "Debug Log" setting | "No Smart Send shipping method on order - skipping meta box content", rate evaluation detail, API request cycles (via `log_api_request`) |
+| `warning` | Failures the plugin recovers from; always logged | "Pick-up point not found - agent number rejected" |
+| `error` / `critical` | API and transport failures, and recoverable-but-abnormal states; always logged | "POST /shipments → 422 (312ms)" (via `log_api_request`), "Failed to load WooCommerce order when deleting pick-up point meta" |
+
+Keep messages concise and greppable; put structured data (order id, agent no, shipment id, carrier) in the context array — the WooCommerce log viewer renders it natively.
+
 Extension points are `smart_send_*` filters/actions (e.g. `smart_send_api_endpoint`, `smart_send_shipping_label_args`, `smart_send_shipping_label_created`, `smart_send_tracking_url`, `smart_send_order_note`). Preserve these when refactoring — merchants rely on them via code snippets.
 
 ## Releasing

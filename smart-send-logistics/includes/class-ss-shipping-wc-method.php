@@ -972,12 +972,16 @@ if (!class_exists('SS_Shipping_WC_Method')) :
                 'package'   => $package,
             );
 
-			// write id of shipping method to log.
-			SS_Shipping_Logger::log( 'Handling shipping rate <' . $rate['id'] . '> with title: ' . $rate['label'] );
-			SS_Shipping_Logger::log( 'Rate details (json decode for details): ' . wp_json_encode( $rate ) );
-			$debug_message = 'Smart Send: evaluated method "' . $rate['label'] . '" (' . $rate['meta_data']['smart_send_shipping_method'] . ', rate id ' . $rate['id'] . ').';
-			SS_Shipping_Logger::debug( $debug_message );
-			SS_Shipping_Checkout_Debug::add_notice( $debug_message );
+			// Log-file developer trace: the rate matched the zone, cost calculation starts.
+			SS_Shipping_Logger::debug(
+				'Calculating shipping cost for shipping rate ' . $rate['id'],
+				array(
+					'rate_id' => $rate['id'],
+					'label'   => $rate['label'],
+					'method'  => $rate['meta_data']['smart_send_shipping_method'],
+				)
+			);
+			SS_Shipping_Checkout_Debug::add_notice( 'Smart Send: evaluated method "' . $rate['label'] . '" (' . $rate['meta_data']['smart_send_shipping_method'] . ', rate id ' . $rate['id'] . ').' );
 
             // Set tax status based on selection otherwise always taxed
             $this->tax_status = $this->get_option('tax_status');
@@ -987,18 +991,23 @@ if (!class_exists('SS_Shipping_WC_Method')) :
 
 				$rate['cost'] = $this->get_option( 'flatfee_cost' );
 				$this->add_rate( $rate );
-				// write to log, that shipping rate is added.
-				SS_Shipping_Logger::log( 'Free shipping rate added' );
 				$debug_message = 'Smart Send "' . $rate['label'] . '": free shipping applies - rate added with flat fee cost ' . $rate['cost'] . '.';
-				SS_Shipping_Logger::debug( $debug_message );
+				SS_Shipping_Logger::debug(
+					$debug_message,
+					array(
+						'rate_id' => $rate['id'],
+						'cost'    => $rate['cost'],
+					)
+				);
 				SS_Shipping_Checkout_Debug::add_notice( $debug_message );
 
             } else {
                 $cart_weight = WC()->cart->get_cart_contents_weight();
                 $weight_costs = $this->get_option('cost_weight', array());
 
-				$weight_unit = get_option( 'woocommerce_weight_unit' );
-				$rate_added  = false;
+				$weight_unit  = get_option( 'woocommerce_weight_unit' );
+				$rate_added   = false;
+				$matched_rows = array();
 
                 if ($weight_costs) {
                     foreach ($weight_costs as $weight_cost) {
@@ -1016,11 +1025,17 @@ if (!class_exists('SS_Shipping_WC_Method')) :
                                     ));
 
 									$this->add_rate( $rate );
-									$rate_added = true;
-									// write to log, that shipping rate is added.
-									SS_Shipping_Logger::log( 'Weight based shipping rate added (json decode for details): ' . wp_json_encode( $rate ) );
-									$debug_message = 'Smart Send "' . $rate['label'] . '": cart weight ' . $cart_weight . ' ' . $weight_unit . ' matched weight table row ' . $weight_cost['ss_min_weight'] . '-' . $weight_cost['ss_max_weight'] . ' ' . $weight_unit . ' - rate added with cost ' . $rate['cost'] . '.';
-									SS_Shipping_Logger::debug( $debug_message );
+									$rate_added     = true;
+									$matched_rows[] = $weight_cost['ss_min_weight'] . '-' . $weight_cost['ss_max_weight'] . ' ' . $weight_unit;
+									$debug_message  = 'Smart Send "' . $rate['label'] . '": cart weight ' . $cart_weight . ' ' . $weight_unit . ' matched weight table row ' . $weight_cost['ss_min_weight'] . '-' . $weight_cost['ss_max_weight'] . ' ' . $weight_unit . ' - rate added with cost ' . $rate['cost'] . '.';
+									SS_Shipping_Logger::debug(
+										$debug_message,
+										array(
+											'rate_id'     => $rate['id'],
+											'cost'        => $rate['cost'],
+											'cart_weight' => $cart_weight,
+										)
+									);
 									SS_Shipping_Checkout_Debug::add_notice( $debug_message );
 								}
                             }
@@ -1028,12 +1043,35 @@ if (!class_exists('SS_Shipping_WC_Method')) :
                     }
                 }
 
+				if ( count( $matched_rows ) > 1 ) {
+					$last_row      = $matched_rows[ count( $matched_rows ) - 1 ];
+					$debug_message = 'Smart Send "' . $rate['label'] . '": ' . count( $matched_rows ) . ' overlapping weight table rows matched (' . implode( ', ', $matched_rows ) . ') - the rows share rate id ' . $rate['id'] . ', so only the LAST matching row (' . $last_row . ') is offered and the earlier matches were overwritten.';
+					SS_Shipping_Logger::debug( $debug_message );
+					SS_Shipping_Checkout_Debug::add_notice( $debug_message );
+				}
+
 				if ( ! $rate_added ) {
 					$debug_message = 'Smart Send "' . $rate['label'] . '": no rate added - cart weight ' . $cart_weight . ' ' . $weight_unit . ' did not match any weight table row.';
 					SS_Shipping_Logger::debug( $debug_message );
 					SS_Shipping_Checkout_Debug::add_notice( $debug_message );
 				}
             }
+
+			// Log-file developer trace: the outcome of the cost calculation.
+			if ( isset( $this->rates[ $rate['id'] ] ) ) {
+				SS_Shipping_Logger::debug(
+					'Calculated shipping cost for shipping rate ' . $rate['id'] . ': ' . $this->rates[ $rate['id'] ]->get_cost(),
+					array(
+						'rate_id' => $rate['id'],
+						'cost'    => $this->rates[ $rate['id'] ]->get_cost(),
+					)
+				);
+			} else {
+				SS_Shipping_Logger::debug(
+					'Shipping rate ' . $rate['id'] . ' is not available for this package - no rate added',
+					array( 'rate_id' => $rate['id'] )
+				);
+			}
 
             /**
              * Developers can add additional rates based on this one via this action

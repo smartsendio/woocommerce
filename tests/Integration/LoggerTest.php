@@ -2,8 +2,8 @@
 
 /*
  * Tests for the static SS_Shipping_Logger, a thin wrapper around
- * wc_get_logger(): the debug setting gates debug/info inside the class
- * while warning/error/critical always log, the smart_send_logging filter
+ * wc_get_logger(): the debug setting gates only the debug level inside the
+ * class while info/warning/error/critical always log, the smart_send_logging filter
  * can rewrite or suppress entries at all levels, structured data travels in the
  * context array (rendered natively by the WC log viewer), and API requests
  * made through Smartsend\Client produce one concise entry with method,
@@ -91,18 +91,18 @@ it('merges caller-provided context into the entry', function () {
     expect($spy->entries[0]['context']['source'])->toBe('smart-send-logistics');
 });
 
-it('gates debug and info on the debug setting but always logs warning, error and critical', function () {
+it('gates only debug on the debug setting; info, warning, error and critical always log', function () {
     with_ss_settings(['ss_debug' => 'no']);
     $spy = spy_on_logger();
 
     SS_Shipping_Logger::log('gated');
     SS_Shipping_Logger::debug('gated');
-    SS_Shipping_Logger::info('gated');
+    SS_Shipping_Logger::info('an info line');
     SS_Shipping_Logger::warning('a warning');
     SS_Shipping_Logger::error('an error');
     SS_Shipping_Logger::critical('a critical failure');
 
-    expect(array_column($spy->entries, 'level'))->toBe(['warning', 'error', 'critical']);
+    expect(array_column($spy->entries, 'level'))->toBe(['info', 'warning', 'error', 'critical']);
 });
 
 it('logs debug and info when the debug setting is on', function () {
