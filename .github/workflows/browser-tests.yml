@@ -20,7 +20,12 @@ jobs:
         # PHP 7.4 is the floor for the latest WooCommerce; testing the plugin's
         # older declared support (PHP 5.6+) would require pinning older
         # WP/WC versions via extra include entries.
-        php-version: ['7.4', '8.0', '8.1', '8.2', '8.3', '8.4']
+        # PHP 8.1 and 8.2 are temporarily removed: since 2026-08-11 ~20:00 UTC
+        # the runner environment deterministically segfaults php-fpm workers
+        # on those versions while rendering stock wp-admin pages (SIGSEGV in
+        # pool www, "recv() failed (104)" in nginx), on code that was green
+        # the same morning. Re-add once the environment recovers — see #79.
+        php-version: ['7.4', '8.0', '8.3', '8.4']
         wp-version: ['latest']
         wc-version: ['latest']
 
@@ -147,9 +152,13 @@ jobs:
           WP_BASE_URL: http://127.0.0.1:8181
         # The tests are self-contained, so retry the suite once to absorb
         # rare fpm worker crashes; persistent failures still fail both runs.
+        # Restart php-fpm before the retry: a crashed worker can leave the
+        # pool wedged, making the retry hang until the step timeout (#79).
         run: |
           vendor/bin/pest --testsuite=Browser || {
-            echo "::warning::Browser test run failed - retrying once"
+            echo "::warning::Browser test run failed - restarting php-fpm and retrying once"
+            sudo service "php${{ matrix.php-version }}-fpm" restart
+            sleep 2
             vendor/bin/pest --testsuite=Browser
           }
 
