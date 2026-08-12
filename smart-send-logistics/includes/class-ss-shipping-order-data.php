@@ -30,7 +30,7 @@ if ( ! class_exists( 'SS_Shipping_Order_Data' ) ) :
 		 *
 		 * @var WC_Order
 		 */
-		protected $order;
+		protected WC_Order $order;
 
 		/**
 		 * Constructor.

@@ -22,7 +22,9 @@ class Agent implements \JsonSerializable
     private $postal_code;
     private $city;
     private $country;
-    private $coordinates;
+    // Typed with "= null" so get_object_vars() serialization is unchanged;
+    // the uncast public setters above stay untyped (see Models/Shipment.php).
+    private ?Coordinates $coordinates = null;
     private $opening_hours;
 
     /**

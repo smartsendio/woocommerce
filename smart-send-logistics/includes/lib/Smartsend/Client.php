@@ -11,26 +11,40 @@ class Client
 {
     const TIMEOUT = 30;
 
+    /** @var string Untyped: the value passes through the smart_send_api_endpoint filter, whose return value is not under our control. */
     private $api_host = 'https://app.smartsend.io/api/v1/';
+    /** @var string|null Untyped: assigned via the public setWebsite() setter without casting. */
     private $website;
+    /** @var string|null Untyped: assigned via the public setApiToken() setter without casting. */
     private $api_token;
+    /** @var bool Untyped: assigned via the public setDemo() setter without casting. */
     private $demo;
-    protected $request_endpoint;
-    protected $request_headers;
+    protected ?string $request_endpoint = null;
+    protected ?array $request_headers = null;
+    /** @var string|null Untyped: json_encode() can return false on encoding failure. */
     protected $request_body;
+    /** @var array|\WpOrg\Requests\Utility\CaseInsensitiveDictionary|null Untyped: wp_remote_retrieve_headers() returns either shape. */
     protected $response_headers;
-    protected $response_body;
+    protected ?string $response_body = null;
+    /** @var mixed Decoded JSON response body. */
     protected $response;
+    /** @var int|string|null Untyped: wp_remote_retrieve_response_code() returns '' on transport failure. */
     protected $http_status_code;
+    /** @var string|array|null Untyped: wp_remote_retrieve_header() returns an array for duplicate headers. */
     protected $content_type;
+    /** @var array|\WP_Error|null Untyped: holds the raw wp_remote_request() result. */
     protected $debug;
+    /** @var mixed */
     protected $meta;
-    protected $success;
+    protected ?bool $success = null;
+    /** @var mixed API response data. */
     protected $data;
+    /** @var mixed API response links. */
     protected $links;
-    protected $error;
+    protected ?Error $error = null;
+    /** @var callable|null Untyped: PHP does not support callable property types. */
     private $request_logger;
-    private $request_started_at;
+    private ?float $request_started_at = null;
 
     public function __construct($api_token, $website, $demo=false)
     {

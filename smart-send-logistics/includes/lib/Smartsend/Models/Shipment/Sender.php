@@ -5,8 +5,10 @@ namespace Smartsend\Models\Shipment;
 
 class Sender implements \JsonSerializable
 {
-    private $internal_id;
-    private $internal_reference;
+    // Typed properties keep "= null" so get_object_vars() serialization is
+    // unchanged; uncast public setters stay untyped (see Models/Shipment.php).
+    private ?string $internal_id = null;
+    private ?string $internal_reference = null;
     private $company;
     private $name_line1;
     private $name_line2;

@@ -20,7 +20,7 @@ if ( ! class_exists( 'SS_Shipping_WC_Order' ) ) :
 
 	class SS_Shipping_WC_Order {
 
-		protected $label_prefix = 'smart-send-label-';
+		protected string $label_prefix = 'smart-send-label-';
 
 		/**
 		 * Admin notices component used to flash one-time notices after
@@ -28,7 +28,7 @@ if ( ! class_exists( 'SS_Shipping_WC_Order' ) ) :
 		 *
 		 * @var SS_Shipping_Admin_Notices
 		 */
-		protected $admin_notices;
+		protected SS_Shipping_Admin_Notices $admin_notices;
 
 		/**
 		 * Init and hook in the integration.

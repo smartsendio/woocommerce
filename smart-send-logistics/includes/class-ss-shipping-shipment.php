@@ -24,7 +24,10 @@ if ( ! class_exists( 'SS_Shipping_Shipment' ) ) :
 		/**
 		 * The WooCommerce order.
 		 *
-		 * @var WC_Order|null
+		 * Deliberately untyped: wc_get_order() can return false (or a
+		 * WC_Order_Refund), and the constructor relies on that falsy value.
+		 *
+		 * @var WC_Order|false|null
 		 */
 		protected $order = null;
 
@@ -33,21 +36,21 @@ if ( ! class_exists( 'SS_Shipping_Shipment' ) ) :
 		 *
 		 * @var SS_Shipping_Order_Data|null
 		 */
-		protected $order_data = null;
+		protected ?SS_Shipping_Order_Data $order_data = null;
 
 		/**
 		 * The admin order integration.
 		 *
 		 * @var SS_Shipping_WC_Order|null
 		 */
-		protected $shipping_order = null;
+		protected ?SS_Shipping_WC_Order $shipping_order = null;
 
 		/**
 		 * The shipment model being assembled.
 		 *
 		 * @var \Smartsend\Models\Shipment|null
 		 */
-		protected $shipment = null;
+		protected ?\Smartsend\Models\Shipment $shipment = null;
 
 		/**
 		 * Init and hook in the integration.

@@ -16,23 +16,28 @@ require_once 'Shipment/Services.php';
 
 class Shipment implements \JsonSerializable
 {
-    private $internal_id;
-    private $internal_reference;
+    // Typed properties keep the "= null" default so jsonSerialize()'s
+    // get_object_vars() output (and therefore the API payload) is identical
+    // to the previous untyped declarations. Properties whose setters do not
+    // cast are left untyped: adding a scalar type would silently coerce
+    // loosely-typed input and change the JSON payload.
+    private ?string $internal_id = null;
+    private ?string $internal_reference = null;
     private $shipping_carrier;
     private $shipping_method;
     private $shipping_date;
-    private $sender;
-    private $receiver;
-    private $agent;
-    private $parcels;
-    private $services;
-    private $subtotal_price_excluding_tax;
-    private $subtotal_price_including_tax;
-    private $shipping_price_excluding_tax;
-    private $shipping_price_including_tax;
-    private $total_price_excluding_tax;
-    private $total_price_including_tax;
-    private $total_tax_amount;
+    private ?Sender $sender = null;
+    private ?Receiver $receiver = null;
+    private ?ShipmentAgent $agent = null;
+    private ?array $parcels = null;
+    private ?Services $services = null;
+    private ?float $subtotal_price_excluding_tax = null;
+    private ?float $subtotal_price_including_tax = null;
+    private ?float $shipping_price_excluding_tax = null;
+    private ?float $shipping_price_including_tax = null;
+    private ?float $total_price_excluding_tax = null;
+    private ?float $total_price_including_tax = null;
+    private ?float $total_tax_amount = null;
     private $currency;
 
     public function __construct(Array $shipment=null)
