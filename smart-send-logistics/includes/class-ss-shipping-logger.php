@@ -110,41 +110,6 @@ class SS_Shipping_Logger {
 	}
 
 	/**
-	 * Log a debug trace message and surface it in WooCommerce's shipping
-	 * debug mode.
-	 *
-	 * The message is always written to the log like {@see log()}. When the
-	 * merchant has enabled WooCommerce → Settings → Shipping → "Enable debug
-	 * mode", the message is additionally shown as a checkout notice next to
-	 * core's own "Customer matched zone ..." notice, using the same gating
-	 * WooCommerce core applies (never during checkout submission or AJAX
-	 * requests, and never twice for the same message).
-	 *
-	 * @param string $message Message to log and show as a debug notice.
-	 */
-	public static function debug_notice( $message ) {
-		self::log( $message );
-
-		if ( 'yes' !== get_option( 'woocommerce_shipping_debug_mode', 'no' ) ) {
-			return;
-		}
-
-		if ( defined( 'WOOCOMMERCE_CHECKOUT' ) || defined( 'WC_DOING_AJAX' ) ) {
-			return;
-		}
-
-		if ( ! function_exists( 'wc_add_notice' ) || ! function_exists( 'wc_has_notice' ) ) {
-			return;
-		}
-
-		if ( wc_has_notice( $message ) ) {
-			return;
-		}
-
-		wc_add_notice( $message );
-	}
-
-	/**
 	 * Log an API request/response cycle as reported by the Smartsend client.
 	 *
 	 * Emits one concise line per request ("POST /shipments → 422 (312ms)")
