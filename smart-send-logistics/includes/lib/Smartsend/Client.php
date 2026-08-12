@@ -113,6 +113,7 @@ class Client
             "WordPress"     => get_bloginfo('version'),
             "WooCommerce"   => $wooCommerceVersion,
             "SmartSend"     => $this->getModuleVersion(),
+            "PHP"           => phpversion(),
         );
         $userAgentString = str_replace('=', '/', http_build_query($userAgent, '', ' '));
 
