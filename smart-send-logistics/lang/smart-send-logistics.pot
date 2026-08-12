@@ -1,0 +1,1114 @@
+# Copyright (C) 2026 Smart Send ApS
+# This file is distributed under the same license as the Smart Send Shipping for WooCommerce plugin.
+msgid ""
+msgstr ""
+"Project-Id-Version: Smart Send Shipping for WooCommerce 8.2.0\n"
+"Report-Msgid-Bugs-To: https://wordpress.org/support/plugin/smart-send-logistics\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"POT-Creation-Date: 2026-08-12T12:34:19+00:00\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"X-Generator: WP-CLI 2.11.0\n"
+"X-Domain: smart-send-logistics\n"
+
+#. Plugin Name of the plugin
+#. Description of the plugin
+#: smart-send-logistics.php
+msgid "Smart Send Shipping for WooCommerce"
+msgstr ""
+
+#. Plugin URI of the plugin
+#: smart-send-logistics.php
+msgid "https://wordpress.org/plugins/smart-send-logistics/"
+msgstr ""
+
+#. Author of the plugin
+#: smart-send-logistics.php
+msgid "Smart Send ApS"
+msgstr ""
+
+#. Author URI of the plugin
+#: smart-send-logistics.php
+msgid "https://www.smartsend.io"
+msgstr ""
+
+#: includes/class-ss-shipping-shipment.php:144
+msgid "No return method set"
+msgstr ""
+
+#: includes/class-ss-shipping-wc-method.php:24
+#: includes/class-ss-shipping-wc-method.php:502
+msgid "Smart Send"
+msgstr ""
+
+#: includes/class-ss-shipping-wc-method.php:25
+msgid "Advanced shipping solution for PostNord, GLS and Bring."
+msgstr ""
+
+#: includes/class-ss-shipping-wc-method.php:35
+#: includes/class-ss-shipping-wc-method.php:197
+msgid "- Select Method -"
+msgstr ""
+
+#: includes/class-ss-shipping-wc-method.php:38
+msgid "PostNord: Select pick-up point (MyPack Collect)"
+msgstr ""
+
+#: includes/class-ss-shipping-wc-method.php:40
+msgid "PostNord: Closest pick-up point (MyPack Collect)"
+msgstr ""
+
+#: includes/class-ss-shipping-wc-method.php:42
+msgid "PostNord: Private delivery to address (MyPack Home)"
+msgstr ""
+
+#: includes/class-ss-shipping-wc-method.php:44
+msgid "PostNord: Leave at door (Flexdelivery)"
+msgstr ""
+
+#: includes/class-ss-shipping-wc-method.php:46
+msgid "PostNord: Flexible home delivery (FlexChange)"
+msgstr ""
+
+#: includes/class-ss-shipping-wc-method.php:48
+msgid "PostNord: Private economy delivery to address (MyPack Home Economy)"
+msgstr ""
+
+#: includes/class-ss-shipping-wc-method.php:50
+msgid "PostNord: Private delivery to address Small (MyPack Home Small)"
+msgstr ""
+
+#: includes/class-ss-shipping-wc-method.php:52
+msgid "PostNord: Commercial delivery to address (Parcel)"
+msgstr ""
+
+#: includes/class-ss-shipping-wc-method.php:54
+msgid "PostNord: Valuable parcel"
+msgstr ""
+
+#: includes/class-ss-shipping-wc-method.php:56
+msgid "PostNord: Tracked Valuemail Large"
+msgstr ""
+
+#: includes/class-ss-shipping-wc-method.php:58
+msgid "PostNord: Tracked Valuemail Maxi"
+msgstr ""
+
+#: includes/class-ss-shipping-wc-method.php:60
+msgid "PostNord: Tracked Valuemail First Class"
+msgstr ""
+
+#: includes/class-ss-shipping-wc-method.php:62
+msgid "PostNord: Tracked Valuemail Economy"
+msgstr ""
+
+#: includes/class-ss-shipping-wc-method.php:64
+msgid "PostNord: Tracked Valuemail Eco Friendly"
+msgstr ""
+
+#: includes/class-ss-shipping-wc-method.php:66
+msgid "PostNord: Untracked Valuemail Large"
+msgstr ""
+
+#: includes/class-ss-shipping-wc-method.php:68
+msgid "PostNord: Untracked Valuemail Maxi"
+msgstr ""
+
+#: includes/class-ss-shipping-wc-method.php:70
+msgid "PostNord: Registred letter"
+msgstr ""
+
+#: includes/class-ss-shipping-wc-method.php:72
+msgid "PostNord: Tracked letter"
+msgstr ""
+
+#: includes/class-ss-shipping-wc-method.php:74
+msgid "PostNord: Tracked letter Large"
+msgstr ""
+
+#: includes/class-ss-shipping-wc-method.php:76
+msgid "PostNord: Untracked letter"
+msgstr ""
+
+#: includes/class-ss-shipping-wc-method.php:78
+msgid "PostNord: Express Letter"
+msgstr ""
+
+#: includes/class-ss-shipping-wc-method.php:80
+msgid "PostNord: Full size pallet"
+msgstr ""
+
+#: includes/class-ss-shipping-wc-method.php:82
+msgid "PostNord: Half size pallet"
+msgstr ""
+
+#: includes/class-ss-shipping-wc-method.php:84
+msgid "PostNord: Quarter size pallet"
+msgstr ""
+
+#: includes/class-ss-shipping-wc-method.php:86
+msgid "PostNord: Speciel size pallet"
+msgstr ""
+
+#: includes/class-ss-shipping-wc-method.php:91
+msgid "GLS: Select pick-up point (ParcelShop)"
+msgstr ""
+
+#: includes/class-ss-shipping-wc-method.php:92
+msgid "GLS: Closest pick-up point (ParcelShop)"
+msgstr ""
+
+#: includes/class-ss-shipping-wc-method.php:93
+msgid "GLS: Private delivery to address (PrivateDelivery)"
+msgstr ""
+
+#: includes/class-ss-shipping-wc-method.php:95
+msgid "GLS: Leave at door (DepositService)"
+msgstr ""
+
+#: includes/class-ss-shipping-wc-method.php:96
+msgid "GLS: Flexible home delivery (FlexDelivery)"
+msgstr ""
+
+#: includes/class-ss-shipping-wc-method.php:97
+msgid "GLS: Commercial delivery to address (BusinessParcel)"
+msgstr ""
+
+#: includes/class-ss-shipping-wc-method.php:102
+msgid "DAO: Select pick-up point (ParcelShop)"
+msgstr ""
+
+#: includes/class-ss-shipping-wc-method.php:103
+msgid "DAO: Closest pick-up point (ParcelShop)"
+msgstr ""
+
+#: includes/class-ss-shipping-wc-method.php:104
+msgid "DAO: Leave at door (Direct)"
+msgstr ""
+
+#: includes/class-ss-shipping-wc-method.php:105
+msgid "DAO: From pick-up point to pick-up point (Shop2Shop)"
+msgstr ""
+
+#: includes/class-ss-shipping-wc-method.php:106
+msgid "DAO: From pick-up point to doorstep (ParcelShop to Direct)"
+msgstr ""
+
+#: includes/class-ss-shipping-wc-method.php:110
+msgid "Budbee: Home"
+msgstr ""
+
+#: includes/class-ss-shipping-wc-method.php:114
+msgid "Burd: Home Delivery"
+msgstr ""
+
+#: includes/class-ss-shipping-wc-method.php:118
+msgid "Bring: Select pick-up point (PickUp Parcel / Serviceparcel)"
+msgstr ""
+
+#: includes/class-ss-shipping-wc-method.php:120
+msgid "Bring: Select pick-up point, send as bulk (PickUp Parcel Bulk)"
+msgstr ""
+
+#: includes/class-ss-shipping-wc-method.php:122
+msgid "Bring: Closest pick-up point (PickUp Parcel / Serviceparcel)"
+msgstr ""
+
+#: includes/class-ss-shipping-wc-method.php:124
+msgid "Bring: Closest pick-up point, send as bulk (PickUp Parcel Bulk)"
+msgstr ""
+
+#: includes/class-ss-shipping-wc-method.php:126
+msgid "Bring: Private delivery to address (Home Delivery Parcel)"
+msgstr ""
+
+#: includes/class-ss-shipping-wc-method.php:128
+msgid "Bring: Commercial delivery to address (Business Parcel)"
+msgstr ""
+
+#: includes/class-ss-shipping-wc-method.php:130
+msgid "Bring: Commercial delivery to address, send as bulk (Business Parcel Bulk)"
+msgstr ""
+
+#: includes/class-ss-shipping-wc-method.php:132
+msgid "Bring: Commercial delivery of full size pallet (Business Pallet)"
+msgstr ""
+
+#: includes/class-ss-shipping-wc-method.php:134
+msgid "Bring: Commercial delivery of half size pallet (Business Pallet)"
+msgstr ""
+
+#: includes/class-ss-shipping-wc-method.php:136
+msgid "Bring: Commercial delivery of quarter size pallet (Business Pallet)"
+msgstr ""
+
+#: includes/class-ss-shipping-wc-method.php:138
+msgid "Bring: Express delivery before 9:00 (Express Nordic 09:00)"
+msgstr ""
+
+#: includes/class-ss-shipping-wc-method.php:140
+msgid "Bring: Express delivery before 9:00, send as bulk (Express Nordic 09:00 Bulk)"
+msgstr ""
+
+#: includes/class-ss-shipping-wc-method.php:146
+msgid "Bifrost Logistics: eTail Tracked"
+msgstr ""
+
+#: includes/class-ss-shipping-wc-method.php:148
+msgid "Bifrost Logistics: eTail Tracked large"
+msgstr ""
+
+#: includes/class-ss-shipping-wc-method.php:151
+msgid "Bifrost Logistics: eTail Gain small"
+msgstr ""
+
+#: includes/class-ss-shipping-wc-method.php:153
+msgid "Bifrost Logistics: eTail Gain large"
+msgstr ""
+
+#: includes/class-ss-shipping-wc-method.php:156
+msgid "Bifrost Logistics: Nordic Express Collect"
+msgstr ""
+
+#: includes/class-ss-shipping-wc-method.php:158
+msgid "Bifrost Logistics: Nordic Express Home"
+msgstr ""
+
+#: includes/class-ss-shipping-wc-method.php:200
+msgid "PostNord: Return from pick-up point (Return Drop Off)"
+msgstr ""
+
+#: includes/class-ss-shipping-wc-method.php:202
+msgid "PostNord: Return from address (Return Pickup)"
+msgstr ""
+
+#: includes/class-ss-shipping-wc-method.php:207
+msgid "GLS: Return from pick-up point (ShopReturn)"
+msgstr ""
+
+#: includes/class-ss-shipping-wc-method.php:212
+msgid "DAO: Return from pick-up point (ParcelShop Return)"
+msgstr ""
+
+#: includes/class-ss-shipping-wc-method.php:217
+msgid "Bring: Return from pick-up point (PickUp Parcel Return)"
+msgstr ""
+
+#: includes/class-ss-shipping-wc-method.php:219
+msgid "Bring: Return from address (Parcel Return)"
+msgstr ""
+
+#: includes/class-ss-shipping-wc-method.php:264
+msgid "Validating connection..."
+msgstr ""
+
+#: includes/class-ss-shipping-wc-method.php:286
+msgid "API Token"
+msgstr ""
+
+#: includes/class-ss-shipping-wc-method.php:289
+msgid "Sign up for a Smart Send account <a href=\"%s\" target=\"_blank\">here</a>."
+msgstr ""
+
+#: includes/class-ss-shipping-wc-method.php:299
+msgid "Save the settings before clicking the button to validate API Token."
+msgstr ""
+
+#: includes/class-ss-shipping-wc-method.php:304
+msgid "Demo mode"
+msgstr ""
+
+#: includes/class-ss-shipping-wc-method.php:305
+msgid "Demo mode is used for testing on a staging site. No data will be send to the shipping carrier."
+msgstr ""
+
+#: includes/class-ss-shipping-wc-method.php:309
+msgid "Enable demo mode"
+msgstr ""
+
+#: includes/class-ss-shipping-wc-method.php:312
+msgid "Debug Log"
+msgstr ""
+
+#: includes/class-ss-shipping-wc-method.php:314
+msgid "Enable logging"
+msgstr ""
+
+#: includes/class-ss-shipping-wc-method.php:316
+msgid "A log file containing the communication to the Smart Send server will be maintained if this option is checked. This can be used in case of technical issues and can be found %shere%s."
+msgstr ""
+
+#: includes/class-ss-shipping-wc-method.php:320
+msgid "Shipping Labels"
+msgstr ""
+
+#: includes/class-ss-shipping-wc-method.php:322
+msgid "Settings for generating shipping labels."
+msgstr ""
+
+#: includes/class-ss-shipping-wc-method.php:325
+msgid "Set order status after label print"
+msgstr ""
+
+#: includes/class-ss-shipping-wc-method.php:330
+msgid "Do not change order status"
+msgstr ""
+
+#: includes/class-ss-shipping-wc-method.php:334
+msgid "Shipping method used for WooCommerce method Free Shipping"
+msgstr ""
+
+#: includes/class-ss-shipping-wc-method.php:338
+msgid "Selecting a shipping method will make it possible to make shipping labels for order places with WooCommerces native Free Shipping method."
+msgstr ""
+
+#: includes/class-ss-shipping-wc-method.php:343
+msgid "Include order comment on label"
+msgstr ""
+
+#: includes/class-ss-shipping-wc-method.php:349
+msgid "Save a copy of the PDF"
+msgstr ""
+
+#: includes/class-ss-shipping-wc-method.php:352
+msgid "This will save a copy of the generated PDF label in the WordPress uploads-folder"
+msgstr ""
+
+#: includes/class-ss-shipping-wc-method.php:357
+msgid "Pick-up Points"
+msgstr ""
+
+#: includes/class-ss-shipping-wc-method.php:359
+msgid "Settings for displaying pick-up points during checkout."
+msgstr ""
+
+#: includes/class-ss-shipping-wc-method.php:363
+msgid "Dropdown format"
+msgstr ""
+
+#: includes/class-ss-shipping-wc-method.php:364
+msgid "How the pick-up points are listed during checkout."
+msgstr ""
+
+#: includes/class-ss-shipping-wc-method.php:372
+msgid "Select Default"
+msgstr ""
+
+#: includes/class-ss-shipping-wc-method.php:373
+msgid "Enable Select Default"
+msgstr ""
+
+#: includes/class-ss-shipping-wc-method.php:374
+msgid "This will automatically select the closest pick-up point and let the customer change to a different pick-up point. This means that the customer will not be forced to select a pick-up point before completing the order."
+msgstr ""
+
+#: includes/class-ss-shipping-wc-method.php:380
+msgid "Shipping methods"
+msgstr ""
+
+#: includes/class-ss-shipping-wc-method.php:382
+msgid "Settings for shipping methods."
+msgstr ""
+
+#: includes/class-ss-shipping-wc-method.php:385
+msgid "Sort shipping methods"
+msgstr ""
+
+#: includes/class-ss-shipping-wc-method.php:387
+msgid "Enable automatic sorting by cost on checkout page"
+msgstr ""
+
+#: includes/class-ss-shipping-wc-method.php:389
+msgid "Shipping methods will be sorted in ascending order, according to the cost, instead of by order of appearance in Shipping Zone table as per default"
+msgstr ""
+
+#: includes/class-ss-shipping-wc-method.php:414
+msgid "Demo mode can only be disabled with a valid API Token. Please enter a valid API Token and save the settings again."
+msgstr ""
+
+#: includes/class-ss-shipping-wc-method.php:425
+msgid "Invalid API Token. Demo mode can only be disabled with a valid API Token for %s."
+msgstr ""
+
+#: includes/class-ss-shipping-wc-method.php:498
+msgid "Method Title"
+msgstr ""
+
+#: includes/class-ss-shipping-wc-method.php:500
+msgid "This controls the title which the user sees during checkout."
+msgstr ""
+
+#: includes/class-ss-shipping-wc-method.php:506
+#: includes/class-ss-shipping-wc-order.php:343
+msgid "Shipping Method"
+msgstr ""
+
+#: includes/class-ss-shipping-wc-method.php:509
+msgid "This is the shipping method used when generating shipping labels."
+msgstr ""
+
+#: includes/class-ss-shipping-wc-method.php:515
+msgid "Tax status"
+msgstr ""
+
+#: includes/class-ss-shipping-wc-method.php:518
+msgid "Determines if the shipping cost is taxable. Remember to set a shipping tax in WooCommerce."
+msgstr ""
+
+#: includes/class-ss-shipping-wc-method.php:523
+msgid "Taxable"
+msgstr ""
+
+#: includes/class-ss-shipping-wc-method.php:524
+msgctxt "Tax status"
+msgid "None"
+msgstr ""
+
+#: includes/class-ss-shipping-wc-method.php:528
+#: includes/class-ss-shipping-wc-method.php:799
+msgid "Cost"
+msgstr ""
+
+#: includes/class-ss-shipping-wc-method.php:530
+msgid "Configure the shipping method cost and free shipping."
+msgstr ""
+
+#: includes/class-ss-shipping-wc-method.php:538
+msgid "Flat rate requires..."
+msgstr ""
+
+#: includes/class-ss-shipping-wc-method.php:543
+msgid "Always disabled"
+msgstr ""
+
+#: includes/class-ss-shipping-wc-method.php:544
+msgid "Always enabled"
+msgstr ""
+
+#: includes/class-ss-shipping-wc-method.php:545
+msgid "A valid free shipping coupon"
+msgstr ""
+
+#: includes/class-ss-shipping-wc-method.php:546
+msgid "A minimum order amount"
+msgstr ""
+
+#: includes/class-ss-shipping-wc-method.php:547
+msgid "A minimum order amount OR a coupon"
+msgstr ""
+
+#: includes/class-ss-shipping-wc-method.php:548
+msgid "A minimum order amount AND a coupon"
+msgstr ""
+
+#: includes/class-ss-shipping-wc-method.php:552
+msgid "Flat fee cost"
+msgstr ""
+
+#: includes/class-ss-shipping-wc-method.php:555
+msgid "Shipping method cost if rules apply. To apply free shipping the value must be \"0\"."
+msgstr ""
+
+#: includes/class-ss-shipping-wc-method.php:561
+msgid "Minimum order amount"
+msgstr ""
+
+#: includes/class-ss-shipping-wc-method.php:564
+msgid "Users will need to spend at least this amount (including VAT) to get free shipping (if enabled above)."
+msgstr ""
+
+#: includes/class-ss-shipping-wc-method.php:570
+#: includes/class-ss-shipping-wc-method.php:575
+msgid "Advanced Settings"
+msgstr ""
+
+#: includes/class-ss-shipping-wc-method.php:572
+msgid "Configure the advanced settings."
+msgstr ""
+
+#: includes/class-ss-shipping-wc-method.php:577
+#: includes/class-ss-shipping-wc-method.php:652
+msgid "Enable"
+msgstr ""
+
+#: includes/class-ss-shipping-wc-method.php:579
+msgid "Enable/disable advanced settings and to show/hide settings."
+msgstr ""
+
+#: includes/class-ss-shipping-wc-method.php:584
+msgid "Display shipping method if..."
+msgstr ""
+
+#: includes/class-ss-shipping-wc-method.php:587
+msgid "Select when to display the shipping method based on shipping class."
+msgstr ""
+
+#: includes/class-ss-shipping-wc-method.php:591
+msgid "N/A"
+msgstr ""
+
+#: includes/class-ss-shipping-wc-method.php:592
+msgid "ALL products belong to one of the shipping classes"
+msgstr ""
+
+#: includes/class-ss-shipping-wc-method.php:594
+msgid "At least ONE product belongs to one of the shipping classes"
+msgstr ""
+
+#: includes/class-ss-shipping-wc-method.php:596
+msgid "ALL products do NOT belong to one of the shipping classes"
+msgstr ""
+
+#: includes/class-ss-shipping-wc-method.php:598
+msgid "At least ONE product does NOT belongs to one of the shipping classes"
+msgstr ""
+
+#: includes/class-ss-shipping-wc-method.php:604
+msgid "Shipping classes"
+msgstr ""
+
+#: includes/class-ss-shipping-wc-method.php:607
+msgid "Shipping classes used to display the shipping method."
+msgstr ""
+
+#: includes/class-ss-shipping-wc-method.php:626
+msgid "Exclude User role"
+msgstr ""
+
+#: includes/class-ss-shipping-wc-method.php:629
+msgid "Do NOT display shipping method for these user roles."
+msgstr ""
+
+#: includes/class-ss-shipping-wc-method.php:634
+msgid "Return shipping"
+msgstr ""
+
+#: includes/class-ss-shipping-wc-method.php:636
+msgid "Configure how to handle return shipping."
+msgstr ""
+
+#: includes/class-ss-shipping-wc-method.php:640
+msgid "Return Shipping Method"
+msgstr ""
+
+#: includes/class-ss-shipping-wc-method.php:643
+msgid "This is the shipping method used when generating a return shipping labels."
+msgstr ""
+
+#: includes/class-ss-shipping-wc-method.php:650
+msgid "Auto Generate Return Label"
+msgstr ""
+
+#: includes/class-ss-shipping-wc-method.php:654
+msgid "Should a return label automatically be generated whenever a normal shipping labels is generated."
+msgstr ""
+
+#: includes/class-ss-shipping-wc-method.php:678
+msgid "\"Method Title\" cannot be empty"
+msgstr ""
+
+#: includes/class-ss-shipping-wc-method.php:682
+msgid "Change the \"Method Title\" field to something human readable. This is what your customers see at checkout."
+msgstr ""
+
+#: includes/class-ss-shipping-wc-method.php:693
+msgid "Select a \"Shipping Method\""
+msgstr ""
+
+#: includes/class-ss-shipping-wc-method.php:777
+msgid "Enter a cost (excl. tax) or sum, e.g. 10.00 * [qty]."
+msgstr ""
+
+#: includes/class-ss-shipping-wc-method.php:778
+msgid "Use [qty] for the number of items, <br/>[cost] for the total cost of items, and [fee percent='10' min_fee='20' max_fee=''] for percentage based fees."
+msgstr ""
+
+#: includes/class-ss-shipping-wc-method.php:783
+msgid "Cost based on weight"
+msgstr ""
+
+#: includes/class-ss-shipping-wc-method.php:789
+msgid "Minimum"
+msgstr ""
+
+#: includes/class-ss-shipping-wc-method.php:791
+msgid "Cart weight should be equal to or larger than this value for the shipping rate to be applicable"
+msgstr ""
+
+#: includes/class-ss-shipping-wc-method.php:794
+msgid "Maximum"
+msgstr ""
+
+#: includes/class-ss-shipping-wc-method.php:796
+msgid "Cart weight should be strictly less than this value for the shipping rate to be applicable"
+msgstr ""
+
+#: includes/class-ss-shipping-wc-method.php:833
+msgid "+ Add shipping rate"
+msgstr ""
+
+#: includes/class-ss-shipping-wc-method.php:835
+msgid "Remove selected rate(s)"
+msgstr ""
+
+#: includes/class-ss-shipping-wc-method.php:840
+msgid "Enter the shipping cost excluding tax"
+msgstr ""
+
+#. translators: 1: shipping rate label, 2: Smart Send shipping method code, 3: shipping rate id.
+#: includes/class-ss-shipping-wc-method.php:988
+msgid "Smart Send: evaluated method \"%1$s\" (%2$s, rate id %3$s)."
+msgstr ""
+
+#. translators: 1: shipping rate label, 2: flat fee cost.
+#: includes/class-ss-shipping-wc-method.php:1013
+msgid "Smart Send \"%1$s\": free shipping applies - rate added with flat fee cost %2$s."
+msgstr ""
+
+#. translators: 1: shipping rate label, 2: cart weight, 3: weight unit, 4: matched weight table row as "min-max unit", 5: rate cost.
+#: includes/class-ss-shipping-wc-method.php:1064
+msgid "Smart Send \"%1$s\": cart weight %2$s %3$s matched weight table row %4$s - rate added with cost %5$s."
+msgstr ""
+
+#. translators: 1: shipping rate label, 2: number of matched weight table rows, 3: list of matched rows, 4: shipping rate id, 5: last matched row.
+#: includes/class-ss-shipping-wc-method.php:1097
+msgid "Smart Send \"%1$s\": %2$d overlapping weight table rows matched (%3$s) - the rows share rate id %4$s, so only the LAST matching row (%5$s) is offered and the earlier matches were overwritten."
+msgstr ""
+
+#. translators: 1: shipping rate label, 2: cart weight, 3: weight unit.
+#: includes/class-ss-shipping-wc-method.php:1118
+msgid "Smart Send \"%1$s\": no rate added - cart weight %2$s %3$s did not match any weight table row."
+msgstr ""
+
+#. translators: 1: shipping method title, 2: customer role.
+#: includes/class-ss-shipping-wc-method.php:1233
+msgid "Smart Send \"%1$s\": shipping method is NOT available, because customer role \"%2$s\" is being excluded."
+msgstr ""
+
+#. translators: %s: shipping method title.
+#: includes/class-ss-shipping-wc-method.php:1330
+msgid "Smart Send \"%s\": shipping method IS available, because ALL products belong to one of the shipping classes"
+msgstr ""
+
+#. translators: %s: shipping method title.
+#: includes/class-ss-shipping-wc-method.php:1334
+msgid "Smart Send \"%s\": shipping method is NOT available, because ALL products belong to one of the shipping classes"
+msgstr ""
+
+#. translators: %s: shipping method title.
+#: includes/class-ss-shipping-wc-method.php:1341
+msgid "Smart Send \"%s\": shipping method IS available, because at least ONE product belongs to one of the shipping classes"
+msgstr ""
+
+#. translators: %s: shipping method title.
+#: includes/class-ss-shipping-wc-method.php:1345
+msgid "Smart Send \"%s\": shipping method is NOT available, because at least ONE product belongs to one of the shipping classes"
+msgstr ""
+
+#. translators: %s: shipping method title.
+#: includes/class-ss-shipping-wc-method.php:1352
+msgid "Smart Send \"%s\": shipping method IS available, because ALL products do NOT belong to one of the shipping classes"
+msgstr ""
+
+#. translators: %s: shipping method title.
+#: includes/class-ss-shipping-wc-method.php:1356
+msgid "Smart Send \"%s\": shipping method is NOT available, because ALL products do NOT belong to one of the shipping classes"
+msgstr ""
+
+#. translators: %s: shipping method title.
+#: includes/class-ss-shipping-wc-method.php:1363
+msgid "Smart Send \"%s\": shipping method IS available, because at least ONE product does NOT belongs to one of the shipping classes"
+msgstr ""
+
+#. translators: %s: shipping method title.
+#: includes/class-ss-shipping-wc-method.php:1367
+msgid "Smart Send \"%s\": shipping method is NOT available, because at least ONE product does NOT belongs to one of the shipping classes"
+msgstr ""
+
+#. translators: 1: shipping method title, 2: cart total, 3: minimum order amount.
+#: includes/class-ss-shipping-wc-method.php:1394
+msgid "Smart Send \"%1$s\": free shipping (flat fee) IS available, because the total is %2$s a minimum order amount of %3$s is needed."
+msgstr ""
+
+#. translators: 1: shipping method title, 2: cart total, 3: minimum order amount.
+#: includes/class-ss-shipping-wc-method.php:1398
+msgid "Smart Send \"%1$s\": free shipping (flat fee) is NOT available, because the total is %2$s a minimum order amount of %3$s is needed."
+msgstr ""
+
+#. translators: %s: shipping method title.
+#: includes/class-ss-shipping-wc-method.php:1405
+msgid "Smart Send \"%s\": free shipping (flat fee) IS available, because a coupon is needed."
+msgstr ""
+
+#. translators: %s: shipping method title.
+#: includes/class-ss-shipping-wc-method.php:1409
+msgid "Smart Send \"%s\": free shipping (flat fee) is NOT available, because a coupon is needed."
+msgstr ""
+
+#. translators: 1: shipping method title, 2: cart total, 3: minimum order amount.
+#: includes/class-ss-shipping-wc-method.php:1416
+msgid "Smart Send \"%1$s\": free shipping (flat fee) IS available, because the total is %2$s a minimum order amount of %3$s is needed AND a coupon is needed."
+msgstr ""
+
+#. translators: 1: shipping method title, 2: cart total, 3: minimum order amount.
+#: includes/class-ss-shipping-wc-method.php:1420
+msgid "Smart Send \"%1$s\": free shipping (flat fee) is NOT available, because the total is %2$s a minimum order amount of %3$s is needed AND a coupon is needed."
+msgstr ""
+
+#. translators: 1: shipping method title, 2: cart total, 3: minimum order amount.
+#: includes/class-ss-shipping-wc-method.php:1427
+msgid "Smart Send \"%1$s\": free shipping (flat fee) IS available, because the total is %2$s a minimum order amount of %3$s is needed OR a coupon is needed."
+msgstr ""
+
+#. translators: 1: shipping method title, 2: cart total, 3: minimum order amount.
+#: includes/class-ss-shipping-wc-method.php:1431
+msgid "Smart Send \"%1$s\": free shipping (flat fee) is NOT available, because the total is %2$s a minimum order amount of %3$s is needed OR a coupon is needed."
+msgstr ""
+
+#. translators: %s: shipping method title.
+#: includes/class-ss-shipping-wc-method.php:1437
+msgid "Smart Send \"%s\": free shipping (flat fee) IS available, because it is always enabled."
+msgstr ""
+
+#. translators: %s: shipping method title.
+#: includes/class-ss-shipping-wc-method.php:1442
+msgid "Smart Send \"%s\": free shipping (flat fee) is NOT available, because it is always disabled."
+msgstr ""
+
+#. translators: %s: shipping method title.
+#: includes/class-ss-shipping-wc-method.php:1447
+msgid "Smart Send \"%s\": free shipping (flat fee) is NOT available, because it is not available."
+msgstr ""
+
+#: includes/class-ss-shipping-wc-order.php:58
+msgid "DEMO MODE: Generate label"
+msgstr ""
+
+#: includes/class-ss-shipping-wc-order.php:59
+msgid "Generate label"
+msgstr ""
+
+#: includes/class-ss-shipping-wc-order.php:64
+msgid "DEMO MODE: Generate return label"
+msgstr ""
+
+#: includes/class-ss-shipping-wc-order.php:65
+msgid "Generate return label"
+msgstr ""
+
+#: includes/class-ss-shipping-wc-order.php:154
+msgid "No orders selected, please select the orders to create labels for."
+msgstr ""
+
+#: includes/class-ss-shipping-wc-order.php:160
+msgid "For now it is not possible to create labels for more than 5 orders at a time."
+msgstr ""
+
+#. translators: %s: WooCommerce order id.
+#: includes/class-ss-shipping-wc-order.php:176
+#: includes/class-ss-shipping-wc-order.php:761
+msgid "Order #%s: The order could not be found"
+msgstr ""
+
+#. translators: 1: WooCommerce order number, 2: link to download the return label.
+#: includes/class-ss-shipping-wc-order.php:200
+msgid "Order #%1$s: Return label created by Smart Send: %2$s"
+msgstr ""
+
+#. translators: 1: WooCommerce order number, 2: link to download the shipping label.
+#: includes/class-ss-shipping-wc-order.php:207
+msgid "Order #%1$s: Shipping label created by Smart Send: %2$s"
+msgstr ""
+
+#. translators: 1: WooCommerce order number, 2: error message.
+#: includes/class-ss-shipping-wc-order.php:234
+msgid "Order #%1$s: %2$s"
+msgstr ""
+
+#. translators: %s: WooCommerce order number.
+#: includes/class-ss-shipping-wc-order.php:250
+msgid "Order #%s: The selected order did not include a Send Smart shipping method"
+msgstr ""
+
+#: includes/class-ss-shipping-wc-order.php:287
+msgid "Smart Send Shipping"
+msgstr ""
+
+#: includes/class-ss-shipping-wc-order.php:322
+msgid "Order placed with a shipping method that is not from the Smart Send plugin"
+msgstr ""
+
+#. translators: %s: shipping method id and instance id.
+#: includes/class-ss-shipping-wc-order.php:351
+msgid "Debug id: %s"
+msgstr ""
+
+#. translators: %0.2f: total order weight in kg.
+#: includes/class-ss-shipping-wc-order.php:359
+msgid "Weight: %0.2f kg"
+msgstr ""
+
+#: includes/class-ss-shipping-wc-order.php:365
+#: includes/frontend/class-ss-shipping-frontend.php:466
+msgid "Pick-up Point"
+msgstr ""
+
+#. translators: %s: pick-up point agent number.
+#: includes/class-ss-shipping-wc-order.php:368
+msgid "Agent No.: %s"
+msgstr ""
+
+#: includes/class-ss-shipping-wc-order.php:397
+msgid "Split into parcels"
+msgstr ""
+
+#: includes/class-ss-shipping-wc-order.php:444
+msgid "Read more"
+msgstr ""
+
+#: includes/class-ss-shipping-wc-order.php:445
+msgid "Unique error id: "
+msgstr ""
+
+#: includes/class-ss-shipping-wc-order.php:446
+#: includes/class-ss-shipping-wc-order.php:1199
+msgid "Download shipping label"
+msgstr ""
+
+#: includes/class-ss-shipping-wc-order.php:447
+msgid "Download return label"
+msgstr ""
+
+#: includes/class-ss-shipping-wc-order.php:448
+msgid "Unexpected error"
+msgstr ""
+
+#: includes/class-ss-shipping-wc-order.php:663
+msgid "The agent number entered, %s, was not found."
+msgstr ""
+
+#: includes/class-ss-shipping-wc-order.php:917
+msgid "Return shipping label"
+msgstr ""
+
+#: includes/class-ss-shipping-wc-order.php:917
+msgid "Shipping label"
+msgstr ""
+
+#: includes/class-ss-shipping-wc-order.php:924
+msgid "Tracking number"
+msgstr ""
+
+#: includes/class-ss-shipping-wc-order.php:940
+msgid "Shipment id is empty"
+msgstr ""
+
+#: includes/class-ss-shipping-wc-order.php:944
+msgid "Label data empty"
+msgstr ""
+
+#: includes/class-ss-shipping-wc-order.php:952
+msgid "Label file cannot be saved"
+msgstr ""
+
+#: includes/class-ss-shipping-wc-order.php:1197
+msgid "Download return shipping label"
+msgstr ""
+
+#: includes/class-ss-shipping-wc-order.php:1246
+msgid "DEMO MODE: Smart Send - Generate Labels"
+msgstr ""
+
+#: includes/class-ss-shipping-wc-order.php:1247
+msgid "DEMO MODE: Smart Send - Generate Return Labels"
+msgstr ""
+
+#: includes/class-ss-shipping-wc-order.php:1252
+msgid "Smart Send - Generate Labels"
+msgstr ""
+
+#: includes/class-ss-shipping-wc-order.php:1253
+msgid "Smart Send - Generate Return Labels"
+msgstr ""
+
+#. translators: %s: error message from the Smart Send API.
+#: includes/class-ss-shipping-wc-order.php:1303
+msgid "Error combining shipping labels: %s"
+msgstr ""
+
+#. translators: %s: list of order numbers, each prefixed with #.
+#: includes/class-ss-shipping-wc-order.php:1319
+msgid "Orders: #%s"
+msgstr ""
+
+#. translators: 1: number of orders, 2: URL of the combined PDF file.
+#: includes/class-ss-shipping-wc-order.php:1328
+msgid "Shipping labels created by Smart Send for %1$s order: <a href=\"%2$s\" target=\"_blank\">Download combined pdf</a>"
+msgid_plural "Shipping labels created by Smart Send for %1$s orders: <a href=\"%2$s\" target=\"_blank\">Download combined pdf</a>"
+msgstr[0] ""
+msgstr[1] ""
+
+#: includes/class-ss-shipping-wc-product.php:42
+msgid "Select country"
+msgstr ""
+
+#: includes/class-ss-shipping-wc-product.php:46
+msgid "Country of origin"
+msgstr ""
+
+#: includes/class-ss-shipping-wc-product.php:47
+msgid "ISO3166-alpha2 code of the country where the item was produced"
+msgstr ""
+
+#: includes/class-ss-shipping-wc-product.php:56
+msgid "Customs description"
+msgstr ""
+
+#: includes/class-ss-shipping-wc-product.php:59
+msgid "Example: T-shirt"
+msgstr ""
+
+#: includes/class-ss-shipping-wc-product.php:66
+msgid "Harmonized Tariff Schedule"
+msgstr ""
+
+#: includes/class-ss-shipping-wc-product.php:67
+msgid "Harmonized Tariff Schedule is a number assigned to every possible commodity that can be imported or exported from any country."
+msgstr ""
+
+#: includes/class-ss-shipping-wc-product.php:70
+msgid "Example: 12345678"
+msgstr ""
+
+#: includes/frontend/class-ss-shipping-frontend.php:88
+msgid "- Select Pick-up Point -"
+msgstr ""
+
+#: includes/frontend/class-ss-shipping-frontend.php:137
+msgid "Shipping to closest pick-up point"
+msgstr ""
+
+#: includes/frontend/class-ss-shipping-frontend.php:141
+msgid "Enter shipping information"
+msgstr ""
+
+#. translators: 1: number of pick-up points found, 2: carrier code.
+#: includes/frontend/class-ss-shipping-frontend.php:225
+msgid "Smart Send: found %1$d %2$s pick-up point near the entered address."
+msgid_plural "Smart Send: found %1$d %2$s pick-up points near the entered address."
+msgstr[0] ""
+msgstr[1] ""
+
+#. translators: %s: carrier code.
+#: includes/frontend/class-ss-shipping-frontend.php:277
+msgid "Smart Send: no %s pick-up points found near the entered address - falling back to \"Shipping to closest pick-up point\"."
+msgstr ""
+
+#. translators: 1: carrier code, 2: error code, 3: error message.
+#: includes/frontend/class-ss-shipping-frontend.php:288
+msgid "Smart Send: pick-up point lookup for %1$s failed with a transport error (%2$s): %3$s Falling back to \"Shipping to closest pick-up point\"."
+msgstr ""
+
+#. translators: 1: carrier code, 2: error code, 3: error message.
+#: includes/frontend/class-ss-shipping-frontend.php:292
+msgid "Smart Send: pick-up point lookup for %1$s failed with an API error (%2$s): %3$s Falling back to \"Shipping to closest pick-up point\"."
+msgstr ""
+
+#. translators: %s: carrier code.
+#: includes/frontend/class-ss-shipping-frontend.php:296
+msgid "Smart Send: pick-up point lookup for %s failed for an unknown reason. Falling back to \"Shipping to closest pick-up point\"."
+msgstr ""
+
+#. translators: %s: distance in meters.
+#: includes/frontend/class-ss-shipping-frontend.php:372
+msgid "%sm"
+msgstr ""
+
+#. translators: %s: distance in kilometers.
+#: includes/frontend/class-ss-shipping-frontend.php:375
+msgid "%skm"
+msgstr ""
+
+#: includes/frontend/class-ss-shipping-frontend.php:395
+msgid "A pick-up point must be selected."
+msgstr ""
+
+#: smart-send-logistics.php:187
+msgid "Validate API Token"
+msgstr ""
+
+#: smart-send-logistics.php:252
+msgid "View WooCommerce settings"
+msgstr ""
+
+#: smart-send-logistics.php:253
+msgid "Settings"
+msgstr ""
+
+#: smart-send-logistics.php:272
+#: smart-send-logistics.php:273
+msgid "Configuration guide"
+msgstr ""
+
+#: smart-send-logistics.php:276
+#: smart-send-logistics.php:277
+msgid "Support"
+msgstr ""
+
+#: smart-send-logistics.php:305
+msgid "Smart Send Shipping requires WooCommerce 2.6 and above to be installed and activated!"
+msgstr ""
+
+#: smart-send-logistics.php:330
+msgid "#Company, #Street"
+msgstr ""
+
+#: smart-send-logistics.php:331
+msgid "#Company, #Street, #Zipcode"
+msgstr ""
+
+#: smart-send-logistics.php:332
+msgid "#Company, #Street, #City"
+msgstr ""
+
+#: smart-send-logistics.php:333
+msgid "#Company, #Street, #Zipcode #City"
+msgstr ""
+
+#: smart-send-logistics.php:334
+msgid "#Company, #Zipcode"
+msgstr ""
+
+#: smart-send-logistics.php:335
+msgid "#Company, #Zipcode, #City"
+msgstr ""
+
+#: smart-send-logistics.php:336
+msgid "#Company, #City"
+msgstr ""
+
+#. translators: 1: email address of the connected Smart Send account, 2: website of the connected Smart Send account.
+#: smart-send-logistics.php:555
+msgid "API Token verified: Connected to Smart Send as %1$s from %2$s"
+msgstr ""
+
+#. translators: %s: error message returned by the Smart Send API.
+#: smart-send-logistics.php:563
+msgid "API Token validation failed: %s. Make sure to save the settings before validating."
+msgstr ""
+
+#: smart-send-logistics.php:568
+msgid "API Token validation failed: Please enter an API Token and save the settings before validating."
+msgstr ""
+
+#: smart-send-logistics.php:660
+msgid "Smart Send: no Smart Send rates offered for this package."
+msgstr ""
+
+#. translators: %s: list of offered rates, each as "label" (rate id, cost).
+#: smart-send-logistics.php:665
+msgid "Smart Send: rates offered for this package: %s."
+msgstr ""

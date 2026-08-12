@@ -327,28 +327,13 @@ if ( ! class_exists( 'SS_Shipping_WC' ) ) :
 		public function get_agents_address_format() {
 			if ( empty( $this->agents_address_format ) ) {
 				$this->agents_address_format = array(
-					'1' => __( '#Company', 'smart-send-logistics' ) . ', ' . __( '#Street', 'smart-send-logistics' ),
-					'2' => __( '#Company', 'smart-send-logistics' ) . ', ' . __(
-						'#Street',
-						'smart-send-logistics'
-					) . ', ' . __( '#Zipcode', 'smart-send-logistics' ),
-					'3' => __( '#Company', 'smart-send-logistics' ) . ', ' . __(
-						'#Street',
-						'smart-send-logistics'
-					) . ', ' . __( '#City', 'smart-send-logistics' ),
-					'4' => __( '#Company', 'smart-send-logistics' ) . ', ' . __(
-						'#Street',
-						'smart-send-logistics'
-					) . ', ' . __( '#Zipcode', 'smart-send-logistics' ) . ' ' . __(
-						'#City',
-						'smart-send-logistics'
-					),
-					'5' => __( '#Company', 'smart-send-logistics' ) . ', ' . __( '#Zipcode', 'smart-send-logistics' ),
-					'6' => __( '#Company', 'smart-send-logistics' ) . ', ' . __(
-						'#Zipcode',
-						'smart-send-logistics'
-					) . ', ' . __( '#City', 'smart-send-logistics' ),
-					'7' => __( '#Company', 'smart-send-logistics' ) . ', ' . __( '#City', 'smart-send-logistics' ),
+					'1' => __( '#Company, #Street', 'smart-send-logistics' ),
+					'2' => __( '#Company, #Street, #Zipcode', 'smart-send-logistics' ),
+					'3' => __( '#Company, #Street, #City', 'smart-send-logistics' ),
+					'4' => __( '#Company, #Street, #Zipcode #City', 'smart-send-logistics' ),
+					'5' => __( '#Company, #Zipcode', 'smart-send-logistics' ),
+					'6' => __( '#Company, #Zipcode, #City', 'smart-send-logistics' ),
+					'7' => __( '#Company, #City', 'smart-send-logistics' ),
 				);
 			}
 
@@ -564,15 +549,21 @@ if ( ! class_exists( 'SS_Shipping_WC' ) ) :
         {
             check_ajax_referer('ss-test-connection', 'test_connection_nonce');
 
-            if ($this->validate_api_token()) {
-                $connection_msg = sprintf(__('API Token verified: Connected to Smart Send as %s from %s',
-                    'smart-send-logistics'), $this->get_api_handle()->getData()->email,
-                    $this->get_api_handle()->getData()->website);
-                $error = 0;
-            } elseif ($this->get_api_handle()) {
-                $connection_msg = sprintf(__('API Token validation failed: %s. Make sure to save the settings before validating.',
-                    'smart-send-logistics'), $this->get_api_handle()->getError()->message);
-                $error = 1;
+			if ( $this->validate_api_token() ) {
+				$connection_msg = sprintf(
+					/* translators: 1: email address of the connected Smart Send account, 2: website of the connected Smart Send account. */
+					__( 'API Token verified: Connected to Smart Send as %1$s from %2$s', 'smart-send-logistics' ),
+					$this->get_api_handle()->getData()->email,
+					$this->get_api_handle()->getData()->website
+				);
+				$error = 0;
+			} elseif ( $this->get_api_handle() ) {
+				$connection_msg = sprintf(
+					/* translators: %s: error message returned by the Smart Send API. */
+					__( 'API Token validation failed: %s. Make sure to save the settings before validating.', 'smart-send-logistics' ),
+					$this->get_api_handle()->getError()->message
+				);
+				$error = 1;
             } else {
                 $connection_msg = __('API Token validation failed: Please enter an API Token and save the settings before validating.',
                     'smart-send-logistics');
@@ -660,18 +651,22 @@ if ( ! class_exists( 'SS_Shipping_WC' ) ) :
 
 			foreach ( $available_shipping_methods as $shipping_rate ) {
 				if ( $shipping_rate instanceof WC_Shipping_Rate && SS_SHIPPING_METHOD_ID === $shipping_rate->get_method_id() ) {
-					$offered[] = '"' . $shipping_rate->get_label() . '" (' . $shipping_rate->get_id() . ', cost ' . $shipping_rate->get_cost() . ')';
+					$offered[] = sprintf( '"%1$s" (%2$s, cost %3$s)', $shipping_rate->get_label(), $shipping_rate->get_id(), $shipping_rate->get_cost() );
 				}
 			}
 
 			if ( empty( $offered ) ) {
-				$message = 'Smart Send: no Smart Send rates offered for this package.';
+				$log_message    = 'Smart Send: no Smart Send rates offered for this package.';
+				$notice_message = __( 'Smart Send: no Smart Send rates offered for this package.', 'smart-send-logistics' );
 			} else {
-				$message = 'Smart Send: rates offered for this package: ' . implode( ', ', $offered ) . '.';
+				$rate_list   = implode( ', ', $offered );
+				$log_message = sprintf( 'Smart Send: rates offered for this package: %s.', $rate_list );
+				/* translators: %s: list of offered rates, each as "label" (rate id, cost). */
+				$notice_message = sprintf( __( 'Smart Send: rates offered for this package: %s.', 'smart-send-logistics' ), $rate_list );
 			}
 
-			SS_Shipping_Logger::debug( $message );
-			SS_Shipping_Checkout_Debug::add_notice( $message );
+			SS_Shipping_Logger::debug( $log_message, array( 'offered_rates' => $offered ) );
+			SS_Shipping_Checkout_Debug::add_notice( $notice_message );
 		}
     }
 
