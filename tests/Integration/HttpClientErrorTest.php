@@ -109,8 +109,8 @@ it('normalises a 422 validation error body into a well-formed Error', function (
     // Logged at error level even with debug off, with HTTP status and detail
     expect($spy->entries)->toHaveCount(1);
     expect($spy->entries[0]['level'])->toBe('error');
-    expect($spy->entries[0]['message'])->toContain('[HTTP 422]');
-    expect($spy->entries[0]['message'])->toContain('Error: ValidationException - The given data was invalid.');
+    expect($spy->entries[0]['message'])->toContain('→ 422');
+    expect($spy->entries[0]['context']['error'])->toBe('ValidationException - The given data was invalid.');
 });
 
 it('maps a connection failure WP_Error to a transport-connection Error', function () {
@@ -134,8 +134,8 @@ it('maps a connection failure WP_Error to a transport-connection Error', functio
 
     expect($spy->entries)->toHaveCount(1);
     expect($spy->entries[0]['level'])->toBe('error');
-    expect($spy->entries[0]['message'])->toContain('[HTTP n/a]');
-    expect($spy->entries[0]['message'])->toContain('Error: transport-connection');
+    expect($spy->entries[0]['message'])->toContain('→ n/a');
+    expect($spy->entries[0]['context']['error'])->toContain('transport-connection');
 });
 
 it('maps a timeout WP_Error to a transport-timeout Error', function () {
@@ -154,7 +154,8 @@ it('maps a timeout WP_Error to a transport-timeout Error', function () {
 
     expect($spy->entries)->toHaveCount(1);
     expect($spy->entries[0]['level'])->toBe('error');
-    expect($spy->entries[0]['message'])->toContain('Error: transport-timeout');
+    expect($spy->entries[0]['message'])->toContain('→ n/a');
+    expect($spy->entries[0]['context']['error'])->toContain('transport-timeout');
 });
 
 it('maps a stream timeout message from WP_Http_Streams to transport-timeout too', function () {
@@ -184,7 +185,8 @@ it('maps an SSL failure WP_Error to a transport-ssl Error instead of the old cur
 
     expect($spy->entries)->toHaveCount(1);
     expect($spy->entries[0]['level'])->toBe('error');
-    expect($spy->entries[0]['message'])->toContain('Error: transport-ssl');
+    expect($spy->entries[0]['message'])->toContain('→ n/a');
+    expect($spy->entries[0]['context']['error'])->toContain('transport-ssl');
 });
 
 it('maps a certificate verification failure to transport-ssl', function () {
@@ -234,7 +236,8 @@ it('produces a well-formed Error for a non-2xx response with an empty body', fun
 
     expect($spy->entries)->toHaveCount(1);
     expect($spy->entries[0]['level'])->toBe('error');
-    expect($spy->entries[0]['message'])->toContain('[HTTP 503]');
+    expect($spy->entries[0]['message'])->toContain('→ 503');
+    expect($spy->entries[0]['context']['error'])->toContain('api-empty-response');
 });
 
 it('produces a well-formed Error for a non-2xx response with a non-JSON body', function () {
@@ -262,7 +265,8 @@ it('produces a well-formed Error for a non-2xx response with a non-JSON body', f
 
     expect($spy->entries)->toHaveCount(1);
     expect($spy->entries[0]['level'])->toBe('error');
-    expect($spy->entries[0]['message'])->toContain('[HTTP 502]');
+    expect($spy->entries[0]['message'])->toContain('→ 502');
+    expect($spy->entries[0]['context']['error'])->toContain('api-malformed-response');
 });
 
 it('produces a well-formed Error for a non-2xx response with malformed JSON', function () {

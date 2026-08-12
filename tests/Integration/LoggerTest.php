@@ -1,11 +1,13 @@
 <?php
 
 /*
- * Tests for the static SS_Shipping_Logger (modeled on WC_Stripe_Logger):
- * the debug setting is checked inside the class, the smart_send_logging
- * filter can force logging on/off, errors are logged at the error level
- * even when the debug setting is off, and API requests made through
- * Smartsend\Client produce entries with method, endpoint and HTTP status.
+ * Tests for the static SS_Shipping_Logger, a thin wrapper around
+ * wc_get_logger(): the debug setting gates debug/info inside the class
+ * while warning/error/critical always log, the smart_send_logging filter
+ * can force logging on/off for all levels, structured data travels in the
+ * context array (rendered natively by the WC log viewer), and API requests
+ * made through Smartsend\Client produce one concise entry with method,
+ * endpoint, HTTP status and timing.
  */
 
 /**
@@ -56,7 +58,7 @@ function create_logging_api_client(string $token = 'secret-token-123'): \Smartse
     return $api;
 }
 
-it('writes a version-stamped debug entry under the plugin log source when debug is enabled', function () {
+it('writes a debug entry with the plugin version and source in the context when debug is enabled', function () {
     with_ss_settings(['ss_debug' => 'yes']);
     $spy = spy_on_logger();
 
@@ -64,31 +66,44 @@ it('writes a version-stamped debug entry under the plugin log source when debug 
 
     expect($spy->entries)->toHaveCount(1);
     expect($spy->entries[0]['level'])->toBe('debug');
-    expect($spy->entries[0]['message'])->toContain('====Smart Send Version: ' . SS_SHIPPING_VERSION . '====');
-    expect($spy->entries[0]['message'])->toContain('====Start Log====');
-    expect($spy->entries[0]['message'])->toContain('Hello from the test');
-    expect($spy->entries[0]['message'])->toContain('====End Log====');
-    expect($spy->entries[0]['context'])->toBe(['source' => 'smart-send-logistics']);
+    expect($spy->entries[0]['message'])->toBe('Hello from the test');
+    expect($spy->entries[0]['context']['source'])->toBe('smart-send-logistics');
+    expect($spy->entries[0]['context']['version'])->toBe(SS_SHIPPING_VERSION);
 });
 
-it('adds a timing block when a start time is given', function () {
+it('merges caller-provided context into the entry', function () {
     with_ss_settings(['ss_debug' => 'yes']);
     $spy = spy_on_logger();
 
-    SS_Shipping_Logger::log('Timed message', time() - 120, time());
+    SS_Shipping_Logger::debug('With context', ['order_id' => 42]);
 
     expect($spy->entries)->toHaveCount(1);
-    expect($spy->entries[0]['message'])->toContain('====Start Log ');
-    expect($spy->entries[0]['message'])->toMatch('/====End Log .* \(2\)====/');
+    expect($spy->entries[0]['context']['order_id'])->toBe(42);
+    expect($spy->entries[0]['context']['source'])->toBe('smart-send-logistics');
 });
 
-it('does not write debug entries when the debug setting is off', function () {
+it('gates debug and info on the debug setting but always logs warning, error and critical', function () {
     with_ss_settings(['ss_debug' => 'no']);
     $spy = spy_on_logger();
 
-    SS_Shipping_Logger::log('Should not appear');
+    SS_Shipping_Logger::log('gated');
+    SS_Shipping_Logger::debug('gated');
+    SS_Shipping_Logger::info('gated');
+    SS_Shipping_Logger::warning('a warning');
+    SS_Shipping_Logger::error('an error');
+    SS_Shipping_Logger::critical('a critical failure');
 
-    expect($spy->entries)->toBeEmpty();
+    expect(array_column($spy->entries, 'level'))->toBe(['warning', 'error', 'critical']);
+});
+
+it('logs debug and info when the debug setting is on', function () {
+    with_ss_settings(['ss_debug' => 'yes']);
+    $spy = spy_on_logger();
+
+    SS_Shipping_Logger::debug('a trace');
+    SS_Shipping_Logger::info('an info line');
+
+    expect(array_column($spy->entries, 'level'))->toBe(['debug', 'info']);
 });
 
 it('can be force-enabled through the smart_send_logging filter', function () {
@@ -99,16 +114,17 @@ it('can be force-enabled through the smart_send_logging filter', function () {
     SS_Shipping_Logger::log('Forced on');
 
     expect($spy->entries)->toHaveCount(1);
-    expect($spy->entries[0]['message'])->toContain('Forced on');
+    expect($spy->entries[0]['message'])->toBe('Forced on');
 });
 
-it('can be suppressed through the smart_send_logging filter', function () {
+it('can be suppressed through the smart_send_logging filter for all levels', function () {
     with_ss_settings(['ss_debug' => 'yes']);
     $spy = spy_on_logger();
     with_smart_send_logging_filter('__return_false', 1);
 
     SS_Shipping_Logger::log('Suppressed');
     SS_Shipping_Logger::error('Suppressed error');
+    SS_Shipping_Logger::critical('Suppressed critical');
 
     expect($spy->entries)->toBeEmpty();
 });
@@ -139,10 +155,10 @@ it('logs errors at the error level even when the debug setting is off', function
 
     expect($spy->entries)->toHaveCount(1);
     expect($spy->entries[0]['level'])->toBe('error');
-    expect($spy->entries[0]['message'])->toContain('Something broke');
+    expect($spy->entries[0]['message'])->toBe('Something broke');
 });
 
-it('logs successful API calls with method, endpoint and HTTP status', function () {
+it('logs successful API calls as one concise line with method, path, HTTP status and timing', function () {
     with_ss_settings(['ss_debug' => 'yes']);
     $spy = spy_on_logger();
     mock_smart_send_api(function () {
@@ -153,12 +169,17 @@ it('logs successful API calls with method, endpoint and HTTP status', function (
 
     expect($spy->entries)->toHaveCount(1);
     expect($spy->entries[0]['level'])->toBe('debug');
-    expect($spy->entries[0]['message'])->toContain('GET https://app.smartsend.io/api/v1/demo/website/example.test/');
-    expect($spy->entries[0]['message'])->toContain('[HTTP 200]');
-    expect($spy->entries[0]['message'])->toContain('log-test-shipment');
+    expect($spy->entries[0]['message'])->toMatch('#^GET /api/v1/demo/website/example\.test/ → 200 \(\d+ms\)$#u');
+
+    $context = $spy->entries[0]['context'];
+    expect($context['source'])->toBe('smart-send-logistics');
+    expect($context['status_code'])->toBe(200);
+    expect($context['endpoint'])->toContain('https://app.smartsend.io/api/v1/demo/website/example.test/');
+    expect($context['duration_ms'])->toBeInt();
+    expect($context['response_body'])->toContain('log-test-shipment');
 });
 
-it('redacts the API token from the logged endpoint', function () {
+it('redacts the API token in both the message and the context', function () {
     with_ss_settings(['ss_debug' => 'yes']);
     $spy = spy_on_logger();
     mock_smart_send_api();
@@ -166,11 +187,12 @@ it('redacts the API token from the logged endpoint', function () {
     create_logging_api_client('secret-token-123')->getAuthenticatedUser();
 
     expect($spy->entries)->toHaveCount(1);
-    expect($spy->entries[0]['message'])->toContain('api_token=[REDACTED]');
     expect($spy->entries[0]['message'])->not->toContain('secret-token-123');
+    expect($spy->entries[0]['context']['endpoint'])->toContain('api_token=[REDACTED]');
+    expect(json_encode($spy->entries[0]['context']))->not->toContain('secret-token-123');
 });
 
-it('logs failed API calls at the error level even when the debug setting is off', function () {
+it('logs failed API calls at the error level with the error detail in context even when debug is off', function () {
     with_ss_settings(['ss_debug' => 'no']);
     $spy = spy_on_logger();
     mock_smart_send_api(function () {
@@ -181,11 +203,15 @@ it('logs failed API calls at the error level even when the debug setting is off'
 
     expect($spy->entries)->toHaveCount(1);
     expect($spy->entries[0]['level'])->toBe('error');
-    expect($spy->entries[0]['message'])->toContain('[HTTP 422]');
-    expect($spy->entries[0]['message'])->toContain('The given data was invalid.');
+    expect($spy->entries[0]['message'])->toContain('→ 422');
+
+    $context = $spy->entries[0]['context'];
+    expect($context['status_code'])->toBe(422);
+    expect($context['error'])->toContain('The given data was invalid.');
+    expect($context['response_body'])->toContain('The given data was invalid.');
 });
 
-it('logs the request body of POST requests', function () {
+it('includes the request body of POST requests in the context', function () {
     with_ss_settings(['ss_debug' => 'yes']);
     $spy = spy_on_logger();
     mock_smart_send_api();
@@ -193,9 +219,36 @@ it('logs the request body of POST requests', function () {
     create_logging_api_client()->combineLabelsForShipments(['shipment-1', 'shipment-2']);
 
     expect($spy->entries)->toHaveCount(1);
-    expect($spy->entries[0]['message'])->toContain('POST ');
-    expect($spy->entries[0]['message'])->toContain('Request body: ');
-    expect($spy->entries[0]['message'])->toContain('shipment-1');
+    expect($spy->entries[0]['message'])->toStartWith('POST ');
+    expect($spy->entries[0]['context']['request_body'])->toContain('shipment-1');
+});
+
+it('logs and shows a checkout notice via debug_notice when WooCommerce shipping debug mode is on', function () {
+    with_ss_settings(['ss_debug' => 'yes']);
+    $spy = spy_on_logger();
+    with_option('woocommerce_shipping_debug_mode', 'yes');
+    WC()->session->set('wc_notices', null);
+    remember_cleanup_callback(function (): void {
+        WC()->session->set('wc_notices', null);
+    });
+
+    SS_Shipping_Logger::debug_notice('A shipping debug notice');
+
+    expect($spy->entries)->toHaveCount(1);
+    expect($spy->entries[0]['message'])->toBe('A shipping debug notice');
+    expect(wc_has_notice('A shipping debug notice'))->toBeTrue();
+});
+
+it('does not add a checkout notice via debug_notice when shipping debug mode is off', function () {
+    with_ss_settings(['ss_debug' => 'yes']);
+    $spy = spy_on_logger();
+    with_option('woocommerce_shipping_debug_mode', 'no');
+    WC()->session->set('wc_notices', null);
+
+    SS_Shipping_Logger::debug_notice('A hidden debug notice');
+
+    expect($spy->entries)->toHaveCount(1);
+    expect(wc_has_notice('A hidden debug notice'))->toBeFalse();
 });
 
 it('exposes the WooCommerce log screen URL', function () {
