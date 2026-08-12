@@ -20,12 +20,13 @@ jobs:
         # PHP 7.4 is the floor for the latest WooCommerce; testing the plugin's
         # older declared support (PHP 5.6+) would require pinning older
         # WP/WC versions via extra include entries.
-        # PHP 8.1 and 8.2 are temporarily removed: since 2026-08-11 ~20:00 UTC
-        # the runner environment deterministically segfaults php-fpm workers
-        # on those versions while rendering stock wp-admin pages (SIGSEGV in
-        # pool www, "recv() failed (104)" in nginx), on code that was green
-        # the same morning. Re-add once the environment recovers — see #79.
-        php-version: ['7.4', '8.0', '8.3', '8.4']
+        # PHP 8.1 and 8.2 were temporarily removed on 2026-08-11 (PR #80)
+        # when the runner environment deterministically segfaulted php-fpm
+        # workers on those versions. Restored as a canary together with the
+        # #79 hardening (worker recycling, core-dump capture) — if they go
+        # deterministically red again with the same environment signature,
+        # drop them again and record it on #79.
+        php-version: ['7.4', '8.0', '8.1', '8.2', '8.3', '8.4']
         wp-version: ['latest']
         wc-version: ['latest']
 
@@ -128,12 +129,31 @@ jobs:
           printf 'pcre.jit=0\nopcache.enable=0\n' | \
             sudo tee "/etc/php/$PHPV/fpm/conf.d/99-ci-stability.ini" > /dev/null
 
+          # Keep core dumps from crashed fpm workers so the next SIGSEGV is
+          # diagnosable to a stack frame (#79). The runner's default
+          # core_pattern pipes into apport, which discards cores from the
+          # PPA-built php-fpm, so point it at a plain directory instead.
+          sudo mkdir -p /var/crash-ci
+          sudo chmod 1777 /var/crash-ci
+          sudo sysctl -q -w kernel.core_pattern='/var/crash-ci/core.%e.%p.%t'
+
           # Use a static pool: workers forked mid-run under load have been
           # observed to crash within seconds; a fixed pool avoids forking
           # while requests are in flight.
+          #
+          # pm.max_requests recycles each worker after 50 requests: the
+          # 2026-08-12 PHP 8.4 flakes all struck long-lived workers (SIGSEGV
+          # or a stuck-request hard-timeout _exit(124) after 9-50s of worker
+          # life, on arbitrary stock pages), pointing at worker-state
+          # corruption that accumulates with age (#79).
+          #
+          # rlimit_core lets a crashing worker actually write the core dump
+          # captured above (#79).
           sudo tee -a "/etc/php/$PHPV/fpm/pool.d/www.conf" > /dev/null <<'POOL'
           pm = static
           pm.max_children = 8
+          pm.max_requests = 50
+          rlimit_core = unlimited
           POOL
 
           sudo service "php$PHPV-fpm" restart
@@ -154,12 +174,18 @@ jobs:
         # rare fpm worker crashes; persistent failures still fail both runs.
         # Restart php-fpm before the retry: a crashed worker can leave the
         # pool wedged, making the retry hang until the step timeout (#79).
+        #
+        # Each attempt is bounded with timeout(1): a green suite finishes in
+        # about a minute, but a single wedged request has been observed to
+        # hang an attempt until the 10-minute step timeout, so an unbounded
+        # first attempt (or retry) costs the whole job (#79, run
+        # 31552508461). 270s x 2 attempts still fits inside the step timeout.
         run: |
-          vendor/bin/pest --testsuite=Browser || {
+          timeout -k 15 270 vendor/bin/pest --testsuite=Browser || {
             echo "::warning::Browser test run failed - restarting php-fpm and retrying once"
             sudo service "php${{ matrix.php-version }}-fpm" restart
             sleep 2
-            vendor/bin/pest --testsuite=Browser
+            timeout -k 15 270 vendor/bin/pest --testsuite=Browser
           }
 
       - name: Show server and WordPress logs
@@ -173,6 +199,27 @@ jobs:
           echo "::endgroup::"
           echo "::group::wp-content/debug.log"
           tail -n 200 ./local-dev/wordpress/wp-content/debug.log || true
+          echo "::endgroup::"
+          # Backtrace any fpm worker core dumps captured via the
+          # core_pattern/rlimit_core setup above, so a SIGSEGV resolves to a
+          # stack frame instead of just "signal 11" in the fpm log (#79).
+          echo "::group::php-fpm core dump backtraces"
+          # Debug symbols are best-effort: the ondrej PPA ships -dbgsym
+          # packages for some builds; without them gdb still names the
+          # faulting shared object and offsets.
+          command -v gdb > /dev/null || \
+            sudo apt-get install -y --no-install-recommends gdb > /dev/null || true
+          sudo apt-get install -y --no-install-recommends \
+            "php${{ matrix.php-version }}-fpm-dbgsym" > /dev/null 2>&1 || true
+          for core in /var/crash-ci/core.*; do
+            [ -e "$core" ] || continue
+            echo "--- $core"
+            sudo gdb --batch \
+              -ex 'set pagination off' \
+              -ex 'bt' \
+              -ex 'info sharedlibrary' \
+              "/usr/sbin/php-fpm${{ matrix.php-version }}" "$core" || true
+          done
           echo "::endgroup::"
 
       - name: Upload failure screenshots
