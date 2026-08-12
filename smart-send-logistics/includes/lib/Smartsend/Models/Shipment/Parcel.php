@@ -9,14 +9,14 @@ require_once 'Item.php';
 class Parcel implements \JsonSerializable
 {
     // Typed properties keep "= null" so get_object_vars() serialization is
-    // unchanged; uncast public setters stay untyped (see Models/Shipment.php).
+    // unchanged.
     private ?string $internal_id = null;
     private ?string $internal_reference = null;
     private ?float $weight = null;
     private ?float $height = null;
     private ?float $width = null;
     private ?float $length = null;
-    private $freetext;
+    private ?string $freetext = null;
     private ?array $items = null;
     private ?float $total_price_excluding_tax = null;
     private ?float $total_price_including_tax = null;
@@ -74,144 +74,144 @@ class Parcel implements \JsonSerializable
     }
 
     /**
-     * @return mixed
+     * @return string|null
      */
-    public function getInternalId()
+    public function getInternalId(): ?string
     {
         return $this->internal_id;
     }
 
     /**
      * @param string $internal_id
-     * @return Parcel
+     * @return self
      */
-    public function setInternalId($internal_id)
+    public function setInternalId($internal_id): self
     {
         $this->internal_id = (string) $internal_id;
         return $this;
     }
 
     /**
-     * @return mixed
+     * @return string|null
      */
-    public function getInternalReference()
+    public function getInternalReference(): ?string
     {
         return $this->internal_reference;
     }
 
     /**
      * @param string $internal_reference
-     * @return Parcel
+     * @return self
      */
-    public function setInternalReference($internal_reference)
+    public function setInternalReference($internal_reference): self
     {
         $this->internal_reference = (string) $internal_reference;
         return $this;
     }
 
     /**
-     * @return mixed
+     * @return float|null
      */
-    public function getWeight()
+    public function getWeight(): ?float
     {
         return $this->weight;
     }
 
     /**
      * @param mixed $weight
-     * @return Parcel
+     * @return self
      */
-    public function setWeight($weight)
+    public function setWeight($weight): self
     {
         $this->weight = is_null($weight) ? null : ((float) $weight);
         return $this;
     }
 
     /**
-     * @return mixed
+     * @return float|null
      */
-    public function getHeight()
+    public function getHeight(): ?float
     {
         return $this->height;
     }
 
     /**
      * @param mixed $height
-     * @return Parcel
+     * @return self
      */
-    public function setHeight($height)
+    public function setHeight($height): self
     {
         $this->height = is_null($height) ? null : ((float) $height);
         return $this;
     }
 
     /**
-     * @return mixed
+     * @return float|null
      */
-    public function getWidth()
+    public function getWidth(): ?float
     {
         return $this->width;
     }
 
     /**
      * @param mixed $width
-     * @return Parcel
+     * @return self
      */
-    public function setWidth($width)
+    public function setWidth($width): self
     {
         $this->width = is_null($width) ? null : ((float) $width);
         return $this;
     }
 
     /**
-     * @return mixed
+     * @return float|null
      */
-    public function getLength()
+    public function getLength(): ?float
     {
         return $this->length;
     }
 
     /**
      * @param mixed $length
-     * @return Parcel
+     * @return self
      */
-    public function setLength($length)
+    public function setLength($length): self
     {
         $this->length = is_null($length) ? null : ((float) $length);
         return $this;
     }
 
     /**
-     * @return mixed
+     * @return string|null
      */
-    public function getFreetext()
+    public function getFreetext(): ?string
     {
         return $this->freetext;
     }
 
     /**
-     * @param mixed $freetext
-     * @return Parcel
+     * @param string|null $freetext
+     * @return self
      */
-    public function setFreetext($freetext)
+    public function setFreetext(?string $freetext): self
     {
         $this->freetext = $freetext;
         return $this;
     }
 
     /**
-     * @return mixed
+     * @return Item[]|null
      */
-    public function getItems()
+    public function getItems(): ?array
     {
         return $this->items;
     }
 
     /**
-     * @param array $items
-     * @return Parcel
+     * @param Item[] $items
+     * @return self
      */
-    public function setItems(Array $items)
+    public function setItems(array $items): self
     {
         $this->items = $items;
         return $this;
@@ -219,9 +219,9 @@ class Parcel implements \JsonSerializable
 
     /**
      * @param Item $item
-     * @return Parcel
+     * @return self
      */
-    public function addItem(Item $item)
+    public function addItem(Item $item): self
     {
         if (is_array($this->items)) {
             $this->items[] = $item;
@@ -233,54 +233,54 @@ class Parcel implements \JsonSerializable
     }
 
     /**
-     * @return mixed
+     * @return float|null
      */
-    public function getTotalPriceExcludingTax()
+    public function getTotalPriceExcludingTax(): ?float
     {
         return $this->total_price_excluding_tax;
     }
 
     /**
      * @param mixed $total_price_excluding_tax
-     * @return Parcel
+     * @return self
      */
-    public function setTotalPriceExcludingTax($total_price_excluding_tax)
+    public function setTotalPriceExcludingTax($total_price_excluding_tax): self
     {
         $this->total_price_excluding_tax = is_null($total_price_excluding_tax) ? null : ((float) $total_price_excluding_tax);
         return $this;
     }
 
     /**
-     * @return mixed
+     * @return float|null
      */
-    public function getTotalPriceIncludingTax()
+    public function getTotalPriceIncludingTax(): ?float
     {
         return $this->total_price_including_tax;
     }
 
     /**
      * @param mixed $total_price_including_tax
-     * @return Parcel
+     * @return self
      */
-    public function setTotalPriceIncludingTax($total_price_including_tax)
+    public function setTotalPriceIncludingTax($total_price_including_tax): self
     {
         $this->total_price_including_tax = is_null($total_price_including_tax) ? null : ((float) $total_price_including_tax);
         return $this;
     }
 
     /**
-     * @return mixed
+     * @return float|null
      */
-    public function getTotalTaxAmount()
+    public function getTotalTaxAmount(): ?float
     {
         return $this->total_tax_amount;
     }
 
     /**
      * @param mixed $total_tax_amount
-     * @return Parcel
+     * @return self
      */
-    public function setTotalTaxAmount($total_tax_amount)
+    public function setTotalTaxAmount($total_tax_amount): self
     {
         $this->total_tax_amount = is_null($total_tax_amount) ? null : ((float) $total_tax_amount);
         return $this;
