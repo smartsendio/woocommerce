@@ -22,8 +22,8 @@ if ( ! defined( 'ABSPATH' ) ) {
  * in the `$context` array, which the WooCommerce log viewer renders
  * natively.
  *
- * The `debug` and `info` levels are gated on the plugin's "Debug Log"
- * setting; `warning`, `error` and `critical` always log. The
+ * Only the `debug` level is gated on the plugin's "Debug Log" setting;
+ * `info`, `warning`, `error` and `critical` always log. The
  * `smart_send_logging` filter applies to all levels: it receives the
  * message and may rewrite it, or suppress the entry by returning null or
  * false.
@@ -70,13 +70,14 @@ class SS_Shipping_Logger {
 	}
 
 	/**
-	 * Log an informational message (gated on the plugin's debug setting).
+	 * Log an informational business event. Always logged, regardless of the
+	 * debug setting.
 	 *
 	 * @param string $message Message to log.
 	 * @param array  $context Optional structured context.
 	 */
 	public static function info( $message, $context = array() ) {
-		self::write( 'info', $message, $context, self::is_enabled() );
+		self::write( 'info', $message, $context, true );
 	}
 
 	/**

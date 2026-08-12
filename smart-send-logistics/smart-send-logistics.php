@@ -569,10 +569,11 @@ if (!class_exists('SS_Shipping_WC')) :
                 $error = 1;
             }
 
-			SS_Shipping_Logger::debug(
-				'API token connection test ' . ( $error ? 'failed' : 'succeeded' ),
-				array( 'message' => $connection_msg )
-			);
+			if ( $error ) {
+				SS_Shipping_Logger::error( 'API token connection test failed', array( 'message' => $connection_msg ) );
+			} else {
+				SS_Shipping_Logger::info( 'API token connection test succeeded', array( 'message' => $connection_msg ) );
+			}
 
             wp_send_json(array(
                 'message'    => $connection_msg,

@@ -972,15 +972,16 @@ if (!class_exists('SS_Shipping_WC_Method')) :
                 'package'   => $package,
             );
 
-			$debug_message = 'Smart Send: evaluated method "' . $rate['label'] . '" (' . $rate['meta_data']['smart_send_shipping_method'] . ', rate id ' . $rate['id'] . ').';
+			// Log-file developer trace: the rate matched the zone, cost calculation starts.
 			SS_Shipping_Logger::debug(
-				$debug_message,
+				'Calculating shipping cost for shipping rate ' . $rate['id'],
 				array(
 					'rate_id' => $rate['id'],
+					'label'   => $rate['label'],
 					'method'  => $rate['meta_data']['smart_send_shipping_method'],
 				)
 			);
-			SS_Shipping_Checkout_Debug::add_notice( $debug_message );
+			SS_Shipping_Checkout_Debug::add_notice( 'Smart Send: evaluated method "' . $rate['label'] . '" (' . $rate['meta_data']['smart_send_shipping_method'] . ', rate id ' . $rate['id'] . ').' );
 
             // Set tax status based on selection otherwise always taxed
             $this->tax_status = $this->get_option('tax_status');
@@ -1055,6 +1056,22 @@ if (!class_exists('SS_Shipping_WC_Method')) :
 					SS_Shipping_Checkout_Debug::add_notice( $debug_message );
 				}
             }
+
+			// Log-file developer trace: the outcome of the cost calculation.
+			if ( isset( $this->rates[ $rate['id'] ] ) ) {
+				SS_Shipping_Logger::debug(
+					'Calculated shipping cost for shipping rate ' . $rate['id'] . ': ' . $this->rates[ $rate['id'] ]->get_cost(),
+					array(
+						'rate_id' => $rate['id'],
+						'cost'    => $this->rates[ $rate['id'] ]->get_cost(),
+					)
+				);
+			} else {
+				SS_Shipping_Logger::debug(
+					'Shipping rate ' . $rate['id'] . ' is not available for this package - no rate added',
+					array( 'rate_id' => $rate['id'] )
+				);
+			}
 
             /**
              * Developers can add additional rates based on this one via this action

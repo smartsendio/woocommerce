@@ -309,6 +309,120 @@ it('adds no overlap notice when only one weight row matches', function () {
         ->and(implode("\n", ss_policy_notices()))->not->toContain('overlapping weight table rows');
 });
 
+it('logs the rate calculation start and cost outcome as a debug trace', function () {
+    $spy = spy_on_logger();
+
+    $product = create_simple_product(['price' => 100, 'weight' => 2]);
+    $package = ss_policy_package([$product]);
+
+    $method = ss_policy_method([
+        'cost_weight' => [['ss_min_weight' => '1', 'ss_max_weight' => '5', 'ss_cost_weight' => '49']],
+    ], 99955);
+    $method->calculate_shipping($package);
+
+    $debugs = implode("\n", ss_policy_logged($spy, 'debug'));
+    expect($debugs)->toContain('Calculating shipping cost for shipping rate smart_send_shipping:99955')
+        ->and($debugs)->toContain('Calculated shipping cost for shipping rate smart_send_shipping:99955: 49');
+
+    $outcome = ss_policy_entry($spy, 'Calculated shipping cost for shipping rate smart_send_shipping:99955: 49');
+    expect($outcome)->not->toBeNull()
+        ->and($outcome['context']['rate_id'])->toBe('smart_send_shipping:99955');
+});
+
+it('logs a not-available outcome when the cost calculation adds no rate', function () {
+    $spy = spy_on_logger();
+
+    $product = create_simple_product(['price' => 100, 'weight' => 10]);
+    $package = ss_policy_package([$product]);
+
+    $method = ss_policy_method([
+        'cost_weight' => [['ss_min_weight' => '1', 'ss_max_weight' => '5', 'ss_cost_weight' => '49']],
+    ], 99956);
+    $method->calculate_shipping($package);
+
+    $debugs = implode("\n", ss_policy_logged($spy, 'debug'));
+    expect($method->rates)->toHaveCount(0)
+        ->and($debugs)->toContain('Calculating shipping cost for shipping rate smart_send_shipping:99956')
+        ->and($debugs)->toContain('Shipping rate smart_send_shipping:99956 is not available for this package - no rate added');
+});
+
+it('logs an error when the order cannot be loaded while deleting pick-up point meta, even with debug off', function () {
+    with_ss_settings(['ss_debug' => 'no']);
+    $spy = spy_on_logger();
+
+    SS_SHIPPING_WC()->get_ss_shipping_wc_order()->delete_ss_shipping_order_agent(999999999);
+
+    $failed = ss_policy_entry($spy, 'Failed to load WooCommerce order when deleting pick-up point meta - skipping');
+    expect($failed)->not->toBeNull()
+        ->and($failed['level'])->toBe('error')
+        ->and($failed['context']['order_id'])->toBe(999999999);
+});
+
+/**
+ * Run the Validate API Token AJAX callback in-process: forge the nonce,
+ * make wp_doing_ajax() return true (outside AJAX wp_send_json() calls plain
+ * `die` and would kill the test process), and intercept the resulting
+ * wp_die() via the die handler filter.
+ */
+function ss_policy_run_connection_test(): void
+{
+    $_REQUEST['test_connection_nonce'] = wp_create_nonce('ss-test-connection');
+
+    $die_handler = function () {
+        return function (): void {
+            throw new RuntimeException('wp_die intercepted');
+        };
+    };
+    add_filter('wp_doing_ajax', '__return_true');
+    add_filter('wp_die_handler', $die_handler);
+    add_filter('wp_die_ajax_handler', $die_handler);
+
+    remember_cleanup_callback(function () use ($die_handler): void {
+        unset($_REQUEST['test_connection_nonce']);
+        remove_filter('wp_doing_ajax', '__return_true');
+        remove_filter('wp_die_handler', $die_handler);
+        remove_filter('wp_die_ajax_handler', $die_handler);
+    });
+
+    ob_start();
+    try {
+        SS_SHIPPING_WC()->ss_test_connection_callback();
+    } catch (RuntimeException $e) {
+        // Expected: wp_send_json() ends with wp_die().
+    }
+    ob_end_clean();
+}
+
+it('logs a successful connection test at info level even with the debug setting off', function () {
+    with_ss_settings(['ss_debug' => 'no', 'api_token' => 'policy-test-token']);
+    $spy = spy_on_logger();
+    mock_smart_send_api(function () {
+        return ss_api_response(200, ['data' => ['email' => 'merchant@example.test', 'website' => 'example.test']]);
+    });
+
+    ss_policy_run_connection_test();
+
+    $succeeded = ss_policy_entry($spy, 'API token connection test succeeded');
+    expect($succeeded)->not->toBeNull()
+        ->and($succeeded['level'])->toBe('info')
+        ->and($succeeded['context']['message'])->toContain('merchant@example.test');
+});
+
+it('logs a failed connection test at error level with the API response detail in context', function () {
+    with_ss_settings(['ss_debug' => 'no', 'api_token' => 'policy-test-token']);
+    $spy = spy_on_logger();
+    mock_smart_send_api(function () {
+        return ss_api_response(401, ['code' => 'Unauthenticated', 'message' => 'The API token is invalid.']);
+    });
+
+    ss_policy_run_connection_test();
+
+    $failed = ss_policy_entry($spy, 'API token connection test failed');
+    expect($failed)->not->toBeNull()
+        ->and($failed['level'])->toBe('error')
+        ->and($failed['context']['message'])->toContain('The API token is invalid.');
+});
+
 it('no longer logs the removed noise entries', function () {
     with_ss_settings(['ss_debug' => 'yes', 'sort_methods_by_cost' => 'yes']);
     $spy = spy_on_logger();

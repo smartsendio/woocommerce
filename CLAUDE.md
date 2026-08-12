@@ -58,10 +58,10 @@ Two decoupled surfaces with distinct audiences — place every log/notice call d
 
 | Level | Use for | Example |
 |---|---|---|
-| `info` | Business events a merchant/support agent cares about after the fact (gated on the plugin "Debug Log" setting) | "Shipping label created", "Tracking number stored", "Pick-up point selected at checkout" |
-| `debug` | Developer trace only, non-polluting (gated on the plugin "Debug Log" setting) | "No Smart Send shipping method on order - skipping meta box content", rate evaluation detail, API request cycles (via `log_api_request`) |
+| `info` | Business events a merchant/support agent cares about after the fact; always logged (ungated audit trail) | "Shipping label created", "Tracking number stored", "Pick-up point selected at checkout" |
+| `debug` | Developer trace only, non-polluting — the ONLY level gated on the plugin "Debug Log" setting | "No Smart Send shipping method on order - skipping meta box content", rate evaluation detail, API request cycles (via `log_api_request`) |
 | `warning` | Failures the plugin recovers from; always logged | "Pick-up point not found - agent number rejected" |
-| `error` / `critical` | API and transport failures; always logged | "POST /shipments → 422 (312ms)" (via `log_api_request`) |
+| `error` / `critical` | API and transport failures, and recoverable-but-abnormal states; always logged | "POST /shipments → 422 (312ms)" (via `log_api_request`), "Failed to load WooCommerce order when deleting pick-up point meta" |
 
 Keep messages concise and greppable; put structured data (order id, agent no, shipment id, carrier) in the context array — the WooCommerce log viewer renders it natively.
 

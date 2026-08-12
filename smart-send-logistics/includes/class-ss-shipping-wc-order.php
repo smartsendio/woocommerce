@@ -1046,7 +1046,7 @@ if (!class_exists('SS_Shipping_WC_Order')) :
 			// There are situations where the order has been deleted and cannot be found.
 			// We should gracefully handle this situation of failing to load the order.
 			if ( ! $order ) {
-				SS_Shipping_Logger::debug( 'Order not found when deleting pick-up point meta - skipping', array( 'order_id' => $order_id ) );
+				SS_Shipping_Logger::error( 'Failed to load WooCommerce order when deleting pick-up point meta - skipping', array( 'order_id' => $order_id ) );
 
                 return;
             }
