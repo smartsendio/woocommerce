@@ -37,17 +37,23 @@ To point the plugin at Smart Send's sandbox API instead of production, use the `
 
 Single-entry WordPress plugin. `smart-send-logistics/smart-send-logistics.php` defines the singleton `SS_Shipping_WC` (accessed globally as `SS_SHIPPING_WC()`), which wires all hooks and instantiates the other components.
 
-Two class layers with different conventions:
+**Loading**: there is no autoloader. `SS_Shipping_WC::includes()` loads every class file with explicit `require_once` calls (Composer cannot be assumed; the bespoke autoloader was removed in #43). The one exception is the shipping-method layer: `SS_Shipping_WC_Method` extends `WC_Shipping_Flat_Rate` and this plugin loads before WooCommerce, so `include_shipping_method_class()` requires it (and its three helper classes) lazily — from `init()` behind the bootstrap WooCommerce gate, and defensively from the `woocommerce_shipping_methods` filter callback. A new class file must be added to one of these two require lists.
 
-1. **WordPress-style classes** in `includes/` — prefix `SS_Shipping_*`, no namespace, files named `class-ss-shipping-*.php`, loaded on demand by `SS_Shipping_Autoloader` (maps `SS_Shipping_Foo_Bar` → `class-ss-shipping-foo-bar.php`, searching `includes/` and `includes/frontend/`). New classes must follow this naming to be autoloadable.
-   - `SS_Shipping_WC_Method` — the shipping method, extends `WC_Shipping_Flat_Rate`; holds all admin settings (API token, carrier/agent options, formats).
-   - `SS_Shipping_WC_Order` — admin order screen: meta box, AJAX label generation (`wp_ajax_ss_shipping_generate_label`), bulk actions, tracking info, WooCommerce Subscriptions integration. Supports both legacy post-based orders and HPOS (the plugin declares HPOS compatibility).
+**Folder layout** (agreed in #43): `admin/` for admin-only code (plus `admin/css/`, `admin/js/`), `public/` for checkout-side code (plus `public/css/`), `includes/` for code shared between the two (and the API client under `includes/lib/`). WordPress-style classes keep the `SS_Shipping_*` prefix, no namespace, files named `class-ss-shipping-*.php`.
+
+1. **Admin classes** in `admin/`:
+   - `SS_Shipping_WC_Method` — the shipping method, extends `WC_Shipping_Flat_Rate`; rate calculation (`calculate_shipping`, `is_available`, `is_free_shipping`) and the two protected rate reporters (log + checkout debug bar). WooCommerce's settings framework dispatches `validate_*_field`/`generate_*_html` on this instance, so it keeps thin wrappers that delegate to its components: `SS_Shipping_Method_Settings` (form field definitions + validation), `SS_Shipping_Method_Form_Renderer` (custom field type rendering), `SS_Shipping_Method_Catalog` (per-carrier method lists and code→name lookup).
+   - `SS_Shipping_WC_Order` — the admin order integration facade; its public surface is the stable API reached via `SS_SHIPPING_WC()->get_ss_shipping_wc_order()`. It wires hooks and delegates to: `SS_Shipping_Order_Meta` (order meta access: method id, pick-up point agent, parcel split, shipment ids), `SS_Shipping_Order_Meta_Box` (order screen meta box), `SS_Shipping_Label_Creator` (AJAX `wp_ajax_ss_shipping_generate_label` + label creation flow), `SS_Shipping_Order_Bulk_Actions` (bulk label generation incl. combined PDF). Supports both legacy post-based orders and HPOS (the plugin declares HPOS compatibility). WooCommerce Subscriptions integration stays on the facade.
    - `SS_Shipping_Shipment` — builds the shipment payload from a WC order and sends it to the API.
-   - `SS_Shipping_Frontend` (`includes/frontend/`) — checkout-side pick-up point selection display.
    - `SS_Shipping_WC_Product` — per-product shipping meta.
-   - `SS_Shipping_Logger` — logging via WC logger when "debug" is enabled in settings.
+   - `SS_Plugins_Screen_Updates` — upgrade notices on the plugins screen.
 
-2. **PSR-style API client** in `includes/lib/Smartsend/` — namespace `Smartsend`, classes `Api` (endpoint methods, extends `Client`) and `Client` (HTTP via `wp_remote_*` against `https://app.smartsend.io/api/v1/`), plus `Models/` value objects (`Shipment`, `Agent`, and their sub-models). This layer is deliberately WordPress-light; keep API concerns here rather than in the `SS_Shipping_*` classes.
+2. **Frontend classes** in `public/`:
+   - `SS_Shipping_Frontend` — checkout-side pick-up point selection display.
+
+3. **Shared classes** in `includes/`: `SS_Shipping_Logger` (WC log; `debug` level gated on the "Debug Log" setting), `SS_Shipping_Checkout_Debug` (checkout shipping debug bar), `SS_Shipping_Admin_Notices` (flash notices store), `SS_Shipping_Order_Data` (order → payload data extraction).
+
+4. **PSR-style API client** in `includes/lib/Smartsend/` — namespace `Smartsend`, classes `Api` (endpoint methods, extends `Client`) and `Client` (HTTP via `wp_remote_*` against `https://app.smartsend.io/api/v1/`), plus `Models/` value objects (`Shipment`, `Agent`, and their sub-models). This layer is deliberately WordPress-light; keep API concerns here rather than in the `SS_Shipping_*` classes.
 
 ## Logging policy
 
@@ -64,6 +70,16 @@ Two decoupled surfaces with distinct audiences — place every log/notice call d
 | `error` / `critical` | API and transport failures, and recoverable-but-abnormal states; always logged | "POST /shipments → 422 (312ms)" (via `log_api_request`), "Failed to load WooCommerce order when deleting pick-up point meta" |
 
 Keep messages concise and greppable; put structured data (order id, agent no, shipment id, carrier) in the context array — the WooCommerce log viewer renders it natively.
+
+## Existence-guard policy
+
+`function_exists`/`class_exists` guards appear **only** where existence genuinely varies across the supported range (see issue #90). The three legitimate categories:
+
+1. **Optional third-party plugins** — e.g. `wc_st_add_tracking_number` (Shipment Tracking), `WC_Subscriptions`.
+2. **WP/WC APIs newer than our floors** (PHP 7.4 / WC 4.7) — e.g. `FeaturesUtil` (WC 6.5+), the HPOS `CustomOrdersTableController`.
+3. **Load-context differences** — e.g. `get_plugins()` outside admin (prefer `require_once` of the include over a silent guard).
+
+Everything else — any WP or WC core API our floors guarantee — is called directly, with **no** guard: a guard on an impossible state silently swallows real bugs. Every kept guard carries a one-line comment naming why existence varies. Exactly one bootstrap-level WooCommerce-active check lives in `smart-send-logistics.php` (`init()`'s `WOOCOMMERCE_VERSION` gate — belt-and-braces for WP < 6.5, where `Requires Plugins: woocommerce` is not enforced); everything downstream assumes WooCommerce is present.
 
 Extension points are `smart_send_*` filters/actions (e.g. `smart_send_api_endpoint`, `smart_send_shipping_label_args`, `smart_send_shipping_label_created`, `smart_send_tracking_url`, `smart_send_order_note`). Preserve these when refactoring — merchants rely on them via code snippets.
 

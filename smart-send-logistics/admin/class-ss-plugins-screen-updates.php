@@ -17,9 +17,19 @@ class SS_Plugins_Screen_Updates {
 	/**
 	 * The upgrade notice shown inline.
 	 *
-	 * @var string
+	 * Deliberately untyped: get_upgrade_notice() returns false when the
+	 * transient is empty and the readme fetch fails.
+	 *
+	 * @var string|false
 	 */
 	protected $upgrade_notice = '';
+
+	/**
+	 * The new plugin version offered by the update response.
+	 *
+	 * @var string|null
+	 */
+	protected ?string $new_version = null;
 
 	/**
 	 * Constructor.
@@ -35,10 +45,10 @@ class SS_Plugins_Screen_Updates {
 	 * @param stdClass $response Plugin update response.
 	 */
 	public function in_plugin_update_message( $args, $response ) {
-		$this->new_version            = $response->new_version;
-		$this->upgrade_notice         = $this->get_upgrade_notice( $response->new_version );
-		
-		echo apply_filters( 'ss_in_plugin_update_message', $this->upgrade_notice ? '</p>' . wp_kses_post( $this->upgrade_notice ) . '<p class="dummy">' : '' ); // phpcs:ignore WordPress.XSS.EscapeOutput.OutputNotEscaped
+		$this->new_version    = $response->new_version;
+		$this->upgrade_notice = $this->get_upgrade_notice( $response->new_version );
+
+		echo apply_filters( 'ss_in_plugin_update_message', $this->upgrade_notice ? '</p>' . wp_kses_post( $this->upgrade_notice ) . '<p class="dummy">' : '' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- notice HTML is wp_kses_post-sanitised above; the surrounding markup is static.
 	}
 
 	/**
@@ -81,8 +91,8 @@ class SS_Plugins_Screen_Updates {
 		// Remove any duplicates to not display the message twice
 		$check_for_notices = array_unique( $check_for_notices );
 
-		$notice_regexp     = '~==\s*Upgrade Notice\s*==\s*=\s*(.*)\s*=(.*)(=\s*' . preg_quote( $new_version ) . '\s*=|$)~Uis';
-		$upgrade_notice    = '';
+		$notice_regexp  = '~==\s*Upgrade Notice\s*==\s*=\s*(.*)\s*=(.*)(=\s*' . preg_quote( $new_version, '~' ) . '\s*=|$)~Uis';
+		$upgrade_notice = '';
 
 		foreach ( $check_for_notices as $check_version ) {
 			if ( version_compare( SS_SHIPPING_VERSION, $check_version, '>' ) ) {
@@ -95,7 +105,7 @@ class SS_Plugins_Screen_Updates {
 
 				if ( version_compare( trim( $matches[1] ), $check_version, '=' ) ) {
 					$upgrade_notice .= '<p class="wc_plugin_upgrade_notice">';
-					$upgrade_notice .= preg_replace('/\[([^\[]+)\]\(([^\)]+)\)/', "<a href='$2' target='_blank'>$1</a>", $notices[0]);//Replace markdown links
+					$upgrade_notice .= preg_replace( '/\[([^\[]+)\]\(([^\)]+)\)/', "<a href='$2' target='_blank'>$1</a>", $notices[0] );//Replace markdown links
 					$upgrade_notice .= '</p>';
 				}
 			}

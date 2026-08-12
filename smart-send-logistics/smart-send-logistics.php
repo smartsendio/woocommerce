@@ -31,60 +31,74 @@ if (!defined('ABSPATH')) {
     exit; // Exit if accessed directly.
 }
 
-if (!class_exists('SS_Shipping_WC')) :
+// A second copy of the plugin (e.g. bundled elsewhere) may already have defined the class.
+if ( ! class_exists( 'SS_Shipping_WC' ) ) :
 
     class SS_Shipping_WC
     {
 
-		private $version = '8.2.0';
+		private string $version = '8.2.0';
 
-        /**
-         * Instance to call certain functions globally within the plugin
-         *
-         * @var SS_Shipping_WC
-         */
-        protected static $_instance = null;
+		/**
+		 * Instance to call certain functions globally within the plugin
+		 *
+		 * @var SS_Shipping_WC|null
+		 */
+		protected static ?SS_Shipping_WC $_instance = null; // phpcs:ignore PSR2.Classes.PropertyDeclaration.Underscore -- pre-existing name, renaming is out of scope here.
 
-        /**
-         * Smart Send Shipping Order for label and tracking.
-         *
-         * @var SS_Shipping_WC_Order
-         */
-        public $ss_shipping_wc_order = null;
-        /**
-         * Smart Send Shipping Product
-         *
-         * @var SS_Shipping_WC_Order
-         */
-        public $ss_shipping_wc_product = null;
+		/**
+		 * Smart Send Shipping Order for label and tracking.
+		 *
+		 * Public: reachable via SS_SHIPPING_WC() from merchant code snippets.
+		 * It is only ever assigned the real SS_Shipping_WC_Order instance in
+		 * the constructor below, so typing it is a deliberate v9 breaking
+		 * change - a snippet that replaces it with something else now fatals
+		 * instead of silently corrupting state.
+		 *
+		 * @var SS_Shipping_WC_Order|null
+		 */
+		public ?SS_Shipping_WC_Order $ss_shipping_wc_order = null;
 
-        /**
-         * Smart Send Frontend
-         *
-         * @var SS_Shipping_Frontend
-         */
-        protected $ss_shipping_frontend = null;
+		/**
+		 * Smart Send Shipping Product
+		 *
+		 * Public: reachable via SS_SHIPPING_WC() from merchant code snippets.
+		 * It is only ever assigned the real SS_Shipping_WC_Product instance
+		 * in the constructor below, so typing it is a deliberate v9 breaking
+		 * change - a snippet that replaces it with something else now fatals
+		 * instead of silently corrupting state.
+		 *
+		 * @var SS_Shipping_WC_Product|null
+		 */
+		public ?SS_Shipping_WC_Product $ss_shipping_wc_product = null;
 
-        /**
-         * Smart Send agent address formats
-         *
-         * @var array
-         */
-        protected $agents_address_format = array();
+		/**
+		 * Smart Send Frontend
+		 *
+		 * @var SS_Shipping_Frontend|null
+		 */
+		protected ?SS_Shipping_Frontend $ss_shipping_frontend = null;
 
-        /**
-         * Smart Send api handle
-         *
-         * @var object
-         */
-        protected $api_handle = null;
+		/**
+		 * Smart Send agent address formats
+		 *
+		 * @var array
+		 */
+		protected array $agents_address_format = array();
 
-        /**
-         * Smart Send Plugin Screen Updates
-         *
-         * @var object
-         */
-        protected $ss_plugin_screen_updates = null;
+		/**
+		 * Smart Send api handle
+		 *
+		 * @var \Smartsend\Api|null
+		 */
+		protected ?\Smartsend\Api $api_handle = null;
+
+		/**
+		 * Smart Send Plugin Screen Updates
+		 *
+		 * @var SS_Plugins_Screen_Updates|null
+		 */
+		protected ?SS_Plugins_Screen_Updates $ss_plugin_screen_updates = null;
 
         /**
          * Construct the plugin.
@@ -98,12 +112,12 @@ if (!class_exists('SS_Shipping_WC')) :
 			$this->init_hooks();
 		}
 
-        public function declaring_hpos_compatibility()
-        {
-            if ( class_exists( \Automattic\WooCommerce\Utilities\FeaturesUtil::class ) ) {
-                \Automattic\WooCommerce\Utilities\FeaturesUtil::declare_compatibility( 'custom_order_tables', __FILE__, true );
-            }
-        }
+		public function declaring_hpos_compatibility() {
+			// FeaturesUtil exists since WC 6.5; the plugin's WC floor is 4.7.
+			if ( class_exists( \Automattic\WooCommerce\Utilities\FeaturesUtil::class ) ) {
+				\Automattic\WooCommerce\Utilities\FeaturesUtil::declare_compatibility( 'custom_order_tables', __FILE__, true );
+			}
+		}
 
         /**
          * Main Smart Send Shipping Instance.
@@ -139,15 +153,52 @@ if (!class_exists('SS_Shipping_WC')) :
 			$this->define( 'SS_SHIPPING_METHOD_ID', 'smart_send_shipping' );
 		}
 
-        /**
-         * Include required core files used in admin and on the frontend.
-         */
-        public function includes()
-        {
-            // Auto loader class
-            include_once('includes/class-ss-shipping-autoloader.php');
-            include_once('includes/lib/Smartsend/Api.php');
-        }
+		/**
+		 * Include required core files used in admin and on the frontend.
+		 *
+		 * Classes are loaded with explicit require_once calls (no autoloader):
+		 * Composer cannot be assumed on a WordPress install and a bespoke
+		 * autoloader is not worth maintaining. See issue #43.
+		 */
+		public function includes() {
+			// Smart Send PHP API client (PSR-style, namespace Smartsend).
+			require_once SS_SHIPPING_PLUGIN_DIR_PATH . '/includes/lib/Smartsend/Api.php';
+
+			// Shared components used in admin and on the frontend.
+			require_once SS_SHIPPING_PLUGIN_DIR_PATH . '/includes/class-ss-shipping-logger.php';
+			require_once SS_SHIPPING_PLUGIN_DIR_PATH . '/includes/class-ss-shipping-checkout-debug.php';
+			require_once SS_SHIPPING_PLUGIN_DIR_PATH . '/includes/class-ss-shipping-admin-notices.php';
+			require_once SS_SHIPPING_PLUGIN_DIR_PATH . '/includes/class-ss-shipping-order-data.php';
+
+			// Admin components.
+			require_once SS_SHIPPING_PLUGIN_DIR_PATH . '/admin/class-ss-plugins-screen-updates.php';
+			require_once SS_SHIPPING_PLUGIN_DIR_PATH . '/admin/class-ss-shipping-shipment.php';
+			require_once SS_SHIPPING_PLUGIN_DIR_PATH . '/admin/class-ss-shipping-order-meta.php';
+			require_once SS_SHIPPING_PLUGIN_DIR_PATH . '/admin/class-ss-shipping-order-meta-box.php';
+			require_once SS_SHIPPING_PLUGIN_DIR_PATH . '/admin/class-ss-shipping-wc-order.php';
+			require_once SS_SHIPPING_PLUGIN_DIR_PATH . '/admin/class-ss-shipping-label-creator.php';
+			require_once SS_SHIPPING_PLUGIN_DIR_PATH . '/admin/class-ss-shipping-order-bulk-actions.php';
+			require_once SS_SHIPPING_PLUGIN_DIR_PATH . '/admin/class-ss-shipping-wc-product.php';
+
+			// Frontend components.
+			require_once SS_SHIPPING_PLUGIN_DIR_PATH . '/public/class-ss-shipping-frontend.php';
+		}
+
+		/**
+		 * Load the shipping method class.
+		 *
+		 * SS_Shipping_WC_Method extends WC_Shipping_Flat_Rate, so its file can
+		 * only be loaded once WooCommerce (and its autoloader) is available -
+		 * this plugin loads before WooCommerce. Loaded from init() behind the
+		 * bootstrap-level WooCommerce gate and defensively from
+		 * add_shipping_method(); require_once makes the call idempotent.
+		 */
+		public function include_shipping_method_class() {
+			require_once SS_SHIPPING_PLUGIN_DIR_PATH . '/admin/class-ss-shipping-method-catalog.php';
+			require_once SS_SHIPPING_PLUGIN_DIR_PATH . '/admin/class-ss-shipping-method-settings.php';
+			require_once SS_SHIPPING_PLUGIN_DIR_PATH . '/admin/class-ss-shipping-method-form-renderer.php';
+			require_once SS_SHIPPING_PLUGIN_DIR_PATH . '/admin/class-ss-shipping-wc-method.php';
+		}
 
         protected function init_hooks()
         {
@@ -178,16 +229,20 @@ if (!class_exists('SS_Shipping_WC')) :
 			// "called incorrectly" notice.
 			$this->define( 'SS_BUTTON_TEST_CONNECTION', __( 'Validate API Token', 'smart-send-logistics' ) );
 
-            // Checks if WooCommerce 2.6 is installed.
-            if (defined('WOOCOMMERCE_VERSION') && version_compare(WOOCOMMERCE_VERSION, '2.6', '>=')) {
-                $this->ss_shipping_frontend = new SS_Shipping_Frontend();
-                $this->ss_shipping_wc_order = new SS_Shipping_WC_Order();
-                $this->ss_shipping_wc_product = new SS_Shipping_WC_Product();
-                $this->ss_plugin_screen_updates = new SS_Plugins_Screen_Updates();
-            } else {
-                // Throw an admin error informing the user this plugin needs WooCommerce to function
-                add_action('admin_notices', array($this, 'notice_wc_required'));
-            }
+			// The single bootstrap-level WooCommerce-active gate: `Requires Plugins: woocommerce`
+			// already guarantees WooCommerce on WP >= 6.5, so this check is belt-and-braces for
+			// older WordPress. Everything downstream of it assumes WooCommerce is present.
+			if ( defined( 'WOOCOMMERCE_VERSION' ) && version_compare( WOOCOMMERCE_VERSION, '2.6', '>=' ) ) {
+				$this->include_shipping_method_class();
+
+				$this->ss_shipping_frontend     = new SS_Shipping_Frontend();
+				$this->ss_shipping_wc_order     = new SS_Shipping_WC_Order();
+				$this->ss_shipping_wc_product   = new SS_Shipping_WC_Product();
+				$this->ss_plugin_screen_updates = new SS_Plugins_Screen_Updates();
+			} else {
+				// Throw an admin error informing the user this plugin needs WooCommerce to function.
+				add_action( 'admin_notices', array( $this, 'notice_wc_required' ) );
+			}
 
         }
 
@@ -199,22 +254,19 @@ if (!class_exists('SS_Shipping_WC')) :
             load_plugin_textdomain('smart-send-logistics', false, dirname(plugin_basename(__FILE__)) . '/lang/');
         }
 
-        /**
-         * Load Admin CSS
-         */
-        public function ss_shipping_theme_enqueue_admin_styles()
-        {
-            wp_enqueue_style('ss-shipping-admin-css', SS_SHIPPING_PLUGIN_DIR_URL . '/assets/css/ss-shipping-admin.css');
-        }
+		/**
+		 * Load Admin CSS
+		 */
+		public function ss_shipping_theme_enqueue_admin_styles() {
+			wp_enqueue_style( 'ss-shipping-admin-css', SS_SHIPPING_PLUGIN_DIR_URL . '/admin/css/ss-shipping-admin.css' ); // phpcs:ignore WordPress.WP.EnqueuedResourceParameters.MissingVersion -- pre-existing behaviour: the default WordPress version query string is kept; pinning a version is out of scope for the #43 move.
+		}
 
-        /**
-         * Load Frontend CSS
-         */
-        public function ss_shipping_theme_enqueue_frontend_styles()
-        {
-            wp_enqueue_style('ss-shipping-frontend-css',
-                SS_SHIPPING_PLUGIN_DIR_URL . '/assets/css/ss-shipping-frontend.css');
-        }
+		/**
+		 * Load Frontend CSS
+		 */
+		public function ss_shipping_theme_enqueue_frontend_styles() {
+			wp_enqueue_style( 'ss-shipping-frontend-css', SS_SHIPPING_PLUGIN_DIR_URL . '/public/css/ss-shipping-frontend.css' ); // phpcs:ignore WordPress.WP.EnqueuedResourceParameters.MissingVersion -- pre-existing behaviour: the default WordPress version query string is kept; pinning a version is out of scope for the #43 move.
+		}
 
         /**
          * Define constant if not already set.
@@ -274,16 +326,17 @@ if (!class_exists('SS_Shipping_WC')) :
             return (array)$links;
         }
 
-        /**
-         * Add a new integration to WooCommerce.
-         */
-        public function add_shipping_method($shipping_method)
-        {
-            $ss_shipping_shipping_method = 'SS_Shipping_WC_Method';
-            $shipping_method['smart_send_shipping'] = $ss_shipping_shipping_method;
+		/**
+		 * Add a new integration to WooCommerce.
+		 */
+		public function add_shipping_method( $shipping_method ) {
+			$this->include_shipping_method_class();
 
-            return $shipping_method;
-        }
+			$ss_shipping_shipping_method            = 'SS_Shipping_WC_Method';
+			$shipping_method['smart_send_shipping'] = $ss_shipping_shipping_method;
+
+			return $shipping_method;
+		}
 
         /**
          * Admin error notifying user that WC is required
@@ -317,28 +370,13 @@ if (!class_exists('SS_Shipping_WC')) :
 		public function get_agents_address_format() {
 			if ( empty( $this->agents_address_format ) ) {
 				$this->agents_address_format = array(
-					'1' => __( '#Company', 'smart-send-logistics' ) . ', ' . __( '#Street', 'smart-send-logistics' ),
-					'2' => __( '#Company', 'smart-send-logistics' ) . ', ' . __(
-						'#Street',
-						'smart-send-logistics'
-					) . ', ' . __( '#Zipcode', 'smart-send-logistics' ),
-					'3' => __( '#Company', 'smart-send-logistics' ) . ', ' . __(
-						'#Street',
-						'smart-send-logistics'
-					) . ', ' . __( '#City', 'smart-send-logistics' ),
-					'4' => __( '#Company', 'smart-send-logistics' ) . ', ' . __(
-						'#Street',
-						'smart-send-logistics'
-					) . ', ' . __( '#Zipcode', 'smart-send-logistics' ) . ' ' . __(
-						'#City',
-						'smart-send-logistics'
-					),
-					'5' => __( '#Company', 'smart-send-logistics' ) . ', ' . __( '#Zipcode', 'smart-send-logistics' ),
-					'6' => __( '#Company', 'smart-send-logistics' ) . ', ' . __(
-						'#Zipcode',
-						'smart-send-logistics'
-					) . ', ' . __( '#City', 'smart-send-logistics' ),
-					'7' => __( '#Company', 'smart-send-logistics' ) . ', ' . __( '#City', 'smart-send-logistics' ),
+					'1' => __( '#Company, #Street', 'smart-send-logistics' ),
+					'2' => __( '#Company, #Street, #Zipcode', 'smart-send-logistics' ),
+					'3' => __( '#Company, #Street, #City', 'smart-send-logistics' ),
+					'4' => __( '#Company, #Street, #Zipcode #City', 'smart-send-logistics' ),
+					'5' => __( '#Company, #Zipcode', 'smart-send-logistics' ),
+					'6' => __( '#Company, #Zipcode, #City', 'smart-send-logistics' ),
+					'7' => __( '#Company, #City', 'smart-send-logistics' ),
 				);
 			}
 
@@ -554,15 +592,21 @@ if (!class_exists('SS_Shipping_WC')) :
         {
             check_ajax_referer('ss-test-connection', 'test_connection_nonce');
 
-            if ($this->validate_api_token()) {
-                $connection_msg = sprintf(__('API Token verified: Connected to Smart Send as %s from %s',
-                    'smart-send-logistics'), $this->get_api_handle()->getData()->email,
-                    $this->get_api_handle()->getData()->website);
-                $error = 0;
-            } elseif ($this->get_api_handle()) {
-                $connection_msg = sprintf(__('API Token validation failed: %s. Make sure to save the settings before validating.',
-                    'smart-send-logistics'), $this->get_api_handle()->getError()->message);
-                $error = 1;
+			if ( $this->validate_api_token() ) {
+				$connection_msg = sprintf(
+					/* translators: 1: email address of the connected Smart Send account, 2: website of the connected Smart Send account. */
+					__( 'API Token verified: Connected to Smart Send as %1$s from %2$s', 'smart-send-logistics' ),
+					$this->get_api_handle()->getData()->email,
+					$this->get_api_handle()->getData()->website
+				);
+				$error = 0;
+			} elseif ( $this->get_api_handle() ) {
+				$connection_msg = sprintf(
+					/* translators: %s: error message returned by the Smart Send API. */
+					__( 'API Token validation failed: %s. Make sure to save the settings before validating.', 'smart-send-logistics' ),
+					$this->get_api_handle()->getError()->message
+				);
+				$error = 1;
             } else {
                 $connection_msg = __('API Token validation failed: Please enter an API Token and save the settings before validating.',
                     'smart-send-logistics');
@@ -650,18 +694,22 @@ if (!class_exists('SS_Shipping_WC')) :
 
 			foreach ( $available_shipping_methods as $shipping_rate ) {
 				if ( $shipping_rate instanceof WC_Shipping_Rate && SS_SHIPPING_METHOD_ID === $shipping_rate->get_method_id() ) {
-					$offered[] = '"' . $shipping_rate->get_label() . '" (' . $shipping_rate->get_id() . ', cost ' . $shipping_rate->get_cost() . ')';
+					$offered[] = sprintf( '"%1$s" (%2$s, cost %3$s)', $shipping_rate->get_label(), $shipping_rate->get_id(), $shipping_rate->get_cost() );
 				}
 			}
 
 			if ( empty( $offered ) ) {
-				$message = 'Smart Send: no Smart Send rates offered for this package.';
+				$log_message    = 'Smart Send: no Smart Send rates offered for this package.';
+				$notice_message = __( 'Smart Send: no Smart Send rates offered for this package.', 'smart-send-logistics' );
 			} else {
-				$message = 'Smart Send: rates offered for this package: ' . implode( ', ', $offered ) . '.';
+				$rate_list   = implode( ', ', $offered );
+				$log_message = sprintf( 'Smart Send: rates offered for this package: %s.', $rate_list );
+				/* translators: %s: list of offered rates, each as "label" (rate id, cost). */
+				$notice_message = sprintf( __( 'Smart Send: rates offered for this package: %s.', 'smart-send-logistics' ), $rate_list );
 			}
 
-			SS_Shipping_Logger::debug( $message );
-			SS_Shipping_Checkout_Debug::add_notice( $message );
+			SS_Shipping_Logger::debug( $log_message, array( 'offered_rates' => $offered ) );
+			SS_Shipping_Checkout_Debug::add_notice( $notice_message );
 		}
     }
 

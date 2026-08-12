@@ -11,6 +11,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit; // Exit if accessed directly.
 }
 
+// A second copy of the plugin may already have defined the class.
 if ( ! class_exists( 'SS_Shipping_Order_Data' ) ) :
 
 	/**
@@ -29,7 +30,7 @@ if ( ! class_exists( 'SS_Shipping_Order_Data' ) ) :
 		 *
 		 * @var WC_Order
 		 */
-		protected $order;
+		protected WC_Order $order;
 
 		/**
 		 * Constructor.

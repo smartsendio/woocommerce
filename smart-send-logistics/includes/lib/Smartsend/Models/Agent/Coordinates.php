@@ -5,42 +5,42 @@ namespace Smartsend\Models\Agent;
 class Coordinates implements \JsonSerializable
 {
 
-    private $latitude;
-    private $longitude;
+    private ?float $latitude = null;
+    private ?float $longitude = null;
 
     /**
-     * @return mixed
+     * @return float|null
      */
-    public function getLatitude()
+    public function getLatitude(): ?float
     {
         return $this->latitude;
     }
 
     /**
      * @param mixed $latitude
-     * @return Coordinates
+     * @return self
      */
-    public function setLatitude($latitude)
+    public function setLatitude($latitude): self
     {
-        $this->latitude = $latitude;
+        $this->latitude = is_null($latitude) ? null : ((float) $latitude);
         return $this;
     }
 
     /**
-     * @return mixed
+     * @return float|null
      */
-    public function getLongitude()
+    public function getLongitude(): ?float
     {
         return $this->longitude;
     }
 
     /**
      * @param mixed $longitude
-     * @return Coordinates
+     * @return self
      */
-    public function setLongitude($longitude)
+    public function setLongitude($longitude): self
     {
-        $this->longitude = $longitude;
+        $this->longitude = is_null($longitude) ? null : ((float) $longitude);
         return $this;
     }
 

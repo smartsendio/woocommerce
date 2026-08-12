@@ -33,7 +33,10 @@ class SS_Shipping_Logger {
 	/**
 	 * The shared WC_Logger instance.
 	 *
-	 * @var WC_Logger_Interface
+	 * Public and deliberately untyped: tests (and potentially merchant code)
+	 * inject logger doubles that do not implement WC_Logger_Interface.
+	 *
+	 * @var WC_Logger_Interface|null
 	 */
 	public static $logger;
 
@@ -134,10 +137,6 @@ class SS_Shipping_Logger {
 			return;
 		}
 
-		if ( ! function_exists( 'wc_add_notice' ) || ! function_exists( 'wc_has_notice' ) ) {
-			return;
-		}
-
 		if ( wc_has_notice( $message ) ) {
 			return;
 		}
@@ -176,9 +175,12 @@ class SS_Shipping_Logger {
 		$endpoint = self::redact_endpoint( isset( $context['endpoint'] ) ? $context['endpoint'] : '' );
 		$path     = wp_parse_url( $endpoint, PHP_URL_PATH );
 
-		$message = ( isset( $context['method'] ) ? $context['method'] : '' )
-			. ' ' . ( $path ? $path : $endpoint )
-			. ' → ' . $status_code;
+		$message = sprintf(
+			'%1$s %2$s → %3$s',
+			isset( $context['method'] ) ? $context['method'] : '',
+			$path ? $path : $endpoint,
+			$status_code
+		);
 
 		$log_context = array(
 			'endpoint'    => $endpoint,
@@ -187,7 +189,7 @@ class SS_Shipping_Logger {
 
 		if ( isset( $context['start_time'], $context['end_time'] ) && is_numeric( $context['start_time'] ) && is_numeric( $context['end_time'] ) ) {
 			$duration_ms                = (int) round( abs( $context['end_time'] - $context['start_time'] ) * 1000 );
-			$message                   .= ' (' . $duration_ms . 'ms)';
+			$message                    = sprintf( '%1$s (%2$dms)', $message, $duration_ms );
 			$log_context['duration_ms'] = $duration_ms;
 		}
 
@@ -243,10 +245,6 @@ class SS_Shipping_Logger {
 	 * @param bool   $enabled Whether logging is enabled for this entry (before the filter).
 	 */
 	private static function write( $level, $message, $context, $enabled ) {
-		if ( ! function_exists( 'wc_get_logger' ) ) {
-			return;
-		}
-
 		if ( ! $enabled || ! in_array( $level, self::LEVELS, true ) ) {
 			return;
 		}

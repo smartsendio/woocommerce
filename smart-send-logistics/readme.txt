@@ -114,7 +114,101 @@ See our written guide on our [Smart Send website](https://smartsend.io/woocommer
 
 == Developers ==
 
-The plugin implements a number of useful hooks (actions and filters) that can be used to extend the functionality of the plugin:
+The plugin implements a formal extension API of `smart_send_*` hooks: filters for values, actions for events. Extend the plugin through these hooks instead of patching it - the names and signatures are stable.
+
+= API connection =
+
+* **smart_send_api_endpoint**
+    A filter to change the API endpoint the plugin talks to, e.g. to point at the Smart Send sandbox environment
+* **smart_send_sslverify**
+    A filter to disable SSL certificate verification for API requests (only for local development)
+* **smart_send_agent_timeout**
+    A filter to change the timeout (seconds) used when searching for pick-up points on the checkout page
+
+= Pick-up point lookup and selector (checkout) =
+
+* **smart_send_agent_search_params** (since 9.0.0)
+    A filter on the search parameters (carrier, country, postal_code, city, street) used to look up the closest pick-up points, before the API call is made
+* **smart_send_agents_found** (since 9.0.0)
+    A filter on the list of pick-up points returned by the lookup, before it is cached in the session and rendered - return fewer entries to limit the choices, or re-order them
+* **smart_send_agent_option_label** (since 9.0.0)
+    A filter on the label shown for each pick-up point in the checkout drop-down
+* **smart_send_default_selected_agent** (since 9.0.0)
+    A filter on which pick-up point is pre-selected in the checkout drop-down - return the agent_no of one of the found pick-up points
+
+Example: show at most 5 pick-up points and pre-select the closest one:
+
+    add_filter('smart_send_agents_found', function ($agents, $search_params) {
+        return array_slice($agents, 0, 5);
+    }, 10, 2);
+
+    add_filter('smart_send_default_selected_agent', function ($default_agent_no, $agents) {
+        return $agents ? $agents[0]->agent_no : $default_agent_no;
+    }, 10, 2);
+
+= Shipping label creation =
+
+* **smart_send_shipping_label_args**
+    A filter to modify the order parameters (carrier, method, pick-up point, parcel split) that are used when creating shipping labels
+* **smart_send_order_agent**
+    A filter to change the pick-up point (agent) used when creating a shipping label
+* **smart_send_order_parcels** (since 9.0.0)
+    A filter on the parcel split stored for the order, before the shipment payload is assembled - return an array of rows (id, name, value) to split the items into numbered boxes
+* **smart_send_order_receiver**
+    A filter to change the receiver address that is used for shipping labels
+* **smart_send_receiver_phone** (since 9.0.0)
+    A filter to change the receiver phone number used for the shipping label and the SMS notification
+* **smart_send_payload_receiver** (since 9.0.0)
+    A filter on the receiver section (array) of the booking request
+* **smart_send_payload_items** (since 9.0.0)
+    A filter on the item lines (array) of the booking request
+* **smart_send_payload_totals** (since 9.0.0)
+    A filter on the totals section (array) of the booking request
+* **smart_send_payload_parcels** (since 9.0.0)
+    A filter on the assembled parcel models (Smartsend\Models\Shipment\Parcel objects) of the booking request
+* **smart_send_parcel_weight**
+    A filter on the weight of each parcel when the order is split into parcels
+* **smart_send_order_note**
+    A filter to change the freetext that is inserted on shipping labels
+
+Example: split every order with more than one item into one box per item:
+
+    add_filter('smart_send_order_parcels', function ($parcels, $order_id, $is_return) {
+        if (!empty($parcels)) {
+            return $parcels; // Keep a split made in the order screen.
+        }
+        $rows = array();
+        $box = 1;
+        foreach (wc_get_order($order_id)->get_items() as $item) {
+            $product_id = $item->get_variation_id() ? $item->get_variation_id() : $item->get_product_id();
+            for ($i = 0; $i < $item->get_quantity(); $i++) {
+                $rows[] = array('id' => $product_id, 'name' => $item->get_name(), 'value' => (string) $box++);
+            }
+        }
+        return $rows;
+    }, 10, 3);
+
+= After the shipping label is created =
+
+* **smart_send_shipping_label_created**
+    An action which is called once a shipping label has been created for an order
+* **smart_send_shipping_label_comment**
+    A filter to modify the order comment that is added once a shipping label is created
+* **smart_send_tracking_url**
+    A filter to modify the tracking url that is entered in WooCommerce once a shipping label is created
+
+= Logging and admin =
+
+* **smart_send_logging** (since 9.0.0)
+    A filter on every message the plugin writes to the WooCommerce log - return a modified string to rewrite it, or null/false to suppress the entry
+* **smart_send_configuration_url**
+    A filter on the settings link shown on the WordPress plugins screen
+* **smart_send_support_url**
+    A filter on the support link shown on the WordPress plugins screen
+
+= WooCommerce-standard hooks =
+
+The following hooks follow WooCommerce naming conventions and can be used as well:
 
 * **woocommerce_smart_send_shipping_shipping_add_rate**
     An action that allows 3rd parties to add rates after the Smart Send rate is added.
@@ -122,20 +216,6 @@ The plugin implements a number of useful hooks (actions and filters) that can be
     A filter that allows 3rd parties to disable a shipping method
 * **woocommerce_shipping_smart_send_shipping_is_free_shipping**
     A filter that allows 3rd parties to disable/enable free shipping for a method
-* **smart_send_agent_timeout**
-    A filter to change the timeout used when searching for agents on checkout page
-* **smart_send_shipping_label_args**
-    A filter to modify the order parameters that are used when creating shipping labels
-* **smart_send_order_receiver**
-    A filter to change the receiver add that is used for shipping labels
-* **smart_send_order_note**
-    A filter to change the freetext that is inserted on shipping labels
-* **smart_send_shipping_label_comment**
-    A filter to modify the order comment that is added once a shipping label is created
-* **smart_send_tracking_url**
-    A filter to modify the tracking url that is entered in WooCommerce once a shipping label is created
-* **smart_send_shipping_label_created**
-    An action which is called once a shipping label has been created for an order
 
 The following filters are inherited from WooCommerce and can be used as well:
 

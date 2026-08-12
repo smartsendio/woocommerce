@@ -16,24 +16,27 @@ require_once 'Shipment/Services.php';
 
 class Shipment implements \JsonSerializable
 {
-    private $internal_id;
-    private $internal_reference;
-    private $shipping_carrier;
-    private $shipping_method;
-    private $shipping_date;
-    private $sender;
-    private $receiver;
-    private $agent;
-    private $parcels;
-    private $services;
-    private $subtotal_price_excluding_tax;
-    private $subtotal_price_including_tax;
-    private $shipping_price_excluding_tax;
-    private $shipping_price_including_tax;
-    private $total_price_excluding_tax;
-    private $total_price_including_tax;
-    private $total_tax_amount;
-    private $currency;
+    // Typed properties keep the "= null" default so jsonSerialize()'s
+    // get_object_vars() output (and therefore the API payload) is identical
+    // to the previous untyped declarations.
+    private ?string $internal_id = null;
+    private ?string $internal_reference = null;
+    private ?string $shipping_carrier = null;
+    private ?string $shipping_method = null;
+    private ?string $shipping_date = null;
+    private ?Sender $sender = null;
+    private ?Receiver $receiver = null;
+    private ?ShipmentAgent $agent = null;
+    private ?array $parcels = null;
+    private ?Services $services = null;
+    private ?float $subtotal_price_excluding_tax = null;
+    private ?float $subtotal_price_including_tax = null;
+    private ?float $shipping_price_excluding_tax = null;
+    private ?float $shipping_price_including_tax = null;
+    private ?float $total_price_excluding_tax = null;
+    private ?float $total_price_including_tax = null;
+    private ?float $total_tax_amount = null;
+    private ?string $currency = null;
 
     public function __construct(Array $shipment=null)
     {
@@ -112,162 +115,162 @@ class Shipment implements \JsonSerializable
     }
 
     /**
-     * @return null
+     * @return string|null
      */
-    public function getInternalId()
+    public function getInternalId(): ?string
     {
         return $this->internal_id;
     }
 
     /**
      * @param string $internal_id
-     * @return Shipment
+     * @return self
      */
-    public function setInternalId($internal_id)
+    public function setInternalId($internal_id): self
     {
         $this->internal_id = (string) $internal_id;
         return $this;
     }
 
     /**
-     * @return mixed
+     * @return string|null
      */
-    public function getInternalReference()
+    public function getInternalReference(): ?string
     {
         return $this->internal_reference;
     }
 
     /**
      * @param string $internal_reference
-     * @return Shipment
+     * @return self
      */
-    public function setInternalReference($internal_reference)
+    public function setInternalReference($internal_reference): self
     {
         $this->internal_reference = (string) $internal_reference;
         return $this;
     }
 
     /**
-     * @return mixed
+     * @return string|null
      */
-    public function getShippingCarrier()
+    public function getShippingCarrier(): ?string
     {
         return $this->shipping_carrier;
     }
 
     /**
-     * @param mixed $shipping_carrier
-     * @return Shipment
+     * @param string|null $shipping_carrier
+     * @return self
      */
-    public function setShippingCarrier($shipping_carrier)
+    public function setShippingCarrier(?string $shipping_carrier): self
     {
         $this->shipping_carrier = $shipping_carrier;
         return $this;
     }
 
     /**
-     * @return mixed
+     * @return string|null
      */
-    public function getShippingMethod()
+    public function getShippingMethod(): ?string
     {
         return $this->shipping_method;
     }
 
     /**
-     * @param mixed $shipping_method
-     * @return Shipment
+     * @param string|null $shipping_method
+     * @return self
      */
-    public function setShippingMethod($shipping_method)
+    public function setShippingMethod(?string $shipping_method): self
     {
         $this->shipping_method = $shipping_method;
         return $this;
     }
-    
+
     /**
-     * @return mixed
+     * @return string|null
      */
-    public function getShippingDate()
+    public function getShippingDate(): ?string
     {
         return $this->shipping_date;
     }
 
     /**
-     * @param mixed $shipping_date
-     * @return Shipment
+     * @param string|null $shipping_date
+     * @return self
      */
-    public function setShippingDate($shipping_date)
+    public function setShippingDate(?string $shipping_date): self
     {
         $this->shipping_date = $shipping_date;
         return $this;
     }
 
     /**
-     * @return mixed
+     * @return Sender|null
      */
-    public function getSender()
+    public function getSender(): ?Sender
     {
         return $this->sender;
     }
 
     /**
      * @param Sender $sender
-     * @return Shipment
+     * @return self
      */
-    public function setSender(Sender $sender)
+    public function setSender(Sender $sender): self
     {
         $this->sender = $sender;
         return $this;
     }
 
     /**
-     * @return mixed
+     * @return Receiver|null
      */
-    public function getReceiver()
+    public function getReceiver(): ?Receiver
     {
         return $this->receiver;
     }
 
     /**
-     * @param mixed $receiver
-     * @return Shipment
+     * @param Receiver $receiver
+     * @return self
      */
-    public function setReceiver(Receiver $receiver)
+    public function setReceiver(Receiver $receiver): self
     {
         $this->receiver = $receiver;
         return $this;
     }
 
     /**
-     * @return mixed
+     * @return ShipmentAgent|null
      */
-    public function getAgent()
+    public function getAgent(): ?ShipmentAgent
     {
         return $this->agent;
     }
 
     /**
      * @param ShipmentAgent $agent
-     * @return Shipment
+     * @return self
      */
-    public function setAgent(ShipmentAgent $agent)
+    public function setAgent(ShipmentAgent $agent): self
     {
         $this->agent = $agent;
         return $this;
     }
 
     /**
-     * @return mixed
+     * @return Parcel[]|null
      */
-    public function getParcels()
+    public function getParcels(): ?array
     {
         return $this->parcels;
     }
 
     /**
-     * @param mixed $parcels
-     * @return Shipment
+     * @param Parcel[] $parcels
+     * @return self
      */
-    public function setParcels(array $parcels)
+    public function setParcels(array $parcels): self
     {
         $this->parcels = $parcels;
         return $this;
@@ -275,9 +278,9 @@ class Shipment implements \JsonSerializable
 
     /**
      * @param Parcel $parcel
-     * @return Shipment
+     * @return self
      */
-    public function addParcel(Parcel $parcel)
+    public function addParcel(Parcel $parcel): self
     {
         if (is_array($this->parcels)) {
             $this->parcels[] = $parcel;
@@ -289,162 +292,162 @@ class Shipment implements \JsonSerializable
     }
 
     /**
-     * @return mixed
+     * @return Services|null
      */
-    public function getServices()
+    public function getServices(): ?Services
     {
         return $this->services;
     }
 
     /**
      * @param Services $services
-     * @return Shipment
+     * @return self
      */
-    public function setServices(Services $services)
+    public function setServices(Services $services): self
     {
         $this->services = $services;
         return $this;
     }
 
     /**
-     * @return mixed
+     * @return float|null
      */
-    public function getSubtotalPriceExcludingTax()
+    public function getSubtotalPriceExcludingTax(): ?float
     {
         return $this->subtotal_price_excluding_tax;
     }
 
     /**
      * @param mixed $subtotal_price_excluding_tax
-     * @return Shipment
+     * @return self
      */
-    public function setSubtotalPriceExcludingTax($subtotal_price_excluding_tax)
+    public function setSubtotalPriceExcludingTax($subtotal_price_excluding_tax): self
     {
         $this->subtotal_price_excluding_tax = is_null($subtotal_price_excluding_tax) ? null : ((float) $subtotal_price_excluding_tax);
         return $this;
     }
 
     /**
-     * @return mixed
+     * @return float|null
      */
-    public function getSubtotalPriceIncludingTax()
+    public function getSubtotalPriceIncludingTax(): ?float
     {
         return $this->subtotal_price_including_tax;
     }
 
     /**
      * @param mixed $subtotal_price_including_tax
-     * @return Shipment
+     * @return self
      */
-    public function setSubtotalPriceIncludingTax($subtotal_price_including_tax)
+    public function setSubtotalPriceIncludingTax($subtotal_price_including_tax): self
     {
         $this->subtotal_price_including_tax = is_null($subtotal_price_including_tax) ? null : ((float) $subtotal_price_including_tax);
         return $this;
     }
 
     /**
-     * @return mixed
+     * @return float|null
      */
-    public function getShippingPriceExcludingTax()
+    public function getShippingPriceExcludingTax(): ?float
     {
         return $this->shipping_price_excluding_tax;
     }
 
     /**
      * @param mixed $shipping_price_excluding_tax
-     * @return Shipment
+     * @return self
      */
-    public function setShippingPriceExcludingTax($shipping_price_excluding_tax)
+    public function setShippingPriceExcludingTax($shipping_price_excluding_tax): self
     {
         $this->shipping_price_excluding_tax = is_null($shipping_price_excluding_tax) ? null : ((float) $shipping_price_excluding_tax);
         return $this;
     }
 
     /**
-     * @return mixed
+     * @return float|null
      */
-    public function getShippingPriceIncludingTax()
+    public function getShippingPriceIncludingTax(): ?float
     {
         return $this->shipping_price_including_tax;
     }
 
     /**
      * @param mixed $shipping_price_including_tax
-     * @return Shipment
+     * @return self
      */
-    public function setShippingPriceIncludingTax($shipping_price_including_tax)
+    public function setShippingPriceIncludingTax($shipping_price_including_tax): self
     {
         $this->shipping_price_including_tax = is_null($shipping_price_including_tax) ? null : ((float) $shipping_price_including_tax);
         return $this;
     }
 
     /**
-     * @return mixed
+     * @return float|null
      */
-    public function getTotalPriceExcludingTax()
+    public function getTotalPriceExcludingTax(): ?float
     {
         return $this->total_price_excluding_tax;
     }
 
     /**
      * @param mixed $total_price_excluding_tax
-     * @return Shipment
+     * @return self
      */
-    public function setTotalPriceExcludingTax($total_price_excluding_tax)
+    public function setTotalPriceExcludingTax($total_price_excluding_tax): self
     {
         $this->total_price_excluding_tax = is_null($total_price_excluding_tax) ? null : ((float) $total_price_excluding_tax);
         return $this;
     }
 
     /**
-     * @return mixed
+     * @return float|null
      */
-    public function getTotalPriceIncludingTax()
+    public function getTotalPriceIncludingTax(): ?float
     {
         return $this->total_price_including_tax;
     }
 
     /**
      * @param mixed $total_price_including_tax
-     * @return Shipment
+     * @return self
      */
-    public function setTotalPriceIncludingTax($total_price_including_tax)
+    public function setTotalPriceIncludingTax($total_price_including_tax): self
     {
         $this->total_price_including_tax = is_null($total_price_including_tax) ? null : ((float) $total_price_including_tax);
         return $this;
     }
 
     /**
-     * @return mixed
+     * @return float|null
      */
-    public function getTotalTaxAmount()
+    public function getTotalTaxAmount(): ?float
     {
         return $this->total_tax_amount;
     }
 
     /**
      * @param mixed $total_tax_amount
-     * @return Shipment
+     * @return self
      */
-    public function setTotalTaxAmount($total_tax_amount)
+    public function setTotalTaxAmount($total_tax_amount): self
     {
         $this->total_tax_amount = is_null($total_tax_amount) ? null : ((float) $total_tax_amount);
         return $this;
     }
 
     /**
-     * @return mixed
+     * @return string|null
      */
-    public function getCurrency()
+    public function getCurrency(): ?string
     {
         return $this->currency;
     }
 
     /**
-     * @param mixed $currency
-     * @return Shipment
+     * @param string|null $currency
+     * @return self
      */
-    public function setCurrency($currency)
+    public function setCurrency(?string $currency): self
     {
         $this->currency = $currency;
         return $this;

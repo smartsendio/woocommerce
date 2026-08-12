@@ -11,26 +11,41 @@ class Client
 {
     const TIMEOUT = 30;
 
+    /** @var string Untyped: the value passes through the smart_send_api_endpoint filter, whose return value is not under our control. */
     private $api_host = 'https://app.smartsend.io/api/v1/';
-    private $website;
-    private $api_token;
-    private $demo;
-    protected $request_endpoint;
-    protected $request_headers;
+    // ?string: setWebsite() can receive null when get_website_url()'s
+    // parse_url() call fails to resolve a host (returns null on a malformed
+    // site URL); setApiToken() can receive null when no token is configured
+    // yet (SS_Shipping_WC::get_api_token_setting() returns null).
+    private ?string $website = null;
+    private ?string $api_token = null;
+    private bool $demo = false;
+    protected ?string $request_endpoint = null;
+    protected ?array $request_headers = null;
+    /** @var string|null Untyped: json_encode() can return false on encoding failure. */
     protected $request_body;
+    /** @var array|\WpOrg\Requests\Utility\CaseInsensitiveDictionary|null Untyped: wp_remote_retrieve_headers() returns either shape. */
     protected $response_headers;
-    protected $response_body;
+    protected ?string $response_body = null;
+    /** @var mixed Decoded JSON response body. */
     protected $response;
+    /** @var int|string|null Untyped: wp_remote_retrieve_response_code() returns '' on transport failure. */
     protected $http_status_code;
+    /** @var string|array|null Untyped: wp_remote_retrieve_header() returns an array for duplicate headers. */
     protected $content_type;
+    /** @var array|\WP_Error|null Untyped: holds the raw wp_remote_request() result. */
     protected $debug;
+    /** @var mixed Untyped: assigned only null (clearAll()); no accessor reads it, so its real API contract is unconfirmed. */
     protected $meta;
-    protected $success;
+    protected ?bool $success = null;
+    /** @var mixed API response data. */
     protected $data;
+    /** @var mixed API response links. */
     protected $links;
-    protected $error;
+    protected ?Error $error = null;
+    /** @var callable|null Untyped: PHP does not support callable property types (the setter parameter below is still hinted `callable`). */
     private $request_logger;
-    private $request_started_at;
+    private ?float $request_started_at = null;
 
     public function __construct($api_token, $website, $demo=false)
     {
@@ -41,47 +56,47 @@ class Client
         $this->api_host = apply_filters( 'smart_send_api_endpoint', $this->api_host);
     }
 
-    public function setApiToken($api_token)
+    public function setApiToken(?string $api_token): void
     {
         $this->api_token = $api_token;
     }
 
-    public function setWebsite($website)
+    public function setWebsite(?string $website): void
     {
         // Remove www. from the start of the website
-        if (substr($website, 0, strlen('www.')) == 'www.') {
+        if ($website !== null && substr($website, 0, strlen('www.')) == 'www.') {
             $website = substr($website, strlen('www.'));
         }
 
         $this->website = $website;
     }
 
-    public function setDemo($demo)
+    public function setDemo(bool $demo): void
     {
         $this->demo = $demo;
     }
 
-    public function getApiEndpoint() 
+    public function getApiEndpoint()
     {
         return $this->getApiHost().($this->getDemo() ? 'demo/' : '')."website/".$this->getWebsite()."/";
     }
 
-    private function getApiHost() 
+    private function getApiHost()
     {
         return $this->api_host;
     }
 
-    private function getWebsite() 
+    private function getWebsite(): ?string
     {
         return $this->website;
     }
 
-    private function getApiToken() 
+    private function getApiToken(): ?string
     {
         return $this->api_token;
     }
 
-    public function getDemo() 
+    public function getDemo(): bool
     {
         return $this->demo;
     }
@@ -137,9 +152,9 @@ class Client
     }
 
     /**
-     * @return mixed
+     * @return Error|null
      */
-    public function getError()
+    public function getError(): ?Error
     {
         return $this->error;
     }
@@ -204,9 +219,9 @@ class Client
     }
 
     /**
-     * @return mixed
+     * @return string|null
      */
-    public function getRequestEndpoint()
+    public function getRequestEndpoint(): ?string
     {
         return $this->request_endpoint;
     }
@@ -220,17 +235,17 @@ class Client
     }
 
     /**
-     * @return mixed
+     * @return array|null
      */
-    public function getRequestHeaders()
+    public function getRequestHeaders(): ?array
     {
         return $this->request_headers;
     }
 
     /**
-     * @return mixed
+     * @return string|null
      */
-    public function getResponseBody()
+    public function getResponseBody(): ?string
     {
         return $this->response_body;
     }
@@ -255,7 +270,7 @@ class Client
      * @param   callable|null $request_logger
      * @return  void
      */
-    public function setRequestLogger($request_logger)
+    public function setRequestLogger(?callable $request_logger): void
     {
         $this->request_logger = $request_logger;
     }
@@ -290,7 +305,7 @@ class Client
      * Was the API response contain link to next page of results
      * @return  boolean
      */
-    public function isSuccessful()
+    public function isSuccessful(): ?bool
     {
         return $this->success;
     }
