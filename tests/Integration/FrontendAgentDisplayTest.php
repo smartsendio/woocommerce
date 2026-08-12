@@ -60,6 +60,23 @@ it('renders nothing for an order without an agent', function () {
     expect(capture_agent_display($order))->toBe('');
 });
 
+it('renders nothing for an order that does not exist in the database', function () {
+    // Regression for #60: WooCommerce's email preview fires the order-details
+    // hooks (woocommerce_email_after_order_table etc.) with a placeholder
+    // order that has no database row, so wc_get_order() returns false inside
+    // the meta accessors. This used to fatal with
+    // "Call to a member function get_meta() on bool".
+    $ghost = new WC_Order(); // Unsaved: get_id() is 0 and wc_get_order(0) is false.
+
+    expect(capture_agent_display($ghost))->toBe('');
+
+    // Fire the actual hooks the way the email templates do.
+    ob_start();
+    do_action('woocommerce_order_details_after_order_table', $ghost);
+    do_action('woocommerce_email_after_order_table', $ghost, false);
+    expect(ob_get_clean())->toBe('');
+});
+
 it('survives deleting the agent meta of an order that no longer exists', function () {
     // Invalid-order guard (#60): the deleted_post_meta hook can fire for
     // orders that were already removed; the handler must not fatal.
