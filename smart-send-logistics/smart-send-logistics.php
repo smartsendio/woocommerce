@@ -136,20 +136,24 @@ if ( ! class_exists( 'SS_Shipping_WC' ) ) :
             return self::$_instance;
         }
 
-        /**
-         * Define WC Constants.
-         */
-        private function define_constants()
-        {
-            $upload_dir = wp_upload_dir();
-
-			// Path related defines
-			$this->define( 'SS_SHIPPING_PLUGIN_FILE', __FILE__ );
+		/**
+		 * Define WC Constants.
+		 */
+		private function define_constants() {
+			// Path related defines, used throughout includes() and
+			// include_shipping_method_class() for require_once paths.
 			$this->define( 'SS_SHIPPING_PLUGIN_BASENAME', plugin_basename( __FILE__ ) );
 			$this->define( 'SS_SHIPPING_PLUGIN_DIR_PATH', untrailingslashit( plugin_dir_path( __FILE__ ) ) );
 			$this->define( 'SS_SHIPPING_PLUGIN_DIR_URL', untrailingslashit( plugins_url( '/', __FILE__ ) ) );
+			// Mirrors the private $version property for the handful of files
+			// (API client, logger, method class, upgrade notices) that need
+			// the version number but aren't handed the SS_Shipping_WC instance.
 			$this->define( 'SS_SHIPPING_VERSION', $this->version );
-			$this->define( 'SS_SHIPPING_LOG_DIR', $upload_dir['basedir'] . '/wc-logs/' );
+			// The literal shipping method id ('smart_send_shipping'). Kept as a
+			// global constant rather than a class constant on
+			// SS_Shipping_WC_Method: it's read from files loaded well before
+			// that class (this file, SS_Shipping_Logger), and that class is
+			// only require_once'd lazily once WooCommerce is confirmed active.
 			$this->define( 'SS_SHIPPING_METHOD_ID', 'smart_send_shipping' );
 		}
 
@@ -223,12 +227,6 @@ if ( ! class_exists( 'SS_Shipping_WC' ) ) :
          * Initialize the plugin.
 		 */
 		public function init() {
-			// Translated string constants must not be defined before the init
-			// action: since WordPress 6.7 any translation call for our text
-			// domain that runs earlier triggers a _load_textdomain_just_in_time
-			// "called incorrectly" notice.
-			$this->define( 'SS_BUTTON_TEST_CONNECTION', __( 'Validate API Token', 'smart-send-logistics' ) );
-
 			// The single bootstrap-level WooCommerce-active gate: `Requires Plugins: woocommerce`
 			// already guarantees WooCommerce on WP >= 6.5, so this check is belt-and-braces for
 			// older WordPress. Everything downstream of it assumes WooCommerce is present.
@@ -619,11 +617,13 @@ if ( ! class_exists( 'SS_Shipping_WC' ) ) :
 				SS_Shipping_Logger::info( 'API token connection test succeeded', array( 'message' => $connection_msg ) );
 			}
 
-            wp_send_json(array(
-                'message'    => $connection_msg,
-                'error'      => $error,
-                'button_txt' => SS_BUTTON_TEST_CONNECTION,
-            ));
+			wp_send_json(
+				array(
+					'message'    => $connection_msg,
+					'error'      => $error,
+					'button_txt' => __( 'Validate API Token', 'smart-send-logistics' ),
+				)
+			);
 
             wp_die();
         }
