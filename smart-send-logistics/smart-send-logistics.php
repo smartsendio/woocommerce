@@ -7,6 +7,7 @@
  * Author URI: https://www.smartsend.io
  * Text Domain: smart-send-logistics
  * Version: 8.1.3
+ * Requires PHP: 7.4
  * Requires Plugins: woocommerce
  * WC requires at least: 4.7.0
  * WC tested up to: 10.3
@@ -541,9 +542,9 @@ if (!class_exists('SS_Shipping_WC')) :
 		        $api_token = empty($ss_shipping_settings['api_token']) ? null : $ss_shipping_settings['api_token'];
 	        }
 
-	        if (strpos($api_token, ',') && strpos($api_token, ':')) {
-		        //The API Token field contains multiple tokens in the format:
-		        //site1:apitoken1,site2:apitoken2,....
+			if ( is_string( $api_token ) && strpos( $api_token, ',' ) && strpos( $api_token, ':' ) ) {
+				//The API Token field contains multiple tokens in the format:
+				//site1:apitoken1,site2:apitoken2,....
 		        $tokens = array();
 		        $site_and_tokens = explode(',', $api_token);
 		        foreach ($site_and_tokens as $site_and_token) {

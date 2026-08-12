@@ -11,6 +11,8 @@ if (!class_exists('SS_Shipping_WC_Method')) :
 
         private $shipping_method = array();
 
+		private $return_shipping_method = array();
+
         /**
          * Init and hook in the integration.
          */

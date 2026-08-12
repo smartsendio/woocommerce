@@ -32,3 +32,6 @@ jobs:
 
       - name: Run phpcs
         run: vendor/bin/phpcs
+
+      - name: Run PHP compatibility scan (PHP 7.4+)
+        run: vendor/bin/phpcs --standard=phpcs.compat.xml.dist
