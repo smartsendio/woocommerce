@@ -74,7 +74,7 @@ if ( ! class_exists( 'SS_Shipping_Method_Settings' ) ) :
 					'desc_tip'    => false,
 				),
 				'api_token_validate'                => array(
-					'title'             => SS_BUTTON_TEST_CONNECTION,
+					'title'             => __( 'Validate API Token', 'smart-send-logistics' ),
 					'type'              => 'button',
 					'custom_attributes' => array(
 						'onclick' => "ssTestConnection('#woocommerce_smart_send_shipping_api_token_validate');",
