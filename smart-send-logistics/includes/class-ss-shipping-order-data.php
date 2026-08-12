@@ -168,9 +168,9 @@ if ( ! class_exists( 'SS_Shipping_Order_Data' ) ) :
 					'id'                        => $product_id,
 					'sku'                       => $product_sku,
 					'name'                      => $product->get_title(),
-					'description'               => $this->get_product_meta( $product, '_ss_customs_desc' ),
-					'hs_code'                   => $this->get_product_meta( $product, '_ss_hs_code' ),
-					'country_of_origin'         => $this->get_product_meta( $product, '_ss_country_of_origin' ),
+					'description'               => $this->get_product_meta( $product, $product_variation, '_ss_customs_desc' ),
+					'hs_code'                   => $this->get_product_meta( $product, $product_variation, '_ss_hs_code' ),
+					'country_of_origin'         => $this->get_product_meta( $product, $product_variation, '_ss_country_of_origin' ),
 					'quantity'                  => $quantity,
 					'unit_weight'               => $unit_weight,
 					'unit_price_excluding_tax'  => $unit_price_excluding_tax,
@@ -265,14 +265,25 @@ if ( ! class_exists( 'SS_Shipping_Order_Data' ) ) :
 		}
 
 		/**
-		 * Read a Smart Send product meta value through the product CRUD layer.
+		 * Read a Smart Send product meta value through the product CRUD
+		 * layer, variation-aware: the variation's own value wins, falling
+		 * back to the parent product when the variation has none.
 		 *
-		 * @param WC_Product $product  The (parent) product of the order line.
-		 * @param string     $meta_key Meta key to read.
+		 * @param WC_Product $product           The (parent) product of the order line.
+		 * @param WC_Product $product_variation The variation, or the product itself for simple products.
+		 * @param string     $meta_key          Meta key to read.
 		 *
 		 * @return mixed The meta value, or an empty string when not set.
 		 */
-		protected function get_product_meta( $product, $meta_key ) {
+		protected function get_product_meta( $product, $product_variation, $meta_key ) {
+			if ( $product_variation && $product_variation->get_id() !== $product->get_id() ) {
+				$value = $product_variation->get_meta( $meta_key, true );
+
+				if ( '' !== $value && null !== $value ) {
+					return $value;
+				}
+			}
+
 			return $product->get_meta( $meta_key, true );
 		}
 	}

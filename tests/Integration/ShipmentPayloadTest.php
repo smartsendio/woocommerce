@@ -452,6 +452,33 @@ it('uses the variation id, sku and weight for variable products', function () {
     ]));
 });
 
+it('reads customs meta from the variation, falling back to the parent product', function () {
+    [$parent, $variation] = create_variable_product([
+        'name'   => 'Variable Customs Product',
+        'price'  => 100,
+        'weight' => 1,
+    ]);
+    $parent->update_meta_data('_ss_hs_code', '61091000');
+    $parent->update_meta_data('_ss_customs_desc', 'Cotton t-shirt');
+    $parent->update_meta_data('_ss_country_of_origin', 'DK');
+    $parent->save();
+
+    // The variation overrides only the HS code.
+    $variation->update_meta_data('_ss_hs_code', '62052000');
+    $variation->save();
+
+    $order = create_order([
+        'products'        => [$variation],
+        'shipping_method' => 'postnord_agent',
+    ]);
+
+    $payload = capture_shipment_payload($order);
+
+    expect($payload['parcels'][0]['items'][0]['hs_code'])->toBe('62052000')
+        ->and($payload['parcels'][0]['items'][0]['description'])->toBe('Cotton t-shirt')
+        ->and($payload['parcels'][0]['items'][0]['country_of_origin'])->toBe('DK');
+});
+
 it('sends a null parcel weight when products have no weight', function () {
     $product = create_simple_product(['name' => 'Weightless Product', 'price' => 50, 'weight' => null]);
     $order   = create_order([
