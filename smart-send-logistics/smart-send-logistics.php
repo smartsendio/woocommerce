@@ -390,9 +390,9 @@ if ( ! class_exists( 'SS_Shipping_WC' ) ) :
         }
 
         /**
-         * Get the human readable name of the Smart Send shipping method
-         * Example: 'PostNord: Closest pick-up point (MyPack Collect)'
-         *
+		 * Get the human readable name of the Smart Send shipping method
+		 * Example: 'PostNord: Closest pickup point (MyPack Collect)'
+		 *
          * Details: This method loops over all WC_Shipping methods and finds the
          * instance of SS_Shipping_WC_Method. It then takes the SS_Shipping_WC_Method
          * instance and finds the human readable shipping method name using this.

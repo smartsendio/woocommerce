@@ -9,7 +9,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  *
  * Owns everything stored on (or read from) a WooCommerce order for the
  * Smart Send integration: the resolved shipping method id, the selected
- * pick-up point (agent) meta, the parcel split and the shipment ids.
+ * pickup point (agent) meta, the parcel split and the shipment ids.
  *
  * @package  SS_Shipping_Order_Meta
  * @category Shipping
@@ -187,7 +187,7 @@ if ( ! class_exists( 'SS_Shipping_Order_Meta' ) ) :
 					if ( SS_SHIPPING_WC()->get_api_handle()->getAgentByAgentNo( $shipping_method_carrier, $shipping_address['country'], $ss_shipping_agent_no ) ) {
 
 						SS_Shipping_Logger::info(
-							'Pick-up point changed on order',
+							'Pickup point changed on order',
 							array(
 								'order_id' => $post_id,
 								'agent_no' => $ss_shipping_agent_no,
@@ -203,7 +203,7 @@ if ( ! class_exists( 'SS_Shipping_Order_Meta' ) ) :
 					} else {
 
 						SS_Shipping_Logger::warning(
-							'Pick-up point not found - agent number rejected',
+							'Pickup point not found - agent number rejected',
 							array(
 								'order_id' => $post_id,
 								'agent_no' => $ss_shipping_agent_no,
@@ -212,7 +212,7 @@ if ( ! class_exists( 'SS_Shipping_Order_Meta' ) ) :
 						);
 
 						$error_msg = sprintf(
-							/* translators: %s: the pick-up point agent number that was entered. */
+							/* translators: %s: the pickup point agent number that was entered. */
 							__(
 								'The agent number entered, %s, was not found.',
 								'smart-send-logistics'
@@ -343,7 +343,7 @@ if ( ! class_exists( 'SS_Shipping_Order_Meta' ) ) :
 			// There are situations where the order has been deleted and cannot be found.
 			// We should gracefully handle this situation of failing to load the order.
 			if ( ! $order ) {
-				SS_Shipping_Logger::error( 'Failed to load WooCommerce order when deleting pick-up point meta - skipping', array( 'order_id' => $order_id ) );
+				SS_Shipping_Logger::error( 'Failed to load WooCommerce order when deleting pickup point meta - skipping', array( 'order_id' => $order_id ) );
 
 				return;
 			}

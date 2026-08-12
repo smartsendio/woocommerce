@@ -80,11 +80,11 @@ msgid "- Select Method -"
 msgstr ""
 
 #: admin/class-ss-shipping-method-catalog.php:37
-msgid "PostNord: Select pick-up point (MyPack Collect)"
+msgid "PostNord: Select pickup point (MyPack Collect)"
 msgstr ""
 
 #: admin/class-ss-shipping-method-catalog.php:41
-msgid "PostNord: Closest pick-up point (MyPack Collect)"
+msgid "PostNord: Closest pickup point (MyPack Collect)"
 msgstr ""
 
 #: admin/class-ss-shipping-method-catalog.php:45
@@ -180,11 +180,11 @@ msgid "PostNord: Speciel size pallet"
 msgstr ""
 
 #: admin/class-ss-shipping-method-catalog.php:140
-msgid "GLS: Select pick-up point (ParcelShop)"
+msgid "GLS: Select pickup point (ParcelShop)"
 msgstr ""
 
 #: admin/class-ss-shipping-method-catalog.php:141
-msgid "GLS: Closest pick-up point (ParcelShop)"
+msgid "GLS: Closest pickup point (ParcelShop)"
 msgstr ""
 
 #: admin/class-ss-shipping-method-catalog.php:142
@@ -204,11 +204,11 @@ msgid "GLS: Commercial delivery to address (BusinessParcel)"
 msgstr ""
 
 #: admin/class-ss-shipping-method-catalog.php:155
-msgid "DAO: Select pick-up point (ParcelShop)"
+msgid "DAO: Select pickup point (ParcelShop)"
 msgstr ""
 
 #: admin/class-ss-shipping-method-catalog.php:156
-msgid "DAO: Closest pick-up point (ParcelShop)"
+msgid "DAO: Closest pickup point (ParcelShop)"
 msgstr ""
 
 #: admin/class-ss-shipping-method-catalog.php:157
@@ -216,11 +216,11 @@ msgid "DAO: Leave at door (Direct)"
 msgstr ""
 
 #: admin/class-ss-shipping-method-catalog.php:158
-msgid "DAO: From pick-up point to pick-up point (Shop2Shop)"
+msgid "DAO: From pickup point to pickup point (Shop2Shop)"
 msgstr ""
 
 #: admin/class-ss-shipping-method-catalog.php:159
-msgid "DAO: From pick-up point to doorstep (ParcelShop to Direct)"
+msgid "DAO: From pickup point to doorstep (ParcelShop to Direct)"
 msgstr ""
 
 #: admin/class-ss-shipping-method-catalog.php:163
@@ -232,19 +232,19 @@ msgid "Burd: Home Delivery"
 msgstr ""
 
 #: admin/class-ss-shipping-method-catalog.php:171
-msgid "Bring: Select pick-up point (PickUp Parcel / Serviceparcel)"
+msgid "Bring: Select pickup point (PickUp Parcel / Serviceparcel)"
 msgstr ""
 
 #: admin/class-ss-shipping-method-catalog.php:175
-msgid "Bring: Select pick-up point, send as bulk (PickUp Parcel Bulk)"
+msgid "Bring: Select pickup point, send as bulk (PickUp Parcel Bulk)"
 msgstr ""
 
 #: admin/class-ss-shipping-method-catalog.php:179
-msgid "Bring: Closest pick-up point (PickUp Parcel / Serviceparcel)"
+msgid "Bring: Closest pickup point (PickUp Parcel / Serviceparcel)"
 msgstr ""
 
 #: admin/class-ss-shipping-method-catalog.php:183
-msgid "Bring: Closest pick-up point, send as bulk (PickUp Parcel Bulk)"
+msgid "Bring: Closest pickup point, send as bulk (PickUp Parcel Bulk)"
 msgstr ""
 
 #: admin/class-ss-shipping-method-catalog.php:187
@@ -304,7 +304,7 @@ msgid "Bifrost Logistics: Nordic Express Home"
 msgstr ""
 
 #: admin/class-ss-shipping-method-catalog.php:291
-msgid "PostNord: Return from pick-up point (Return Drop Off)"
+msgid "PostNord: Return from pickup point (Return Drop Off)"
 msgstr ""
 
 #: admin/class-ss-shipping-method-catalog.php:295
@@ -312,15 +312,15 @@ msgid "PostNord: Return from address (Return Pickup)"
 msgstr ""
 
 #: admin/class-ss-shipping-method-catalog.php:302
-msgid "GLS: Return from pick-up point (ShopReturn)"
+msgid "GLS: Return from pickup point (ShopReturn)"
 msgstr ""
 
 #: admin/class-ss-shipping-method-catalog.php:309
-msgid "DAO: Return from pick-up point (ParcelShop Return)"
+msgid "DAO: Return from pickup point (ParcelShop Return)"
 msgstr ""
 
 #: admin/class-ss-shipping-method-catalog.php:316
-msgid "Bring: Return from pick-up point (PickUp Parcel Return)"
+msgid "Bring: Return from pickup point (PickUp Parcel Return)"
 msgstr ""
 
 #: admin/class-ss-shipping-method-catalog.php:320
@@ -447,11 +447,11 @@ msgid "This will save a copy of the generated PDF label in the WordPress uploads
 msgstr ""
 
 #: admin/class-ss-shipping-method-settings.php:159
-msgid "Pick-up Points"
+msgid "Pickup Points"
 msgstr ""
 
 #: admin/class-ss-shipping-method-settings.php:161
-msgid "Settings for displaying pick-up points during checkout."
+msgid "Settings for displaying pickup points during checkout."
 msgstr ""
 
 #: admin/class-ss-shipping-method-settings.php:167
@@ -459,7 +459,7 @@ msgid "Dropdown format"
 msgstr ""
 
 #: admin/class-ss-shipping-method-settings.php:168
-msgid "How the pick-up points are listed during checkout."
+msgid "How the pickup points are listed during checkout."
 msgstr ""
 
 #: admin/class-ss-shipping-method-settings.php:176
@@ -471,7 +471,7 @@ msgid "Enable Select Default"
 msgstr ""
 
 #: admin/class-ss-shipping-method-settings.php:178
-msgid "This will automatically select the closest pick-up point and let the customer change to a different pick-up point. This means that the customer will not be forced to select a pick-up point before completing the order."
+msgid "This will automatically select the closest pickup point and let the customer change to a different pickup point. This means that the customer will not be forced to select a pickup point before completing the order."
 msgstr ""
 
 #: admin/class-ss-shipping-method-settings.php:184
@@ -769,10 +769,10 @@ msgstr ""
 
 #: admin/class-ss-shipping-order-meta-box.php:132
 #: public/class-ss-shipping-frontend.php:478
-msgid "Pick-up Point"
+msgid "Pickup Point"
 msgstr ""
 
-#. translators: %s: pick-up point agent number.
+#. translators: %s: pickup point agent number.
 #: admin/class-ss-shipping-order-meta-box.php:135
 msgid "Agent No.: %s"
 msgstr ""
@@ -797,7 +797,7 @@ msgstr ""
 msgid "Unexpected error"
 msgstr ""
 
-#. translators: %s: the pick-up point agent number that was entered.
+#. translators: %s: the pickup point agent number that was entered.
 #: admin/class-ss-shipping-order-meta.php:216
 msgid "The agent number entered, %s, was not found."
 msgstr ""
@@ -988,42 +988,42 @@ msgid "Example: 12345678"
 msgstr ""
 
 #: public/class-ss-shipping-frontend.php:90
-msgid "- Select Pick-up Point -"
+msgid "- Select Pickup Point -"
 msgstr ""
 
 #: public/class-ss-shipping-frontend.php:142
-msgid "Shipping to closest pick-up point"
+msgid "Shipping to closest pickup point"
 msgstr ""
 
 #: public/class-ss-shipping-frontend.php:149
 msgid "Enter shipping information"
 msgstr ""
 
-#. translators: 1: number of pick-up points found, 2: carrier code.
+#. translators: 1: number of pickup points found, 2: carrier code.
 #: public/class-ss-shipping-frontend.php:236
-msgid "Smart Send: found %1$d %2$s pick-up point near the entered address."
-msgid_plural "Smart Send: found %1$d %2$s pick-up points near the entered address."
+msgid "Smart Send: found %1$d %2$s pickup point near the entered address."
+msgid_plural "Smart Send: found %1$d %2$s pickup points near the entered address."
 msgstr[0] ""
 msgstr[1] ""
 
 #. translators: %s: carrier code.
 #: public/class-ss-shipping-frontend.php:288
-msgid "Smart Send: no %s pick-up points found near the entered address - falling back to \"Shipping to closest pick-up point\"."
+msgid "Smart Send: no %s pickup points found near the entered address - falling back to \"Shipping to closest pickup point\"."
 msgstr ""
 
 #. translators: 1: carrier code, 2: error code, 3: error message.
 #: public/class-ss-shipping-frontend.php:299
-msgid "Smart Send: pick-up point lookup for %1$s failed with a transport error (%2$s): %3$s Falling back to \"Shipping to closest pick-up point\"."
+msgid "Smart Send: pickup point lookup for %1$s failed with a transport error (%2$s): %3$s Falling back to \"Shipping to closest pickup point\"."
 msgstr ""
 
 #. translators: 1: carrier code, 2: error code, 3: error message.
 #: public/class-ss-shipping-frontend.php:303
-msgid "Smart Send: pick-up point lookup for %1$s failed with an API error (%2$s): %3$s Falling back to \"Shipping to closest pick-up point\"."
+msgid "Smart Send: pickup point lookup for %1$s failed with an API error (%2$s): %3$s Falling back to \"Shipping to closest pickup point\"."
 msgstr ""
 
 #. translators: %s: carrier code.
 #: public/class-ss-shipping-frontend.php:307
-msgid "Smart Send: pick-up point lookup for %s failed for an unknown reason. Falling back to \"Shipping to closest pick-up point\"."
+msgid "Smart Send: pickup point lookup for %s failed for an unknown reason. Falling back to \"Shipping to closest pickup point\"."
 msgstr ""
 
 #. translators: %s: distance in meters.
@@ -1037,7 +1037,7 @@ msgid "%skm"
 msgstr ""
 
 #: public/class-ss-shipping-frontend.php:405
-msgid "A pick-up point must be selected."
+msgid "A pickup point must be selected."
 msgstr ""
 
 #: smart-send-logistics.php:230

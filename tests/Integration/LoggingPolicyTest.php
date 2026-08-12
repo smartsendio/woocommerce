@@ -3,7 +3,7 @@
 /*
  * Logging policy (#92): the WooCommerce log is an audit trail of business
  * events at the info level (label created, order note added, tracking number
- * stored, pick-up point selected/changed) plus developer trace at the debug
+ * stored, pickup point selected/changed) plus developer trace at the debug
  * level, while the checkout shipping debug bar surfaces which Smart Send
  * rates ended up offered for the package and the overlapping-weight-row
  * outcome (the "uniqueness filtering": every matching weight row calls
@@ -155,7 +155,7 @@ it('logs "Return shipping label created" for return labels without a tracking ev
         ->and($infos)->not->toContain('Tracking number stored');
 });
 
-it('logs an info event when the shopper selects a pick-up point at checkout', function () {
+it('logs an info event when the shopper selects a pickup point at checkout', function () {
     $spy     = spy_on_logger();
     $product = create_simple_product(['price' => 100, 'weight' => 1]);
     $order   = create_order(['products' => [$product], 'shipping_method' => 'postnord_agent']);
@@ -169,7 +169,7 @@ it('logs an info event when the shopper selects a pick-up point at checkout', fu
 
     (new SS_Shipping_Frontend())->process_ss_pickup_points($order->get_id(), null);
 
-    $selected = ss_policy_entry($spy, 'Pick-up point selected at checkout');
+    $selected = ss_policy_entry($spy, 'Pickup point selected at checkout');
     expect($selected)->not->toBeNull()
         ->and($selected['level'])->toBe('info')
         ->and($selected['context']['order_id'])->toBe($order->get_id())
@@ -178,7 +178,7 @@ it('logs an info event when the shopper selects a pick-up point at checkout', fu
     expect(SS_SHIPPING_WC()->get_ss_shipping_wc_order()->get_ss_shipping_order_agent_no($order->get_id()))->toBe('1234');
 });
 
-it('logs an info event when the pick-up point is changed on an order', function () {
+it('logs an info event when the pickup point is changed on an order', function () {
     $spy = spy_on_logger();
     mock_smart_send_api(function () {
         return ss_api_response(200, ['data' => sample_agent(['agent_no' => '5678'])]);
@@ -191,7 +191,7 @@ it('logs an info event when the pick-up point is changed on an order', function 
 
     expect($result)->toBeTrue();
 
-    $changed = ss_policy_entry($spy, 'Pick-up point changed on order');
+    $changed = ss_policy_entry($spy, 'Pickup point changed on order');
     expect($changed)->not->toBeNull()
         ->and($changed['level'])->toBe('info')
         ->and($changed['context']['order_id'])->toBe($order->get_id())
@@ -213,7 +213,7 @@ it('logs a warning when the agent number is rejected, even with the debug settin
 
     expect($result)->toBeString();
 
-    $rejected = ss_policy_entry($spy, 'Pick-up point not found - agent number rejected');
+    $rejected = ss_policy_entry($spy, 'Pickup point not found - agent number rejected');
     expect($rejected)->not->toBeNull()
         ->and($rejected['level'])->toBe('warning')
         ->and($rejected['context']['agent_no'])->toBe('9999');
@@ -346,13 +346,13 @@ it('logs a not-available outcome when the cost calculation adds no rate', functi
         ->and($debugs)->toContain('Shipping rate smart_send_shipping:99956 is not available for this package - no rate added');
 });
 
-it('logs an error when the order cannot be loaded while deleting pick-up point meta, even with debug off', function () {
+it('logs an error when the order cannot be loaded while deleting pickup point meta, even with debug off', function () {
     with_ss_settings(['ss_debug' => 'no']);
     $spy = spy_on_logger();
 
     SS_SHIPPING_WC()->get_ss_shipping_wc_order()->delete_ss_shipping_order_agent(999999999);
 
-    $failed = ss_policy_entry($spy, 'Failed to load WooCommerce order when deleting pick-up point meta - skipping');
+    $failed = ss_policy_entry($spy, 'Failed to load WooCommerce order when deleting pickup point meta - skipping');
     expect($failed)->not->toBeNull()
         ->and($failed['level'])->toBe('error')
         ->and($failed['context']['order_id'])->toBe(999999999);

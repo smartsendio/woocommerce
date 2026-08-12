@@ -5,7 +5,7 @@ Author: SmartSend
 Author URI: https://smartsend.io/
 Developer: SmartSend
 Developer URI: https://smartsend.io/
-Tags: shipping, pick-up-points, shipping-label, postnord, smart send
+Tags: shipping, pickup-points, shipping-label, postnord, smart send
 Requires at least: 3.0.1
 Tested up to: 7.0
 Stable tag: 8.2.0
@@ -20,7 +20,7 @@ Complete WooCommerce shipping solution for PostNord, GLS, DAO, Burd, Budbee and 
 
 == Description ==
 
-Complete shipping solution for PostNord, GLS, DAO, Budbee, Burd and Bring. Setup shipping methods with rates calculated based on products, shipping address, weight, subtotal, user roles, shipping classes and much more. Show pick-up points to the customer during checkout and create shipping labels directly from the WooCommerce admin panel.
+Complete shipping solution for PostNord, GLS, DAO, Budbee, Burd and Bring. Setup shipping methods with rates calculated based on products, shipping address, weight, subtotal, user roles, shipping classes and much more. Show pickup points to the customer during checkout and create shipping labels directly from the WooCommerce admin panel.
 
 From now on, everything is incorporated directly into your WooCommerce store.
 
@@ -55,22 +55,22 @@ Enable services for shipping methods:
 
 * Customer notification by email
 * Customer notification by SMS
-* Pick-up point (collect the parcel at a shop near the customer)
+* Pickup point (collect the parcel at a shop near the customer)
 * Flex delivery (leave parcel at specified location)
 * Home delivery
 * Handling of special good, eg food
 * TAX handling
 * Enable free delivery based on condition
 
-= Pick-up point =
-Let the customer choose a pick-up point close to them during checkout. The package will be delivered to the selected pick-up point, where the customer can collect the package at their own convenience.
+= Pickup point =
+Let the customer choose a pickup point close to them during checkout. The package will be delivered to the selected pickup point, where the customer can collect the package at their own convenience.
 
-* Nearest pick-up points based on entered shipping address
+* Nearest pickup points based on entered shipping address
 * Automatically updated list
 * User friendly dropdown list
 * One step/page checkout compatible
 
-Shipping to pick-up points are the most widely used shipping method due to it's flexibility and the reduced shipping cost.
+Shipping to pickup points are the most widely used shipping method due to it's flexibility and the reduced shipping cost.
 
 = Shipping labels =
 Create shipping labels directly from the backend by a single click. The information is automatically formatted and send to the carrier for processing. A PDF label is immediately shown and ready to print. Tracking information is automatically saved in the system and can be included in customer emails or can be sendt by text message.
@@ -122,36 +122,36 @@ The plugin implements a formal extension API of `smart_send_*` hooks: filters fo
     A filter to change the API endpoint the plugin talks to, e.g. to point at the Smart Send sandbox environment
 * **smart_send_sslverify**
     A filter to disable SSL certificate verification for API requests (only for local development)
-* **smart_send_agent_timeout**
-    A filter to change the timeout (seconds) used when searching for pick-up points on the checkout page
+* **smart_send_pickup_point_timeout**
+    A filter to change the timeout (seconds) used when searching for pickup points on the checkout page
 
-= Pick-up point lookup and selector (checkout) =
+= Pickup point lookup and selector (checkout) =
 
-* **smart_send_agent_search_params** (since 9.0.0)
-    A filter on the search parameters (carrier, country, postal_code, city, street) used to look up the closest pick-up points, before the API call is made
-* **smart_send_agents_found** (since 9.0.0)
-    A filter on the list of pick-up points returned by the lookup, before it is cached in the session and rendered - return fewer entries to limit the choices, or re-order them
-* **smart_send_agent_option_label** (since 9.0.0)
-    A filter on the label shown for each pick-up point in the checkout drop-down
-* **smart_send_default_selected_agent** (since 9.0.0)
-    A filter on which pick-up point is pre-selected in the checkout drop-down - return the agent_no of one of the found pick-up points
+* **smart_send_pickup_point_search_params** (since 9.0.0)
+    A filter on the search parameters (carrier, country, postal_code, city, street) used to look up the closest pickup points, before the API call is made
+* **smart_send_pickup_points_found** (since 9.0.0)
+    A filter on the list of pickup points returned by the lookup, before it is cached in the session and rendered - return fewer entries to limit the choices, or re-order them
+* **smart_send_pickup_point_option_label** (since 9.0.0)
+    A filter on the label shown for each pickup point in the checkout drop-down
+* **smart_send_default_selected_pickup_point** (since 9.0.0)
+    A filter on which pickup point is pre-selected in the checkout drop-down - return the agent_no of one of the found pickup points
 
-Example: show at most 5 pick-up points and pre-select the closest one:
+Example: show at most 5 pickup points and pre-select the closest one:
 
-    add_filter('smart_send_agents_found', function ($agents, $search_params) {
-        return array_slice($agents, 0, 5);
+    add_filter('smart_send_pickup_points_found', function ($pickup_points, $search_params) {
+        return array_slice($pickup_points, 0, 5);
     }, 10, 2);
 
-    add_filter('smart_send_default_selected_agent', function ($default_agent_no, $agents) {
-        return $agents ? $agents[0]->agent_no : $default_agent_no;
+    add_filter('smart_send_default_selected_pickup_point', function ($default_pickup_point_no, $pickup_points) {
+        return $pickup_points ? $pickup_points[0]->agent_no : $default_pickup_point_no;
     }, 10, 2);
 
 = Shipping label creation =
 
 * **smart_send_shipping_label_args**
-    A filter to modify the order parameters (carrier, method, pick-up point, parcel split) that are used when creating shipping labels
-* **smart_send_order_agent**
-    A filter to change the pick-up point (agent) used when creating a shipping label
+    A filter to modify the order parameters (carrier, method, pickup point, parcel split) that are used when creating shipping labels
+* **smart_send_order_pickup_point**
+    A filter to change the pickup point (agent) used when creating a shipping label
 * **smart_send_order_parcels** (since 9.0.0)
     A filter on the parcel split stored for the order, before the shipment payload is assembled - return an array of rows (id, name, value) to split the items into numbered boxes
 * **smart_send_order_receiver**
@@ -224,12 +224,12 @@ The following filters are inherited from WooCommerce and can be used as well:
 * **woocommerce_shipping_instance_form_fields_smart_send_shipping**
     A filter to override shipping method settings.
 
-The plugin shows the selected pick-up point relevant places using these two hooks:
+The plugin shows the selected pickup point relevant places using these two hooks:
 
 * **woocommerce_order_details_after_order_table**
-    Show the selected pick-up point below the table of order items
+    Show the selected pickup point below the table of order items
 * **woocommerce_email_after_order_table**
-   Show the selected pick-up point below the table of order items
+   Show the selected pickup point below the table of order items
 
 = Meta fields =
 
@@ -244,9 +244,9 @@ The following meta fields are used by the plugin:
 * **ss_shipping_order_parcels**
     Used for storing information how the orders items are split into parcels
 * **ss_shipping_order_agent_no**
-    Used for storing the id of the selected pick-up point
+    Used for storing the id of the selected pickup point
 * **_ss_shipping_order_agent**
-    Hidden field used for storing the address of the selected pick-up point
+    Hidden field used for storing the address of the selected pickup point
 * **_ss_shipping_label_id**
     Hidden field used for storing the unique Smart Send id of the generated shipping label
 * **_ss_shipping_return_label_id**
@@ -260,18 +260,18 @@ The following meta fields are used by the plugin:
 
 == Frequently Asked Questions ==
 
-= Why are no pick-up point shown at checkout? =
-Make sure, that the selected shipping method is "Select Pick-up Point".
+= Why are no pickup point shown at checkout? =
+Make sure, that the selected shipping method is "Select Pickup Point".
 
-= Info box: Shipping to closest pick-up point =
-This box appears when a "Select Pick-up Point" shipping method is selected, but no pick-up points were found. Check that the entered shipping address is valid, that pick-up points are possible in the selected region and that a valid API Token is entered in the plugins settings.
+= Info box: Shipping to closest pickup point =
+This box appears when a "Select Pickup Point" shipping method is selected, but no pickup points were found. Check that the entered shipping address is valid, that pickup points are possible in the selected region and that a valid API Token is entered in the plugins settings.
 
 = Info box: Enter shipping information =
-This box appears when a "Select Pick-up Point" shipping method is selected, but no shipping address is entered. Enter a valid shipping address so that the plugin can search for nearby pick-up points.
+This box appears when a "Select Pickup Point" shipping method is selected, but no shipping address is entered. Enter a valid shipping address so that the plugin can search for nearby pickup points.
 
 == Screenshots ==
 
-1. Show closest pick-up points during checkout
+1. Show closest pickup points during checkout
 2. Create PDF shipping labels from backend with just one click
 3. Save tracking information automatically after creating shipping labels
 4. Get detailed error description if something is incorrect
@@ -355,7 +355,7 @@ This box appears when a "Select Pick-up Point" shipping method is selected, but 
 * Add field name to error message when failing to create shipping labels
 * Add support for using multiple API Tokens on one site (useful for WPML and other plugins)
 * Update PostNord shipping method order
-* Remove input field to change pick-up point while creating a label
+* Remove input field to change pickup point while creating a label
 * Show upgrade notices in Wordpress Plugin list
 * Bugfix: Drop usage of deprecated methods get_order_currency() and get_total_shipping()
 * Bugfix: Order status was changed before saving meta data, tracking data and other important information
@@ -364,7 +364,7 @@ This box appears when a "Select Pick-up Point" shipping method is selected, but 
 * Bugfix: Invalid API endpoint for old cURL versions
 
 = 8.0.13 =
-* Bugfix: City was not used when looking for closest pick-up points
+* Bugfix: City was not used when looking for closest pickup points
 * Change from cURL to wp_remote_request
 
 = 8.0.12 =
@@ -377,7 +377,7 @@ This box appears when a "Select Pick-up Point" shipping method is selected, but 
 * Change WooCommerce minimum requirement to WC 2.7
 
 = 8.0.10 =
-* Add convenience wrapper for pick-up point function
+* Add convenience wrapper for pickup point function
 * Add PostNord shipping method: Private delivery to address Small (MyPack Home Small)
 
 = 8.0.9 =
@@ -395,13 +395,13 @@ This box appears when a "Select Pick-up Point" shipping method is selected, but 
 
 = 8.0.7 =
 * Add order weight to Smart Send meta box on admin order page
-* Bugfix: Some translation plugins caused the pick-up point to not display properly
+* Bugfix: Some translation plugins caused the pickup point to not display properly
 
 = 8.0.6 =
 * Add support for extra shipping methods from the plugin: vConnect PostNord Delivery Checkout
 
 = 8.0.5 =
-* Bugfix: Show selected pick-up point on order confirmation page and confirmation email
+* Bugfix: Show selected pickup point on order confirmation page and confirmation email
 * Changing default setting whether or not to include order comment on shipping labels
 * Make label links open in a new tab
 * Add carrier Bifrost Logistics
@@ -411,7 +411,7 @@ This box appears when a "Select Pick-up Point" shipping method is selected, but 
 * Fix unexpected error when no API Token is entered in the plugin settings
 
 = 8.0.3 =
-* Fix problem with pick-up point format
+* Fix problem with pickup point format
 
 = 8.0.2 =
 * Fix problem with demo-mode disabling not working
@@ -425,7 +425,7 @@ This box appears when a "Select Pick-up Point" shipping method is selected, but 
 * Using Shipping Zones instead of WooCommerce legacy shipping API
 * Plugin is not backwards compatible. All settings must be setup from scratch
 * Separates standard settings from the more advanced settings for simplicity
-* Includes more information about pick-up points in checkout page
+* Includes more information about pickup points in checkout page
 * Limit shipping methods by weight, price, user role, shipping zone, shipping class and much more
 
 = 7.2.0 =

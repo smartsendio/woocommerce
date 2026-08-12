@@ -144,7 +144,7 @@ it('auto-generates the return label after a successful normal label', function (
     $return_payload = json_decode($capture->requests[1]['body'], true);
     expect($return_payload['shipping_carrier'])->toBe('postnord')
         ->and($return_payload['shipping_method'])->toBe('returndropoff')
-        // Return shipments never include a pick-up point agent.
+        // Return shipments never include a pickup point agent.
         ->and($return_payload['agent'])->toBeNull();
 
     $fresh = wc_get_order($order->get_id());

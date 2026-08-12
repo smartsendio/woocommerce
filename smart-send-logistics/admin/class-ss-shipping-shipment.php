@@ -190,9 +190,9 @@ if ( ! class_exists( 'SS_Shipping_Shipment' ) ) :
 			$receiver = $this->build_receiver();
 			$this->shipment->setReceiver( $receiver );
 
-			// Add the agent (pick-up point) to the shipment, if any.
+			// Add the agent (pickup point) to the shipment, if any.
 			$ss_agent = apply_filters(
-				'smart_send_order_agent',
+				'smart_send_order_pickup_point',
 				empty( $ss_args['ss_agent'] ) ? null : $ss_args['ss_agent'],
 				$order_id
 			);
@@ -323,7 +323,7 @@ if ( ! class_exists( 'SS_Shipping_Shipment' ) ) :
 		}
 
 		/**
-		 * Build the agent (pick-up point) model from the stored agent object.
+		 * Build the agent (pickup point) model from the stored agent object.
 		 *
 		 * @param object $ss_agent The agent object stored on the order.
 		 *
