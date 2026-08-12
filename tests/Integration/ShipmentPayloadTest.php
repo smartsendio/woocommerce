@@ -696,3 +696,137 @@ it('lets the smart_send_shipping_label_args filter override carrier and method',
     expect($payload['shipping_carrier'])->toBe('gls')
         ->and($payload['shipping_method'])->toBe('homedelivery');
 });
+
+it('lets the smart_send_order_parcels filter inject a parcel split (#73)', function () {
+    $product_a = create_simple_product(['name' => 'Filter Box One', 'price' => 100, 'weight' => 1]);
+    $product_b = create_simple_product(['name' => 'Filter Box Two', 'price' => 50, 'weight' => 2]);
+    $order     = create_order([
+        'products'        => [$product_a, $product_b],
+        'shipping_method' => 'postnord_homedelivery',
+        'shipping_total'  => '39',
+    ]);
+
+    $filter = function ($parcels, $order_id, $is_return) use ($order, $product_a, $product_b) {
+        // No split is stored on the order, so the filter receives an empty value.
+        expect(empty($parcels))->toBeTrue()
+            ->and($order_id)->toBe($order->get_id())
+            ->and($is_return)->toBeFalse();
+
+        return [
+            ['id' => $product_a->get_id(), 'name' => 'Filter Box One', 'value' => '1'],
+            ['id' => $product_b->get_id(), 'name' => 'Filter Box Two', 'value' => '2'],
+        ];
+    };
+    add_filter('smart_send_order_parcels', $filter, 10, 3);
+    remember_cleanup_callback(function () use ($filter): void {
+        remove_filter('smart_send_order_parcels', $filter, 10);
+    });
+
+    $payload = capture_shipment_payload($order);
+
+    expect($payload['parcels'])->toHaveCount(2)
+        ->and($payload['parcels'][0]['items'][0]['name'])->toBe('Filter Box One')
+        ->and($payload['parcels'][1]['items'][0]['name'])->toBe('Filter Box Two');
+});
+
+it('lets the smart_send_order_agent filter replace the pick-up point', function () {
+    $product = create_simple_product(['price' => 100, 'weight' => 1]);
+    $order   = create_order([
+        'products'        => [$product],
+        'shipping_method' => 'postnord_agent',
+    ]);
+    SS_SHIPPING_WC()->get_ss_shipping_wc_order()->save_ss_shipping_order_agent($order->get_id(), sample_agent());
+
+    $filter = function ($ss_agent, $order_id) use ($order) {
+        expect($ss_agent->agent_no)->toBe('1234')
+            ->and($order_id)->toBe($order->get_id());
+
+        return sample_agent(['agent_no' => '9999', 'company' => 'Override Shop']);
+    };
+    add_filter('smart_send_order_agent', $filter, 10, 2);
+    remember_cleanup_callback(function () use ($filter): void {
+        remove_filter('smart_send_order_agent', $filter, 10);
+    });
+
+    $payload = capture_shipment_payload($order);
+
+    expect($payload['agent']['agent_no'])->toBe('9999')
+        ->and($payload['agent']['company'])->toBe('Override Shop');
+});
+
+it('lets the smart_send_order_receiver filter adjust the shipping address', function () {
+    $product = create_simple_product(['price' => 100, 'weight' => 1]);
+    $order   = create_order([
+        'products'        => [$product],
+        'shipping_method' => 'postnord_homedelivery',
+    ]);
+
+    $filter = function (array $shipping_address, $order_id) use ($order) {
+        expect($order_id)->toBe($order->get_id());
+        $shipping_address['city'] = 'Aarhus';
+
+        return $shipping_address;
+    };
+    add_filter('smart_send_order_receiver', $filter, 10, 2);
+    remember_cleanup_callback(function () use ($filter): void {
+        remove_filter('smart_send_order_receiver', $filter, 10);
+    });
+
+    $payload = capture_shipment_payload($order);
+
+    expect($payload['receiver']['city'])->toBe('Aarhus');
+});
+
+it('lets the smart_send_order_note filter rewrite the parcel freetext', function () {
+    with_ss_settings(['include_order_comment' => 'yes']);
+
+    $product = create_simple_product(['price' => 100, 'weight' => 1]);
+    $order   = create_order([
+        'products'        => [$product],
+        'shipping_method' => 'postnord_homedelivery',
+        'customer_note'   => 'Original note',
+    ]);
+
+    $filter = function ($order_note, $filtered_order) use ($order) {
+        expect($order_note)->toBe('Original note')
+            ->and($filtered_order->get_id())->toBe($order->get_id());
+
+        return 'Filtered note';
+    };
+    add_filter('smart_send_order_note', $filter, 10, 2);
+    remember_cleanup_callback(function () use ($filter): void {
+        remove_filter('smart_send_order_note', $filter, 10);
+    });
+
+    $payload = capture_shipment_payload($order);
+
+    expect($payload['parcels'][0]['freetext'])->toBe('Filtered note');
+});
+
+it('lets the smart_send_parcel_weight filter override split parcel weights', function () {
+    $product_a = create_simple_product(['name' => 'Weight Box One', 'price' => 100, 'weight' => 1]);
+    $product_b = create_simple_product(['name' => 'Weight Box Two', 'price' => 50, 'weight' => 2]);
+    $order     = create_order([
+        'products'        => [$product_a, $product_b],
+        'shipping_method' => 'postnord_homedelivery',
+    ]);
+    SS_SHIPPING_WC()->get_ss_shipping_wc_order()->save_ss_shipping_order_parcels($order->get_id(), [
+        ['id' => $product_a->get_id(), 'name' => 'Weight Box One', 'value' => '1'],
+        ['id' => $product_b->get_id(), 'name' => 'Weight Box Two', 'value' => '2'],
+    ]);
+
+    $filter = function ($parcel_weight, $order_id) use ($order) {
+        expect($order_id)->toBe($order->get_id());
+
+        return 9.5;
+    };
+    add_filter('smart_send_parcel_weight', $filter, 10, 2);
+    remember_cleanup_callback(function () use ($filter): void {
+        remove_filter('smart_send_parcel_weight', $filter, 10);
+    });
+
+    $payload = capture_shipment_payload($order);
+
+    expect($payload['parcels'][0]['weight'])->toEqual(9.5)
+        ->and($payload['parcels'][1]['weight'])->toEqual(9.5);
+});
