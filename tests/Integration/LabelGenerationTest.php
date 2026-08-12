@@ -21,14 +21,21 @@ function create_labels_for(int $order_id, bool $return = false, bool $save_order
 }
 
 /**
- * Reset the bulk-action flash message option and restore it afterwards.
+ * Clear pending admin notices for the current user and leave a clean state
+ * (no pending transient, no marker query parameter) after the test.
  */
-function with_empty_flash_messages(): void
+function with_empty_flash_messages(): SS_Shipping_Admin_Notices
 {
-    // Seed an empty bag for the current user: add_admin_flash_messages()
-    // reads $bags[$bag] without an isset() check and would emit an
-    // "Undefined array key" warning on a completely empty option.
-    with_option(SS_Shipping_WC_Order::ADMIN_FLASH_MESSAGE_OPTION_KEY, [get_current_user_id() => []]);
+    $notices = SS_SHIPPING_WC()->get_ss_shipping_wc_order()->get_admin_notices();
+
+    $notices->clear();
+
+    remember_cleanup_callback(function () use ($notices): void {
+        $notices->clear();
+        unset($_GET[SS_Shipping_Admin_Notices::QUERY_ARG]);
+    });
+
+    return $notices;
 }
 
 /**
@@ -164,7 +171,7 @@ it('creates only a return label when explicitly requested', function () {
 });
 
 it('generates labels for two orders via the bulk action and flashes a combined-pdf notice', function () {
-    with_empty_flash_messages();
+    $notices = with_empty_flash_messages();
 
     $order_a = create_labelable_order();
     $order_b = create_labelable_order();
@@ -185,35 +192,32 @@ it('generates labels for two orders via the bulk action and flashes a combined-p
         $order_b->get_id(),
     ]);
 
-    expect($sendback)->toBe('/wp-admin/edit.php');
+    // The redirect URL is marked so the next request looks up the notices.
+    expect($sendback)->toBe('/wp-admin/edit.php?ss_shipping_notices=1');
 
-    // The flash messages are stored per user id until rendered.
-    $bags = get_option(SS_Shipping_WC_Order::ADMIN_FLASH_MESSAGE_OPTION_KEY);
-    $messages = $bags[get_current_user_id()];
+    // The notices are stored in a per-user transient until rendered.
+    $messages = $notices->get_pending();
     expect($messages)->toHaveCount(1)
         ->and($messages[0]['type'])->toBe('success')
         ->and($messages[0]['message'])->toContain('Shipping labels created by Smart Send for 2 orders')
         ->toContain('https://api.example.test/labels/combined.pdf')
         ->toContain('Download combined pdf');
 
-    // render_admin_messages() prints the notices and clears the bag. The
-    // screen helpers are admin-only, so load them on demand.
-    if (!function_exists('convert_to_screen')) {
-        require_once ABSPATH . 'wp-admin/includes/class-wp-screen.php';
-        require_once ABSPATH . 'wp-admin/includes/screen.php';
-        require_once ABSPATH . 'wp-admin/includes/template.php';
-    }
+    // maybe_render() prints the notices and clears the transient when the
+    // marker query parameter is present.
+    $_GET[SS_Shipping_Admin_Notices::QUERY_ARG] = '1';
     ob_start();
-    $handler->render_admin_messages(convert_to_screen('edit-shop_order'));
+    $notices->maybe_render();
     $output = ob_get_clean();
 
     expect($output)->toContain('notice-success')
         ->toContain('Download combined pdf');
-    expect(get_option(SS_Shipping_WC_Order::ADMIN_FLASH_MESSAGE_OPTION_KEY)[get_current_user_id()])->toBe([]);
+    expect($notices->get_pending())->toBe([])
+        ->and(get_transient(SS_Shipping_Admin_Notices::TRANSIENT_PREFIX . get_current_user_id()))->toBeFalse();
 });
 
 it('flashes an error for bulk label generation on an order without a Smart Send method', function () {
-    with_empty_flash_messages();
+    $notices = with_empty_flash_messages();
 
     $product = create_simple_product(['price' => 100, 'weight' => 1]);
     $order   = create_order(['products' => [$product]]);
@@ -223,7 +227,7 @@ it('flashes an error for bulk label generation on an order without a Smart Send 
     SS_SHIPPING_WC()->get_ss_shipping_wc_order()
         ->handle_bulk_order_actions('/wp-admin/edit.php', 'ss_shipping_label_bulk', [$order->get_id()]);
 
-    $messages = get_option(SS_Shipping_WC_Order::ADMIN_FLASH_MESSAGE_OPTION_KEY)[get_current_user_id()];
+    $messages = $notices->get_pending();
     expect($messages)->toHaveCount(1)
         ->and($messages[0]['type'])->toBe('error')
         // (sic) "Send Smart" typo is current v8 behaviour.
@@ -231,7 +235,7 @@ it('flashes an error for bulk label generation on an order without a Smart Send 
 });
 
 it('flashes the API error per order when bulk label generation fails', function () {
-    with_empty_flash_messages();
+    $notices = with_empty_flash_messages();
 
     $order = create_labelable_order();
     mock_smart_send_api(function () {
@@ -241,7 +245,7 @@ it('flashes the API error per order when bulk label generation fails', function 
     SS_SHIPPING_WC()->get_ss_shipping_wc_order()
         ->handle_bulk_order_actions('/wp-admin/edit.php', 'ss_shipping_label_bulk', [$order->get_id()]);
 
-    $messages = get_option(SS_Shipping_WC_Order::ADMIN_FLASH_MESSAGE_OPTION_KEY)[get_current_user_id()];
+    $messages = $notices->get_pending();
     expect($messages)->toHaveCount(1)
         ->and($messages[0]['type'])->toBe('error')
         ->and($messages[0]['message'])->toContain('Order #' . $order->get_order_number())
@@ -249,14 +253,14 @@ it('flashes the API error per order when bulk label generation fails', function 
 });
 
 it('rejects bulk label generation for more than five orders', function () {
-    with_empty_flash_messages();
+    $notices = with_empty_flash_messages();
 
     $capture = mock_smart_send_api();
 
     SS_SHIPPING_WC()->get_ss_shipping_wc_order()
         ->handle_bulk_order_actions('/wp-admin/edit.php', 'ss_shipping_label_bulk', [1, 2, 3, 4, 5, 6]);
 
-    $messages = get_option(SS_Shipping_WC_Order::ADMIN_FLASH_MESSAGE_OPTION_KEY)[get_current_user_id()];
+    $messages = $notices->get_pending();
     expect($messages)->toHaveCount(1)
         ->and($messages[0]['type'])->toBe('error')
         ->and($messages[0]['message'])->toContain('not possible to create labels for more than 5 orders')
@@ -264,7 +268,7 @@ it('rejects bulk label generation for more than five orders', function () {
 });
 
 it('ignores bulk actions that are not Smart Send actions', function () {
-    with_empty_flash_messages();
+    $notices = with_empty_flash_messages();
 
     $result = SS_SHIPPING_WC()->get_ss_shipping_wc_order()
         ->handle_bulk_order_actions('/wp-admin/edit.php', 'mark_processing', [1]);
@@ -272,6 +276,5 @@ it('ignores bulk actions that are not Smart Send actions', function () {
     // v8 oddity: for foreign actions the handler returns null instead of
     // passing $sendback through.
     expect($result)->toBeNull()
-        ->and(get_option(SS_Shipping_WC_Order::ADMIN_FLASH_MESSAGE_OPTION_KEY))
-        ->toBe([get_current_user_id() => []]);
+        ->and($notices->get_pending())->toBe([]);
 });

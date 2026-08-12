@@ -17,20 +17,35 @@ use Automattic\WooCommerce\Internal\DataStores\Orders\CustomOrdersTableControlle
 
 if (!class_exists('SS_Shipping_WC_Order')) :
 
-    class SS_Shipping_WC_Order
-    {
-        const ADMIN_FLASH_MESSAGE_OPTION_KEY = '_ss_shipping_bulk_action_confirmation';
+	class SS_Shipping_WC_Order {
 
-        protected $label_prefix = 'smart-send-label-';
+		protected $label_prefix = 'smart-send-label-';
 
-        /**
-         * Init and hook in the integration.
-         */
-        public function __construct()
-        {
-            $this->define_constants();
-            $this->init_hooks();
-        }
+		/**
+		 * Admin notices component used to flash one-time notices after
+		 * label-generation actions.
+		 *
+		 * @var SS_Shipping_Admin_Notices
+		 */
+		protected $admin_notices;
+
+		/**
+		 * Init and hook in the integration.
+		 */
+		public function __construct() {
+			$this->admin_notices = new SS_Shipping_Admin_Notices();
+			$this->define_constants();
+			$this->init_hooks();
+		}
+
+		/**
+		 * Get the admin notices component.
+		 *
+		 * @return SS_Shipping_Admin_Notices
+		 */
+		public function get_admin_notices() {
+			return $this->admin_notices;
+		}
 
         /**
          * Define constants
@@ -65,12 +80,12 @@ if (!class_exists('SS_Shipping_WC_Order')) :
                     array($this, 'woocommerce_subscriptions_renewal_order_meta_query'), 10);
             }
 
-            // add bulk actions to the Orders screen table bulk action drop-downs
-            $this->register_bulk_order_actions();
+			// Add bulk actions to the Orders screen table bulk action drop-downs.
+			$this->register_bulk_order_actions();
 
-            // display admin notices for bulk actions
-            add_action('admin_notices', array($this, 'render_admin_messages'));
-        }
+			// Display pending admin notices pushed by bulk actions.
+			$this->admin_notices->init_hooks();
+		}
 
         /**
          * Register bulk order actions.
@@ -219,11 +234,14 @@ if (!class_exists('SS_Shipping_WC_Order')) :
 
                 }
 
-                $this->add_admin_flash_messages(get_current_user_id(), $array_messages);
-            }
+				if ( ! empty( $array_messages ) ) {
+					$this->admin_notices->push( $array_messages );
+					$sendback = $this->admin_notices->add_notices_query_arg( $sendback );
+				}
+			}
 
-            return $sendback;
-        }
+			return $sendback;
+		}
 
         /**
          * Add the meta box for shipment info on the order page
@@ -1228,175 +1246,37 @@ if (!class_exists('SS_Shipping_WC_Order')) :
             return hash('sha256', $shipment_ids_str);
         }
 
-        /**
-         * Display messages on order view screen.
-         */
-        public function render_admin_messages($current_screen = null)
-        {
-            if (! $current_screen instanceof WP_Screen) {
-                $current_screen = get_current_screen();
-            }
+		/**
+		 * Get an orders total weight.
+		 *
+		 * @param WC_Order $order The order.
+		 * @return float weight in kg
+		 */
+		// phpcs:ignore WordPress.NamingConventions.ValidFunctionName.MethodNameInvalid -- pre-existing method name, kept for backwards compatibility.
+		protected function getOrderWeight( $order ) {
+			$weight_total = 0;
 
-//            if (! isset($current_screen->id) || ! in_array($current_screen->id, array('shop_order', 'edit-shop_order'), true)) {
-//                return;
-//            }
+			// Get order item specific data.
+			$ordered_items = $order->get_items();
+			if ( ! empty( $ordered_items ) ) {
+				foreach ( $ordered_items as $key => $item ) {
+					$product = wc_get_product( $item['product_id'] );
+					if ( ! empty( $item['variation_id'] ) ) {
+						$product_variation = wc_get_product( $item['variation_id'] );
+					} else {
+						$product_variation = $product;
+					}
 
-            $messages = $this->get_admin_flash_messages(get_current_user_id());
-
-            if (empty($messages)) {
-                return;
-            }
-
-            // remove first element from array and verify if it is the user id
-            //$user_id = array_shift($bulk_action_message_opt);
-            //if (get_current_user_id() !== (int)$user_id) {
-            //    return;
-            //}
-
-            $this->print_admin_flash_messages($messages);
-
-            $this->set_admin_flash_messages(get_current_user_id(), []);
-        }
-
-        /*
-         * Get an orders total weight
-         *
-         * @param WC_Order | $order
-         * @return float weight in kg
-         */
-        protected function getOrderWeight($order)
-        {
-            $weight_total = 0;
-
-            // Get order item specific data
-            $ordered_items = $order->get_items();
-            if (!empty($ordered_items)) {
-                foreach ($ordered_items as $key => $item) {
-                    $product = wc_get_product($item['product_id']);
-                    if (!empty($item['variation_id'])) {
-                        $product_variation = wc_get_product($item['variation_id']);
-                    } else {
-                        $product_variation = $product;
-                    }
-
-                    if ($product_variation) {//null|false if unable to load product
-                        $product_weight = round(wc_get_weight($product_variation->get_weight(), 'kg'), 2);
-                        if ($product_weight) {
-                            $weight_total += ($item['qty'] * $product_weight);
-                        }
-                    }
-                }
-            }
-            return $weight_total;
-        }
-
-        /**
-         * Display messages on order view screen.
-         *
-         * @see https://webprogramo.com/admin-notices-after-a-page-refresh-on-wordpress/1183/
-         */
-        protected function print_admin_flash_messages(array $messages)
-        {
-            foreach ($messages as $message) {
-                switch (wp_kses_post($message['type'])) {
-                    case 'error':
-                        $type = 'error';
-                        break;
-                    case 'success':
-                        $type = 'success';
-                        break;
-                    default:
-                        $type = 'warning';
-                }
-
-                printf('<div class="notice notice-%1$s %2$s"><p>%3$s</p></div>',
-                    $type, // info/warning/error/success
-                    ($message['dismissible'] ?? false) ? 'is-dismissible' : '',
-                    wp_kses_post($message['message'])
-                );
-            }
-        }
-
-        /**
-         * This is the options key used to store the flash messages.
-         *
-         * The option can contain multiple bags. This could cause race condition issues
-         * if multiple users are performing admin actions at the same time because they
-         * all read and write to the same option key.
-         *
-         * @return string
-         */
-        protected function get_admin_flash_message_option_key()
-        {
-            return self::ADMIN_FLASH_MESSAGE_OPTION_KEY;
-        }
-
-        protected function get_admin_flash_bags()
-        {
-            return get_option($this->get_admin_flash_message_option_key(), array());
-        }
-
-        protected function set_admin_flash_bags(array $bags)
-        {
-            update_option($this->get_admin_flash_message_option_key(), $bags);
-        }
-
-        protected function get_admin_flash_messages(string $bag)
-        {
-            return $this->get_admin_flash_bags()[$bag] ?? [];
-        }
-
-        /**
-         * @param string $bag is the option key
-         * @param array<array{message: string, type: string, dismissible: bool}> $messages
-         * @return void
-         */
-        protected function set_admin_flash_messages(string $bag, array $messages)
-        {
-            $bags = $this->get_admin_flash_bags();
-
-            $bags[$bag] = $messages;
-
-            $this->set_admin_flash_bags($bags);
-        }
-
-        /**
-         * Add a flash notice to {prefix}options table until a full page refresh is done
-         *
-         * @param string $bag is the option key
-         * @param string $message our notice message
-         * @param string $type This can be "info", "warning", "error" or "success", "warning" as default
-         * @param boolean $dismissible set this to TRUE to add is-dismissible functionality to your notice
-         * @return void
-         */
-
-        protected function add_admin_flash_message(string $bag, $message, $type = "warning", $dismissible = true)
-        {
-            $this->add_admin_flash_messages($bag, array(array(
-                'message' => $message,
-                'type' => $type,
-                'dismissible' => $dismissible
-            )));
-        }
-
-        /**
-         * @param string $bag is the option key
-         * @param array<array{message: string, type: string, dismissible: bool}> $messages
-         * @return void
-         */
-
-        protected function add_admin_flash_messages(string $bag, array $messages)
-        {
-            $bags = $this->get_admin_flash_bags();
-
-            if (! is_array($bags[$bag])) {
-                $bags[$bag] = [];
-            }
-
-            array_push( $bags[$bag], ...$messages)  ;
-
-            $this->set_admin_flash_bags($bags);
-        }
-    }
+					if ( $product_variation ) { // null|false if unable to load product.
+						$product_weight = round( wc_get_weight( $product_variation->get_weight(), 'kg' ), 2 );
+						if ( $product_weight ) {
+							$weight_total += ( $item['qty'] * $product_weight );
+						}
+					}
+				}
+			}
+			return $weight_total;
+		}
+	}
 
 endif;
