@@ -94,7 +94,7 @@ it('substitutes values into a translated sprintf template on the debug bar', fun
     );
 });
 
-it('uses singular and plural pick-up point summaries via _n()', function () {
+it('uses singular and plural pickup point summaries via _n()', function () {
     with_option('woocommerce_shipping_debug_mode', 'yes');
     spy_on_logger();
     mock_smart_send_api(function () {
@@ -103,7 +103,7 @@ it('uses singular and plural pick-up point summaries via _n()', function () {
 
     SS_SHIPPING_WC()->ss_find_closest_agents_by_address('postnord', 'DK', '2300', 'Main Street 1', 'Copenhagen');
 
-    expect(ss_policy_notices())->toContain('Smart Send: found 1 postnord pick-up point near the entered address.');
+    expect(ss_policy_notices())->toContain('Smart Send: found 1 postnord pickup point near the entered address.');
 
     wc_clear_notices();
     mock_smart_send_api(function () {
@@ -112,5 +112,5 @@ it('uses singular and plural pick-up point summaries via _n()', function () {
 
     SS_SHIPPING_WC()->ss_find_closest_agents_by_address('postnord', 'DK', '2300', 'Main Street 1', 'Copenhagen');
 
-    expect(ss_policy_notices())->toContain('Smart Send: found 2 postnord pick-up points near the entered address.');
+    expect(ss_policy_notices())->toContain('Smart Send: found 2 postnord pickup points near the entered address.');
 });

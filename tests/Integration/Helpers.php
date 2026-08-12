@@ -132,9 +132,10 @@ function mock_smart_send_api(?callable $responder = null): object
         }
 
         $capture->requests[] = [
-            'url'    => $url,
-            'method' => $args['method'] ?? null,
-            'body'   => $args['body'] ?? null,
+            'url'     => $url,
+            'method'  => $args['method'] ?? null,
+            'body'    => $args['body'] ?? null,
+            'timeout' => $args['timeout'] ?? null,
         ];
 
         return $responder($url, $args);
@@ -201,7 +202,7 @@ function ss_api_error_body(string $message = 'The given data was invalid.'): arr
 }
 
 /**
- * A pick-up point agent object as the plugin stores it in order meta.
+ * A pickup point agent object as the plugin stores it in order meta.
  */
 function sample_agent(array $overrides = []): object
 {

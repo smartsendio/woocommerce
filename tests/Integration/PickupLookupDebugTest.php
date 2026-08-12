@@ -1,9 +1,9 @@
 <?php
 
 /*
- * Pick-up point lookup failure reasons (#47): when the agents request at
+ * Pickup point lookup failure reasons (#47): when the agents request at
  * checkout fails, the shopper still sees the unchanged "Shipping to closest
- * pick-up point" fallback, while the classified reason (transport error,
+ * pickup point" fallback, while the classified reason (transport error,
  * API error response, empty result) is logged - error level for failures,
  * debug level for an empty result - and, with WooCommerce shipping debug
  * mode enabled, surfaced as a checkout debug notice via
@@ -18,7 +18,7 @@
  */
 
 /**
- * Render the pick-up point block for a Smart Send agent rate the way
+ * Render the pickup point block for a Smart Send agent rate the way
  * checkout does: is_checkout() forced true, a posted shipping address, the
  * rate chosen in the session.
  */
@@ -80,7 +80,7 @@ function pickup_debug_logged(object $spy, string $level): array
     return $messages;
 }
 
-const PICKUP_DEBUG_FALLBACK = '<div class="woocommerce-info ss-agent-info">Shipping to closest pick-up point</div>';
+const PICKUP_DEBUG_FALLBACK = '<div class="woocommerce-info ss-agent-info">Shipping to closest pickup point</div>';
 
 beforeEach(function (): void {
     with_ss_settings();
@@ -103,10 +103,10 @@ it('surfaces a transport failure as a debug notice and logs it at error level', 
 
     $output = pickup_debug_render();
 
-    $expected = 'Smart Send: pick-up point lookup for postnord failed with a transport error (transport-timeout): '
+    $expected = 'Smart Send: pickup point lookup for postnord failed with a transport error (transport-timeout): '
         . 'The connection to the Smart Send API timed out. Please try again. If the problem persists, ask your host '
         . 'whether outgoing requests to app.smartsend.io are blocked or slow.'
-        . ' Falling back to "Shipping to closest pick-up point".';
+        . ' Falling back to "Shipping to closest pickup point".';
 
     // The customer-facing fallback is byte-for-byte unchanged.
     expect($output)->toContain(PICKUP_DEBUG_FALLBACK)
@@ -126,8 +126,8 @@ it('surfaces an API error response as a debug notice and logs it at error level'
 
     $output = pickup_debug_render();
 
-    $expected = 'Smart Send: pick-up point lookup for postnord failed with an API error (Unauthenticated): '
-        . 'The API token is invalid. Falling back to "Shipping to closest pick-up point".';
+    $expected = 'Smart Send: pickup point lookup for postnord failed with an API error (Unauthenticated): '
+        . 'The API token is invalid. Falling back to "Shipping to closest pickup point".';
 
     expect($output)->toContain(PICKUP_DEBUG_FALLBACK)
         ->and(pickup_debug_notice_texts())->toContain($expected)
@@ -145,8 +145,8 @@ it('falls back to the HTTP status when a validation error body has no code', fun
 
     expect($output)->toContain(PICKUP_DEBUG_FALLBACK)
         ->and(pickup_debug_notice_texts())->toContain(
-            'Smart Send: pick-up point lookup for postnord failed with an API error (422): '
-            . 'The given data was invalid. Falling back to "Shipping to closest pick-up point".'
+            'Smart Send: pickup point lookup for postnord failed with an API error (422): '
+            . 'The given data was invalid. Falling back to "Shipping to closest pickup point".'
         );
 });
 
@@ -160,13 +160,13 @@ it('reports an empty agent list as a debug notice and logs it at debug level onl
 
     $output = pickup_debug_render();
 
-    $expected = 'Smart Send: no postnord pick-up points found near the entered address'
-        . ' - falling back to "Shipping to closest pick-up point".';
+    $expected = 'Smart Send: no postnord pickup points found near the entered address'
+        . ' - falling back to "Shipping to closest pickup point".';
 
     expect($output)->toContain(PICKUP_DEBUG_FALLBACK)
         ->and(pickup_debug_notice_texts())->toContain($expected)
         ->and(implode("\n", pickup_debug_logged($spy, 'debug')))->toContain($expected)
-        ->and(implode("\n", pickup_debug_logged($spy, 'error')))->not->toContain('no postnord pick-up points');
+        ->and(implode("\n", pickup_debug_logged($spy, 'error')))->not->toContain('no postnord pickup points');
 });
 
 it('adds no notice when shipping debug mode is off but still logs the error', function () {
@@ -182,7 +182,7 @@ it('adds no notice when shipping debug mode is off but still logs the error', fu
     expect($output)->toContain(PICKUP_DEBUG_FALLBACK)
         ->and(wc_notice_count())->toBe(0)
         ->and(implode("\n", pickup_debug_logged($spy, 'error')))->toContain(
-            'Smart Send: pick-up point lookup for postnord failed with a transport error (transport-connection):'
+            'Smart Send: pickup point lookup for postnord failed with a transport error (transport-connection):'
         );
 });
 
@@ -209,8 +209,8 @@ it('renders the agent dropdown and no failure notice when the lookup succeeds', 
     $output = pickup_debug_render();
 
     expect($output)->toContain('ss_shipping_store_pickup')
-        ->and($output)->not->toContain('Shipping to closest pick-up point')
-        ->and(implode("\n", pickup_debug_notice_texts()))->not->toContain('pick-up point lookup');
+        ->and($output)->not->toContain('Shipping to closest pickup point')
+        ->and(implode("\n", pickup_debug_notice_texts()))->not->toContain('pickup point lookup');
 });
 
 it('surfaces a success summary with the carrier and result count (#92)', function () {
@@ -223,7 +223,7 @@ it('surfaces a success summary with the carrier and result count (#92)', functio
 
     $output = pickup_debug_render();
 
-    $expected = 'Smart Send: found 2 postnord pick-up points near the entered address.';
+    $expected = 'Smart Send: found 2 postnord pickup points near the entered address.';
 
     expect($output)->toContain('ss_shipping_store_pickup')
         ->and(pickup_debug_notice_texts())->toContain($expected)

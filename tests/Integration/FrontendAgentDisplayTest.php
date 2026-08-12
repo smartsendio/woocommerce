@@ -1,7 +1,7 @@
 <?php
 
 /*
- * Characterization tests for SS_Shipping_Frontend: the pick-up point block
+ * Characterization tests for SS_Shipping_Frontend: the pickup point block
  * on the thank-you page and in order emails, the checkout validation and
  * agent persistence, and the invalid-order guard from #60.
  */
@@ -36,7 +36,7 @@ it('hooks the agent display into the thank-you page and order emails', function 
         ->and(has_action('woocommerce_checkout_order_processed'))->not->toBeFalse();
 });
 
-it('renders the pick-up point block for an order with a selected agent', function () {
+it('renders the pickup point block for an order with a selected agent', function () {
     $product = create_simple_product(['price' => 100, 'weight' => 1]);
     $order   = create_order(['products' => [$product], 'shipping_method' => 'postnord_agent']);
 
@@ -46,7 +46,7 @@ it('renders the pick-up point block for an order with a selected agent', functio
 
     $output = capture_agent_display($order);
 
-    expect($output)->toContain('Pick-up Point')
+    expect($output)->toContain('Pickup Point')
         ->toContain('Corner Shop')
         ->toContain('Main Street 1')
         ->toContain('DK 2300 Copenhagen')
@@ -88,7 +88,7 @@ it('survives deleting the agent meta of an order that no longer exists', functio
     expect(true)->toBeTrue();
 });
 
-it('rejects checkout when the pick-up point dropdown is present but empty', function () {
+it('rejects checkout when the pickup point dropdown is present but empty', function () {
     if (is_null(WC()->cart)) {
         wc_load_cart();
     }
@@ -105,10 +105,10 @@ it('rejects checkout when the pick-up point dropdown is present but empty', func
     expect(wc_notice_count('error'))->toBe(1);
 
     $notices = wc_get_notices('error');
-    expect($notices[0]['notice'])->toBe('A pick-up point must be selected.');
+    expect($notices[0]['notice'])->toBe('A pickup point must be selected.');
 });
 
-it('accepts checkout when a pick-up point is selected', function () {
+it('accepts checkout when a pickup point is selected', function () {
     if (is_null(WC()->cart)) {
         wc_load_cart();
     }

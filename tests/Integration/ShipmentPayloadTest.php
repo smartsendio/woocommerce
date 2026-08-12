@@ -729,7 +729,7 @@ it('lets the smart_send_order_parcels filter inject a parcel split (#73)', funct
         ->and($payload['parcels'][1]['items'][0]['name'])->toBe('Filter Box Two');
 });
 
-it('lets the smart_send_order_agent filter replace the pick-up point', function () {
+it('lets the smart_send_order_pickup_point filter replace the pickup point', function () {
     $product = create_simple_product(['price' => 100, 'weight' => 1]);
     $order   = create_order([
         'products'        => [$product],
@@ -743,9 +743,9 @@ it('lets the smart_send_order_agent filter replace the pick-up point', function 
 
         return sample_agent(['agent_no' => '9999', 'company' => 'Override Shop']);
     };
-    add_filter('smart_send_order_agent', $filter, 10, 2);
+    add_filter('smart_send_order_pickup_point', $filter, 10, 2);
     remember_cleanup_callback(function () use ($filter): void {
-        remove_filter('smart_send_order_agent', $filter, 10);
+        remove_filter('smart_send_order_pickup_point', $filter, 10);
     });
 
     $payload = capture_shipment_payload($order);

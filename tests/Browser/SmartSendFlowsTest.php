@@ -4,7 +4,7 @@
  * End-to-end characterization of the three big Smart Send flows against a
  * running store:
  *
- *  - classic checkout with an agent method: pick-up point selector shown,
+ *  - classic checkout with an agent method: pickup point selector shown,
  *    a point chosen, order placed, agent shown on the thank-you page;
  *  - generating a label from the admin order screen;
  *  - the bulk "Generate Labels" action on two orders.
@@ -198,7 +198,7 @@ if (!$instance_id) {
     $created_instance = 1;
 }
 update_option('woocommerce_smart_send_shipping_' . $instance_id . '_settings', array(
-    'title' => 'Smart Send Pick-up Point',
+    'title' => 'Smart Send Pickup Point',
     'method' => 'postnord_agent',
     'return_method' => 'postnord_returndropoff',
     'auto_generate_return_label' => 'no',
@@ -210,7 +210,7 @@ update_option('woocommerce_smart_send_shipping_' . $instance_id . '_settings', a
     'cost_weight' => array(array('ss_min_weight' => '', 'ss_max_weight' => '', 'ss_cost_weight' => '29')),
 ));
 
-// A classic (shortcode) checkout page; the pick-up point selector only
+// A classic (shortcode) checkout page; the pickup point selector only
 // renders in the classic checkout.
 $page_id = wp_insert_post(array(
     'post_title'   => 'SS Classic Checkout',
@@ -245,7 +245,7 @@ $make_order = function () use ($product_id) {
     $order->set_address(array_merge($address, array('email' => 'ss-browser-test@smartsend.io', 'phone' => '+4512345678')), 'billing');
     $order->set_address($address, 'shipping');
     $item = new WC_Order_Item_Shipping();
-    $item->set_method_title('Smart Send Pick-up Point');
+    $item->set_method_title('Smart Send Pickup Point');
     $item->set_method_id('smart_send_shipping');
     $item->set_instance_id(1);
     $item->set_total('29');
@@ -350,7 +350,7 @@ beforeEach(function (): void {
     }
 });
 
-it('shows the pick-up point selector on classic checkout and stores the chosen agent on the order', function () {
+it('shows the pickup point selector on classic checkout and stores the chosen agent on the order', function () {
     $state = ss_browser_state();
 
     $page = visit(base_url('/?add-to-cart=' . $state['product_id']));
@@ -366,7 +366,7 @@ it('shows the pick-up point selector on classic checkout and stores the chosen a
         ->fill('#billing_email', 'ss-browser-test@smartsend.io');
 
     // Choose the Smart Send agent method; the checkout refreshes and the
-    // plugin renders the pick-up point dropdown (fed by the mocked API).
+    // plugin renders the pickup point dropdown (fed by the mocked API).
     // WooCommerce derives the radio id from the rate id
     // ('smart_send_shipping:N' -> 'smart_send_shippingN').
     $page->click('#shipping_method_0_smart_send_shipping' . $state['instance_id'])
@@ -384,10 +384,10 @@ it('shows the pick-up point selector on classic checkout and stores the chosen a
         // by their value and hang instead of failing.
         ->click('#place_order');
 
-    // Thank-you page: the frontend hook renders the stored pick-up point,
+    // Thank-you page: the frontend hook renders the stored pickup point,
     // which proves the agent meta ended up on the order.
     $page->assertSee('order has been received')
-        ->assertSee('Pick-up Point')
+        ->assertSee('Pickup Point')
         ->assertSee('Browser Test Shop')
         ->assertSee('Main Street 1');
 });
@@ -398,7 +398,7 @@ it('generates a shipping label from the admin order screen', function () {
     login_as_admin()
         ->navigate(base_url($state['order_a_edit_path']))
         ->assertSee('Smart Send Shipping')
-        ->assertSee('Pick-up Point')
+        ->assertSee('Pickup Point')
         ->assertSee('Browser Test Shop')
         ->click('#ss-shipping-label-button')
         ->assertSeeIn('#ss-label-created', 'Download shipping label');

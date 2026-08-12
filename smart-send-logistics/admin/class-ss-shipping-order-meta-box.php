@@ -129,9 +129,9 @@ if ( ! class_exists( 'SS_Shipping_Order_Meta_Box' ) ) :
 
 			// Display Agent No. field if pickup-point shipping method selected.
 			if ( false !== stripos( $shipping_method_type, 'agent' ) ) {
-				echo '<h3>' . esc_html__( 'Pick-up Point', 'smart-send-logistics' ) . '</h3>';
+				echo '<h3>' . esc_html__( 'Pickup Point', 'smart-send-logistics' ) . '</h3>';
 				echo '<strong>' . sprintf(
-					/* translators: %s: pick-up point agent number. */
+					/* translators: %s: pickup point agent number. */
 					esc_html__( 'Agent No.: %s', 'smart-send-logistics' ),
 					esc_html( (string) $ss_shipping_order_agent_no )
 				) . '</strong>';

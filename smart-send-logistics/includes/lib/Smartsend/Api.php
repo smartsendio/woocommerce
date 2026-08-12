@@ -36,7 +36,7 @@ class Api extends Client
          *
          * @param int | timeout in seconds
          */
-        return apply_filters( 'smart_send_agent_timeout', self::AGENT_TIMEOUT);
+        return apply_filters( 'smart_send_pickup_point_timeout', self::AGENT_TIMEOUT);
     }
 
     public function getAgent($id)

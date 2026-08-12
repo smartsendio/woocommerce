@@ -718,7 +718,7 @@ if ( ! class_exists( 'SS_Shipping_WC_Method' ) ) :
 
 		/**
 		 * Get the human readable name of the Smart Send shipping method
-		 * Example: 'PostNord: Closest pick-up point (MyPack Collect)'
+		 * Example: 'PostNord: Closest pickup point (MyPack Collect)'
 		 *
 		 * @see SS_Shipping_Method_Catalog::get_shipping_method_name()
 		 *

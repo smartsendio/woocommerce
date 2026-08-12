@@ -156,16 +156,16 @@ if ( ! class_exists( 'SS_Shipping_Method_Settings' ) ) :
 					'desc_tip'    => true,
 				),
 				'title_pickup'                      => array(
-					'title'       => __( 'Pick-up Points', 'smart-send-logistics' ),
+					'title'       => __( 'Pickup Points', 'smart-send-logistics' ),
 					'type'        => 'title',
 					'description' => __(
-						'Settings for displaying pick-up points during checkout.',
+						'Settings for displaying pickup points during checkout.',
 						'smart-send-logistics'
 					),
 				),
 				'dropdown_display_format'           => array(
 					'title'    => __( 'Dropdown format', 'smart-send-logistics' ),
-					'desc'     => __( 'How the pick-up points are listed during checkout.', 'smart-send-logistics' ),
+					'desc'     => __( 'How the pickup points are listed during checkout.', 'smart-send-logistics' ),
 					'default'  => '4',
 					'type'     => 'select',
 					'class'    => 'wc-enhanced-select',
@@ -175,7 +175,7 @@ if ( ! class_exists( 'SS_Shipping_Method_Settings' ) ) :
 				'default_select_agent'              => array(
 					'title'       => __( 'Select Default', 'smart-send-logistics' ),
 					'label'       => __( 'Enable Select Default', 'smart-send-logistics' ),
-					'description' => __( 'This will automatically select the closest pick-up point and let the customer change to a different pick-up point. This means that the customer will not be forced to select a pick-up point before completing the order.', 'smart-send-logistics' ),
+					'description' => __( 'This will automatically select the closest pickup point and let the customer change to a different pickup point. This means that the customer will not be forced to select a pickup point before completing the order.', 'smart-send-logistics' ),
 					'default'     => 'no',
 					'type'        => 'checkbox',
 					'desc_tip'    => true,

@@ -35,11 +35,11 @@ if ( ! class_exists( 'SS_Shipping_Method_Catalog' ) ) :
 				'PostNord'          =>
 					array(
 						'postnord_agent'                   => __(
-							'PostNord: Select pick-up point (MyPack Collect)',
+							'PostNord: Select pickup point (MyPack Collect)',
 							'smart-send-logistics'
 						),
 						'postnord_collect'                 => __(
-							'PostNord: Closest pick-up point (MyPack Collect)',
+							'PostNord: Closest pickup point (MyPack Collect)',
 							'smart-send-logistics'
 						),
 						'postnord_homedelivery'            => __(
@@ -137,8 +137,8 @@ if ( ! class_exists( 'SS_Shipping_Method_Catalog' ) ) :
 					),
 				'GLS'               =>
 					array(
-						'gls_agent'        => __( 'GLS: Select pick-up point (ParcelShop)', 'smart-send-logistics' ),
-						'gls_collect'      => __( 'GLS: Closest pick-up point (ParcelShop)', 'smart-send-logistics' ),
+						'gls_agent'        => __( 'GLS: Select pickup point (ParcelShop)', 'smart-send-logistics' ),
+						'gls_collect'      => __( 'GLS: Closest pickup point (ParcelShop)', 'smart-send-logistics' ),
 						'gls_homedelivery' => __(
 							'GLS: Private delivery to address (PrivateDelivery)',
 							'smart-send-logistics'
@@ -152,11 +152,11 @@ if ( ! class_exists( 'SS_Shipping_Method_Catalog' ) ) :
 					),
 				'DAO'               =>
 					array(
-						'dao_agent'           => __( 'DAO: Select pick-up point (ParcelShop)', 'smart-send-logistics' ),
-						'dao_collect'         => __( 'DAO: Closest pick-up point (ParcelShop)', 'smart-send-logistics' ),
+						'dao_agent'           => __( 'DAO: Select pickup point (ParcelShop)', 'smart-send-logistics' ),
+						'dao_collect'         => __( 'DAO: Closest pickup point (ParcelShop)', 'smart-send-logistics' ),
 						'dao_doorstep'        => __( 'DAO: Leave at door (Direct)', 'smart-send-logistics' ),
-						'dao_dropoffagent'    => __( 'DAO: From pick-up point to pick-up point (Shop2Shop)', 'smart-send-logistics' ),
-						'dao_dropoffdoorstep' => __( 'DAO: From pick-up point to doorstep (ParcelShop to Direct)', 'smart-send-logistics' ),
+						'dao_dropoffagent'    => __( 'DAO: From pickup point to pickup point (Shop2Shop)', 'smart-send-logistics' ),
+						'dao_dropoffdoorstep' => __( 'DAO: From pickup point to doorstep (ParcelShop to Direct)', 'smart-send-logistics' ),
 					),
 				'Budbee'            =>
 						array(
@@ -169,19 +169,19 @@ if ( ! class_exists( 'SS_Shipping_Method_Catalog' ) ) :
 				'Bring'             =>
 					array(
 						'bring_agent'                   => __(
-							'Bring: Select pick-up point (PickUp Parcel / Serviceparcel)',
+							'Bring: Select pickup point (PickUp Parcel / Serviceparcel)',
 							'smart-send-logistics'
 						),
 						'bring_bulkagent'               => __(
-							'Bring: Select pick-up point, send as bulk (PickUp Parcel Bulk)',
+							'Bring: Select pickup point, send as bulk (PickUp Parcel Bulk)',
 							'smart-send-logistics'
 						),
 						'bring_collect'                 => __(
-							'Bring: Closest pick-up point (PickUp Parcel / Serviceparcel)',
+							'Bring: Closest pickup point (PickUp Parcel / Serviceparcel)',
 							'smart-send-logistics'
 						),
 						'bring_bulkcollect'             => __(
-							'Bring: Closest pick-up point, send as bulk (PickUp Parcel Bulk)',
+							'Bring: Closest pickup point, send as bulk (PickUp Parcel Bulk)',
 							'smart-send-logistics'
 						),
 						'bring_homedelivery'            => __(
@@ -289,7 +289,7 @@ if ( ! class_exists( 'SS_Shipping_Method_Catalog' ) ) :
 				'PostNord' =>
 					array(
 						'postnord_returndropoff' => __(
-							'PostNord: Return from pick-up point (Return Drop Off)',
+							'PostNord: Return from pickup point (Return Drop Off)',
 							'smart-send-logistics'
 						),
 						'postnord_returnpickup'  => __(
@@ -300,21 +300,21 @@ if ( ! class_exists( 'SS_Shipping_Method_Catalog' ) ) :
 				'GLS'      =>
 					array(
 						'gls_returndropoff' => __(
-							'GLS: Return from pick-up point (ShopReturn)',
+							'GLS: Return from pickup point (ShopReturn)',
 							'smart-send-logistics'
 						),
 					),
 				'DAO'      =>
 					array(
 						'dao_returndropoff' => __(
-							'DAO: Return from pick-up point (ParcelShop Return)',
+							'DAO: Return from pickup point (ParcelShop Return)',
 							'smart-send-logistics'
 						),
 					),
 				'Bring'    =>
 					array(
 						'bring_returndropoff' => __(
-							'Bring: Return from pick-up point (PickUp Parcel Return)',
+							'Bring: Return from pickup point (PickUp Parcel Return)',
 							'smart-send-logistics'
 						),
 						'bring_returnpickup'  => __(
@@ -344,7 +344,7 @@ if ( ! class_exists( 'SS_Shipping_Method_Catalog' ) ) :
 		}
 		/**
 		 * Get the human readable name of the Smart Send shipping method
-		 * Example: 'PostNord: Closest pick-up point (MyPack Collect)'
+		 * Example: 'PostNord: Closest pickup point (MyPack Collect)'
 		 *
 		 * Details: This method look for valid method with code $shipping_method_code
 		 * in the $shipping_method array from this SS_Shipping_WC_Method class
