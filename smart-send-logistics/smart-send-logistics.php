@@ -49,22 +49,28 @@ if ( ! class_exists( 'SS_Shipping_WC' ) ) :
 		/**
 		 * Smart Send Shipping Order for label and tracking.
 		 *
-		 * Public and deliberately untyped: merchant code snippets access it via
-		 * SS_SHIPPING_WC() and typing it would be a BC break for loose assignment.
+		 * Public: reachable via SS_SHIPPING_WC() from merchant code snippets.
+		 * It is only ever assigned the real SS_Shipping_WC_Order instance in
+		 * the constructor below, so typing it is a deliberate v9 breaking
+		 * change - a snippet that replaces it with something else now fatals
+		 * instead of silently corrupting state.
 		 *
 		 * @var SS_Shipping_WC_Order|null
 		 */
-		public $ss_shipping_wc_order = null;
+		public ?SS_Shipping_WC_Order $ss_shipping_wc_order = null;
 
 		/**
 		 * Smart Send Shipping Product
 		 *
-		 * Public and deliberately untyped: merchant code snippets access it via
-		 * SS_SHIPPING_WC() and typing it would be a BC break for loose assignment.
+		 * Public: reachable via SS_SHIPPING_WC() from merchant code snippets.
+		 * It is only ever assigned the real SS_Shipping_WC_Product instance
+		 * in the constructor below, so typing it is a deliberate v9 breaking
+		 * change - a snippet that replaces it with something else now fatals
+		 * instead of silently corrupting state.
 		 *
 		 * @var SS_Shipping_WC_Product|null
 		 */
-		public $ss_shipping_wc_product = null;
+		public ?SS_Shipping_WC_Product $ss_shipping_wc_product = null;
 
 		/**
 		 * Smart Send Frontend

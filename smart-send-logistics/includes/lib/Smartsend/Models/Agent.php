@@ -12,232 +12,231 @@ class Agent implements \JsonSerializable
 {
     //private $id; Only returned by API
     //private $type='agent'; Only returned by API
-    private $agent_no;
-    private $carrier;
-    private $company;
-    private $name_line1;
-    private $name_line2;
-    private $address_line1;
-    private $address_line2;
-    private $postal_code;
-    private $city;
-    private $country;
-    // Typed with "= null" so get_object_vars() serialization is unchanged;
-    // the uncast public setters above stay untyped (see Models/Shipment.php).
+    // Typed with "= null" so get_object_vars() serialization is unchanged.
+    private ?string $agent_no = null;
+    private ?string $carrier = null;
+    private ?string $company = null;
+    private ?string $name_line1 = null;
+    private ?string $name_line2 = null;
+    private ?string $address_line1 = null;
+    private ?string $address_line2 = null;
+    private ?string $postal_code = null;
+    private ?string $city = null;
+    private ?string $country = null;
     private ?Coordinates $coordinates = null;
-    private $opening_hours;
+    private ?array $opening_hours = null;
 
     /**
-     * @return mixed
+     * @return string|null
      */
-    public function getAgentNo()
+    public function getAgentNo(): ?string
     {
         return $this->agent_no;
     }
 
     /**
-     * @param mixed $agent_no
-     * @return Agent
+     * @param string|null $agent_no
+     * @return self
      */
-    public function setAgentNo($agent_no)
+    public function setAgentNo(?string $agent_no): self
     {
         $this->agent_no = $agent_no;
         return $this;
     }
 
     /**
-     * @return mixed
+     * @return string|null
      */
-    public function getCarrier()
+    public function getCarrier(): ?string
     {
         return $this->carrier;
     }
 
     /**
-     * @param mixed $carrier
-     * @return Agent
+     * @param string|null $carrier
+     * @return self
      */
-    public function setCarrier($carrier)
+    public function setCarrier(?string $carrier): self
     {
         $this->carrier = $carrier;
         return $this;
     }
 
     /**
-     * @return mixed
+     * @return string|null
      */
-    public function getCompany()
+    public function getCompany(): ?string
     {
         return $this->company;
     }
 
     /**
-     * @param mixed $company
-     * @return Agent
+     * @param string|null $company
+     * @return self
      */
-    public function setCompany($company)
+    public function setCompany(?string $company): self
     {
         $this->company = $company;
         return $this;
     }
 
     /**
-     * @return mixed
+     * @return string|null
      */
-    public function getNameLine1()
+    public function getNameLine1(): ?string
     {
         return $this->name_line1;
     }
 
     /**
-     * @param mixed $name_line1
-     * @return Agent
+     * @param string|null $name_line1
+     * @return self
      */
-    public function setNameLine1($name_line1)
+    public function setNameLine1(?string $name_line1): self
     {
         $this->name_line1 = $name_line1;
         return $this;
     }
 
     /**
-     * @return mixed
+     * @return string|null
      */
-    public function getNameLine2()
+    public function getNameLine2(): ?string
     {
         return $this->name_line2;
     }
 
     /**
-     * @param mixed $name_line2
-     * @return Agent
+     * @param string|null $name_line2
+     * @return self
      */
-    public function setNameLine2($name_line2)
+    public function setNameLine2(?string $name_line2): self
     {
         $this->name_line2 = $name_line2;
         return $this;
     }
 
     /**
-     * @return mixed
+     * @return string|null
      */
-    public function getAddressLine1()
+    public function getAddressLine1(): ?string
     {
         return $this->address_line1;
     }
 
     /**
-     * @param mixed $address_line1
-     * @return Agent
+     * @param string|null $address_line1
+     * @return self
      */
-    public function setAddressLine1($address_line1)
+    public function setAddressLine1(?string $address_line1): self
     {
         $this->address_line1 = $address_line1;
         return $this;
     }
 
     /**
-     * @return mixed
+     * @return string|null
      */
-    public function getAddressLine2()
+    public function getAddressLine2(): ?string
     {
         return $this->address_line2;
     }
 
     /**
-     * @param mixed $address_line2
-     * @return Agent
+     * @param string|null $address_line2
+     * @return self
      */
-    public function setAddressLine2($address_line2)
+    public function setAddressLine2(?string $address_line2): self
     {
         $this->address_line2 = $address_line2;
         return $this;
     }
 
     /**
-     * @return mixed
+     * @return string|null
      */
-    public function getPostalCode()
+    public function getPostalCode(): ?string
     {
         return $this->postal_code;
     }
 
     /**
-     * @param mixed $postal_code
-     * @return Agent
+     * @param string|null $postal_code
+     * @return self
      */
-    public function setPostalCode($postal_code)
+    public function setPostalCode(?string $postal_code): self
     {
         $this->postal_code = $postal_code;
         return $this;
     }
 
     /**
-     * @return mixed
+     * @return string|null
      */
-    public function getCity()
+    public function getCity(): ?string
     {
         return $this->city;
     }
 
     /**
-     * @param mixed $city
-     * @return Agent
+     * @param string|null $city
+     * @return self
      */
-    public function setCity($city)
+    public function setCity(?string $city): self
     {
         $this->city = $city;
         return $this;
     }
 
     /**
-     * @return mixed
+     * @return string|null
      */
-    public function getCountry()
+    public function getCountry(): ?string
     {
         return $this->country;
     }
 
     /**
-     * @param mixed $country
-     * @return Agent
+     * @param string|null $country
+     * @return self
      */
-    public function setCountry($country)
+    public function setCountry(?string $country): self
     {
         $this->country = $country;
         return $this;
     }
 
     /**
-     * @return mixed
+     * @return Coordinates|null
      */
-    public function getCoordinates()
+    public function getCoordinates(): ?Coordinates
     {
         return $this->coordinates;
     }
 
     /**
      * @param Coordinates $coordinates
-     * @return Agent
+     * @return self
      */
-    public function setCoordinates(Coordinates $coordinates)
+    public function setCoordinates(Coordinates $coordinates): self
     {
         $this->coordinates = $coordinates;
         return $this;
     }
 
     /**
-     * @return mixed
+     * @return OpeningHour[]|null
      */
-    public function getOpeningHours()
+    public function getOpeningHours(): ?array
     {
         return $this->opening_hours;
     }
 
     /**
-     * @param mixed $opening_hours
-     * @return Agent
+     * @param OpeningHour[]|null $opening_hours
+     * @return self
      */
-    public function setOpeningHours($opening_hours)
+    public function setOpeningHours(?array $opening_hours): self
     {
         $this->opening_hours = $opening_hours;
         return $this;
@@ -245,9 +244,9 @@ class Agent implements \JsonSerializable
 
     /**
      * @param OpeningHour $opening_hour
-     * @return Agent
+     * @return self
      */
-    public function addOpeningHours(OpeningHour $opening_hour)
+    public function addOpeningHours(OpeningHour $opening_hour): self
     {
         if (is_array($this->opening_hours)) {
             $this->opening_hours[] = $opening_hour;

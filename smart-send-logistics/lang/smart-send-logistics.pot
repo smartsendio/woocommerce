@@ -9,7 +9,7 @@ msgstr ""
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"POT-Creation-Date: 2026-08-12T13:22:34+00:00\n"
+"POT-Creation-Date: 2026-08-12T18:07:26+00:00\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "X-Generator: WP-CLI 2.11.0\n"
 "X-Domain: smart-send-logistics\n"
@@ -1040,79 +1040,79 @@ msgstr ""
 msgid "A pick-up point must be selected."
 msgstr ""
 
-#: smart-send-logistics.php:224
+#: smart-send-logistics.php:230
 msgid "Validate API Token"
 msgstr ""
 
-#: smart-send-logistics.php:288
+#: smart-send-logistics.php:294
 msgid "View WooCommerce settings"
 msgstr ""
 
-#: smart-send-logistics.php:289
+#: smart-send-logistics.php:295
 msgid "Settings"
 msgstr ""
 
-#: smart-send-logistics.php:308
-#: smart-send-logistics.php:309
+#: smart-send-logistics.php:314
+#: smart-send-logistics.php:315
 msgid "Configuration guide"
 msgstr ""
 
-#: smart-send-logistics.php:312
-#: smart-send-logistics.php:313
+#: smart-send-logistics.php:318
+#: smart-send-logistics.php:319
 msgid "Support"
 msgstr ""
 
-#: smart-send-logistics.php:342
+#: smart-send-logistics.php:348
 msgid "Smart Send Shipping requires WooCommerce 2.6 and above to be installed and activated!"
 msgstr ""
 
-#: smart-send-logistics.php:367
+#: smart-send-logistics.php:373
 msgid "#Company, #Street"
 msgstr ""
 
-#: smart-send-logistics.php:368
+#: smart-send-logistics.php:374
 msgid "#Company, #Street, #Zipcode"
 msgstr ""
 
-#: smart-send-logistics.php:369
+#: smart-send-logistics.php:375
 msgid "#Company, #Street, #City"
 msgstr ""
 
-#: smart-send-logistics.php:370
+#: smart-send-logistics.php:376
 msgid "#Company, #Street, #Zipcode #City"
 msgstr ""
 
-#: smart-send-logistics.php:371
+#: smart-send-logistics.php:377
 msgid "#Company, #Zipcode"
 msgstr ""
 
-#: smart-send-logistics.php:372
+#: smart-send-logistics.php:378
 msgid "#Company, #Zipcode, #City"
 msgstr ""
 
-#: smart-send-logistics.php:373
+#: smart-send-logistics.php:379
 msgid "#Company, #City"
 msgstr ""
 
 #. translators: 1: email address of the connected Smart Send account, 2: website of the connected Smart Send account.
-#: smart-send-logistics.php:592
+#: smart-send-logistics.php:598
 msgid "API Token verified: Connected to Smart Send as %1$s from %2$s"
 msgstr ""
 
 #. translators: %s: error message returned by the Smart Send API.
-#: smart-send-logistics.php:600
+#: smart-send-logistics.php:606
 msgid "API Token validation failed: %s. Make sure to save the settings before validating."
 msgstr ""
 
-#: smart-send-logistics.php:605
+#: smart-send-logistics.php:611
 msgid "API Token validation failed: Please enter an API Token and save the settings before validating."
 msgstr ""
 
-#: smart-send-logistics.php:697
+#: smart-send-logistics.php:703
 msgid "Smart Send: no Smart Send rates offered for this package."
 msgstr ""
 
 #. translators: %s: list of offered rates, each as "label" (rate id, cost).
-#: smart-send-logistics.php:702
+#: smart-send-logistics.php:708
 msgid "Smart Send: rates offered for this package: %s."
 msgstr ""
