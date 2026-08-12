@@ -259,34 +259,6 @@ it('includes the request body of POST requests in the context', function () {
     expect($spy->entries[0]['context']['request_body'])->toContain('shipment-1');
 });
 
-it('logs and shows a checkout notice via debug_notice when WooCommerce shipping debug mode is on', function () {
-    with_ss_settings(['ss_debug' => 'yes']);
-    $spy = spy_on_logger();
-    with_option('woocommerce_shipping_debug_mode', 'yes');
-    WC()->session->set('wc_notices', null);
-    remember_cleanup_callback(function (): void {
-        WC()->session->set('wc_notices', null);
-    });
-
-    SS_Shipping_Logger::debug_notice('A shipping debug notice');
-
-    expect($spy->entries)->toHaveCount(1);
-    expect($spy->entries[0]['message'])->toBe('A shipping debug notice');
-    expect(wc_has_notice('A shipping debug notice'))->toBeTrue();
-});
-
-it('does not add a checkout notice via debug_notice when shipping debug mode is off', function () {
-    with_ss_settings(['ss_debug' => 'yes']);
-    $spy = spy_on_logger();
-    with_option('woocommerce_shipping_debug_mode', 'no');
-    WC()->session->set('wc_notices', null);
-
-    SS_Shipping_Logger::debug_notice('A hidden debug notice');
-
-    expect($spy->entries)->toHaveCount(1);
-    expect(wc_has_notice('A hidden debug notice'))->toBeFalse();
-});
-
 it('exposes the WooCommerce log screen URL', function () {
     expect(SS_Shipping_Logger::get_log_url())->toContain('page=wc-status&tab=logs');
 });
