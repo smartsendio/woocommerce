@@ -127,12 +127,11 @@ if ( ! class_exists( 'SS_Shipping_WC_Order' ) ) :
 		 * @return string|void
 		 */
 		public function handle_bulk_order_actions( string $sendback, string $doaction, array $items ) {
-			if ( ! in_array( $doaction, array_keys( $this->get_bulk_actions() ) ) ) {
+			if ( ! in_array( $doaction, array_keys( $this->get_bulk_actions() ) ) ) { // phpcs:ignore WordPress.PHP.StrictInArray.MissingTrueStrict -- pre-existing loose in_array; tightening is a behaviour change out of scope for the #43 move.
 				return;
 			}
 
-			$array_messages = array();
-			// $array_shipments = array();
+			$array_messages         = array();
 			$array_messages_success = array();
 			$array_messages_error   = array();
 			$array_shipment_ids     = array();
@@ -332,6 +331,8 @@ if ( ! class_exists( 'SS_Shipping_WC_Order' ) ) :
 				return;
 			}
 
+			// phpcs:disable WordPress.Security.EscapeOutput.OutputNotEscaped -- pre-existing behaviour: the meta box HTML is built from translated strings and internally generated markup exactly as before the #43 move; escaping it is a behaviour change out of scope here.
+
 			$ss_shipping_method_name = SS_SHIPPING_WC()->get_shipping_method_name_from_all_shipping_method_instances( $ss_shipping_method_id );
 
 			// Get order agent object
@@ -395,7 +396,7 @@ if ( ! class_exists( 'SS_Shipping_WC_Order' ) ) :
 					$dropdown = '<select data-id="' . $parcel['id'] . '" data-name="' . $parcel['name'] . '" name="ss_shipping_box_no[]"  autocomplete="off">';
 
 					for ( $i = 1; $i <= 9; $i++ ) {
-						$selected  = ( $i == intval( $parcel['value'] ) ) ? 'selected' : '';
+						$selected  = ( intval( $parcel['value'] ) == $i ) ? 'selected' : ''; // phpcs:ignore Universal.Operators.StrictComparisons.LooseEqual -- pre-existing loose comparison; tightening is a behaviour change out of scope for the #43 move.
 						$dropdown .= '<option value="' . $i . '" ' . $selected . '>' . $i . '</option>';
 					}
 					$dropdown .= '</select>';
@@ -427,7 +428,8 @@ if ( ! class_exists( 'SS_Shipping_WC_Order' ) ) :
 
 					}
 
-					for ( $ii = 1; $ii <= intval( $item['qty'] ); $ii++ ) {
+					$item_qty = intval( $item['qty'] );
+					for ( $ii = 1; $ii <= $item_qty; $ii++ ) {
 
 						$dropdown = '<select data-id="' . $product_id . '" data-name="' . $product_name . '" name="ss_shipping_box_no[]"  autocomplete="off">';
 
@@ -462,11 +464,13 @@ if ( ! class_exists( 'SS_Shipping_WC_Order' ) ) :
 				'ss-shipping-label-js',
 				SS_SHIPPING_PLUGIN_DIR_URL . '/admin/js/ss-shipping-label.js',
 				array(),
-				SS_SHIPPING_VERSION
+				SS_SHIPPING_VERSION,
+				false
 			);
 			wp_localize_script( 'ss-shipping-label-js', 'ss_label_data', $ss_label_data );
 
 			echo '</div>';
+			// phpcs:enable WordPress.Security.EscapeOutput.OutputNotEscaped
 		}
 
 		/**
@@ -491,6 +495,7 @@ if ( ! class_exists( 'SS_Shipping_WC_Order' ) ) :
 		 * @param boolean $return       Whether or not the label is return (true) or normal (false)
 		 * @return string               Unique Smart Send name of shipping method. Example 'postnord_agent'
 		 */
+		// phpcs:ignore Universal.NamingConventions.NoReservedKeywordParameterNames.returnFound -- pre-existing public method signature, kept for backwards compatibility.
 		public function get_smart_send_method_id( $order_id, $return = false ) {
 			$order = wc_get_order( $order_id );//Accepts Post object or post ID of the order.
 
@@ -535,39 +540,40 @@ if ( ! class_exists( 'SS_Shipping_WC_Order' ) ) :
 						} elseif ( stripos( $shipping_method_id, '_commercial' ) !== false ) {
 							return 'postnord_commercial';
 						} elseif ( stripos( $shipping_method_id, '_privatehome' ) !== false ) {
-							$order              = wc_get_order( $order_id );
-							$vc_aio_options     = $order->get_meta( '_vc_aio_options', true );
-							$flexDelivery       = false;
-							$flexDeliveryOption = false;
-							$dayDelivery        = false;
+							$order                = wc_get_order( $order_id );
+							$vc_aio_options       = $order->get_meta( '_vc_aio_options', true );
+							$flex_delivery        = false;
+							$flex_delivery_option = false;
+							$day_delivery         = false;
 							if ( is_array( $vc_aio_options ) ) {
 								foreach ( $vc_aio_options as $option ) {
 									// Check if shipping method has flexDelivery enabled (the parcel can be left somewhere)
+									// phpcs:ignore WordPress.PHP.StrictInArray.MissingTrueStrict -- pre-existing loose array_search; tightening is a behaviour change out of scope for the #43 move.
 									if ( array_search(
 										'flexDelivery',
 										array_column( $option, 'value' )
 									) !== false ) {
-										$flexDelivery = true;
+										$flex_delivery = true;
 									}
 									// Check if shipping method has dayDelivery enabled (customer will receive an SMS with possibility to choose)
-									if ( array_search( 'dayDelivery', array_column( $option, 'value' ) ) !== false ) {
-										$dayDelivery = true;
+									if ( array_search( 'dayDelivery', array_column( $option, 'value' ) ) !== false ) { // phpcs:ignore WordPress.PHP.StrictInArray.MissingTrueStrict -- pre-existing loose array_search; tightening is a behaviour change out of scope for the #43 move.
+										$day_delivery = true;
 									}
 									// A flexDelivery option is chosen
-									if ( ! empty( $option['typeId']['value'] ) && $option['typeId']['value'] == 'flexDelivery'
+									if ( ! empty( $option['typeId']['value'] ) && 'flexDelivery' == $option['typeId']['value'] // phpcs:ignore Universal.Operators.StrictComparisons.LooseEqual -- pre-existing loose comparison; tightening is a behaviour change out of scope for the #43 move.
 										&& ! empty( $option['addressText']['value'] ) ) {
-										$flexDeliveryOption = true;
+										$flex_delivery_option = true;
 									}
 								}
 							}
-							if ( ! $flexDelivery && ! $dayDelivery && ! $flexDeliveryOption ) {
+							if ( ! $flex_delivery && ! $day_delivery && ! $flex_delivery_option ) {
 								return 'postnord_homedelivery';
-							} elseif ( ! $flexDelivery && ! $flexDeliveryOption && $dayDelivery ) {
+							} elseif ( ! $flex_delivery && ! $flex_delivery_option && $day_delivery ) {
 								return 'postnord_flexhome';
-							} elseif ( $flexDelivery && ! $flexDeliveryOption && ! $dayDelivery ) {
+							} elseif ( $flex_delivery && ! $flex_delivery_option && ! $day_delivery ) {
 								return 'postnord_doorstep';
 								// The chosen flexdelivy option must be used to tell PostNord where the parcel should be left
-							} elseif ( $flexDelivery && $flexDeliveryOption && ! $dayDelivery ) {
+							} elseif ( $flex_delivery && $flex_delivery_option && ! $day_delivery ) { // phpcs:ignore Generic.CodeAnalysis.EmptyStatement.DetectedElseif -- pre-existing intentionally empty branch documenting an unhandled vConnect case.
 								// The chosen flexdelivy option must be used to tell PostNord where the parcel should be left
 							}
 						}
@@ -592,7 +598,7 @@ if ( ! class_exists( 'SS_Shipping_WC_Order' ) ) :
 		 */
 		public function filter_update_agent_meta( $check, $meta_id, $meta_value, $meta_key ) {
 
-			if ( $meta_key == 'ss_shipping_order_agent_no' ) {
+			if ( 'ss_shipping_order_agent_no' == $meta_key ) { // phpcs:ignore Universal.Operators.StrictComparisons.LooseEqual -- pre-existing loose comparison; tightening is a behaviour change out of scope for the #43 move.
 				$meta      = get_metadata_by_mid( 'post', $meta_id );
 				$object_id = $meta->post_id;
 				if ( $this->save_shipping_agent( $object_id, true, $meta_value ) !== true ) {
@@ -615,9 +621,10 @@ if ( ! class_exists( 'SS_Shipping_WC_Order' ) ) :
 		 * @param string $meta_key    Meta key.
 		 * @param mixed  $_meta_value Meta value.
 		 */
+		// phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed -- $_meta_value is part of the deleted_post_meta hook signature.
 		public function action_deleted_agent_meta( $meta_ids, $object_id, $meta_key, $_meta_value ) {
 
-			if ( $meta_key == 'ss_shipping_order_agent_no' ) {
+			if ( 'ss_shipping_order_agent_no' == $meta_key ) { // phpcs:ignore Universal.Operators.StrictComparisons.LooseEqual -- pre-existing loose comparison; tightening is a behaviour change out of scope for the #43 move.
 				$this->delete_ss_shipping_order_agent( $object_id );
 			}
 		}
@@ -672,6 +679,7 @@ if ( ! class_exists( 'SS_Shipping_WC_Order' ) ) :
 						);
 
 						$error_msg = sprintf(
+							/* translators: %s: the pick-up point agent number that was entered. */
 							__(
 								'The agent number entered, %s, was not found.',
 								'smart-send-logistics'
@@ -700,12 +708,14 @@ if ( ! class_exists( 'SS_Shipping_WC_Order' ) ) :
 				'create-ss-shipping-label',
 				'ss_shipping_label_nonce'
 			); //This function dies if the referer is not correct
+			// phpcs:disable WordPress.Security.ValidatedSanitizedInput -- pre-existing behaviour: nonce-checked above, order id is wc_clean-ed and the flags are boolval-ed; changing the parcels input handling is out of scope for the #43 move.
 			$order_id     = wc_clean( $_POST['order_id'] );
 			$return       = boolval( $_POST['return_label'] );
 			$split_parcel = boolval( $_POST['ss_shipping_split_parcel'] );
 
 			// Save parcels input if set:
 			$parcels = ( $split_parcel ) ? $_POST['ss_shipping_parcels'] : array();
+			// phpcs:enable WordPress.Security.ValidatedSanitizedInput
 			$this->save_ss_shipping_order_parcels( $order_id, $parcels );
 
 			$response = $this->create_label_for_single_order_maybe_return( $order_id, $return, false );
@@ -725,7 +735,7 @@ if ( ! class_exists( 'SS_Shipping_WC_Order' ) ) :
 		 */
 		protected function create_label_for_single_order_maybe_return(
 			$order_id,
-			$return = false,
+			$return = false, // phpcs:ignore Universal.NamingConventions.NoReservedKeywordParameterNames.returnFound -- pre-existing method signature, kept for backwards compatibility.
 			$setting_save_order_note = true
 		) {
 
@@ -736,7 +746,7 @@ if ( ! class_exists( 'SS_Shipping_WC_Order' ) ) :
 			// If creating normal label and auto generate return flag is enabled, create both
 			if ( ! $return &&
 				isset( $ss_shipping_method_id['smart_send_auto_generate_return_label'] ) &&
-				$ss_shipping_method_id['smart_send_auto_generate_return_label'] == 'yes' ) {
+				'yes' == $ss_shipping_method_id['smart_send_auto_generate_return_label'] ) { // phpcs:ignore Universal.Operators.StrictComparisons.LooseEqual -- pre-existing loose comparison; tightening is a behaviour change out of scope for the #43 move.
 
 				// Create the normal label
 				$response = $this->create_label_for_single_order( $order_id, false, $setting_save_order_note );
@@ -765,6 +775,7 @@ if ( ! class_exists( 'SS_Shipping_WC_Order' ) ) :
 		 *
 		 * @return array
 		 */
+		// phpcs:ignore Universal.NamingConventions.NoReservedKeywordParameterNames.returnFound -- pre-existing method signature, kept for backwards compatibility.
 		protected function create_label_for_single_order( $order_id, $return = false, $setting_save_order_note = true ) {
 			// Load WC Order
 			$order = wc_get_order( $order_id );
@@ -789,7 +800,7 @@ if ( ! class_exists( 'SS_Shipping_WC_Order' ) ) :
 				if ( SS_SHIPPING_WC()->get_setting_save_shipping_labels_in_uploads() ) {
 					try {
 						// Save the PDF file
-						$labelUrl = $this->save_label_file(
+						$label_url = $this->save_label_file(
 							$response->shipment_id,
 							$response->pdf->base_64_encoded,
 							$return
@@ -800,7 +811,7 @@ if ( ! class_exists( 'SS_Shipping_WC_Order' ) ) :
 				}
 
 				// Get the label link
-				$labelUrl = $response->pdf->link;
+				$label_url = $response->pdf->link;
 
 				// save order meta data
 				$this->save_ss_shipment_id_in_order_meta( $order_id, $response->shipment_id, $return );
@@ -815,7 +826,7 @@ if ( ! class_exists( 'SS_Shipping_WC_Order' ) ) :
 				);
 
 				// Get formatted order comment
-				$response->woocommerce['label_url']  = $labelUrl;
+				$response->woocommerce['label_url']  = $label_url;
 				$response->woocommerce['order_note'] = $this->get_formatted_order_note_with_label_and_tracking(
 					$order_id,
 					$response,
@@ -934,6 +945,7 @@ if ( ! class_exists( 'SS_Shipping_WC_Order' ) ) :
 		 *
 		 * @return string HTML formatted note
 		 */
+		// phpcs:ignore Universal.NamingConventions.NoReservedKeywordParameterNames.returnFound, Generic.CodeAnalysis.UnusedFunctionParameter.FoundBeforeLastUsed -- pre-existing method signature, kept for backwards compatibility.
 		protected function get_formatted_order_note_with_label_and_tracking( $order_id, $api_shipment_response, $return ) {
 
 			$tracking_note = sprintf(
@@ -957,7 +969,9 @@ if ( ! class_exists( 'SS_Shipping_WC_Order' ) ) :
 		/**
 		 * Save label file in "uploads" folder
 		 */
+		// phpcs:ignore Universal.NamingConventions.NoReservedKeywordParameterNames.returnFound, Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed -- pre-existing method signature, kept for backwards compatibility.
 		protected function save_label_file( $shipment_id, $label_data, $return ) {
+			// phpcs:disable WordPress.Security.EscapeOutput.ExceptionNotEscaped -- pre-existing behaviour: exception messages are returned to the admin AJAX response as data, not printed as HTML; escaping is a behaviour change out of scope for the #43 move.
 
 			if ( empty( $shipment_id ) ) {
 				throw new Exception( __( 'Shipment id is empty', 'smart-send-logistics' ) );
@@ -967,7 +981,7 @@ if ( ! class_exists( 'SS_Shipping_WC_Order' ) ) :
 				throw new Exception( __( 'Label data empty', 'smart-send-logistics' ) );
 			}
 
-			$label_data_decoded = base64_decode( $label_data );
+			$label_data_decoded = base64_decode( $label_data ); // phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.obfuscation_base64_decode -- the Smart Send API delivers the label PDF base64-encoded; this is transport decoding, not obfuscation.
 			$file_ret           = wp_upload_bits(
 				$this->get_label_name_from_shipment_id( $shipment_id ),
 				null,
@@ -983,6 +997,7 @@ if ( ! class_exists( 'SS_Shipping_WC_Order' ) ) :
 					)
 				); //This exception is not caught
 			}
+			// phpcs:enable WordPress.Security.EscapeOutput.ExceptionNotEscaped
 
 			return $file_ret['url'];
 		}
@@ -1194,6 +1209,7 @@ if ( ! class_exists( 'SS_Shipping_WC_Order' ) ) :
 		 *
 		 * @return string URL label link
 		 */
+		// phpcs:ignore Universal.NamingConventions.NoReservedKeywordParameterNames.returnFound -- pre-existing public method signature, kept for backwards compatibility.
 		public function get_label_url_from_order_id( $order_id, $return ): string {
 			$order = wc_get_order( $order_id );
 			if ( ! $order instanceof WC_Order ) {
@@ -1215,6 +1231,7 @@ if ( ! class_exists( 'SS_Shipping_WC_Order' ) ) :
 		 *
 		 * @return string html label link
 		 */
+		// phpcs:ignore Universal.NamingConventions.NoReservedKeywordParameterNames.returnFound -- pre-existing public method signature, kept for backwards compatibility.
 		public function get_ss_shipping_label_link( $url, $return ) {
 			if ( $return ) {
 				$message = __( 'Download return shipping label', 'smart-send-logistics' );
@@ -1285,56 +1302,52 @@ if ( ! class_exists( 'SS_Shipping_WC_Order' ) ) :
 			$combo_name     = $this->get_combo_label_file_name( $array_shipment_ids );
 			$combo_path     = $this->get_label_path_from_shipment_id( $combo_name );
 			$combo_url      = '';
-			// $combine_shipments_payload = array_map(function($element) { return array('shipment_id' => $element); }, $array_shipment_ids);
 
 			if ( file_exists( $combo_path ) ) {
 				$combo_url = $this->get_label_url_from_shipment_id( $combo_name );
-			} else {
+			} elseif ( count( $array_shipment_ids ) > 1 ) {
+				// If more than one smart send shipment label created, then create combo labels.
+				// Create combined label with successful shipments
+				$combined_shipments = SS_SHIPPING_WC()->get_api_handle()->combineLabelsForShipments(
+					wp_list_pluck(
+						$array_shipment_ids,
+						'shipment_id'
+					)
+				);
 
-				// If more than one smart send shipment label created, then create combo labels
-				if ( count( $array_shipment_ids ) > 1 ) {
-					// Create combined label with successful shipments
-					$combined_shipments = SS_SHIPPING_WC()->get_api_handle()->combineLabelsForShipments(
-						wp_list_pluck(
-							$array_shipment_ids,
-							'shipment_id'
+				if ( SS_SHIPPING_WC()->get_api_handle()->isSuccessful() ) {
+
+					$response = SS_SHIPPING_WC()->get_api_handle()->getData();
+					if ( SS_SHIPPING_WC()->get_setting_save_shipping_labels_in_uploads() ) {
+						try {
+							// Save the PDF file and save order meta data
+							$combo_url = $this->save_label_file( $combo_name, $response->pdf->base_64_encoded, null );
+						} catch ( Exception $e ) {
+							array_push(
+								$array_messages,
+								array(
+									'message' => $e->getMessage(),
+									'type'    => 'error',
+								)
+							);
+						}
+					}
+
+					// Get the combined label link
+					$combo_url = $response->pdf->link;
+
+				} else {
+					array_push(
+						$array_messages,
+						array(
+							'message' => sprintf(
+								/* translators: %s: error message from the Smart Send API. */
+								__( 'Error combining shipping labels: %s', 'smart-send-logistics' ),
+								SS_SHIPPING_WC()->get_api_handle()->getErrorString()
+							),
+							'type'    => 'error',
 						)
 					);
-
-					if ( SS_SHIPPING_WC()->get_api_handle()->isSuccessful() ) {
-
-						$response = SS_SHIPPING_WC()->get_api_handle()->getData();
-						if ( SS_SHIPPING_WC()->get_setting_save_shipping_labels_in_uploads() ) {
-							try {
-								// Save the PDF file and save order meta data
-								$combo_url = $this->save_label_file( $combo_name, $response->pdf->base_64_encoded, null );
-							} catch ( Exception $e ) {
-								array_push(
-									$array_messages,
-									array(
-										'message' => $e->getMessage(),
-										'type'    => 'error',
-									)
-								);
-							}
-						}
-
-						// Get the combined label link
-						$combo_url = $response->pdf->link;
-
-					} else {
-						array_push(
-							$array_messages,
-							array(
-								'message' => sprintf(
-									/* translators: %s: error message from the Smart Send API. */
-									__( 'Error combining shipping labels: %s', 'smart-send-logistics' ),
-									SS_SHIPPING_WC()->get_api_handle()->getErrorString()
-								),
-								'type'    => 'error',
-							)
-						);
-					}
 				}
 			}
 

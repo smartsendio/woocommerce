@@ -36,12 +36,15 @@ if ( ! class_exists( 'SS_Shipping_Frontend' ) ) :
 		/**
 		 * Display the pick-up points next to the Smart Send method
 		 */
+		// phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed -- $index is part of the woocommerce_after_shipping_rate hook signature.
 		public function display_ss_pickup_points( $method, $index ) {
 
 			// Only display agents on checkout
 			if ( ! is_checkout() ) {
 				return;
 			}
+
+			// phpcs:disable WordPress.Security.NonceVerification.Missing -- pre-existing behaviour: this renders inside WooCommerce's own checkout update_order_review AJAX cycle, which carries no plugin nonce; changing the input handling is out of scope for the #43 move.
 
 			// Need posted address
 			if ( empty( $_POST ) ) {
@@ -62,15 +65,17 @@ if ( ! class_exists( 'SS_Shipping_Frontend' ) ) :
 			$meta_data = $method->get_meta_data();
 
 			if ( $chosen_shipping &&
-				( $method_id == 'smart_send_shipping' ) &&
-				( $chosen_shipping == $shipping_id ) &&
+				( 'smart_send_shipping' == $method_id ) && // phpcs:ignore Universal.Operators.StrictComparisons.LooseEqual -- pre-existing loose comparison; tightening is a behaviour change out of scope for the #43 move.
+				( $chosen_shipping == $shipping_id ) && // phpcs:ignore Universal.Operators.StrictComparisons.LooseEqual -- pre-existing loose comparison; tightening is a behaviour change out of scope for the #43 move.
 				( stripos( $meta_data['smart_send_shipping_method'], 'agent' ) !== false ) ) {
 
+				// phpcs:disable WordPress.Security.ValidatedSanitizedInput -- pre-existing behaviour: values are wc_clean-ed; changing the input handling is out of scope for the #43 move.
 				if ( ! empty( $_POST['s_country'] ) && ! empty( $_POST['s_postcode'] ) && ! empty( $_POST['s_address'] ) ) {
 					$country     = wc_clean( $_POST['s_country'] );
 					$postal_code = wc_clean( $_POST['s_postcode'] );
 					$city        = ( ! empty( $_POST['s_city'] ) ? wc_clean( $_POST['s_city'] ) : null );//not required but preferred
 					$street      = wc_clean( $_POST['s_address'] );
+					// phpcs:enable WordPress.Security.ValidatedSanitizedInput
 
 					$carrier = SS_SHIPPING_WC()->get_shipping_method_carrier( $meta_data['smart_send_shipping_method'] );
 
@@ -81,7 +86,7 @@ if ( ! class_exists( 'SS_Shipping_Frontend' ) ) :
 						$ss_setting = SS_SHIPPING_WC()->get_ss_shipping_settings();
 
 						$ss_agent_options = array();
-						if ( ! isset( $ss_setting['default_select_agent'] ) || $ss_setting['default_select_agent'] == 'no' ) {
+						if ( ! isset( $ss_setting['default_select_agent'] ) || 'no' == $ss_setting['default_select_agent'] ) { // phpcs:ignore Universal.Operators.StrictComparisons.LooseEqual -- pre-existing loose comparison; tightening is a behaviour change out of scope for the #43 move.
 							$ss_agent_options[0] = __(
 								'- Select Pick-up Point -',
 								'smart-send-logistics'
@@ -133,18 +138,21 @@ if ( ! class_exists( 'SS_Shipping_Frontend' ) ) :
 						);
 
 					} else {
+						// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- pre-existing static translated string in static markup; escaping is a behaviour change out of scope for the #43 move.
 						echo '<div class="woocommerce-info ss-agent-info">' . __(
 							'Shipping to closest pick-up point',
 							'smart-send-logistics'
 						) . '</div>';
 					}
 				} else {
+					// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- pre-existing static translated string in static markup; escaping is a behaviour change out of scope for the #43 move.
 					echo '<div class="woocommerce-info ss-agent-info">' . __(
 						'Enter shipping information',
 						'smart-send-logistics'
 					) . '</div>';
 				}
 			}
+			// phpcs:enable WordPress.Security.NonceVerification.Missing
 		}
 
 		/**
@@ -315,7 +323,7 @@ if ( ! class_exists( 'SS_Shipping_Frontend' ) ) :
 		 */
 		protected function get_formatted_address( $agent, $format_id = 0 ) {
 
-			if ( $format_id == 0 ) {
+			if ( 0 == $format_id ) { // phpcs:ignore Universal.Operators.StrictComparisons.LooseEqual -- pre-existing loose comparison; tightening is a behaviour change out of scope for the #43 move.
 				// Find the setting
 				$ss_setting = SS_SHIPPING_WC()->get_ss_shipping_settings();
 				$format_id  = $ss_setting['dropdown_display_format'];
@@ -386,6 +394,7 @@ if ( ! class_exists( 'SS_Shipping_Frontend' ) ) :
 		 * Ensure a store pickup point is selected if the drop down exists
 		 */
 		public function validate_agent_selected() {
+			// phpcs:disable WordPress.Security.NonceVerification.Missing -- pre-existing behaviour: runs inside WooCommerce's checkout submission, which is nonce-verified by WooCommerce itself.
 
 			if ( ! isset( $_POST ) ) {
 				return;
@@ -396,12 +405,15 @@ if ( ! class_exists( 'SS_Shipping_Frontend' ) ) :
 				wc_add_notice( __( 'A pick-up point must be selected.', 'smart-send-logistics' ), 'error' );
 				return;
 			}
+			// phpcs:enable WordPress.Security.NonceVerification.Missing
 		}
 
 		/**
 		 * Save the posted preferences to the order so can be used when generating label
 		 */
+		// phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed -- $posted is part of the woocommerce_checkout_order_processed hook signature.
 		public function process_ss_pickup_points( $order_id, $posted ) {
+			// phpcs:disable WordPress.Security.NonceVerification.Missing, WordPress.Security.ValidatedSanitizedInput -- pre-existing behaviour: runs inside WooCommerce's nonce-verified checkout submission and the value is wc_clean-ed; changing the input handling is out of scope for the #43 move.
 
 			if ( ! isset( $_POST ) ) {
 				return;
@@ -412,17 +424,17 @@ if ( ! class_exists( 'SS_Shipping_Frontend' ) ) :
 			}
 
 			$ss_shipping_store_pickup = wc_clean( $_POST['ss_shipping_store_pickup'] );
-			$retrive_data             = WC()->session->get( 'ss_shipping_agents' );
+			// phpcs:enable WordPress.Security.NonceVerification.Missing, WordPress.Security.ValidatedSanitizedInput
+			$retrive_data = WC()->session->get( 'ss_shipping_agents' );
 
 			$selected_agent_no = 0;
 			if ( $retrive_data ) {
 				foreach ( $retrive_data as $agent_key => $agent_value ) {
 					// If agent selected for the order, save it
-					if ( $agent_value->agent_no == $ss_shipping_store_pickup ) {
+					if ( $agent_value->agent_no == $ss_shipping_store_pickup ) { // phpcs:ignore Universal.Operators.StrictComparisons.LooseEqual -- pre-existing loose comparison; tightening is a behaviour change out of scope for the #43 move.
 
 						$selected_agent_no = $agent_value->agent_no;
 						$selected_agent    = $agent_value;
-						// $retrive_data = WC()->session->delete( 'ss_shipping_agents' );
 						break;
 					}
 				}
@@ -462,11 +474,14 @@ if ( ! class_exists( 'SS_Shipping_Frontend' ) ) :
 				// Display in block instead of one line
 				$formatted_address = str_replace( ',', '<br/>', $formatted_address );
 
+				// phpcs:disable WordPress.Security.EscapeOutput.OutputNotEscaped -- pre-existing behaviour: the formatted pick-up point address deliberately carries <br/> markup; escaping is a behaviour change out of scope for the #43 move.
 				echo '<h2>' . __( 'Pick-up Point', 'smart-send-logistics' ) . '</h2>'
 					. '<address>' . $formatted_address . '</address>';
+				// phpcs:enable WordPress.Security.EscapeOutput.OutputNotEscaped
 			}
 		}
 
+		// phpcs:ignore WordPress.NamingConventions.ValidFunctionName.MethodNameInvalid -- pre-existing method name, kept for backwards compatibility.
 		protected function getOrderId( $order ) {
 			// WC 3.0 code!
 			if ( defined( 'WOOCOMMERCE_VERSION' ) && version_compare( WOOCOMMERCE_VERSION, '3.0', '>=' ) ) {
