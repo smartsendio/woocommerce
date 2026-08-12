@@ -4,7 +4,7 @@
  * Tests for the static SS_Shipping_Logger, a thin wrapper around
  * wc_get_logger(): the debug setting gates debug/info inside the class
  * while warning/error/critical always log, the smart_send_logging filter
- * can force logging on/off for all levels, structured data travels in the
+ * can rewrite or suppress entries at all levels, structured data travels in the
  * context array (rendered natively by the WC log viewer), and API requests
  * made through Smartsend\Client produce one concise entry with method,
  * endpoint, HTTP status and timing.
@@ -22,6 +22,15 @@ function spy_on_logger(): object
         public function log($level, $message, $context = []): void
         {
             $this->entries[] = ['level' => $level, 'message' => $message, 'context' => $context];
+        }
+
+        /**
+         * The logger dispatches to wc_get_logger()'s level wrapper methods
+         * (debug(), error(), ...); record them like log() calls.
+         */
+        public function __call(string $level, array $args): void
+        {
+            $this->log($level, $args[0], $args[1] ?? []);
         }
     };
 
@@ -106,18 +115,7 @@ it('logs debug and info when the debug setting is on', function () {
     expect(array_column($spy->entries, 'level'))->toBe(['debug', 'info']);
 });
 
-it('can be force-enabled through the smart_send_logging filter', function () {
-    with_ss_settings(['ss_debug' => 'no']);
-    $spy = spy_on_logger();
-    with_smart_send_logging_filter('__return_true', 1);
-
-    SS_Shipping_Logger::log('Forced on');
-
-    expect($spy->entries)->toHaveCount(1);
-    expect($spy->entries[0]['message'])->toBe('Forced on');
-});
-
-it('can be suppressed through the smart_send_logging filter for all levels', function () {
+it('can be suppressed by returning false from the smart_send_logging filter', function () {
     with_ss_settings(['ss_debug' => 'yes']);
     $spy = spy_on_logger();
     with_smart_send_logging_filter('__return_false', 1);
@@ -129,22 +127,60 @@ it('can be suppressed through the smart_send_logging filter for all levels', fun
     expect($spy->entries)->toBeEmpty();
 });
 
-it('passes the message and level to the smart_send_logging filter', function () {
+it('can be suppressed by returning null from the smart_send_logging filter', function () {
+    with_ss_settings(['ss_debug' => 'yes']);
+    $spy = spy_on_logger();
+    with_smart_send_logging_filter('__return_null', 1);
+
+    SS_Shipping_Logger::log('Suppressed');
+    SS_Shipping_Logger::error('Suppressed error');
+
+    expect($spy->entries)->toBeEmpty();
+});
+
+it('can rewrite the message through the smart_send_logging filter', function () {
+    with_ss_settings(['ss_debug' => 'yes']);
+    $spy = spy_on_logger();
+    with_smart_send_logging_filter(function ($message) {
+        return '[rewritten] ' . $message;
+    }, 1);
+
+    SS_Shipping_Logger::log('A trace');
+
+    expect($spy->entries)->toHaveCount(1);
+    expect($spy->entries[0]['message'])->toBe('[rewritten] A trace');
+});
+
+it('does not suppress the message "0"', function () {
+    with_ss_settings(['ss_debug' => 'yes']);
+    $spy = spy_on_logger();
+
+    SS_Shipping_Logger::log('0');
+
+    expect($spy->entries)->toHaveCount(1);
+    expect($spy->entries[0]['message'])->toBe('0');
+});
+
+it('passes the message, level and context to the smart_send_logging filter', function () {
     with_ss_settings(['ss_debug' => 'yes']);
     spy_on_logger();
     $seen = [];
-    with_smart_send_logging_filter(function ($enabled, $message, $level) use (&$seen) {
-        $seen[] = ['enabled' => $enabled, 'message' => $message, 'level' => $level];
+    with_smart_send_logging_filter(function ($message, $level, $context) use (&$seen) {
+        $seen[] = ['message' => $message, 'level' => $level, 'context' => $context];
 
-        return $enabled;
+        return $message;
     });
 
-    SS_Shipping_Logger::log('A trace');
+    SS_Shipping_Logger::log('A trace', ['order_id' => 7]);
     SS_Shipping_Logger::error('A failure');
 
     expect($seen)->toHaveCount(2);
-    expect($seen[0])->toBe(['enabled' => true, 'message' => 'A trace', 'level' => 'debug']);
-    expect($seen[1])->toBe(['enabled' => true, 'message' => 'A failure', 'level' => 'error']);
+    expect($seen[0]['message'])->toBe('A trace');
+    expect($seen[0]['level'])->toBe('debug');
+    expect($seen[0]['context']['order_id'])->toBe(7);
+    expect($seen[0]['context']['source'])->toBe('smart-send-logistics');
+    expect($seen[1]['message'])->toBe('A failure');
+    expect($seen[1]['level'])->toBe('error');
 });
 
 it('logs errors at the error level even when the debug setting is off', function () {

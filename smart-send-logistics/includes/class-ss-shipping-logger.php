@@ -24,8 +24,9 @@ if ( ! defined( 'ABSPATH' ) ) {
  *
  * The `debug` and `info` levels are gated on the plugin's "Debug Log"
  * setting; `warning`, `error` and `critical` always log. The
- * `smart_send_logging` filter applies to all levels and can force logging
- * on or off.
+ * `smart_send_logging` filter applies to all levels: it receives the
+ * message and may rewrite it, or suppress the entry by returning null or
+ * false.
  */
 class SS_Shipping_Logger {
 
@@ -36,7 +37,15 @@ class SS_Shipping_Logger {
 	 */
 	public static $logger;
 
-	const WC_LOG_FILENAME = 'smart-send-logistics';
+	private const LOG_SOURCE = 'smart-send-logistics';
+
+	/**
+	 * The WC log levels the logger dispatches to, matching wc_get_logger()'s
+	 * level wrapper methods.
+	 *
+	 * @var string[]
+	 */
+	private const LEVELS = array( 'debug', 'info', 'warning', 'error', 'critical' );
 
 	/**
 	 * Log a debug trace message.
@@ -237,14 +246,29 @@ class SS_Shipping_Logger {
 			return;
 		}
 
+		if ( ! $enabled || ! in_array( $level, self::LEVELS, true ) ) {
+			return;
+		}
+
+		$context = array_merge(
+			array( 'version' => SS_SHIPPING_VERSION ),
+			is_array( $context ) ? $context : array(),
+			array( 'source' => self::LOG_SOURCE )
+		);
+
 		/**
-		 * Force Smart Send logging on or off, or inspect messages.
+		 * Rewrite or suppress Smart Send log entries.
 		 *
-		 * @param bool   $enabled Whether this entry will be written.
+		 * Return a modified string to rewrite the message, or null/false to
+		 * suppress the entry entirely.
+		 *
 		 * @param string $message The message being logged.
 		 * @param string $level   The WC log level of the entry.
+		 * @param array  $context The context array of the entry.
 		 */
-		if ( ! apply_filters( 'smart_send_logging', $enabled, $message, $level ) ) {
+		$message = apply_filters( 'smart_send_logging', $message, $level, $context );
+
+		if ( null === $message || false === $message ) {
 			return;
 		}
 
@@ -252,13 +276,7 @@ class SS_Shipping_Logger {
 			self::$logger = wc_get_logger();
 		}
 
-		$context = array_merge(
-			array( 'version' => SS_SHIPPING_VERSION ),
-			is_array( $context ) ? $context : array(),
-			array( 'source' => self::WC_LOG_FILENAME )
-		);
-
-		self::$logger->log( $level, $message, $context );
+		self::$logger->{$level}( $message, $context );
 	}
 
 	/**
