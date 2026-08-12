@@ -212,15 +212,26 @@ if ( ! class_exists( 'SS_Shipping_Frontend' ) ) :
 				 */
 				$ss_agents = apply_filters( 'smart_send_agents_found', $ss_agents, $search_params );
 
-				$summary = 'Smart Send: found ' . count( $ss_agents ) . ' ' . $carrier . ' pick-up points near the entered address.';
 				SS_Shipping_Logger::debug(
-					$summary,
+					sprintf( 'Smart Send: found %1$d %2$s pick-up points near the entered address.', count( $ss_agents ), $carrier ),
 					array(
 						'carrier'      => $carrier,
 						'result_count' => count( $ss_agents ),
 					)
 				);
-				SS_Shipping_Checkout_Debug::add_notice( $summary );
+				SS_Shipping_Checkout_Debug::add_notice(
+					sprintf(
+						/* translators: 1: number of pick-up points found, 2: carrier code. */
+						_n(
+							'Smart Send: found %1$d %2$s pick-up point near the entered address.',
+							'Smart Send: found %1$d %2$s pick-up points near the entered address.',
+							count( $ss_agents ),
+							'smart-send-logistics'
+						),
+						count( $ss_agents ),
+						$carrier
+					)
+				);
 
 				// Save all of the agents in sessions.
 				WC()->session->set( 'ss_shipping_agents', $ss_agents );
@@ -256,26 +267,44 @@ if ( ! class_exists( 'SS_Shipping_Frontend' ) ) :
 			if ( 'NoResults' === $code ) {
 				// Not an error: the API answered, there are just no pick-up
 				// points near the entered address.
-				$reason = 'Smart Send: no ' . $carrier . ' pick-up points found near the entered address - falling back to "Shipping to closest pick-up point".';
-
-				SS_Shipping_Logger::debug( $reason );
-				SS_Shipping_Checkout_Debug::add_notice( $reason );
+				SS_Shipping_Logger::debug(
+					sprintf( 'Smart Send: no %s pick-up points found near the entered address - falling back to "Shipping to closest pick-up point".', $carrier ),
+					array( 'carrier' => $carrier )
+				);
+				SS_Shipping_Checkout_Debug::add_notice(
+					sprintf(
+						/* translators: %s: carrier code. */
+						__( 'Smart Send: no %s pick-up points found near the entered address - falling back to "Shipping to closest pick-up point".', 'smart-send-logistics' ),
+						$carrier
+					)
+				);
 
 				return;
 			}
 
 			if ( 0 === strpos( $code, 'transport-' ) ) {
-				$reason = 'Smart Send: pick-up point lookup for ' . $carrier . ' failed with a transport error (' . $code . '): ' . $message;
+				$log_message = sprintf( 'Smart Send: pick-up point lookup for %1$s failed with a transport error (%2$s): %3$s Falling back to "Shipping to closest pick-up point".', $carrier, $code, $message );
+				/* translators: 1: carrier code, 2: error code, 3: error message. */
+				$notice_message = sprintf( __( 'Smart Send: pick-up point lookup for %1$s failed with a transport error (%2$s): %3$s Falling back to "Shipping to closest pick-up point".', 'smart-send-logistics' ), $carrier, $code, $message );
 			} elseif ( '' !== $code || '' !== $message ) {
-				$reason = 'Smart Send: pick-up point lookup for ' . $carrier . ' failed with an API error (' . $code . '): ' . $message;
+				$log_message = sprintf( 'Smart Send: pick-up point lookup for %1$s failed with an API error (%2$s): %3$s Falling back to "Shipping to closest pick-up point".', $carrier, $code, $message );
+				/* translators: 1: carrier code, 2: error code, 3: error message. */
+				$notice_message = sprintf( __( 'Smart Send: pick-up point lookup for %1$s failed with an API error (%2$s): %3$s Falling back to "Shipping to closest pick-up point".', 'smart-send-logistics' ), $carrier, $code, $message );
 			} else {
-				$reason = 'Smart Send: pick-up point lookup for ' . $carrier . ' failed for an unknown reason.';
+				$log_message = sprintf( 'Smart Send: pick-up point lookup for %s failed for an unknown reason. Falling back to "Shipping to closest pick-up point".', $carrier );
+				/* translators: %s: carrier code. */
+				$notice_message = sprintf( __( 'Smart Send: pick-up point lookup for %s failed for an unknown reason. Falling back to "Shipping to closest pick-up point".', 'smart-send-logistics' ), $carrier );
 			}
 
-			$reason .= ' Falling back to "Shipping to closest pick-up point".';
-
-			SS_Shipping_Logger::error( $reason );
-			SS_Shipping_Checkout_Debug::add_notice( $reason );
+			SS_Shipping_Logger::error(
+				$log_message,
+				array(
+					'carrier'       => $carrier,
+					'error_code'    => $code,
+					'error_message' => $message,
+				)
+			);
+			SS_Shipping_Checkout_Debug::add_notice( $notice_message );
 		}
 
         /**
@@ -337,16 +366,16 @@ if ( ! class_exists( 'SS_Shipping_Frontend' ) ) :
 
             $formatted_address = str_replace($place_holders, $place_holders_vals, $address_format);
 
-            if (!empty($agent->distance) && $format_id > 0) {
-                if ($agent->distance < 1) {
-                    $formatted_distance = number_format($agent->distance * 1000, 0, '.', '')
-                        . __('m', 'smart-send-logistics');
-                } else {
-                    $formatted_distance = number_format($agent->distance, 2, '.', '')
-                        . __('km', 'smart-send-logistics');
-                }
-                $formatted_address = $formatted_distance . ': ' . $formatted_address;
-            }
+			if ( ! empty( $agent->distance ) && $format_id > 0 ) {
+				if ( $agent->distance < 1 ) {
+					/* translators: %s: distance in meters. */
+					$formatted_distance = sprintf( __( '%sm', 'smart-send-logistics' ), number_format( $agent->distance * 1000, 0, '.', '' ) );
+				} else {
+					/* translators: %s: distance in kilometers. */
+					$formatted_distance = sprintf( __( '%skm', 'smart-send-logistics' ), number_format( $agent->distance, 2, '.', '' ) );
+				}
+				$formatted_address = sprintf( '%1$s: %2$s', $formatted_distance, $formatted_address );
+			}
 
             return $formatted_address;
         }

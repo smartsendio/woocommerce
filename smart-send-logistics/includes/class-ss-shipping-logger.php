@@ -175,9 +175,12 @@ class SS_Shipping_Logger {
 		$endpoint = self::redact_endpoint( isset( $context['endpoint'] ) ? $context['endpoint'] : '' );
 		$path     = wp_parse_url( $endpoint, PHP_URL_PATH );
 
-		$message = ( isset( $context['method'] ) ? $context['method'] : '' )
-			. ' ' . ( $path ? $path : $endpoint )
-			. ' → ' . $status_code;
+		$message = sprintf(
+			'%1$s %2$s → %3$s',
+			isset( $context['method'] ) ? $context['method'] : '',
+			$path ? $path : $endpoint,
+			$status_code
+		);
 
 		$log_context = array(
 			'endpoint'    => $endpoint,
@@ -186,7 +189,7 @@ class SS_Shipping_Logger {
 
 		if ( isset( $context['start_time'], $context['end_time'] ) && is_numeric( $context['start_time'] ) && is_numeric( $context['end_time'] ) ) {
 			$duration_ms                = (int) round( abs( $context['end_time'] - $context['start_time'] ) * 1000 );
-			$message                   .= ' (' . $duration_ms . 'ms)';
+			$message                    = sprintf( '%1$s (%2$dms)', $message, $duration_ms );
 			$log_context['duration_ms'] = $duration_ms;
 		}
 

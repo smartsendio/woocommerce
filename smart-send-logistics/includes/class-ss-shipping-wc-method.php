@@ -368,11 +368,11 @@ if ( ! class_exists( 'SS_Shipping_WC_Method' ) ) :
                     'desc_tip' => true,
                     'options'  => $agents_address_format,
                 ),
-                'default_select_agent'              => array(
-                    'title'       => __('Select Default', 'smart-send-logistics'),
-                    'label'       => __('Enable Select Default', 'smart-send-logistics'),
-                    'description' => __('This will automatically select the closest pick-up point and let the customer change to a different pick-up point. This means that the customer will not be forced to select a pick-up point before completing the order.'),
-                    'default'     => 'no',
+				'default_select_agent'              => array(
+					'title'       => __( 'Select Default', 'smart-send-logistics' ),
+					'label'       => __( 'Enable Select Default', 'smart-send-logistics' ),
+					'description' => __( 'This will automatically select the closest pick-up point and let the customer change to a different pick-up point. This means that the customer will not be forced to select a pick-up point before completing the order.', 'smart-send-logistics' ),
+					'default'     => 'no',
                     'type'        => 'checkbox',
                     'desc_tip'    => true,
                 ),
@@ -975,14 +975,22 @@ if ( ! class_exists( 'SS_Shipping_WC_Method' ) ) :
 
 			// Log-file developer trace: the rate matched the zone, cost calculation starts.
 			SS_Shipping_Logger::debug(
-				'Calculating shipping cost for shipping rate ' . $rate['id'],
+				sprintf( 'Calculating shipping cost for shipping rate %s', $rate['id'] ),
 				array(
 					'rate_id' => $rate['id'],
 					'label'   => $rate['label'],
 					'method'  => $rate['meta_data']['smart_send_shipping_method'],
 				)
 			);
-			SS_Shipping_Checkout_Debug::add_notice( 'Smart Send: evaluated method "' . $rate['label'] . '" (' . $rate['meta_data']['smart_send_shipping_method'] . ', rate id ' . $rate['id'] . ').' );
+			SS_Shipping_Checkout_Debug::add_notice(
+				sprintf(
+					/* translators: 1: shipping rate label, 2: Smart Send shipping method code, 3: shipping rate id. */
+					__( 'Smart Send: evaluated method "%1$s" (%2$s, rate id %3$s).', 'smart-send-logistics' ),
+					$rate['label'],
+					$rate['meta_data']['smart_send_shipping_method'],
+					$rate['id']
+				)
+			);
 
             // Set tax status based on selection otherwise always taxed
             $this->tax_status = $this->get_option('tax_status');
@@ -992,15 +1000,21 @@ if ( ! class_exists( 'SS_Shipping_WC_Method' ) ) :
 
 				$rate['cost'] = $this->get_option( 'flatfee_cost' );
 				$this->add_rate( $rate );
-				$debug_message = 'Smart Send "' . $rate['label'] . '": free shipping applies - rate added with flat fee cost ' . $rate['cost'] . '.';
 				SS_Shipping_Logger::debug(
-					$debug_message,
+					sprintf( 'Smart Send "%1$s": free shipping applies - rate added with flat fee cost %2$s.', $rate['label'], $rate['cost'] ),
 					array(
 						'rate_id' => $rate['id'],
 						'cost'    => $rate['cost'],
 					)
 				);
-				SS_Shipping_Checkout_Debug::add_notice( $debug_message );
+				SS_Shipping_Checkout_Debug::add_notice(
+					sprintf(
+						/* translators: 1: shipping rate label, 2: flat fee cost. */
+						__( 'Smart Send "%1$s": free shipping applies - rate added with flat fee cost %2$s.', 'smart-send-logistics' ),
+						$rate['label'],
+						$rate['cost']
+					)
+				);
 
             } else {
                 $cart_weight = WC()->cart->get_cart_contents_weight();
@@ -1027,17 +1041,34 @@ if ( ! class_exists( 'SS_Shipping_WC_Method' ) ) :
 
 									$this->add_rate( $rate );
 									$rate_added     = true;
-									$matched_rows[] = $weight_cost['ss_min_weight'] . '-' . $weight_cost['ss_max_weight'] . ' ' . $weight_unit;
-									$debug_message  = 'Smart Send "' . $rate['label'] . '": cart weight ' . $cart_weight . ' ' . $weight_unit . ' matched weight table row ' . $weight_cost['ss_min_weight'] . '-' . $weight_cost['ss_max_weight'] . ' ' . $weight_unit . ' - rate added with cost ' . $rate['cost'] . '.';
+									$matched_row    = sprintf( '%1$s-%2$s %3$s', $weight_cost['ss_min_weight'], $weight_cost['ss_max_weight'], $weight_unit );
+									$matched_rows[] = $matched_row;
 									SS_Shipping_Logger::debug(
-										$debug_message,
+										sprintf(
+											'Smart Send "%1$s": cart weight %2$s %3$s matched weight table row %4$s - rate added with cost %5$s.',
+											$rate['label'],
+											$cart_weight,
+											$weight_unit,
+											$matched_row,
+											$rate['cost']
+										),
 										array(
 											'rate_id'     => $rate['id'],
 											'cost'        => $rate['cost'],
 											'cart_weight' => $cart_weight,
 										)
 									);
-									SS_Shipping_Checkout_Debug::add_notice( $debug_message );
+									SS_Shipping_Checkout_Debug::add_notice(
+										sprintf(
+											/* translators: 1: shipping rate label, 2: cart weight, 3: weight unit, 4: matched weight table row as "min-max unit", 5: rate cost. */
+											__( 'Smart Send "%1$s": cart weight %2$s %3$s matched weight table row %4$s - rate added with cost %5$s.', 'smart-send-logistics' ),
+											$rate['label'],
+											$cart_weight,
+											$weight_unit,
+											$matched_row,
+											$rate['cost']
+										)
+									);
 								}
                             }
                         }
@@ -1045,23 +1076,58 @@ if ( ! class_exists( 'SS_Shipping_WC_Method' ) ) :
                 }
 
 				if ( count( $matched_rows ) > 1 ) {
-					$last_row      = $matched_rows[ count( $matched_rows ) - 1 ];
-					$debug_message = 'Smart Send "' . $rate['label'] . '": ' . count( $matched_rows ) . ' overlapping weight table rows matched (' . implode( ', ', $matched_rows ) . ') - the rows share rate id ' . $rate['id'] . ', so only the LAST matching row (' . $last_row . ') is offered and the earlier matches were overwritten.';
-					SS_Shipping_Logger::debug( $debug_message );
-					SS_Shipping_Checkout_Debug::add_notice( $debug_message );
+					$last_row = $matched_rows[ count( $matched_rows ) - 1 ];
+					SS_Shipping_Logger::debug(
+						sprintf(
+							'Smart Send "%1$s": %2$d overlapping weight table rows matched (%3$s) - the rows share rate id %4$s, so only the LAST matching row (%5$s) is offered and the earlier matches were overwritten.',
+							$rate['label'],
+							count( $matched_rows ),
+							implode( ', ', $matched_rows ),
+							$rate['id'],
+							$last_row
+						),
+						array(
+							'rate_id'      => $rate['id'],
+							'matched_rows' => $matched_rows,
+						)
+					);
+					SS_Shipping_Checkout_Debug::add_notice(
+						sprintf(
+							/* translators: 1: shipping rate label, 2: number of matched weight table rows, 3: list of matched rows, 4: shipping rate id, 5: last matched row. */
+							__( 'Smart Send "%1$s": %2$d overlapping weight table rows matched (%3$s) - the rows share rate id %4$s, so only the LAST matching row (%5$s) is offered and the earlier matches were overwritten.', 'smart-send-logistics' ),
+							$rate['label'],
+							count( $matched_rows ),
+							implode( ', ', $matched_rows ),
+							$rate['id'],
+							$last_row
+						)
+					);
 				}
 
 				if ( ! $rate_added ) {
-					$debug_message = 'Smart Send "' . $rate['label'] . '": no rate added - cart weight ' . $cart_weight . ' ' . $weight_unit . ' did not match any weight table row.';
-					SS_Shipping_Logger::debug( $debug_message );
-					SS_Shipping_Checkout_Debug::add_notice( $debug_message );
+					SS_Shipping_Logger::debug(
+						sprintf( 'Smart Send "%1$s": no rate added - cart weight %2$s %3$s did not match any weight table row.', $rate['label'], $cart_weight, $weight_unit ),
+						array(
+							'rate_id'     => $rate['id'],
+							'cart_weight' => $cart_weight,
+						)
+					);
+					SS_Shipping_Checkout_Debug::add_notice(
+						sprintf(
+							/* translators: 1: shipping rate label, 2: cart weight, 3: weight unit. */
+							__( 'Smart Send "%1$s": no rate added - cart weight %2$s %3$s did not match any weight table row.', 'smart-send-logistics' ),
+							$rate['label'],
+							$cart_weight,
+							$weight_unit
+						)
+					);
 				}
             }
 
 			// Log-file developer trace: the outcome of the cost calculation.
 			if ( isset( $this->rates[ $rate['id'] ] ) ) {
 				SS_Shipping_Logger::debug(
-					'Calculated shipping cost for shipping rate ' . $rate['id'] . ': ' . $this->rates[ $rate['id'] ]->get_cost(),
+					sprintf( 'Calculated shipping cost for shipping rate %1$s: %2$s', $rate['id'], $this->rates[ $rate['id'] ]->get_cost() ),
 					array(
 						'rate_id' => $rate['id'],
 						'cost'    => $this->rates[ $rate['id'] ]->get_cost(),
@@ -1069,7 +1135,7 @@ if ( ! class_exists( 'SS_Shipping_WC_Method' ) ) :
 				);
 			} else {
 				SS_Shipping_Logger::debug(
-					'Shipping rate ' . $rate['id'] . ' is not available for this package - no rate added',
+					sprintf( 'Shipping rate %s is not available for this package - no rate added', $rate['id'] ),
 					array( 'rate_id' => $rate['id'] )
 				);
 			}
@@ -1122,38 +1188,22 @@ if ( ! class_exists( 'SS_Shipping_WC_Method' ) ) :
 
                     $display_shipping_class_opt = $this->get_instance_option('display_shipping_class_opt');
 
-                    switch ($display_shipping_class_opt) {
-                        case 'all_shipping_class' :
-                            $is_available = $all_in_array;
-
-                            $class_log_message = ', because ALL products belong to one of the shipping classes';
-                            break;
-                        case 'one_shipping_class' :
-                            $is_available = $one_in_array;
-
-                            $class_log_message = ', because at least ONE product belongs to one of the shipping classes';
-                            break;
-                        case 'nall_shipping_class' :
-                            $is_available = !$one_in_array;
-
-                            $class_log_message = ', because ALL products do NOT belong to one of the shipping classes';
-                            break;
-                        case 'none_shipping_class' :
-                            $is_available = !$all_in_array;
-
-                            $class_log_message = ', because at least ONE product does NOT belongs to one of the shipping classes';
-                            break;
-                    }
-                }
-
-				if ( ! empty( $class_log_message ) ) {
-					if ( $is_available ) {
-						$debug_message = 'Smart Send "' . $this->title . '": shipping method IS available' . $class_log_message;
-					} else {
-						$debug_message = 'Smart Send "' . $this->title . '": shipping method is NOT available' . $class_log_message;
+					switch ( $display_shipping_class_opt ) {
+						case 'all_shipping_class':
+							$is_available = $all_in_array;
+							break;
+						case 'one_shipping_class':
+							$is_available = $one_in_array;
+							break;
+						case 'nall_shipping_class':
+							$is_available = ! $one_in_array;
+							break;
+						case 'none_shipping_class':
+							$is_available = ! $all_in_array;
+							break;
 					}
-					SS_Shipping_Logger::debug( $debug_message );
-					SS_Shipping_Checkout_Debug::add_notice( $debug_message );
+
+					$this->report_shipping_class_availability( $display_shipping_class_opt, $is_available );
 				}
 
                 // Exclude customer roles
@@ -1173,9 +1223,18 @@ if ( ! class_exists( 'SS_Shipping_WC_Method' ) ) :
                         if (in_array($customer_role, $exclude_roles)) {
                             $is_available = false;
 
-							$debug_message = 'Smart Send "' . $this->title . '": shipping method is NOT available, because customer role "' . $customer_role . '" is being excluded.';
-							SS_Shipping_Logger::debug( $debug_message );
-							SS_Shipping_Checkout_Debug::add_notice( $debug_message );
+							SS_Shipping_Logger::debug(
+								sprintf( 'Smart Send "%1$s": shipping method is NOT available, because customer role "%2$s" is being excluded.', $this->title, $customer_role ),
+								array( 'customer_role' => $customer_role )
+							);
+							SS_Shipping_Checkout_Debug::add_notice(
+								sprintf(
+									/* translators: 1: shipping method title, 2: customer role. */
+									__( 'Smart Send "%1$s": shipping method is NOT available, because customer role "%2$s" is being excluded.', 'smart-send-logistics' ),
+									$this->title,
+									$customer_role
+								)
+							);
 							break;
                         }
                     }
@@ -1226,57 +1285,172 @@ if ( ! class_exists( 'SS_Shipping_WC_Method' ) ) :
                 }
             }
 
-            switch ($requires) {
-                case 'min_amount' :
-                    $is_available = $has_met_min_amount;
-
-                    $free_log_message = ', because the total is ' . $total . ' a minimum order amount of ' . $min_amount . ' is needed.';
-                    break;
-                case 'coupon' :
-                    $is_available = $has_coupon;
-
-                    $free_log_message = ', because a coupon is needed.';
-                    break;
-                case 'both' :
-                    $is_available = $has_met_min_amount && $has_coupon;
-
-                    $free_log_message = ', because the total is ' . $total . ' a minimum order amount of ' . $min_amount . ' is needed AND a coupon is needed.';
-                    break;
-                case 'either' :
-                    $is_available = $has_met_min_amount || $has_coupon;
-
-                    $free_log_message = ', because the total is ' . $total . ' a minimum order amount of ' . $min_amount . ' is needed OR a coupon is needed.';
-                    break;
-                case 'enabled' :
-                    $is_available = true;
-
-                    $free_log_message = ', because it is always enabled.';
-                    break;
-                case 'disabled' :
-                    $is_available = false;
-
-                    $free_log_message = ', because it is always disabled.';
-                    break;
-                default :
-                    $is_available = false;
-
-                    $free_log_message = ', because it is not available.';
-                    break;
-            }
-
-			if ( $free_log_message ) {
-				if ( $is_available ) {
-					$debug_message = 'Smart Send "' . $this->title . '": free shipping (flat fee) IS available' . $free_log_message;
-				} else {
-					$debug_message = 'Smart Send "' . $this->title . '": free shipping (flat fee) is NOT available' . $free_log_message;
-				}
-				SS_Shipping_Logger::debug( $debug_message );
-				SS_Shipping_Checkout_Debug::add_notice( $debug_message );
+			switch ( $requires ) {
+				case 'min_amount':
+					$is_available = $has_met_min_amount;
+					break;
+				case 'coupon':
+					$is_available = $has_coupon;
+					break;
+				case 'both':
+					$is_available = $has_met_min_amount && $has_coupon;
+					break;
+				case 'either':
+					$is_available = $has_met_min_amount || $has_coupon;
+					break;
+				case 'enabled':
+					$is_available = true;
+					break;
+				case 'disabled':
+				default:
+					$is_available = false;
+					break;
 			}
+
+			$this->report_free_shipping_availability( $requires, $is_available, isset( $total ) ? $total : null, $min_amount );
 
             return apply_filters('woocommerce_shipping_' . $this->id . '_is_free_shipping', $is_available, $package,
                 $this);
         }
+
+		/**
+		 * Report the shipping-class availability outcome to the log (English)
+		 * and the checkout shipping debug bar (translated).
+		 *
+		 * @param string  $display_shipping_class_opt The configured shipping-class condition.
+		 * @param boolean $is_available               Whether the method ended up available.
+		 * @return void
+		 */
+		protected function report_shipping_class_availability( $display_shipping_class_opt, $is_available ) {
+			switch ( $display_shipping_class_opt ) {
+				case 'all_shipping_class':
+					if ( $is_available ) {
+						$log_message = sprintf( 'Smart Send "%s": shipping method IS available, because ALL products belong to one of the shipping classes', $this->title );
+						/* translators: %s: shipping method title. */
+						$notice_message = sprintf( __( 'Smart Send "%s": shipping method IS available, because ALL products belong to one of the shipping classes', 'smart-send-logistics' ), $this->title );
+					} else {
+						$log_message = sprintf( 'Smart Send "%s": shipping method is NOT available, because ALL products belong to one of the shipping classes', $this->title );
+						/* translators: %s: shipping method title. */
+						$notice_message = sprintf( __( 'Smart Send "%s": shipping method is NOT available, because ALL products belong to one of the shipping classes', 'smart-send-logistics' ), $this->title );
+					}
+					break;
+				case 'one_shipping_class':
+					if ( $is_available ) {
+						$log_message = sprintf( 'Smart Send "%s": shipping method IS available, because at least ONE product belongs to one of the shipping classes', $this->title );
+						/* translators: %s: shipping method title. */
+						$notice_message = sprintf( __( 'Smart Send "%s": shipping method IS available, because at least ONE product belongs to one of the shipping classes', 'smart-send-logistics' ), $this->title );
+					} else {
+						$log_message = sprintf( 'Smart Send "%s": shipping method is NOT available, because at least ONE product belongs to one of the shipping classes', $this->title );
+						/* translators: %s: shipping method title. */
+						$notice_message = sprintf( __( 'Smart Send "%s": shipping method is NOT available, because at least ONE product belongs to one of the shipping classes', 'smart-send-logistics' ), $this->title );
+					}
+					break;
+				case 'nall_shipping_class':
+					if ( $is_available ) {
+						$log_message = sprintf( 'Smart Send "%s": shipping method IS available, because ALL products do NOT belong to one of the shipping classes', $this->title );
+						/* translators: %s: shipping method title. */
+						$notice_message = sprintf( __( 'Smart Send "%s": shipping method IS available, because ALL products do NOT belong to one of the shipping classes', 'smart-send-logistics' ), $this->title );
+					} else {
+						$log_message = sprintf( 'Smart Send "%s": shipping method is NOT available, because ALL products do NOT belong to one of the shipping classes', $this->title );
+						/* translators: %s: shipping method title. */
+						$notice_message = sprintf( __( 'Smart Send "%s": shipping method is NOT available, because ALL products do NOT belong to one of the shipping classes', 'smart-send-logistics' ), $this->title );
+					}
+					break;
+				case 'none_shipping_class':
+					if ( $is_available ) {
+						$log_message = sprintf( 'Smart Send "%s": shipping method IS available, because at least ONE product does NOT belongs to one of the shipping classes', $this->title );
+						/* translators: %s: shipping method title. */
+						$notice_message = sprintf( __( 'Smart Send "%s": shipping method IS available, because at least ONE product does NOT belongs to one of the shipping classes', 'smart-send-logistics' ), $this->title );
+					} else {
+						$log_message = sprintf( 'Smart Send "%s": shipping method is NOT available, because at least ONE product does NOT belongs to one of the shipping classes', $this->title );
+						/* translators: %s: shipping method title. */
+						$notice_message = sprintf( __( 'Smart Send "%s": shipping method is NOT available, because at least ONE product does NOT belongs to one of the shipping classes', 'smart-send-logistics' ), $this->title );
+					}
+					break;
+				default:
+					return;
+			}
+
+			SS_Shipping_Logger::debug( $log_message, array( 'shipping_class_option' => $display_shipping_class_opt ) );
+			SS_Shipping_Checkout_Debug::add_notice( $notice_message );
+		}
+
+		/**
+		 * Report the free-shipping (flat fee) availability outcome to the log
+		 * (English) and the checkout shipping debug bar (translated).
+		 *
+		 * @param string     $requires     The configured free-shipping condition.
+		 * @param boolean    $is_available Whether free shipping ended up available.
+		 * @param mixed|null $total        The evaluated cart total (only set for amount-based conditions).
+		 * @param mixed      $min_amount   The configured minimum order amount.
+		 * @return void
+		 */
+		protected function report_free_shipping_availability( $requires, $is_available, $total, $min_amount ) {
+			switch ( $requires ) {
+				case 'min_amount':
+					if ( $is_available ) {
+						$log_message = sprintf( 'Smart Send "%1$s": free shipping (flat fee) IS available, because the total is %2$s a minimum order amount of %3$s is needed.', $this->title, $total, $min_amount );
+						/* translators: 1: shipping method title, 2: cart total, 3: minimum order amount. */
+						$notice_message = sprintf( __( 'Smart Send "%1$s": free shipping (flat fee) IS available, because the total is %2$s a minimum order amount of %3$s is needed.', 'smart-send-logistics' ), $this->title, $total, $min_amount );
+					} else {
+						$log_message = sprintf( 'Smart Send "%1$s": free shipping (flat fee) is NOT available, because the total is %2$s a minimum order amount of %3$s is needed.', $this->title, $total, $min_amount );
+						/* translators: 1: shipping method title, 2: cart total, 3: minimum order amount. */
+						$notice_message = sprintf( __( 'Smart Send "%1$s": free shipping (flat fee) is NOT available, because the total is %2$s a minimum order amount of %3$s is needed.', 'smart-send-logistics' ), $this->title, $total, $min_amount );
+					}
+					break;
+				case 'coupon':
+					if ( $is_available ) {
+						$log_message = sprintf( 'Smart Send "%s": free shipping (flat fee) IS available, because a coupon is needed.', $this->title );
+						/* translators: %s: shipping method title. */
+						$notice_message = sprintf( __( 'Smart Send "%s": free shipping (flat fee) IS available, because a coupon is needed.', 'smart-send-logistics' ), $this->title );
+					} else {
+						$log_message = sprintf( 'Smart Send "%s": free shipping (flat fee) is NOT available, because a coupon is needed.', $this->title );
+						/* translators: %s: shipping method title. */
+						$notice_message = sprintf( __( 'Smart Send "%s": free shipping (flat fee) is NOT available, because a coupon is needed.', 'smart-send-logistics' ), $this->title );
+					}
+					break;
+				case 'both':
+					if ( $is_available ) {
+						$log_message = sprintf( 'Smart Send "%1$s": free shipping (flat fee) IS available, because the total is %2$s a minimum order amount of %3$s is needed AND a coupon is needed.', $this->title, $total, $min_amount );
+						/* translators: 1: shipping method title, 2: cart total, 3: minimum order amount. */
+						$notice_message = sprintf( __( 'Smart Send "%1$s": free shipping (flat fee) IS available, because the total is %2$s a minimum order amount of %3$s is needed AND a coupon is needed.', 'smart-send-logistics' ), $this->title, $total, $min_amount );
+					} else {
+						$log_message = sprintf( 'Smart Send "%1$s": free shipping (flat fee) is NOT available, because the total is %2$s a minimum order amount of %3$s is needed AND a coupon is needed.', $this->title, $total, $min_amount );
+						/* translators: 1: shipping method title, 2: cart total, 3: minimum order amount. */
+						$notice_message = sprintf( __( 'Smart Send "%1$s": free shipping (flat fee) is NOT available, because the total is %2$s a minimum order amount of %3$s is needed AND a coupon is needed.', 'smart-send-logistics' ), $this->title, $total, $min_amount );
+					}
+					break;
+				case 'either':
+					if ( $is_available ) {
+						$log_message = sprintf( 'Smart Send "%1$s": free shipping (flat fee) IS available, because the total is %2$s a minimum order amount of %3$s is needed OR a coupon is needed.', $this->title, $total, $min_amount );
+						/* translators: 1: shipping method title, 2: cart total, 3: minimum order amount. */
+						$notice_message = sprintf( __( 'Smart Send "%1$s": free shipping (flat fee) IS available, because the total is %2$s a minimum order amount of %3$s is needed OR a coupon is needed.', 'smart-send-logistics' ), $this->title, $total, $min_amount );
+					} else {
+						$log_message = sprintf( 'Smart Send "%1$s": free shipping (flat fee) is NOT available, because the total is %2$s a minimum order amount of %3$s is needed OR a coupon is needed.', $this->title, $total, $min_amount );
+						/* translators: 1: shipping method title, 2: cart total, 3: minimum order amount. */
+						$notice_message = sprintf( __( 'Smart Send "%1$s": free shipping (flat fee) is NOT available, because the total is %2$s a minimum order amount of %3$s is needed OR a coupon is needed.', 'smart-send-logistics' ), $this->title, $total, $min_amount );
+					}
+					break;
+				case 'enabled':
+					$log_message = sprintf( 'Smart Send "%s": free shipping (flat fee) IS available, because it is always enabled.', $this->title );
+					/* translators: %s: shipping method title. */
+					$notice_message = sprintf( __( 'Smart Send "%s": free shipping (flat fee) IS available, because it is always enabled.', 'smart-send-logistics' ), $this->title );
+					break;
+				case 'disabled':
+					$log_message = sprintf( 'Smart Send "%s": free shipping (flat fee) is NOT available, because it is always disabled.', $this->title );
+					/* translators: %s: shipping method title. */
+					$notice_message = sprintf( __( 'Smart Send "%s": free shipping (flat fee) is NOT available, because it is always disabled.', 'smart-send-logistics' ), $this->title );
+					break;
+				default:
+					$log_message = sprintf( 'Smart Send "%s": free shipping (flat fee) is NOT available, because it is not available.', $this->title );
+					/* translators: %s: shipping method title. */
+					$notice_message = sprintf( __( 'Smart Send "%s": free shipping (flat fee) is NOT available, because it is not available.', 'smart-send-logistics' ), $this->title );
+					break;
+			}
+
+			SS_Shipping_Logger::debug( $log_message, array( 'requires' => $requires ) );
+			SS_Shipping_Checkout_Debug::add_notice( $notice_message );
+		}
 
 	    /**
 	     * Get the human readable name of the Smart Send shipping method
