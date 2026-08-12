@@ -281,7 +281,7 @@ class Client
             'success'       => (bool) $this->success,
             'error'         => $this->error,
             'start_time'    => $this->request_started_at,
-            'end_time'      => time(),
+            'end_time'      => microtime(true),
         ));
     }
 
@@ -438,7 +438,7 @@ class Client
 	    }
 
 	    // Make request
-	    $this->request_started_at = time();
+	    $this->request_started_at = microtime(true);
 	    $res = wp_remote_request($this->request_endpoint, array(
 		    'method'     => strtoupper($http_verb),
 		    'user-agent' => $this->getUserAgent(),

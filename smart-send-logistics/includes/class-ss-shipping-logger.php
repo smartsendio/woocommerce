@@ -10,14 +10,22 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 /**
- * Static logger modeled on WC_Stripe_Logger.
+ * Static logger delegating to WooCommerce's native logging.
  *
- * The class owns all logging concerns: it checks the plugin's debug setting,
- * formats every entry consistently (version-stamped header, optional timing
- * block) and writes through WC_Logger under a single source name.
+ * The class is a thin wrapper around wc_get_logger(): it owns the plugin's
+ * debug gate, the `smart_send_logging` filter, the single log source name
+ * and the API-token redaction — everything else (levels, retention, the
+ * log viewer's context rendering) is left to WooCommerce core.
  *
- * Whether an entry is written can be forced on/off with the
- * `smart_send_logging` filter.
+ * Entries are concise single-line messages; structured data (plugin
+ * version, endpoint, HTTP status, request/response bodies, timing) travels
+ * in the `$context` array, which the WooCommerce log viewer renders
+ * natively.
+ *
+ * The `debug` and `info` levels are gated on the plugin's "Debug Log"
+ * setting; `warning`, `error` and `critical` always log. The
+ * `smart_send_logging` filter applies to all levels and can force logging
+ * on or off.
  */
 class SS_Shipping_Logger {
 
@@ -33,34 +41,105 @@ class SS_Shipping_Logger {
 	/**
 	 * Log a debug trace message.
 	 *
-	 * Written at the `debug` level and only when the plugin's "Debug Log"
-	 * setting is enabled (unless forced via the `smart_send_logging` filter).
+	 * Alias of {@see debug()} kept for the existing call sites.
 	 *
-	 * @param string   $message    Message to log.
-	 * @param int|null $start_time Optional start timestamp for a timing block.
-	 * @param int|null $end_time   Optional end timestamp for a timing block.
+	 * @param string $message Message to log.
+	 * @param array  $context Optional structured context.
 	 */
-	public static function log( $message, $start_time = null, $end_time = null ) {
-		self::write( 'debug', $message, self::is_enabled(), $start_time, $end_time );
+	public static function log( $message, $context = array() ) {
+		self::debug( $message, is_array( $context ) ? $context : array() );
 	}
 
 	/**
-	 * Log an error message.
+	 * Log a debug trace message (gated on the plugin's debug setting).
 	 *
-	 * Written at the `error` level and logged even when the plugin's debug
-	 * setting is off (unless suppressed via the `smart_send_logging` filter).
-	 *
-	 * @param string   $message    Message to log.
-	 * @param int|null $start_time Optional start timestamp for a timing block.
-	 * @param int|null $end_time   Optional end timestamp for a timing block.
+	 * @param string $message Message to log.
+	 * @param array  $context Optional structured context.
 	 */
-	public static function error( $message, $start_time = null, $end_time = null ) {
-		self::write( 'error', $message, true, $start_time, $end_time );
+	public static function debug( $message, $context = array() ) {
+		self::write( 'debug', $message, $context, self::is_enabled() );
+	}
+
+	/**
+	 * Log an informational message (gated on the plugin's debug setting).
+	 *
+	 * @param string $message Message to log.
+	 * @param array  $context Optional structured context.
+	 */
+	public static function info( $message, $context = array() ) {
+		self::write( 'info', $message, $context, self::is_enabled() );
+	}
+
+	/**
+	 * Log a warning. Always logged, regardless of the debug setting.
+	 *
+	 * @param string $message Message to log.
+	 * @param array  $context Optional structured context.
+	 */
+	public static function warning( $message, $context = array() ) {
+		self::write( 'warning', $message, $context, true );
+	}
+
+	/**
+	 * Log an error. Always logged, regardless of the debug setting.
+	 *
+	 * @param string $message Message to log.
+	 * @param array  $context Optional structured context.
+	 */
+	public static function error( $message, $context = array() ) {
+		self::write( 'error', $message, is_array( $context ) ? $context : array(), true );
+	}
+
+	/**
+	 * Log a critical failure. Always logged, regardless of the debug setting.
+	 *
+	 * @param string $message Message to log.
+	 * @param array  $context Optional structured context.
+	 */
+	public static function critical( $message, $context = array() ) {
+		self::write( 'critical', $message, $context, true );
+	}
+
+	/**
+	 * Log a debug trace message and surface it in WooCommerce's shipping
+	 * debug mode.
+	 *
+	 * The message is always written to the log like {@see log()}. When the
+	 * merchant has enabled WooCommerce → Settings → Shipping → "Enable debug
+	 * mode", the message is additionally shown as a checkout notice next to
+	 * core's own "Customer matched zone ..." notice, using the same gating
+	 * WooCommerce core applies (never during checkout submission or AJAX
+	 * requests, and never twice for the same message).
+	 *
+	 * @param string $message Message to log and show as a debug notice.
+	 */
+	public static function debug_notice( $message ) {
+		self::log( $message );
+
+		if ( 'yes' !== get_option( 'woocommerce_shipping_debug_mode', 'no' ) ) {
+			return;
+		}
+
+		if ( defined( 'WOOCOMMERCE_CHECKOUT' ) || defined( 'WC_DOING_AJAX' ) ) {
+			return;
+		}
+
+		if ( ! function_exists( 'wc_add_notice' ) || ! function_exists( 'wc_has_notice' ) ) {
+			return;
+		}
+
+		if ( wc_has_notice( $message ) ) {
+			return;
+		}
+
+		wc_add_notice( $message );
 	}
 
 	/**
 	 * Log an API request/response cycle as reported by the Smartsend client.
 	 *
+	 * Emits one concise line per request ("POST /shipments → 422 (312ms)")
+	 * with the full detail (endpoint, bodies, error) in the context array.
 	 * Successful calls are logged as debug traces (respecting the debug
 	 * setting); failed calls are logged at the `error` level even when the
 	 * debug setting is off.
@@ -74,8 +153,9 @@ class SS_Shipping_Logger {
 	 *     @type int|string  $status_code   HTTP status code of the response.
 	 *     @type string      $response_body Raw response body.
 	 *     @type bool        $success       Whether the client deemed the call successful.
-	 *     @type int|null    $start_time    Timestamp when the request started.
-	 *     @type int|null    $end_time      Timestamp when the request finished.
+	 *     @type object|null $error         Smartsend\Models\Error describing the failure, if any.
+	 *     @type float|null  $start_time    Timestamp when the request started.
+	 *     @type float|null  $end_time      Timestamp when the request finished.
 	 * }
 	 */
 	public static function log_api_request( $context ) {
@@ -83,23 +163,43 @@ class SS_Shipping_Logger {
 			? $context['status_code']
 			: 'n/a';
 
-		$message = ( isset( $context['method'] ) ? $context['method'] : '' )
-			. ' ' . self::redact_endpoint( isset( $context['endpoint'] ) ? $context['endpoint'] : '' )
-			. ' [HTTP ' . $status_code . ']';
+		$endpoint = self::redact_endpoint( isset( $context['endpoint'] ) ? $context['endpoint'] : '' );
+		$path     = wp_parse_url( $endpoint, PHP_URL_PATH );
 
-		if ( ! empty( $context['request_body'] ) ) {
-			$message .= "\n" . 'Request body: ' . $context['request_body'];
+		$message = ( isset( $context['method'] ) ? $context['method'] : '' )
+			. ' ' . ( $path ? $path : $endpoint )
+			. ' → ' . $status_code;
+
+		$log_context = array(
+			'endpoint'    => $endpoint,
+			'status_code' => isset( $context['status_code'] ) ? $context['status_code'] : null,
+		);
+
+		if ( isset( $context['start_time'], $context['end_time'] ) && is_numeric( $context['start_time'] ) && is_numeric( $context['end_time'] ) ) {
+			$duration_ms                = (int) round( abs( $context['end_time'] - $context['start_time'] ) * 1000 );
+			$message                   .= ' (' . $duration_ms . 'ms)';
+			$log_context['duration_ms'] = $duration_ms;
 		}
 
-		$message .= "\n" . 'Response body: ' . ( isset( $context['response_body'] ) && '' !== $context['response_body'] ? $context['response_body'] : '(empty)' );
+		if ( ! empty( $context['request_body'] ) ) {
+			$log_context['request_body'] = $context['request_body'];
+		}
 
-		$start_time = isset( $context['start_time'] ) ? $context['start_time'] : null;
-		$end_time   = isset( $context['end_time'] ) ? $context['end_time'] : null;
+		$log_context['response_body'] = isset( $context['response_body'] ) && '' !== $context['response_body'] ? $context['response_body'] : '';
+
+		if ( empty( $context['success'] ) && ! empty( $context['error'] ) && is_object( $context['error'] ) ) {
+			$error_code    = isset( $context['error']->code ) && is_scalar( $context['error']->code ) ? (string) $context['error']->code : '';
+			$error_message = isset( $context['error']->message ) && is_scalar( $context['error']->message ) ? (string) $context['error']->message : '';
+
+			if ( '' !== $error_code || '' !== $error_message ) {
+				$log_context['error'] = trim( $error_code . ' - ' . $error_message, ' -' );
+			}
+		}
 
 		if ( ! empty( $context['success'] ) ) {
-			self::log( $message, $start_time, $end_time );
+			self::debug( $message, $log_context );
 		} else {
-			self::error( $message, $start_time, $end_time );
+			self::error( $message, $log_context );
 		}
 	}
 
@@ -125,16 +225,15 @@ class SS_Shipping_Logger {
 	}
 
 	/**
-	 * Format and write an entry through WC_Logger.
+	 * Write an entry through wc_get_logger().
 	 *
-	 * @param string   $level      WC log level (debug, info, error, ...).
-	 * @param string   $message    Message to log.
-	 * @param bool     $enabled    Whether logging is enabled for this entry (before the filter).
-	 * @param int|null $start_time Optional start timestamp for a timing block.
-	 * @param int|null $end_time   Optional end timestamp for a timing block.
+	 * @param string $level   WC log level (debug, info, warning, error, critical).
+	 * @param string $message Message to log.
+	 * @param array  $context Structured context for the entry.
+	 * @param bool   $enabled Whether logging is enabled for this entry (before the filter).
 	 */
-	private static function write( $level, $message, $enabled, $start_time = null, $end_time = null ) {
-		if ( ! class_exists( 'WC_Logger' ) || ! function_exists( 'wc_get_logger' ) ) {
+	private static function write( $level, $message, $context, $enabled ) {
+		if ( ! function_exists( 'wc_get_logger' ) ) {
 			return;
 		}
 
@@ -153,21 +252,13 @@ class SS_Shipping_Logger {
 			self::$logger = wc_get_logger();
 		}
 
-		$log_entry = "\n" . '====Smart Send Version: ' . SS_SHIPPING_VERSION . '====' . "\n";
+		$context = array_merge(
+			array( 'version' => SS_SHIPPING_VERSION ),
+			is_array( $context ) ? $context : array(),
+			array( 'source' => self::WC_LOG_FILENAME )
+		);
 
-		if ( ! is_null( $start_time ) ) {
-			$formatted_start_time = date_i18n( get_option( 'date_format' ) . ' g:ia', $start_time );
-			$end_time             = is_null( $end_time ) ? time() : $end_time;
-			$formatted_end_time   = date_i18n( get_option( 'date_format' ) . ' g:ia', $end_time );
-			$elapsed_time         = round( abs( $end_time - $start_time ) / 60, 2 );
-
-			$log_entry .= '====Start Log ' . $formatted_start_time . '====' . "\n" . $message . "\n";
-			$log_entry .= '====End Log ' . $formatted_end_time . ' (' . $elapsed_time . ')====' . "\n\n";
-		} else {
-			$log_entry .= '====Start Log====' . "\n" . $message . "\n" . '====End Log====' . "\n\n";
-		}
-
-		self::$logger->log( $level, $log_entry, array( 'source' => self::WC_LOG_FILENAME ) );
+		self::$logger->log( $level, $message, $context );
 	}
 
 	/**
