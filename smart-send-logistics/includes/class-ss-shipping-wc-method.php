@@ -10,9 +10,9 @@ if ( ! class_exists( 'SS_Shipping_WC_Method' ) ) :
     class SS_Shipping_WC_Method extends WC_Shipping_Flat_Rate
     {
 
-        private $shipping_method = array();
+		private array $shipping_method = array();
 
-		private $return_shipping_method = array();
+		private array $return_shipping_method = array();
 
         /**
          * Init and hook in the integration.

@@ -8,17 +8,19 @@ require_once 'Item.php';
 
 class Parcel implements \JsonSerializable
 {
-    private $internal_id;
-    private $internal_reference;
-    private $weight;
-    private $height;
-    private $width;
-    private $length;
+    // Typed properties keep "= null" so get_object_vars() serialization is
+    // unchanged; uncast public setters stay untyped (see Models/Shipment.php).
+    private ?string $internal_id = null;
+    private ?string $internal_reference = null;
+    private ?float $weight = null;
+    private ?float $height = null;
+    private ?float $width = null;
+    private ?float $length = null;
     private $freetext;
-    private $items;
-    private $total_price_excluding_tax;
-    private $total_price_including_tax;
-    private $total_tax_amount;
+    private ?array $items = null;
+    private ?float $total_price_excluding_tax = null;
+    private ?float $total_price_including_tax = null;
+    private ?float $total_tax_amount = null;
 
     public function __construct($parcel=array())
     {

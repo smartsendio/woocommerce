@@ -33,7 +33,10 @@ class SS_Shipping_Logger {
 	/**
 	 * The shared WC_Logger instance.
 	 *
-	 * @var WC_Logger_Interface
+	 * Public and deliberately untyped: tests (and potentially merchant code)
+	 * inject logger doubles that do not implement WC_Logger_Interface.
+	 *
+	 * @var WC_Logger_Interface|null
 	 */
 	public static $logger;
 

@@ -5,21 +5,23 @@ namespace Smartsend\Models\Shipment;
 
 class Item implements \JsonSerializable
 {
-    private $internal_id;
-    private $internal_reference;
+    // Typed properties keep "= null" so get_object_vars() serialization is
+    // unchanged; uncast public setters stay untyped (see Models/Shipment.php).
+    private ?string $internal_id = null;
+    private ?string $internal_reference = null;
     private $sku;
     private $name;
     private $description;
     private $hs_code;
     private $country_of_origin;
     private $image_url;
-    private $unit_weight;
-    private $unit_price_excluding_tax;
-    private $unit_price_including_tax;
-    private $quantity;
-    private $total_price_excluding_tax;
-    private $total_price_including_tax;
-    private $total_tax_amount;
+    private ?float $unit_weight = null;
+    private ?float $unit_price_excluding_tax = null;
+    private ?float $unit_price_including_tax = null;
+    private ?float $quantity = null;
+    private ?float $total_price_excluding_tax = null;
+    private ?float $total_price_including_tax = null;
+    private ?float $total_tax_amount = null;
 
     public function __construct($item=array())
     {

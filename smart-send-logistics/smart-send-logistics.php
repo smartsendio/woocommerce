@@ -37,55 +37,62 @@ if ( ! class_exists( 'SS_Shipping_WC' ) ) :
     class SS_Shipping_WC
     {
 
-		private $version = '8.2.0';
+		private string $version = '8.2.0';
 
-        /**
-         * Instance to call certain functions globally within the plugin
-         *
-         * @var SS_Shipping_WC
-         */
-        protected static $_instance = null;
+		/**
+		 * Instance to call certain functions globally within the plugin
+		 *
+		 * @var SS_Shipping_WC|null
+		 */
+		protected static ?SS_Shipping_WC $_instance = null; // phpcs:ignore PSR2.Classes.PropertyDeclaration.Underscore -- pre-existing name, renaming is out of scope here.
 
-        /**
-         * Smart Send Shipping Order for label and tracking.
-         *
-         * @var SS_Shipping_WC_Order
-         */
-        public $ss_shipping_wc_order = null;
-        /**
-         * Smart Send Shipping Product
-         *
-         * @var SS_Shipping_WC_Order
-         */
-        public $ss_shipping_wc_product = null;
+		/**
+		 * Smart Send Shipping Order for label and tracking.
+		 *
+		 * Public and deliberately untyped: merchant code snippets access it via
+		 * SS_SHIPPING_WC() and typing it would be a BC break for loose assignment.
+		 *
+		 * @var SS_Shipping_WC_Order|null
+		 */
+		public $ss_shipping_wc_order = null;
 
-        /**
-         * Smart Send Frontend
-         *
-         * @var SS_Shipping_Frontend
-         */
-        protected $ss_shipping_frontend = null;
+		/**
+		 * Smart Send Shipping Product
+		 *
+		 * Public and deliberately untyped: merchant code snippets access it via
+		 * SS_SHIPPING_WC() and typing it would be a BC break for loose assignment.
+		 *
+		 * @var SS_Shipping_WC_Product|null
+		 */
+		public $ss_shipping_wc_product = null;
 
-        /**
-         * Smart Send agent address formats
-         *
-         * @var array
-         */
-        protected $agents_address_format = array();
+		/**
+		 * Smart Send Frontend
+		 *
+		 * @var SS_Shipping_Frontend|null
+		 */
+		protected ?SS_Shipping_Frontend $ss_shipping_frontend = null;
 
-        /**
-         * Smart Send api handle
-         *
-         * @var object
-         */
-        protected $api_handle = null;
+		/**
+		 * Smart Send agent address formats
+		 *
+		 * @var array
+		 */
+		protected array $agents_address_format = array();
 
-        /**
-         * Smart Send Plugin Screen Updates
-         *
-         * @var object
-         */
-        protected $ss_plugin_screen_updates = null;
+		/**
+		 * Smart Send api handle
+		 *
+		 * @var \Smartsend\Api|null
+		 */
+		protected ?\Smartsend\Api $api_handle = null;
+
+		/**
+		 * Smart Send Plugin Screen Updates
+		 *
+		 * @var SS_Plugins_Screen_Updates|null
+		 */
+		protected ?SS_Plugins_Screen_Updates $ss_plugin_screen_updates = null;
 
         /**
          * Construct the plugin.

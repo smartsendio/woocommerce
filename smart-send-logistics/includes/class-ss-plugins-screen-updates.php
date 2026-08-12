@@ -17,9 +17,19 @@ class SS_Plugins_Screen_Updates {
 	/**
 	 * The upgrade notice shown inline.
 	 *
-	 * @var string
+	 * Deliberately untyped: get_upgrade_notice() returns false when the
+	 * transient is empty and the readme fetch fails.
+	 *
+	 * @var string|false
 	 */
 	protected $upgrade_notice = '';
+
+	/**
+	 * The new plugin version offered by the update response.
+	 *
+	 * @var string|null
+	 */
+	protected ?string $new_version = null;
 
 	/**
 	 * Constructor.

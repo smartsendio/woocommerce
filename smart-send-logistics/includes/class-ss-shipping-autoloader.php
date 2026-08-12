@@ -8,12 +8,12 @@ if (!defined('ABSPATH')) {
 class SS_Shipping_Autoloader
 {
 
-    /**
-     * Path to the includes directory.
-     *
-     * @var string
-     */
-    private $include_path = '';
+	/**
+	 * Path to the includes directory.
+	 *
+	 * @var string
+	 */
+	private string $include_path = '';
 
     /**
      * The Constructor.
