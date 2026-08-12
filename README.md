@@ -202,6 +202,10 @@ Pre-existing violations are recorded in [phpcs.baseline.xml](phpcs.baseline.xml)
 vendor/bin/phpcs --report=\\DR\\CodeSnifferBaseline\\Reports\\Baseline --report-file=phpcs.baseline.xml
 ```
 
+### Test safety net (v9 rule)
+
+The `tests/Integration` suite contains characterization tests that pin down the current behaviour of the core flows (shipment payload "golden" tests, rate calculation, order meta accessors on legacy and HPOS storage, label generation with a mocked API, frontend pick-up point display). **No refactor PR merges without tests covering the moved behaviour**: keep these suites green, and extend them in the same PR for any code you move that is not yet covered. Both CI workflows run on every pull request and on pushes to `main` and `develop`.
+
 ### Browser tests
 
 End-to-end browser tests are written with [Pest](https://pestphp.com/docs/browser-testing) (backed by Playwright) and run against a store created by the setup script. Locally:

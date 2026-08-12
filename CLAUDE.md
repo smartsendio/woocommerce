@@ -25,7 +25,9 @@ composer test:browser       # needs the store running (see README)
 composer test               # both
 ```
 
-CI runs both suites (`.github/workflows/browser-tests.yml` and `integration-tests.yml`).
+CI runs both suites (`.github/workflows/browser-tests.yml` and `integration-tests.yml`) on every pull request and on pushes to `main` and `develop`.
+
+**v9 refactoring rule: no refactor PR merges without tests covering the moved behaviour.** The characterization suites (payload golden tests, rate calculation, order meta, label generation, frontend display — see `tests/Integration`) capture current behaviour; a refactor PR must keep them green, and any code it moves that is not yet covered must gain tests in the same PR. Tests assert *current* behaviour, including known oddities (marked `v8 oddity` in the test files) — changing such an expectation is a deliberate behaviour change and must be called out in the PR.
 
 `composer.json` requires `squizlabs/php_codesniffer` + `wp-coding-standards/wpcs` as dev dependencies (no ruleset file committed); run `composer install` then `vendor/bin/phpcs --standard=WordPress smart-send-logistics` if linting is needed.
 
