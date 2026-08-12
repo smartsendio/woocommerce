@@ -25,6 +25,15 @@ function spy_on_ss_logger(): object
         {
             $this->entries[] = ['level' => $level, 'message' => $message, 'context' => $context];
         }
+
+        /**
+         * The logger dispatches to wc_get_logger()'s level wrapper methods
+         * (debug(), error(), ...); record them like log() calls.
+         */
+        public function __call(string $level, array $args): void
+        {
+            $this->log($level, $args[0], $args[1] ?? []);
+        }
     };
 
     SS_Shipping_Logger::$logger = $spy;
