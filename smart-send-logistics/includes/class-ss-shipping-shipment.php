@@ -152,7 +152,30 @@ if ( ! class_exists( 'SS_Shipping_Shipment' ) ) :
 			// Determine shipping method and carrier from return settings.
 			$ss_args['ss_carrier'] = SS_SHIPPING_WC()->get_shipping_method_carrier( $ss_shipping_method_id );
 			$ss_args['ss_type']    = SS_SHIPPING_WC()->get_shipping_method_type( $ss_shipping_method_id );
-			$ss_args['ss_parcels'] = $this->shipping_order->get_ss_shipping_order_parcels( $order_id );
+			/*
+			 * Filter the parcel split used for the order before the shipment
+			 * payload is assembled. The split is the value stored by the
+			 * "Split into parcels" admin option: an array of rows, each with
+			 * keys 'id' (product/variation id), 'name' (product name) and
+			 * 'value' (box number, 1-9). An empty value means a single parcel
+			 * containing all items. Runs before smart_send_shipping_label_args,
+			 * which receives the filtered split as $ss_args['ss_parcels'] and
+			 * keeps the final say.
+			 *
+			 * @since 9.0.0
+			 *
+			 * @param array|string|false $parcels   The stored parcel split rows, or an empty value when the order is not split.
+			 * @param int                $order_id  Order ID.
+			 * @param boolean            $is_return Whether the label is a return label.
+			 *
+			 * @return array|string|false The parcel split rows to use.
+			 */
+			$ss_args['ss_parcels'] = apply_filters(
+				'smart_send_order_parcels',
+				$this->shipping_order->get_ss_shipping_order_parcels( $order_id ),
+				$order_id,
+				$is_return
+			);
 
 			/*
 			 * Filter the arguments used when creating a shipping label

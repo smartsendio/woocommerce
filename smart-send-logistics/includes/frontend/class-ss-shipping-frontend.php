@@ -89,17 +89,49 @@ if ( ! class_exists( 'SS_Shipping_Frontend' ) ) :
                                     'smart-send-logistics');
                         }
 
-                        foreach ($ss_agents as $key => $agent) {
-                            $formatted_address = $this->get_formatted_address($agent);
-                            $ss_agent_options[ $agent->agent_no ] = $formatted_address;
-                        }
+						foreach ( $ss_agents as $key => $agent ) {
+							$formatted_address = $this->get_formatted_address( $agent );
 
-                        woocommerce_form_field( 'ss_shipping_store_pickup', array(
-                            'type'          => 'select',
-                            'options'       => $ss_agent_options,
-                            'input_class'   => array('ss-agent-list'),
-                            )
-                        );
+							/*
+							 * Filter the label shown for a pick-up point in the
+							 * checkout drop-down.
+							 *
+							 * @since 9.0.0
+							 *
+							 * @param string $formatted_address The label formatted per the "Dropdown display format" setting.
+							 * @param object $agent             The pick-up point (agent_no, company, address_line1, postal_code, city, country, distance, ...).
+							 *
+							 * @return string The option label to render.
+							 */
+							$ss_agent_options[ $agent->agent_no ] = apply_filters( 'smart_send_agent_option_label', $formatted_address, $agent );
+						}
+
+						/*
+						 * Filter which pick-up point is pre-selected in the
+						 * checkout drop-down. Return the agent_no of one of the
+						 * found pick-up points to pre-select it; return an empty
+						 * string to keep the default behaviour (the first option,
+						 * which is the "- Select Pick-up Point -" placeholder
+						 * unless the "Default select agent" setting is enabled).
+						 *
+						 * @since 9.0.0
+						 *
+						 * @param string   $default_agent_no The pre-selected agent_no ('' selects the first option).
+						 * @param object[] $ss_agents        The pick-up points shown in the drop-down.
+						 *
+						 * @return string The agent_no to pre-select, or '' for the first option.
+						 */
+						$default_agent_no = apply_filters( 'smart_send_default_selected_agent', '', $ss_agents );
+
+						woocommerce_form_field(
+							'ss_shipping_store_pickup',
+							array(
+								'type'        => 'select',
+								'options'     => $ss_agent_options,
+								'input_class' => array( 'ss-agent-list' ),
+								'default'     => $default_agent_no,
+							)
+						);
 
                     } else {
                         echo '<div class="woocommerce-info ss-agent-info">' . __('Shipping to closest pick-up point',
@@ -124,11 +156,61 @@ if ( ! class_exists( 'SS_Shipping_Frontend' ) ) :
 		 * @return array
 		 */
 		public function find_closest_agents_by_address( $carrier, $country, $postal_code, $city, $street ) {
+			/*
+			 * Filter the search parameters used when looking up the closest
+			 * pick-up points at checkout, before the API call is made.
+			 *
+			 * The number of returned pick-up points is determined by the API
+			 * and cannot be requested here; use the smart_send_agents_found
+			 * filter to trim the returned list.
+			 *
+			 * @since 9.0.0
+			 *
+			 * @param array $search_params {
+			 *     The pick-up point search parameters.
+			 *
+			 *     @type string      $carrier     Unique carrier code (e.g. 'postnord').
+			 *     @type string      $country     ISO3166-A2 country code.
+			 *     @type string      $postal_code Postal code.
+			 *     @type string|null $city        City (optional but preferred).
+			 *     @type string      $street      Street address.
+			 * }
+			 *
+			 * @return array The search parameters to use for the lookup.
+			 */
+			$search_params = apply_filters(
+				'smart_send_agent_search_params',
+				array(
+					'carrier'     => $carrier,
+					'country'     => $country,
+					'postal_code' => $postal_code,
+					'city'        => $city,
+					'street'      => $street,
+				)
+			);
+
+			$carrier = $search_params['carrier'];
+
 			// The request and response (incl. HTTP status code and endpoint)
 			// are logged by the client's request logger.
-			if ( SS_SHIPPING_WC()->get_api_handle()->findClosestAgentByAddress( $carrier, $country, $postal_code, $city, $street ) ) {
+			if ( SS_SHIPPING_WC()->get_api_handle()->findClosestAgentByAddress( $carrier, $search_params['country'], $search_params['postal_code'], $search_params['city'], $search_params['street'] ) ) {
 
 				$ss_agents = SS_SHIPPING_WC()->get_api_handle()->getData();
+
+				/*
+				 * Filter the pick-up points returned by the lookup before they
+				 * are cached in the session and rendered in the checkout
+				 * drop-down. Return a smaller (or re-ordered) array to limit
+				 * or re-rank the choices offered to the customer.
+				 *
+				 * @since 9.0.0
+				 *
+				 * @param object[] $ss_agents     The pick-up points returned by the API.
+				 * @param array    $search_params The (filtered) search parameters used for the lookup.
+				 *
+				 * @return object[] The pick-up points to cache and render.
+				 */
+				$ss_agents = apply_filters( 'smart_send_agents_found', $ss_agents, $search_params );
 
 				$summary = 'Smart Send: found ' . count( $ss_agents ) . ' ' . $carrier . ' pick-up points near the entered address.';
 				SS_Shipping_Logger::debug(
