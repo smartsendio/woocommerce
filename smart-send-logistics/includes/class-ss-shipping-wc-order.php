@@ -447,7 +447,7 @@ if ( ! class_exists( 'SS_Shipping_WC_Order' ) ) :
                 'download_return_label' => __('Download return label', 'smart-send-logistics'),
                 'unexpected_error'      => __('Unexpected error', 'smart-send-logistics'),
             );
-            wp_enqueue_script('ss-shipping-label-js', SS_SHIPPING_PLUGIN_DIR_URL . '/assets/js/ss-shipping-label.js',
+            wp_enqueue_script('ss-shipping-label-js', SS_SHIPPING_PLUGIN_DIR_URL . '/admin/js/ss-shipping-label.js',
                 array(), SS_SHIPPING_VERSION);
             wp_localize_script('ss-shipping-label-js', 'ss_label_data', $ss_label_data);
 
