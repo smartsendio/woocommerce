@@ -31,7 +31,8 @@ if (!defined('ABSPATH')) {
     exit; // Exit if accessed directly.
 }
 
-if (!class_exists('SS_Shipping_WC')) :
+// A second copy of the plugin (e.g. bundled elsewhere) may already have defined the class.
+if ( ! class_exists( 'SS_Shipping_WC' ) ) :
 
     class SS_Shipping_WC
     {
@@ -98,12 +99,12 @@ if (!class_exists('SS_Shipping_WC')) :
 			$this->init_hooks();
 		}
 
-        public function declaring_hpos_compatibility()
-        {
-            if ( class_exists( \Automattic\WooCommerce\Utilities\FeaturesUtil::class ) ) {
-                \Automattic\WooCommerce\Utilities\FeaturesUtil::declare_compatibility( 'custom_order_tables', __FILE__, true );
-            }
-        }
+		public function declaring_hpos_compatibility() {
+			// FeaturesUtil exists since WC 6.5; the plugin's WC floor is 4.7.
+			if ( class_exists( \Automattic\WooCommerce\Utilities\FeaturesUtil::class ) ) {
+				\Automattic\WooCommerce\Utilities\FeaturesUtil::declare_compatibility( 'custom_order_tables', __FILE__, true );
+			}
+		}
 
         /**
          * Main Smart Send Shipping Instance.
@@ -178,16 +179,18 @@ if (!class_exists('SS_Shipping_WC')) :
 			// "called incorrectly" notice.
 			$this->define( 'SS_BUTTON_TEST_CONNECTION', __( 'Validate API Token', 'smart-send-logistics' ) );
 
-            // Checks if WooCommerce 2.6 is installed.
-            if (defined('WOOCOMMERCE_VERSION') && version_compare(WOOCOMMERCE_VERSION, '2.6', '>=')) {
-                $this->ss_shipping_frontend = new SS_Shipping_Frontend();
-                $this->ss_shipping_wc_order = new SS_Shipping_WC_Order();
-                $this->ss_shipping_wc_product = new SS_Shipping_WC_Product();
-                $this->ss_plugin_screen_updates = new SS_Plugins_Screen_Updates();
-            } else {
-                // Throw an admin error informing the user this plugin needs WooCommerce to function
-                add_action('admin_notices', array($this, 'notice_wc_required'));
-            }
+			// The single bootstrap-level WooCommerce-active gate: `Requires Plugins: woocommerce`
+			// already guarantees WooCommerce on WP >= 6.5, so this check is belt-and-braces for
+			// older WordPress. Everything downstream of it assumes WooCommerce is present.
+			if ( defined( 'WOOCOMMERCE_VERSION' ) && version_compare( WOOCOMMERCE_VERSION, '2.6', '>=' ) ) {
+				$this->ss_shipping_frontend     = new SS_Shipping_Frontend();
+				$this->ss_shipping_wc_order     = new SS_Shipping_WC_Order();
+				$this->ss_shipping_wc_product   = new SS_Shipping_WC_Product();
+				$this->ss_plugin_screen_updates = new SS_Plugins_Screen_Updates();
+			} else {
+				// Throw an admin error informing the user this plugin needs WooCommerce to function.
+				add_action( 'admin_notices', array( $this, 'notice_wc_required' ) );
+			}
 
         }
 

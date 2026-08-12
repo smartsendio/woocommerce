@@ -12,7 +12,8 @@ if (!defined('ABSPATH')) {
  * @author   Smart Send
  */
 
-if (!class_exists('SS_Shipping_Frontend')) :
+// A second copy of the plugin may already have defined the class.
+if ( ! class_exists( 'SS_Shipping_Frontend' ) ) :
 
     class SS_Shipping_Frontend
     {
