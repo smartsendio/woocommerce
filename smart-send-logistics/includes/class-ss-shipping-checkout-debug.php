@@ -41,10 +41,6 @@ class SS_Shipping_Checkout_Debug {
 			return;
 		}
 
-		if ( ! function_exists( 'wc_add_notice' ) || ! function_exists( 'wc_has_notice' ) ) {
-			return;
-		}
-
 		if ( wc_has_notice( $message ) ) {
 			return;
 		}

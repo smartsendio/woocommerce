@@ -134,10 +134,6 @@ class SS_Shipping_Logger {
 			return;
 		}
 
-		if ( ! function_exists( 'wc_add_notice' ) || ! function_exists( 'wc_has_notice' ) ) {
-			return;
-		}
-
 		if ( wc_has_notice( $message ) ) {
 			return;
 		}
@@ -243,10 +239,6 @@ class SS_Shipping_Logger {
 	 * @param bool   $enabled Whether logging is enabled for this entry (before the filter).
 	 */
 	private static function write( $level, $message, $context, $enabled ) {
-		if ( ! function_exists( 'wc_get_logger' ) ) {
-			return;
-		}
-
 		if ( ! $enabled || ! in_array( $level, self::LEVELS, true ) ) {
 			return;
 		}

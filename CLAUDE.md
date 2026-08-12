@@ -65,6 +65,16 @@ Two decoupled surfaces with distinct audiences — place every log/notice call d
 
 Keep messages concise and greppable; put structured data (order id, agent no, shipment id, carrier) in the context array — the WooCommerce log viewer renders it natively.
 
+## Existence-guard policy
+
+`function_exists`/`class_exists` guards appear **only** where existence genuinely varies across the supported range (see issue #90). The three legitimate categories:
+
+1. **Optional third-party plugins** — e.g. `wc_st_add_tracking_number` (Shipment Tracking), `WC_Subscriptions`.
+2. **WP/WC APIs newer than our floors** (PHP 7.4 / WC 4.7) — e.g. `FeaturesUtil` (WC 6.5+), the HPOS `CustomOrdersTableController`.
+3. **Load-context differences** — e.g. `get_plugins()` outside admin (prefer `require_once` of the include over a silent guard).
+
+Everything else — any WP or WC core API our floors guarantee — is called directly, with **no** guard: a guard on an impossible state silently swallows real bugs. Every kept guard carries a one-line comment naming why existence varies. Exactly one bootstrap-level WooCommerce-active check lives in `smart-send-logistics.php` (`init()`'s `WOOCOMMERCE_VERSION` gate — belt-and-braces for WP < 6.5, where `Requires Plugins: woocommerce` is not enforced); everything downstream assumes WooCommerce is present.
+
 Extension points are `smart_send_*` filters/actions (e.g. `smart_send_api_endpoint`, `smart_send_shipping_label_args`, `smart_send_shipping_label_created`, `smart_send_tracking_url`, `smart_send_order_note`). Preserve these when refactoring — merchants rely on them via code snippets.
 
 ## Releasing

@@ -4,7 +4,8 @@ if (!defined('ABSPATH')) {
     exit; // Exit if accessed directly
 }
 
-if (!class_exists('SS_Shipping_WC_Method')) :
+// A second copy of the plugin may already have defined the class.
+if ( ! class_exists( 'SS_Shipping_WC_Method' ) ) :
 
     class SS_Shipping_WC_Method extends WC_Shipping_Flat_Rate
     {

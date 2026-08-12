@@ -15,7 +15,8 @@ use Automattic\WooCommerce\Internal\DataStores\Orders\CustomOrdersTableControlle
  * @author   Smart Send
  */
 
-if (!class_exists('SS_Shipping_WC_Order')) :
+// A second copy of the plugin may already have defined the class.
+if ( ! class_exists( 'SS_Shipping_WC_Order' ) ) :
 
 	class SS_Shipping_WC_Order {
 
@@ -70,15 +71,14 @@ if (!class_exists('SS_Shipping_WC_Order')) :
             add_filter('update_post_metadata_by_mid', array($this, 'filter_update_agent_meta'), 10, 4);//For Wordpress 5.0.0+
             add_action('deleted_post_meta', array($this, 'action_deleted_agent_meta'), 10, 4);
 
-            $subs_version = class_exists('WC_Subscriptions') && !empty(WC_Subscriptions::$version) ? WC_Subscriptions::$version : null;
-            // Prevent data being copied to subscriptions
-            if (null !== $subs_version && version_compare($subs_version, '2.0.0', '>=')) {
-                add_filter('wcs_renewal_order_meta_query',
-                    array($this, 'woocommerce_subscriptions_renewal_order_meta_query'), 10);
-            } else {
-                add_filter('woocommerce_subscriptions_renewal_order_meta_query',
-                    array($this, 'woocommerce_subscriptions_renewal_order_meta_query'), 10);
-            }
+			// The WooCommerce Subscriptions plugin is optional.
+			$subs_version = class_exists( 'WC_Subscriptions' ) && ! empty( WC_Subscriptions::$version ) ? WC_Subscriptions::$version : null;
+			// Prevent data being copied to subscriptions.
+			if ( null !== $subs_version && version_compare( $subs_version, '2.0.0', '>=' ) ) {
+				add_filter( 'wcs_renewal_order_meta_query', array( $this, 'woocommerce_subscriptions_renewal_order_meta_query' ), 10 );
+			} else {
+				add_filter( 'woocommerce_subscriptions_renewal_order_meta_query', array( $this, 'woocommerce_subscriptions_renewal_order_meta_query' ), 10 );
+			}
 
 			// Add bulk actions to the Orders screen table bulk action drop-downs.
 			$this->register_bulk_order_actions();
@@ -87,18 +87,19 @@ if (!class_exists('SS_Shipping_WC_Order')) :
 			$this->admin_notices->init_hooks();
 		}
 
-        /**
-         * Register bulk order actions.
-         * @see https://make.wordpress.org/core/2016/10/04/custom-bulk-actions/
-         * @since WordPress 4.7.0
-         * @return void
-         */
-        private function register_bulk_order_actions()
-        {
-            $screen = class_exists( '\Automattic\WooCommerce\Internal\DataStores\Orders\CustomOrdersTableController' )
-                && wc_get_container()->get(CustomOrdersTableController::class)->custom_orders_table_usage_is_enabled()
-                ? 'woocommerce_page_wc-orders' // function not available wc_get_page_screen_id( 'shop-order' )
-                : 'edit-shop_order'; // Index page is called 'edit-shop_order' and not just 'shop_order' as stated in the url
+		/**
+		 * Register bulk order actions.
+		 *
+		 * @see https://make.wordpress.org/core/2016/10/04/custom-bulk-actions/
+		 * @since WordPress 4.7.0
+		 * @return void
+		 */
+		private function register_bulk_order_actions() {
+			// The HPOS CustomOrdersTableController exists since WC 6.4; the plugin's WC floor is 4.7.
+			$screen = class_exists( '\Automattic\WooCommerce\Internal\DataStores\Orders\CustomOrdersTableController' )
+				&& wc_get_container()->get( CustomOrdersTableController::class )->custom_orders_table_usage_is_enabled()
+				? 'woocommerce_page_wc-orders' // function not available wc_get_page_screen_id( 'shop-order' )
+				: 'edit-shop_order'; // Index page is called 'edit-shop_order' and not just 'shop_order' as stated in the url
 
             // An actions in the dropdown
             add_filter("bulk_actions-{$screen}", array($this, 'add_bulk_order_actions'));
@@ -243,15 +244,15 @@ if (!class_exists('SS_Shipping_WC_Order')) :
 			return $sendback;
 		}
 
-        /**
-         * Add the meta box for shipment info on the order page
-         */
-        public function add_smart_send_order_meta_box()
-        {
-            // @see https://github.com/woocommerce/woocommerce/wiki/High-Performance-Order-Storage-Upgrade-Recipe-Book#audit-for-order-administration-screen-functions
-            $screen = class_exists( '\Automattic\WooCommerce\Internal\DataStores\Orders\CustomOrdersTableController' ) && wc_get_container()->get(CustomOrdersTableController::class)->custom_orders_table_usage_is_enabled()
-                ? wc_get_page_screen_id( 'shop-order' )
-                : 'shop_order';
+		/**
+		 * Add the meta box for shipment info on the order page
+		 */
+		public function add_smart_send_order_meta_box() {
+			// @see https://github.com/woocommerce/woocommerce/wiki/High-Performance-Order-Storage-Upgrade-Recipe-Book#audit-for-order-administration-screen-functions
+			// The HPOS CustomOrdersTableController exists since WC 6.4; the plugin's WC floor is 4.7.
+			$screen = class_exists( '\Automattic\WooCommerce\Internal\DataStores\Orders\CustomOrdersTableController' ) && wc_get_container()->get( CustomOrdersTableController::class )->custom_orders_table_usage_is_enabled()
+				? wc_get_page_screen_id( 'shop-order' )
+				: 'shop_order';
 
             add_meta_box(
                 'woocommerce-ss-shipping-label',
@@ -1176,10 +1177,11 @@ if (!class_exists('SS_Shipping_WC_Order')) :
             $date_shipped = null
         ) {
 
-            if (function_exists('wc_st_add_tracking_number')) {
-                wc_st_add_tracking_number($order_id, $tracking_number, $provider, $date_shipped, $tracking_url);
-            }
-        }
+			// The WooCommerce Shipment Tracking plugin is optional.
+			if ( function_exists( 'wc_st_add_tracking_number' ) ) {
+				wc_st_add_tracking_number( $order_id, $tracking_number, $provider, $date_shipped, $tracking_url );
+			}
+		}
 
         /**
          * Prevents data being copied to subscription renewals
