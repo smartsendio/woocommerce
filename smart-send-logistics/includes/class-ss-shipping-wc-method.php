@@ -256,7 +256,7 @@ if ( ! class_exists( 'SS_Shipping_WC_Method' ) ) :
             }
 
             wp_enqueue_script('smart-send-shipping-admin-js',
-                SS_SHIPPING_PLUGIN_DIR_URL . '/assets/js/ss-shipping-admin.js', array('jquery'), SS_SHIPPING_VERSION);
+                SS_SHIPPING_PLUGIN_DIR_URL . '/admin/js/ss-shipping-admin.js', array('jquery'), SS_SHIPPING_VERSION);
 
             $test_con_data = array(
                 'ajax_url'              => admin_url('admin-ajax.php'),
@@ -265,7 +265,7 @@ if ( ! class_exists( 'SS_Shipping_WC_Method' ) ) :
             );
 
             wp_enqueue_script('smart-send-test-connection',
-                SS_SHIPPING_PLUGIN_DIR_URL . '/assets/js/ss-shipping-test-connection.js', array('jquery'),
+                SS_SHIPPING_PLUGIN_DIR_URL . '/admin/js/ss-shipping-test-connection.js', array('jquery'),
                 SS_SHIPPING_VERSION);
             wp_localize_script('smart-send-test-connection', 'ss_test_connection_obj', $test_con_data);
         }

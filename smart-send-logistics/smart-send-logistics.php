@@ -246,7 +246,7 @@ if ( ! class_exists( 'SS_Shipping_WC' ) ) :
          */
         public function ss_shipping_theme_enqueue_admin_styles()
         {
-            wp_enqueue_style('ss-shipping-admin-css', SS_SHIPPING_PLUGIN_DIR_URL . '/assets/css/ss-shipping-admin.css');
+            wp_enqueue_style('ss-shipping-admin-css', SS_SHIPPING_PLUGIN_DIR_URL . '/admin/css/ss-shipping-admin.css');
         }
 
         /**
