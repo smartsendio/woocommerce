@@ -1,0 +1,270 @@
+<?php
+/**
+ * WooCommerce Smart Send order data access.
+ *
+ * @package  SS_Shipping_Order_Data
+ * @category Shipping
+ * @author   Smart Send
+ */
+
+if ( ! defined( 'ABSPATH' ) ) {
+	exit; // Exit if accessed directly.
+}
+
+if ( ! class_exists( 'SS_Shipping_Order_Data' ) ) :
+
+	/**
+	 * Answers every order-data question needed to build the booking request
+	 * (shipment payload) from a WC_Order, using WooCommerce CRUD getters only.
+	 *
+	 * This is the single place that knows how to read receiver address data,
+	 * item lines with weight/price/customs data and order totals. The class
+	 * returns plain arrays; assembling the Smart Send API models from them is
+	 * the job of SS_Shipping_Shipment.
+	 */
+	class SS_Shipping_Order_Data {
+
+		/**
+		 * The WooCommerce order.
+		 *
+		 * @var WC_Order
+		 */
+		protected $order;
+
+		/**
+		 * Constructor.
+		 *
+		 * @param WC_Order $order The WooCommerce order.
+		 */
+		public function __construct( WC_Order $order ) {
+			$this->order = $order;
+		}
+
+		/**
+		 * Get the order id.
+		 *
+		 * @return int
+		 */
+		public function get_order_id() {
+			return $this->order->get_id();
+		}
+
+		/**
+		 * Get the order number (differs from the id when plugins customize it).
+		 *
+		 * @return string
+		 */
+		public function get_order_number() {
+			return $this->order->get_order_number();
+		}
+
+		/**
+		 * Get the receiver (shipping destination) data for the order.
+		 *
+		 * @return array {
+		 *     Receiver data.
+		 *
+		 *     @type string      $company       Company name.
+		 *     @type string      $name_line1    First name.
+		 *     @type string      $name_line2    Last name.
+		 *     @type string      $address_line1 Address line 1.
+		 *     @type string      $address_line2 Address line 2.
+		 *     @type string      $postal_code   Postal code.
+		 *     @type string      $city          City.
+		 *     @type string      $country       ISO country code.
+		 *     @type string|null $phone         Phone number, if usable for SMS notification.
+		 *     @type string|null $email         Email address.
+		 * }
+		 */
+		public function get_receiver_data() {
+			$billing_address = $this->order->get_address();
+
+			/*
+			 * Filter the receiver address used for the shipping label.
+			 *
+			 * @param array $shipping_address The order shipping address.
+			 * @param int   $order_id         Order ID.
+			 */
+			$shipping_address = apply_filters(
+				'smart_send_order_receiver',
+				$this->order->get_address( 'shipping' ),
+				$this->order->get_id()
+			);
+
+			// The shipping phone field was added in WooCommerce 5.6 but often added by hooks/plugins before that.
+			// Note that the field is not shown on checkout per default but can be enabled by filters/plugins.
+			// See: https://github.com/woocommerce/woocommerce/pull/30097#issuecomment-943114632
+			if ( isset( $shipping_address['phone'] ) && $shipping_address['phone'] ) {
+				$phone = $shipping_address['phone'];
+			} elseif ( $shipping_address['country'] === $billing_address['country'] ) { // Require as only local phone numbers is accepted.
+				$phone = $billing_address['phone'];
+			} else {
+				$phone = null;
+			}
+
+			// The shipping email field does not exist in default WP installations but can be added by filters/hooks.
+			if ( ! isset( $shipping_address['email'] ) && isset( $billing_address['email'] ) ) {
+				$shipping_address['email'] = $billing_address['email'];
+			}
+
+			return array(
+				'company'       => $shipping_address['company'],
+				'name_line1'    => $shipping_address['first_name'],
+				'name_line2'    => $shipping_address['last_name'],
+				'address_line1' => $shipping_address['address_1'],
+				'address_line2' => $shipping_address['address_2'],
+				'postal_code'   => $shipping_address['postcode'],
+				'city'          => $shipping_address['city'],
+				'country'       => $shipping_address['country'],
+				'phone'         => $phone,
+				'email'         => isset( $shipping_address['email'] ) ? $shipping_address['email'] : null,
+			);
+		}
+
+		/**
+		 * Get the item lines for the order: one row per order line with
+		 * weight, price and customs data.
+		 *
+		 * Prices are based on the pre-discount line subtotal, matching how
+		 * the plugin has always priced item lines (order-level discounts are
+		 * reflected in the order totals, not the individual lines).
+		 *
+		 * @return array[] List of item rows.
+		 */
+		public function get_items_data() {
+			$items = array();
+
+			foreach ( $this->order->get_items() as $item ) {
+				$product = wc_get_product( $item->get_product_id() );
+
+				if ( $item->get_variation_id() ) {
+					$product_variation = wc_get_product( $item->get_variation_id() );
+					$product_id        = $item->get_variation_id();
+					$product_sku       = $product_variation->get_sku() ? $product_variation->get_sku() : strval( $item->get_variation_id() );
+				} else {
+					$product_variation = $product;
+					$product_id        = $item->get_product_id();
+					// Ensure id is string and not int.
+					$product_sku = $product->get_sku() ? $product->get_sku() : strval( $item->get_product_id() );
+				}
+
+				$quantity = $item->get_quantity();
+
+				// Total w/o tax and individual w/o tax.
+				$total_price_excluding_tax = (float) $item->get_subtotal();
+				$unit_price_excluding_tax  = $total_price_excluding_tax / $quantity;
+
+				// Total tax.
+				$total_tax_amount = (float) $item->get_subtotal_tax();
+
+				// Total w/ tax and individual w/ tax.
+				$total_price_including_tax = $total_price_excluding_tax + $total_tax_amount;
+				$unit_price_including_tax  = $total_price_including_tax / $quantity;
+
+				$unit_weight = round( wc_get_weight( $product_variation->get_weight(), 'kg' ), 2 );
+
+				$items[] = array(
+					'id'                        => $product_id,
+					'sku'                       => $product_sku,
+					'name'                      => $product->get_title(),
+					'description'               => $this->get_product_meta( $product, '_ss_customs_desc' ),
+					'hs_code'                   => $this->get_product_meta( $product, '_ss_hs_code' ),
+					'country_of_origin'         => $this->get_product_meta( $product, '_ss_country_of_origin' ),
+					'quantity'                  => $quantity,
+					'unit_weight'               => $unit_weight,
+					'unit_price_excluding_tax'  => $unit_price_excluding_tax,
+					'unit_price_including_tax'  => $unit_price_including_tax,
+					'total_price_excluding_tax' => $total_price_excluding_tax,
+					'total_price_including_tax' => $total_price_including_tax,
+					'total_tax_amount'          => $total_tax_amount,
+				);
+			}
+
+			return $items;
+		}
+
+		/**
+		 * Get the order totals used on the shipment and parcel level.
+		 *
+		 * @return array {
+		 *     Order totals.
+		 *
+		 *     @type float|string $subtotal_price_excluding_tax Order total excl. shipping, excl. tax.
+		 *     @type float|string $subtotal_price_including_tax Order total excl. shipping, incl. tax.
+		 *     @type float|string $subtotal_tax_amount          Tax on the order total excl. shipping.
+		 *     @type float|string $shipping_price_excluding_tax Shipping cost excl. tax.
+		 *     @type float|string $shipping_price_including_tax Shipping cost incl. tax.
+		 *     @type float|string $shipping_tax_amount          Tax on the shipping cost.
+		 *     @type float|string $total_price_excluding_tax    Order total excl. tax.
+		 *     @type float|string $total_price_including_tax    Order total incl. tax.
+		 *     @type float|string $total_tax_amount             Total tax on the order.
+		 *     @type string       $currency                     Order currency code.
+		 * }
+		 */
+		public function get_totals() {
+			// Order totals.
+			$order_total      = $this->order->get_total();
+			$order_total_tax  = $this->order->get_total_tax();
+			$order_total_excl = $order_total - $order_total_tax;
+
+			// Shipping totals.
+			$order_shipping      = $this->order->get_shipping_total();
+			$order_shipping_tax  = $this->order->get_shipping_tax();
+			$order_shipping_excl = $order_shipping - $order_shipping_tax;
+
+			// Order totals without shipping.
+			$order_subtotal      = $order_total - $order_shipping;
+			$order_subtotal_tax  = $order_total_tax - $order_shipping_tax;
+			$order_subtotal_excl = $order_total_excl - $order_subtotal_tax;
+
+			return array(
+				'subtotal_price_excluding_tax' => $order_subtotal_excl,
+				'subtotal_price_including_tax' => $order_subtotal,
+				'subtotal_tax_amount'          => $order_subtotal_tax,
+				'shipping_price_excluding_tax' => $order_shipping_excl,
+				'shipping_price_including_tax' => $order_shipping,
+				'shipping_tax_amount'          => $order_shipping_tax,
+				'total_price_excluding_tax'    => $order_total_excl,
+				'total_price_including_tax'    => $order_total,
+				'total_tax_amount'             => $order_total_tax,
+				'currency'                     => $this->order->get_currency(),
+			);
+		}
+
+		/**
+		 * Get the order note to print as freetext on the shipping label, if
+		 * the "include order comment" setting is enabled.
+		 *
+		 * @return string|null
+		 */
+		public function get_order_note() {
+			$ss_settings = SS_SHIPPING_WC()->get_ss_shipping_settings();
+
+			$order_note = null;
+			if ( 'yes' === $ss_settings['include_order_comment'] ) {
+				$order_note = $this->order->get_customer_note();
+			}
+
+			/*
+			 * Filter the order note which can be printed as freetext on the shipping label.
+			 *
+			 * @param string   $order_note The customer note of the order.
+			 * @param WC_Order $order      The WooCommerce order.
+			 */
+			return apply_filters( 'smart_send_order_note', $order_note, $this->order );
+		}
+
+		/**
+		 * Read a Smart Send product meta value through the product CRUD layer.
+		 *
+		 * @param WC_Product $product  The (parent) product of the order line.
+		 * @param string     $meta_key Meta key to read.
+		 *
+		 * @return mixed The meta value, or an empty string when not set.
+		 */
+		protected function get_product_meta( $product, $meta_key ) {
+			return $product->get_meta( $meta_key, true );
+		}
+	}
+
+endif;
