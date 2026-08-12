@@ -134,8 +134,55 @@ if (!class_exists('SS_Shipping_Frontend')) :
 
 				return $ss_agents;
 			} else {
+				$this->report_agent_lookup_failure( $carrier, SS_SHIPPING_WC()->get_api_handle()->getError() );
+
 				return array();
 			}
+		}
+
+		/**
+		 * Log why a pick-up point lookup failed and surface the reason in
+		 * WooCommerce's shipping debug mode.
+		 *
+		 * The checkout falls back to the "Shipping to closest pick-up point"
+		 * text whenever no agents are available. That fallback hides several
+		 * distinct causes, so this classifies the failure (transport error,
+		 * API error response, empty result) and reports it: always to the log
+		 * (error level for failures, debug level for an empty result) and via
+		 * SS_Shipping_Checkout_Debug::add_notice() when WooCommerce shipping
+		 * debug mode is on (a no-op during checkout AJAX requests, matching
+		 * core - the log entry is then the only trace).
+		 *
+		 * @param string      $carrier Unique carrier code the lookup ran for.
+		 * @param object|null $error   Smartsend\Models\Error describing the failure, if any.
+		 */
+		protected function report_agent_lookup_failure( $carrier, $error ) {
+			$code    = ( is_object( $error ) && isset( $error->code ) && is_scalar( $error->code ) ) ? (string) $error->code : '';
+			$message = ( is_object( $error ) && isset( $error->message ) && is_scalar( $error->message ) ) ? (string) $error->message : '';
+
+			if ( 'NoResults' === $code ) {
+				// Not an error: the API answered, there are just no pick-up
+				// points near the entered address.
+				$reason = 'Smart Send: no ' . $carrier . ' pick-up points found near the entered address - falling back to "Shipping to closest pick-up point".';
+
+				SS_Shipping_Logger::debug( $reason );
+				SS_Shipping_Checkout_Debug::add_notice( $reason );
+
+				return;
+			}
+
+			if ( 0 === strpos( $code, 'transport-' ) ) {
+				$reason = 'Smart Send: pick-up point lookup for ' . $carrier . ' failed with a transport error (' . $code . '): ' . $message;
+			} elseif ( '' !== $code || '' !== $message ) {
+				$reason = 'Smart Send: pick-up point lookup for ' . $carrier . ' failed with an API error (' . $code . '): ' . $message;
+			} else {
+				$reason = 'Smart Send: pick-up point lookup for ' . $carrier . ' failed for an unknown reason.';
+			}
+
+			$reason .= ' Falling back to "Shipping to closest pick-up point".';
+
+			SS_Shipping_Logger::error( $reason );
+			SS_Shipping_Checkout_Debug::add_notice( $reason );
 		}
 
         /**
