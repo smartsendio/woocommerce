@@ -29,6 +29,8 @@ class Client
     protected $data;
     protected $links;
     protected $error;
+    private $request_logger;
+    private $request_started_at;
 
     public function __construct($api_token, $website, $demo=false)
     {
@@ -241,6 +243,49 @@ class Client
     }
 
     /**
+     * Inject a callable that is invoked after every HTTP request with the
+     * request/response data. This keeps the client free of any logging
+     * concerns - the consumer decides what (if anything) to do with the data.
+     *
+     * The callable receives a single associative array:
+     * method, endpoint, request_body, status_code, response_body, success,
+     * error, start_time, end_time.
+     *
+     * @param   callable|null $request_logger
+     * @return  void
+     */
+    public function setRequestLogger($request_logger)
+    {
+        $this->request_logger = $request_logger;
+    }
+
+    /**
+     * Invoke the injected request logger (if any) with the current
+     * request/response state.
+     *
+     * @param   string $http_verb The HTTP verb used for the request
+     * @return  void
+     */
+    private function logRequest($http_verb)
+    {
+        if (!is_callable($this->request_logger)) {
+            return;
+        }
+
+        call_user_func($this->request_logger, array(
+            'method'        => strtoupper($http_verb),
+            'endpoint'      => $this->request_endpoint,
+            'request_body'  => $this->request_body,
+            'status_code'   => $this->http_status_code,
+            'response_body' => $this->response_body,
+            'success'       => (bool) $this->success,
+            'error'         => $this->error,
+            'start_time'    => $this->request_started_at,
+            'end_time'      => microtime(true),
+        ));
+    }
+
+    /**
      * Was the API response contain link to next page of results
      * @return  boolean
      */
@@ -269,6 +314,7 @@ class Client
         $this->http_status_code = null;
         $this->content_type = null;
         $this->debug = null;
+        $this->request_started_at = null;
     }
 
     /**
@@ -392,6 +438,7 @@ class Client
 	    }
 
 	    // Make request
+	    $this->request_started_at = microtime(true);
 	    $res = wp_remote_request($this->request_endpoint, array(
 		    'method'     => strtoupper($http_verb),
 		    'user-agent' => $this->getUserAgent(),
@@ -429,6 +476,7 @@ class Client
 
             $error->errors = array();
             $this->error = $error;
+            $this->logRequest($http_verb);
             return $this->success;
         }
 
@@ -468,6 +516,7 @@ class Client
                 $this->error = $error;
             }
 
+            $this->logRequest($http_verb);
             return $this->success;
         }
 
@@ -516,6 +565,7 @@ class Client
             $this->data = $this->response->data;
         }
 
+        $this->logRequest($http_verb);
         return $this->success;
     }
 

@@ -66,13 +66,6 @@ if (!class_exists('SS_Shipping_WC')) :
         protected $ss_shipping_frontend = null;
 
         /**
-         * Smart Send Shipping Order for label and tracking.
-         *
-         * @var SS_Shipping_Logger
-         */
-        protected $logger = null;
-
-        /**
          * Smart Send agent address formats
          *
          * @var array
@@ -314,36 +307,6 @@ if (!class_exists('SS_Shipping_WC')) :
         }
 
         /**
-         * Log debug message
-         */
-        public function log_msg($msg)
-        {
-            $shipping_ss_settings = $this->get_ss_shipping_settings();
-            $ss_debug = isset($shipping_ss_settings['ss_debug']) ? $shipping_ss_settings['ss_debug'] : 'yes';
-
-            if (!$this->logger) {
-                $this->logger = new SS_Shipping_Logger($ss_debug);
-            }
-
-            $this->logger->write($msg);
-        }
-
-        /**
-         * Get debug log file URL
-         */
-        public function get_log_url()
-        {
-            $shipping_ss_settings = $this->get_ss_shipping_settings();
-            $ss_debug = isset($shipping_ss_settings['ss_debug']) ? $shipping_ss_settings['ss_debug'] : 'yes';
-
-            if (!$this->logger) {
-                $this->logger = new SS_Shipping_Logger($ss_debug);
-            }
-
-            return $this->logger->get_log_url();
-        }
-
-        /**
 		 * Get Agent Address Format
 		 *
 		 * Built lazily on first call (not in the constructor): the plugin
@@ -488,7 +451,10 @@ if (!class_exists('SS_Shipping_WC')) :
                 $website_url = $this->get_website_url();
                 $this->api_handle = new \Smartsend\Api($api_token, $website_url, $demo_mode);
 
-            }
+				// Log every API request/response (incl. HTTP status code and
+				// endpoint) through the plugin's logger.
+				$this->api_handle->setRequestLogger( array( 'SS_Shipping_Logger', 'log_api_request' ) );
+			}
 
             return $this->api_handle;
         }
@@ -603,7 +569,7 @@ if (!class_exists('SS_Shipping_WC')) :
                 $error = 1;
             }
 
-            $this->log_msg($connection_msg);
+			SS_Shipping_Logger::log( $connection_msg );
 
             wp_send_json(array(
                 'message'    => $connection_msg,
@@ -658,9 +624,9 @@ if (!class_exists('SS_Shipping_WC')) :
                 // use the prices to sort the rates
                 array_multisort($prices, $available_shipping_methods);
 
-                // write to log
-                $this->log_msg('Shipping methods sorted by cost');
-            }
+				// write to log.
+				SS_Shipping_Logger::log( 'Shipping methods sorted by cost' );
+			}
 
             // return the rates
             return $available_shipping_methods;
