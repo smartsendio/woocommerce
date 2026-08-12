@@ -6,7 +6,11 @@
  * pick-up point" fallback, while the classified reason (transport error,
  * API error response, empty result) is logged - error level for failures,
  * debug level for an empty result - and, with WooCommerce shipping debug
- * mode enabled, surfaced as a checkout debug notice.
+ * mode enabled, surfaced as a checkout debug notice via
+ * SS_Shipping_Checkout_Debug::add_notice(). add_notice() is a no-op when
+ * WC_DOING_AJAX is defined (matching core), so during checkout AJAX updates
+ * the log entry is the only trace; these tests exercise the non-AJAX render
+ * path.
  *
  * NOTE: like ShippingDebugModeTest, these tests assert on checkout notices
  * and therefore must run before the WC_DOING_AJAX-defining test in

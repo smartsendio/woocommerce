@@ -148,8 +148,10 @@ if (!class_exists('SS_Shipping_Frontend')) :
 		 * text whenever no agents are available. That fallback hides several
 		 * distinct causes, so this classifies the failure (transport error,
 		 * API error response, empty result) and reports it: always to the log
-		 * (error level for failures, debug level for an empty result) and as
-		 * a checkout debug notice when WooCommerce shipping debug mode is on.
+		 * (error level for failures, debug level for an empty result) and via
+		 * SS_Shipping_Checkout_Debug::add_notice() when WooCommerce shipping
+		 * debug mode is on (a no-op during checkout AJAX requests, matching
+		 * core - the log entry is then the only trace).
 		 *
 		 * @param string      $carrier Unique carrier code the lookup ran for.
 		 * @param object|null $error   Smartsend\Models\Error describing the failure, if any.
@@ -161,7 +163,10 @@ if (!class_exists('SS_Shipping_Frontend')) :
 			if ( 'NoResults' === $code ) {
 				// Not an error: the API answered, there are just no pick-up
 				// points near the entered address.
-				SS_Shipping_Logger::debug_notice( 'Smart Send: no ' . $carrier . ' pick-up points found near the entered address - falling back to "Shipping to closest pick-up point".' );
+				$reason = 'Smart Send: no ' . $carrier . ' pick-up points found near the entered address - falling back to "Shipping to closest pick-up point".';
+
+				SS_Shipping_Logger::debug( $reason );
+				SS_Shipping_Checkout_Debug::add_notice( $reason );
 
 				return;
 			}
@@ -177,7 +182,7 @@ if (!class_exists('SS_Shipping_Frontend')) :
 			$reason .= ' Falling back to "Shipping to closest pick-up point".';
 
 			SS_Shipping_Logger::error( $reason );
-			SS_Shipping_Logger::debug_notice( $reason );
+			SS_Shipping_Checkout_Debug::add_notice( $reason );
 		}
 
         /**
