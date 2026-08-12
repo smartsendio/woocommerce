@@ -583,6 +583,45 @@ it('clamps negative values to zero when a gift card exceeds the item value', fun
         ->and($payload['total_price_including_tax'])->toEqual(19);
 });
 
+it('normalizes the receiver phone by trimming surrounding whitespace', function () {
+    $product = create_simple_product(['price' => 100, 'weight' => 1]);
+    $order   = create_order([
+        'products'        => [$product],
+        'billing_address' => ['phone' => '  +4512345678  '],
+        'shipping_method' => 'postnord_homedelivery',
+    ]);
+
+    $payload = capture_shipment_payload($order);
+
+    expect($payload['receiver']['sms'])->toBe('+4512345678')
+        ->and($payload['services']['sms_notification'])->toBe('+4512345678');
+});
+
+it('lets the smart_send_receiver_phone filter adjust the receiver phone', function () {
+    $product = create_simple_product(['price' => 100, 'weight' => 1]);
+    $order   = create_order([
+        'products'        => [$product],
+        'shipping_method' => 'postnord_homedelivery',
+    ]);
+
+    $filter = function ($phone, $filtered_order) use ($order) {
+        expect($phone)->toBe('+4512345678')
+            ->and($filtered_order)->toBeInstanceOf(WC_Order::class)
+            ->and($filtered_order->get_id())->toBe($order->get_id());
+
+        return '+4587654321';
+    };
+    add_filter('smart_send_receiver_phone', $filter, 10, 2);
+    remember_cleanup_callback(function () use ($filter): void {
+        remove_filter('smart_send_receiver_phone', $filter, 10);
+    });
+
+    $payload = capture_shipment_payload($order);
+
+    expect($payload['receiver']['sms'])->toBe('+4587654321')
+        ->and($payload['services']['sms_notification'])->toBe('+4587654321');
+});
+
 it('lets the smart_send_shipping_label_args filter override carrier and method', function () {
     $product = create_simple_product(['price' => 100, 'weight' => 1]);
     $order   = create_order([

@@ -102,6 +102,17 @@ if ( ! class_exists( 'SS_Shipping_Order_Data' ) ) :
 				$phone = null;
 			}
 
+			$phone = $this->normalize_phone( $phone );
+
+			/*
+			 * Filter the receiver phone number used for the shipping label
+			 * and the SMS notification service.
+			 *
+			 * @param string|null $phone The normalized receiver phone number.
+			 * @param WC_Order    $order The WooCommerce order.
+			 */
+			$phone = apply_filters( 'smart_send_receiver_phone', $phone, $this->order );
+
 			// The shipping email field does not exist in default WP installations but can be added by filters/hooks.
 			if ( ! isset( $shipping_address['email'] ) && isset( $billing_address['email'] ) ) {
 				$shipping_address['email'] = $billing_address['email'];
@@ -262,6 +273,33 @@ if ( ! class_exists( 'SS_Shipping_Order_Data' ) ) :
 			 * @param WC_Order $order      The WooCommerce order.
 			 */
 			return apply_filters( 'smart_send_order_note', $order_note, $this->order );
+		}
+
+		/**
+		 * Normalize a receiver phone number.
+		 *
+		 * Deliberately minimal for now: strips surrounding whitespace and
+		 * turns empty values into null. This is the seam where local phone
+		 * numbers will be converted to an international format (#56); use
+		 * the smart_send_receiver_phone filter to adjust the number until
+		 * then.
+		 *
+		 * @param string|null $phone The raw phone number.
+		 *
+		 * @return string|null
+		 */
+		protected function normalize_phone( $phone ) {
+			if ( ! $phone ) {
+				return null;
+			}
+
+			$phone = trim( $phone );
+
+			if ( '' === $phone ) {
+				return null;
+			}
+
+			return $phone;
 		}
 
 		/**
