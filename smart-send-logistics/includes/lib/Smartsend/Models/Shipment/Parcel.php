@@ -2,7 +2,7 @@
 
 namespace Smartsend\Models\Shipment;
 
-use Smartsend\Model\Shipment\Item;
+use Smartsend\Models\Shipment\Item;
 
 require_once 'Item.php';
 

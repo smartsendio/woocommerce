@@ -7,16 +7,21 @@ on:
 
 jobs:
   pest:
-    name: Pest integration tests (WP ${{ matrix.wp-version }} / WC ${{ matrix.wc-version }})
+    name: Pest integration tests (PHP ${{ matrix.php-version }} / WP ${{ matrix.wp-version }} / WC ${{ matrix.wc-version }})
     runs-on: ubuntu-latest
     timeout-minutes: 10
     strategy:
       fail-fast: false
       matrix:
         # Unlike the browser tests, WordPress + WooCommerce run inside the
-        # Pest process here, so the PHP version is fixed by Pest's own
-        # requirement (8.2+). PHP-version coverage of the plugin comes from
-        # the browser test matrix.
+        # Pest process here, so the matrix floor is Pest's own requirement
+        # (PHP 8.3+). Plugin-code coverage of older PHP (7.4-8.2) comes from
+        # the browser test matrix and the PHPCompatibility scan in the
+        # coding-standards workflow. The test bootstrap turns any PHP
+        # warning/notice/deprecation raised from smart-send-logistics/ into
+        # a test failure, so each matrix leg also proves the plugin runs
+        # warning-free on that PHP version.
+        php-version: ['8.3', '8.4']
         wp-version: ['latest']
         wc-version: ['latest']
 
@@ -26,7 +31,7 @@ jobs:
       - name: Set up PHP
         uses: shivammathur/setup-php@v2
         with:
-          php-version: '8.4'
+          php-version: '${{ matrix.php-version }}'
           coverage: none
           tools: composer
 
@@ -34,8 +39,8 @@ jobs:
         uses: actions/cache@v4
         with:
           path: vendor
-          key: ${{ runner.os }}-composer-${{ hashFiles('composer.lock') }}
-          restore-keys: ${{ runner.os }}-composer-
+          key: ${{ runner.os }}-composer-php${{ matrix.php-version }}-${{ hashFiles('composer.lock') }}
+          restore-keys: ${{ runner.os }}-composer-php${{ matrix.php-version }}-
 
       - name: Install Composer dependencies
         run: composer install --prefer-dist --no-progress

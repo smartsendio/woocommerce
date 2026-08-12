@@ -6,7 +6,6 @@ if (!defined('ABSPATH')) {
 
 use Automattic\WooCommerce\Utilities\OrderUtil;
 use Automattic\WooCommerce\Internal\DataStores\Orders\CustomOrdersTableController;
-use WooCommerce\Classes\WC_Order;
 
 /**
  * WooCommerce Smart Send Shipping Order.
@@ -147,6 +146,24 @@ if (!class_exists('SS_Shipping_WC_Order')) :
                     foreach ($items as $order_id) {
                         $order = wc_get_order($order_id);
 
+						if ( ! $order instanceof WC_Order ) {
+							array_push(
+								$array_messages_error,
+								array(
+									'message' => sprintf(
+										/* translators: %s: WooCommerce order id */
+										__( 'Order #%s', 'smart-send-logistics' ),
+										$order_id
+									) . ': ' . __(
+										'The order could not be found',
+										'smart-send-logistics'
+									),
+									'type'    => 'error',
+								)
+							);
+							continue;
+						}
+
                         $ss_shipping_method_id = $this->get_smart_send_method_id($order_id);
 
                         if (!empty($ss_shipping_method_id)) {
@@ -240,6 +257,10 @@ if (!class_exists('SS_Shipping_WC_Order')) :
             $order = ( $post_or_order_object instanceof WP_Post ) ? wc_get_order( $post_or_order_object->ID ) : $post_or_order_object;
 
             // ... rest of the code. $post_or_order_object should not be used directly below this point´
+
+			if ( ! $order instanceof WC_Order ) {
+				return;
+            }
 
             $order_id = $order->get_id();
 
@@ -660,10 +681,20 @@ if (!class_exists('SS_Shipping_WC_Order')) :
          */
         protected function create_label_for_single_order($order_id, $return = false, $setting_save_order_note = true)
         {
-            // Load WC Order
-            $order = wc_get_order($order_id);
-            
-            $ss_order_api = new SS_Shipping_Shipment($order, $this);
+			// Load WC Order
+			$order = wc_get_order( $order_id );
+
+			if ( ! $order instanceof WC_Order ) {
+				return array(
+					'error' => sprintf(
+						/* translators: %s: WooCommerce order id */
+						__( 'Order #%s', 'smart-send-logistics' ),
+						$order_id
+					) . ': ' . __( 'The order could not be found', 'smart-send-logistics' ),
+				);
+			}
+
+			$ss_order_api = new SS_Shipping_Shipment( $order, $this );
 
             if ($ss_order_api->make_single_shipment_api_call( $return )) {
 
@@ -849,12 +880,14 @@ if (!class_exists('SS_Shipping_WC_Order')) :
          * @param array $parcels
          *
          * @return void
-         */
-        public function save_ss_shipping_order_parcels($order_id, $parcels)
-        {
-            $order = wc_get_order($order_id);
-            $order->update_meta_data('ss_shipping_order_parcels', $parcels);
-            $order->save();
+		 */
+		public function save_ss_shipping_order_parcels( $order_id, $parcels ) {
+			$order = wc_get_order( $order_id );
+			if ( ! $order instanceof WC_Order ) {
+				return;
+			}
+			$order->update_meta_data( 'ss_shipping_order_parcels', $parcels );
+			$order->save();
         }
 
         /**
@@ -867,8 +900,11 @@ if (!class_exists('SS_Shipping_WC_Order')) :
          */
         public function get_ss_shipping_order_parcels($order_id)
         {
-            $order = wc_get_order( $order_id );
-            return $order->get_meta( 'ss_shipping_order_parcels', true );
+			$order = wc_get_order( $order_id );
+			if ( ! $order instanceof WC_Order ) {
+				return false;
+			}
+			return $order->get_meta( 'ss_shipping_order_parcels', true );
         }
 
 
@@ -879,12 +915,14 @@ if (!class_exists('SS_Shipping_WC_Order')) :
          * @param array $agent_no Agent No.
          *
          * @return void
-         */
-        public function save_ss_shipping_order_agent_no($order_id, $agent_no)
-        {
-            $order = wc_get_order($order_id);
-            $order->update_meta_data('ss_shipping_order_agent_no', $agent_no);
-            $order->save();
+		 */
+		public function save_ss_shipping_order_agent_no( $order_id, $agent_no ) {
+			$order = wc_get_order( $order_id );
+			if ( ! $order instanceof WC_Order ) {
+				return;
+			}
+			$order->update_meta_data( 'ss_shipping_order_agent_no', $agent_no );
+			$order->save();
         }
 
         /*
@@ -897,8 +935,16 @@ if (!class_exists('SS_Shipping_WC_Order')) :
         public function get_ss_shipping_order_agent_no($order_id)
         {
             // Fetch agent_no from meta field saved by Smart Send
-            $order = wc_get_order( $order_id );
-            $ss_agent_number = $order->get_meta( 'ss_shipping_order_agent_no', true );
+			$order = wc_get_order( $order_id );
+
+			// wc_get_order() returns false when the order does not exist, e.g. when
+			// WooCommerce's email preview fires the order-details hooks with a
+			// placeholder order ID. See issue #60.
+			if ( ! $order instanceof WC_Order ) {
+				return null;
+			}
+
+			$ss_agent_number = $order->get_meta( 'ss_shipping_order_agent_no', true );
             if ($ss_agent_number) {
                 // Return the agent_no found
                 return $ss_agent_number;
@@ -920,12 +966,14 @@ if (!class_exists('SS_Shipping_WC_Order')) :
          * @param array $agent Agent Object
          *
          * @return void
-         */
-        public function save_ss_shipping_order_agent($order_id, $agent)
-        {
-            $order = wc_get_order($order_id);
-            $order->update_meta_data('_ss_shipping_order_agent', $agent);
-            $order->save();
+		 */
+		public function save_ss_shipping_order_agent( $order_id, $agent ) {
+			$order = wc_get_order( $order_id );
+			if ( ! $order instanceof WC_Order ) {
+				return;
+			}
+			$order->update_meta_data( '_ss_shipping_order_agent', $agent );
+			$order->save();
         }
 
 	    /**
@@ -956,9 +1004,14 @@ if (!class_exists('SS_Shipping_WC_Order')) :
          */
         public function get_ss_shipping_order_agent($order_id)
         {
-            // Fetch agent info from meta field saved by Smart Send
-            $order         = wc_get_order( $order_id );
-            $ss_agent_info = $order->get_meta( '_ss_shipping_order_agent', true );
+			// Fetch agent info from meta field saved by Smart Send
+			$order = wc_get_order( $order_id );
+
+			if ( ! $order instanceof WC_Order ) {
+				return null;
+			}
+
+			$ss_agent_info = $order->get_meta( '_ss_shipping_order_agent', true );
             if ($ss_agent_info) {
                 // Return the agent_no found
                 return $ss_agent_info;
@@ -989,13 +1042,16 @@ if (!class_exists('SS_Shipping_WC_Order')) :
          * @param boolean $return Whether or not the label is return (true) or normal (false)
          *
          * @return void
-         */
-        public function save_ss_shipment_id_in_order_meta($order_id, $shipment_id, $return)
-        {
-            $order = wc_get_order($order_id);
-            if ($return) {
-                $order->update_meta_data('_ss_shipping_return_label_id', $shipment_id);
-            } else {
+		 */
+		// phpcs:ignore Universal.NamingConventions.NoReservedKeywordParameterNames.returnFound -- pre-existing public method signature, kept for backwards compatibility.
+		public function save_ss_shipment_id_in_order_meta( $order_id, $shipment_id, $return ) {
+			$order = wc_get_order( $order_id );
+			if ( ! $order instanceof WC_Order ) {
+				return;
+			}
+			if ( $return ) {
+				$order->update_meta_data( '_ss_shipping_return_label_id', $shipment_id );
+			} else {
                 $order->update_meta_data('_ss_shipping_label_id', $shipment_id);
             }
             $order->save();
@@ -1011,9 +1067,12 @@ if (!class_exists('SS_Shipping_WC_Order')) :
          */
         public function get_label_url_from_order_id($order_id, $return): string
         {
-            $order = wc_get_order( $order_id );
-            if ($return) {
-                $shipment_id = $order->get_meta( '_ss_shipping_return_label_id', true );
+			$order = wc_get_order( $order_id );
+			if ( ! $order instanceof WC_Order ) {
+				return '';
+			}
+			if ( $return ) {
+				$shipment_id = $order->get_meta( '_ss_shipping_return_label_id', true );
             } else {
                 $shipment_id = $order->get_meta( '_ss_shipping_label_id', true );
             }

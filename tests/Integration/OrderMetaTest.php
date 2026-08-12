@@ -110,6 +110,28 @@ it('falls back to the vConnect meta for agent no and agent object', function () 
         ->and($agent->country)->toBe('DK');
 });
 
+it('handles a missing order in every meta accessor without fatals', function () {
+    // Regression for #60: wc_get_order() returns false for order IDs that do
+    // not exist (e.g. WooCommerce's email preview placeholder); every
+    // accessor must guard instead of calling methods on false.
+    $handler = SS_SHIPPING_WC()->get_ss_shipping_wc_order();
+    $missing = 999999999;
+
+    expect($handler->get_ss_shipping_order_agent_no($missing))->toBeNull()
+        ->and($handler->get_ss_shipping_order_agent($missing))->toBeNull()
+        ->and($handler->get_ss_shipping_order_parcels($missing))->toBeFalse()
+        ->and($handler->get_label_url_from_order_id($missing, false))->toBe('')
+        ->and($handler->get_label_url_from_order_id($missing, true))->toBe('');
+
+    // The savers no-op instead of fataling.
+    $handler->save_ss_shipping_order_agent_no($missing, '1234');
+    $handler->save_ss_shipping_order_agent($missing, sample_agent());
+    $handler->save_ss_shipping_order_parcels($missing, []);
+    $handler->save_ss_shipment_id_in_order_meta($missing, 'shipment-1', false);
+
+    expect($handler->get_ss_shipping_order_agent_no($missing))->toBeNull();
+});
+
 it('detects the Smart Send shipping method on an order', function () {
     $handler = SS_SHIPPING_WC()->get_ss_shipping_wc_order();
     $product = create_simple_product(['price' => 100, 'weight' => 1]);

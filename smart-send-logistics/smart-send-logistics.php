@@ -7,6 +7,7 @@
  * Author URI: https://www.smartsend.io
  * Text Domain: smart-send-logistics
  * Version: 8.1.3
+ * Requires PHP: 7.4
  * Requires Plugins: woocommerce
  * WC requires at least: 4.7.0
  * WC tested up to: 10.3
@@ -101,23 +102,8 @@ if (!class_exists('SS_Shipping_WC')) :
 
             $this->define_constants();
             $this->includes();
-            $this->init_hooks();
-
-            $this->agents_address_format = array(
-                '1' => __('#Company', 'smart-send-logistics') . ', ' . __('#Street', 'smart-send-logistics'),
-                '2' => __('#Company', 'smart-send-logistics') . ', ' . __('#Street',
-                        'smart-send-logistics') . ', ' . __('#Zipcode', 'smart-send-logistics'),
-                '3' => __('#Company', 'smart-send-logistics') . ', ' . __('#Street',
-                        'smart-send-logistics') . ', ' . __('#City', 'smart-send-logistics'),
-                '4' => __('#Company', 'smart-send-logistics') . ', ' . __('#Street',
-                        'smart-send-logistics') . ', ' . __('#Zipcode', 'smart-send-logistics') . ' ' . __('#City',
-                        'smart-send-logistics'),
-                '5' => __('#Company', 'smart-send-logistics') . ', ' . __('#Zipcode', 'smart-send-logistics'),
-                '6' => __('#Company', 'smart-send-logistics') . ', ' . __('#Zipcode',
-                        'smart-send-logistics') . ', ' . __('#City', 'smart-send-logistics'),
-                '7' => __('#Company', 'smart-send-logistics') . ', ' . __('#City', 'smart-send-logistics'),
-            );
-        }
+			$this->init_hooks();
+		}
 
         public function declaring_hpos_compatibility()
         {
@@ -150,16 +136,15 @@ if (!class_exists('SS_Shipping_WC')) :
         {
             $upload_dir = wp_upload_dir();
 
-            // Path related defines
-            $this->define('SS_SHIPPING_PLUGIN_FILE', __FILE__);
-            $this->define('SS_SHIPPING_PLUGIN_BASENAME', plugin_basename(__FILE__));
-            $this->define('SS_SHIPPING_PLUGIN_DIR_PATH', untrailingslashit(plugin_dir_path(__FILE__)));
-            $this->define('SS_SHIPPING_PLUGIN_DIR_URL', untrailingslashit(plugins_url('/', __FILE__)));
-            $this->define('SS_SHIPPING_VERSION', $this->version);
-            $this->define('SS_SHIPPING_LOG_DIR', $upload_dir['basedir'] . '/wc-logs/');
-            $this->define('SS_SHIPPING_METHOD_ID', 'smart_send_shipping');
-            $this->define('SS_BUTTON_TEST_CONNECTION', __('Validate API Token', 'smart-send-logistics'));
-        }
+			// Path related defines
+			$this->define( 'SS_SHIPPING_PLUGIN_FILE', __FILE__ );
+			$this->define( 'SS_SHIPPING_PLUGIN_BASENAME', plugin_basename( __FILE__ ) );
+			$this->define( 'SS_SHIPPING_PLUGIN_DIR_PATH', untrailingslashit( plugin_dir_path( __FILE__ ) ) );
+			$this->define( 'SS_SHIPPING_PLUGIN_DIR_URL', untrailingslashit( plugins_url( '/', __FILE__ ) ) );
+			$this->define( 'SS_SHIPPING_VERSION', $this->version );
+			$this->define( 'SS_SHIPPING_LOG_DIR', $upload_dir['basedir'] . '/wc-logs/' );
+			$this->define( 'SS_SHIPPING_METHOD_ID', 'smart_send_shipping' );
+		}
 
         /**
          * Include required core files used in admin and on the frontend.
@@ -192,9 +177,13 @@ if (!class_exists('SS_Shipping_WC')) :
 
         /**
          * Initialize the plugin.
-         */
-        public function init()
-        {
+		 */
+		public function init() {
+			// Translated string constants must not be defined before the init
+			// action: since WordPress 6.7 any translation call for our text
+			// domain that runs earlier triggers a _load_textdomain_just_in_time
+			// "called incorrectly" notice.
+			$this->define( 'SS_BUTTON_TEST_CONNECTION', __( 'Validate API Token', 'smart-send-logistics' ) );
 
             // Checks if WooCommerce 2.6 is installed.
             if (defined('WOOCOMMERCE_VERSION') && version_compare(WOOCOMMERCE_VERSION, '2.6', '>=')) {
@@ -355,10 +344,41 @@ if (!class_exists('SS_Shipping_WC')) :
         }
 
         /**
-         * Get Agent Address Format
-         */
-        public function get_agents_address_format()
-        {
+		 * Get Agent Address Format
+		 *
+		 * Built lazily on first call (not in the constructor): the plugin
+		 * bootstraps before the init action, and since WordPress 6.7 any
+		 * translation call for our text domain that runs before init triggers
+		 * a _load_textdomain_just_in_time "called incorrectly" notice.
+		 */
+		public function get_agents_address_format() {
+			if ( empty( $this->agents_address_format ) ) {
+				$this->agents_address_format = array(
+					'1' => __( '#Company', 'smart-send-logistics' ) . ', ' . __( '#Street', 'smart-send-logistics' ),
+					'2' => __( '#Company', 'smart-send-logistics' ) . ', ' . __(
+						'#Street',
+						'smart-send-logistics'
+					) . ', ' . __( '#Zipcode', 'smart-send-logistics' ),
+					'3' => __( '#Company', 'smart-send-logistics' ) . ', ' . __(
+						'#Street',
+						'smart-send-logistics'
+					) . ', ' . __( '#City', 'smart-send-logistics' ),
+					'4' => __( '#Company', 'smart-send-logistics' ) . ', ' . __(
+						'#Street',
+						'smart-send-logistics'
+					) . ', ' . __( '#Zipcode', 'smart-send-logistics' ) . ' ' . __(
+						'#City',
+						'smart-send-logistics'
+					),
+					'5' => __( '#Company', 'smart-send-logistics' ) . ', ' . __( '#Zipcode', 'smart-send-logistics' ),
+					'6' => __( '#Company', 'smart-send-logistics' ) . ', ' . __(
+						'#Zipcode',
+						'smart-send-logistics'
+					) . ', ' . __( '#City', 'smart-send-logistics' ),
+					'7' => __( '#Company', 'smart-send-logistics' ) . ', ' . __( '#City', 'smart-send-logistics' ),
+				);
+			}
+
             return $this->agents_address_format;
         }
 
@@ -522,9 +542,9 @@ if (!class_exists('SS_Shipping_WC')) :
 		        $api_token = empty($ss_shipping_settings['api_token']) ? null : $ss_shipping_settings['api_token'];
 	        }
 
-	        if (strpos($api_token, ',') && strpos($api_token, ':')) {
-		        //The API Token field contains multiple tokens in the format:
-		        //site1:apitoken1,site2:apitoken2,....
+			if ( is_string( $api_token ) && strpos( $api_token, ',' ) && strpos( $api_token, ':' ) ) {
+				//The API Token field contains multiple tokens in the format:
+				//site1:apitoken1,site2:apitoken2,....
 		        $tokens = array();
 		        $site_and_tokens = explode(',', $api_token);
 		        foreach ($site_and_tokens as $site_and_token) {
