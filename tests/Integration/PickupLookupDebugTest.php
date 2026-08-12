@@ -212,3 +212,33 @@ it('renders the agent dropdown and no failure notice when the lookup succeeds', 
         ->and($output)->not->toContain('Shipping to closest pick-up point')
         ->and(implode("\n", pickup_debug_notice_texts()))->not->toContain('pick-up point lookup');
 });
+
+it('surfaces a success summary with the carrier and result count (#92)', function () {
+    with_option('woocommerce_shipping_debug_mode', 'yes');
+    with_ss_settings(['ss_debug' => 'yes']); // Debug-level log entries require the plugin debug setting.
+    $spy = spy_on_logger();
+    mock_smart_send_api(function () {
+        return ss_api_response(200, ['data' => [sample_agent(), sample_agent(['agent_no' => '5678'])]]);
+    });
+
+    $output = pickup_debug_render();
+
+    $expected = 'Smart Send: found 2 postnord pick-up points near the entered address.';
+
+    expect($output)->toContain('ss_shipping_store_pickup')
+        ->and(pickup_debug_notice_texts())->toContain($expected)
+        ->and(implode("\n", pickup_debug_logged($spy, 'debug')))->toContain($expected);
+});
+
+it('adds no success summary notice when shipping debug mode is off', function () {
+    with_option('woocommerce_shipping_debug_mode', 'no');
+    spy_on_logger();
+    mock_smart_send_api(function () {
+        return ss_api_response(200, ['data' => [sample_agent()]]);
+    });
+
+    $output = pickup_debug_render();
+
+    expect($output)->toContain('ss_shipping_store_pickup')
+        ->and(wc_notice_count())->toBe(0);
+});

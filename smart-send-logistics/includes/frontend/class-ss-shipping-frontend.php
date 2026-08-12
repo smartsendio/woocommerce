@@ -129,6 +129,16 @@ if (!class_exists('SS_Shipping_Frontend')) :
 
 				$ss_agents = SS_SHIPPING_WC()->get_api_handle()->getData();
 
+				$summary = 'Smart Send: found ' . count( $ss_agents ) . ' ' . $carrier . ' pick-up points near the entered address.';
+				SS_Shipping_Logger::debug(
+					$summary,
+					array(
+						'carrier'      => $carrier,
+						'result_count' => count( $ss_agents ),
+					)
+				);
+				SS_Shipping_Checkout_Debug::add_notice( $summary );
+
 				// Save all of the agents in sessions.
 				WC()->session->set( 'ss_shipping_agents', $ss_agents );
 
@@ -306,12 +316,22 @@ if (!class_exists('SS_Shipping_Frontend')) :
                 }
             }
 
-            // Saving posted agent information
-            if (!empty($selected_agent_no)) {
-                SS_SHIPPING_WC()->get_ss_shipping_wc_order()->save_ss_shipping_order_agent_no($order_id,
-                    $selected_agent_no);
-                SS_SHIPPING_WC()->get_ss_shipping_wc_order()->save_ss_shipping_order_agent($order_id, $selected_agent);
-            }
+			// Saving posted agent information.
+			if ( ! empty( $selected_agent_no ) ) {
+				SS_SHIPPING_WC()->get_ss_shipping_wc_order()->save_ss_shipping_order_agent_no(
+					$order_id,
+					$selected_agent_no
+				);
+				SS_SHIPPING_WC()->get_ss_shipping_wc_order()->save_ss_shipping_order_agent( $order_id, $selected_agent );
+
+				SS_Shipping_Logger::info(
+					'Pick-up point selected at checkout',
+					array(
+						'order_id' => $order_id,
+						'agent_no' => $selected_agent_no,
+					)
+				);
+			}
         }
 
         /**
