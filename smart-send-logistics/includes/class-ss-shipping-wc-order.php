@@ -576,19 +576,17 @@ if (!class_exists('SS_Shipping_WC_Order')) :
 
                 if (!empty($shipping_method_carrier) && !empty($shipping_address['country'])) {
 
-                    SS_SHIPPING_WC()->log_msg('Called "getAgentByAgentNo" with carrier = ' . $shipping_method_carrier . ', country = ' . $shipping_address['country'] . ', ss_shipping_agent_no = ' . $ss_shipping_agent_no);
-                    // API call to get agent info by agent no.
-                    if (SS_SHIPPING_WC()->get_api_handle()->getAgentByAgentNo($shipping_method_carrier,
-                        $shipping_address['country'], $ss_shipping_agent_no)) {
+					// API call to get agent info by agent no.
+					if ( SS_SHIPPING_WC()->get_api_handle()->getAgentByAgentNo( $shipping_method_carrier, $shipping_address['country'], $ss_shipping_agent_no ) ) {
 
-                        SS_SHIPPING_WC()->log_msg('Agent found and saved.');
+						SS_Shipping_Logger::log( 'Agent found and saved.' );
 
                         $this->save_ss_shipping_order_agent($post_id,
                             SS_SHIPPING_WC()->get_api_handle()->getData());
                         return true;
                     } else {
 
-                        SS_SHIPPING_WC()->log_msg('Agent NOT found.');
+						SS_Shipping_Logger::log( 'Agent NOT found.' );
 
                         $error_msg = sprintf(__('The agent number entered, %s, was not found.',
                             'smart-send-logistics'), $ss_shipping_agent_no);
@@ -984,10 +982,10 @@ if (!class_exists('SS_Shipping_WC_Order')) :
         public function delete_ss_shipping_order_agent($order_id) {
             $order = wc_get_order( $order_id );
 
-            // There are situations where the order has been deleted and cannot be found.
-            // We should gracefully handle this situation of failing to load the order.
-            if (! $order ) {
-                SS_SHIPPING_WC()->log_msg('Failed to load WooCommerce order: '.$order_id);
+			// There are situations where the order has been deleted and cannot be found.
+			// We should gracefully handle this situation of failing to load the order.
+			if ( ! $order ) {
+				SS_Shipping_Logger::log( 'Failed to load WooCommerce order: ' . $order_id );
 
                 return;
             }
@@ -1169,9 +1167,6 @@ if (!class_exists('SS_Shipping_WC_Order')) :
                     $combined_shipments = SS_SHIPPING_WC()->get_api_handle()->combineLabelsForShipments(wp_list_pluck($array_shipment_ids,
                         'shipment_id'));
 
-                    // Write API request to log
-                    SS_SHIPPING_WC()->log_msg('Called "combineLabelsForShipments" with arguments: ' . SS_SHIPPING_WC()->get_api_handle()->getRequestBody());
-
                     if (SS_SHIPPING_WC()->get_api_handle()->isSuccessful()) {
 
                         $response = SS_SHIPPING_WC()->get_api_handle()->getData();
@@ -1190,19 +1185,17 @@ if (!class_exists('SS_Shipping_WC_Order')) :
                         // Get the combined label link
                         $combo_url = $response->pdf->link;
 
-                        // Write API response to log
-                        SS_SHIPPING_WC()->log_msg('Response from "combineLabelsForShipments" : ' . SS_SHIPPING_WC()->get_api_handle()->getResponseBody());
-
-                    } else {
-                        SS_SHIPPING_WC()->log_msg('Error response from "combineLabelsForShipments" : ' . SS_SHIPPING_WC()->get_api_handle()->getResponseBody());
-                        array_push($array_messages, array(
-                            'message' => __('Error combining shipping labels:',
-                                    'smart-send-logistics') . ' ' . SS_SHIPPING_WC()->get_api_handle()->getErrorString(),
-                            'type'    => 'error',
-                        ));
-                    }
-                }
-            }
+					} else {
+						array_push(
+							$array_messages,
+							array(
+								'message' => __( 'Error combining shipping labels:', 'smart-send-logistics' ) . ' ' . SS_SHIPPING_WC()->get_api_handle()->getErrorString(),
+								'type'    => 'error',
+							)
+						);
+					}
+				}
+			}
 
             if (!empty($combo_url)) {
                 $order_id_list = wp_list_pluck($array_shipment_ids, 'order_id');

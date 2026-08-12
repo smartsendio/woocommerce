@@ -480,26 +480,16 @@ if (!class_exists('SS_Shipping_Shipment')) :
                 ->setCurrency($order_currency ?: null);
         }
 
-        /**
-         * Call Smart Send Shipment API, log response
-         *
-         * @return void
-         */
-        protected function make_single_shipment_api_request()
-        {
-            // Make API Request
-            SS_SHIPPING_WC()->get_api_handle()->createShipmentAndLabels($this->shipment);
-
-            // Log API request
-            SS_SHIPPING_WC()->log_msg('Called "createShipmentAndLabels" with arguments: ' . SS_SHIPPING_WC()->get_api_handle()->getRequestBody());
-
-            // Log API response
-            if (SS_SHIPPING_WC()->get_api_handle()->isSuccessful()) {
-                SS_SHIPPING_WC()->log_msg('Response from "createShipmentAndLabels" : ' . SS_SHIPPING_WC()->get_api_handle()->getResponseBody());
-            } else {
-                SS_SHIPPING_WC()->log_msg('Error response from "createShipmentAndLabels" : ' . SS_SHIPPING_WC()->get_api_handle()->getResponseBody());
-            }
-        }
+		/**
+		 * Call Smart Send Shipment API, log response
+		 *
+		 * @return void
+		 */
+		protected function make_single_shipment_api_request() {
+			// Make API Request. The request and response (incl. HTTP status
+			// code and endpoint) are logged by the client's request logger.
+			SS_SHIPPING_WC()->get_api_handle()->createShipmentAndLabels( $this->shipment );
+		}
 
         /**
          * Get the order id

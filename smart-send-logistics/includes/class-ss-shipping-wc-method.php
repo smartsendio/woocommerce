@@ -269,15 +269,14 @@ if (!class_exists('SS_Shipping_WC_Method')) :
             wp_localize_script('smart-send-test-connection', 'ss_test_connection_obj', $test_con_data);
         }
 
-        /**
-         * Initialize integration settings form fields.
-         *
-         * @return void
-         */
-        public function init_form_fields()
-        {
-            $log_path = SS_SHIPPING_WC()->get_log_url();
-            $agents_address_format = SS_SHIPPING_WC()->get_agents_address_format();
+		/**
+		 * Initialize integration settings form fields.
+		 *
+		 * @return void
+		 */
+		public function init_form_fields() {
+			$log_path              = SS_Shipping_Logger::get_log_url();
+			$agents_address_format = SS_SHIPPING_WC()->get_agents_address_format();
 
             $this->form_fields = array(
                 'api_token'                         => array(
@@ -973,9 +972,9 @@ if (!class_exists('SS_Shipping_WC_Method')) :
                 'package'   => $package,
             );
 
-            // write id of shipping method to log
-            SS_SHIPPING_WC()->log_msg('Handling shipping rate <' . $rate['id'] . '> with title: ' . $rate['label']);
-            SS_SHIPPING_WC()->log_msg('Rate details (json decode for details): ' . json_encode($rate));
+			// write id of shipping method to log.
+			SS_Shipping_Logger::log( 'Handling shipping rate <' . $rate['id'] . '> with title: ' . $rate['label'] );
+			SS_Shipping_Logger::log( 'Rate details (json decode for details): ' . wp_json_encode( $rate ) );
 
             // Set tax status based on selection otherwise always taxed
             $this->tax_status = $this->get_option('tax_status');
@@ -983,10 +982,10 @@ if (!class_exists('SS_Shipping_WC_Method')) :
             // Check if free shipping, otherwise claculate based on weight and evaluate formulas
             if ($this->is_free_shipping($package)) {
 
-                $rate['cost'] = $this->get_option('flatfee_cost');
-                $this->add_rate($rate);
-                // write to log, that shipping rate is added
-                SS_SHIPPING_WC()->log_msg('Free shipping rate added');
+				$rate['cost'] = $this->get_option( 'flatfee_cost' );
+				$this->add_rate( $rate );
+				// write to log, that shipping rate is added.
+				SS_Shipping_Logger::log( 'Free shipping rate added' );
 
             } else {
                 $cart_weight = WC()->cart->get_cart_contents_weight();
@@ -1007,10 +1006,10 @@ if (!class_exists('SS_Shipping_WC_Method')) :
                                         'cost' => $package['contents_cost'],
                                     ));
 
-                                    $this->add_rate($rate);
-                                    // write to log, that shipping rate is added
-                                    SS_SHIPPING_WC()->log_msg('Weight based shipping rate added (json decode for details): ' . json_encode($rate));
-                                }
+									$this->add_rate( $rate );
+									// write to log, that shipping rate is added.
+									SS_Shipping_Logger::log( 'Weight based shipping rate added (json decode for details): ' . wp_json_encode( $rate ) );
+								}
                             }
                         }
                     }
@@ -1089,12 +1088,12 @@ if (!class_exists('SS_Shipping_WC_Method')) :
                     }
                 }
 
-                if (!empty($class_log_message)) {
-                    if ($is_available) {
-                        SS_SHIPPING_WC()->log_msg('Shipping method IS available' . $class_log_message);
-                    } else {
-                        SS_SHIPPING_WC()->log_msg('Shipping method is NOT available' . $class_log_message);
-                    }
+				if ( ! empty( $class_log_message ) ) {
+					if ( $is_available ) {
+						SS_Shipping_Logger::log( 'Shipping method IS available' . $class_log_message );
+					} else {
+						SS_Shipping_Logger::log( 'Shipping method is NOT available' . $class_log_message );
+					}
                 }
 
                 // Exclude customer roles
@@ -1114,8 +1113,8 @@ if (!class_exists('SS_Shipping_WC_Method')) :
                         if (in_array($customer_role, $exclude_roles)) {
                             $is_available = false;
 
-                            SS_SHIPPING_WC()->log_msg('Shipping method available NOT available, because customer role "' . $customer_role . '"is being excluded.');
-                            break;
+							SS_Shipping_Logger::log( 'Shipping method available NOT available, because customer role "' . $customer_role . '"is being excluded.' );
+							break;
                         }
                     }
                 }
@@ -1203,12 +1202,12 @@ if (!class_exists('SS_Shipping_WC_Method')) :
                     break;
             }
 
-            if ($free_log_message) {
-                if ($is_available) {
-                    SS_SHIPPING_WC()->log_msg('Flat rate shipping IS available' . $free_log_message);
-                } else {
-                    SS_SHIPPING_WC()->log_msg('Flat rate shipping is NOT available' . $free_log_message);
-                }
+			if ( $free_log_message ) {
+				if ( $is_available ) {
+					SS_Shipping_Logger::log( 'Flat rate shipping IS available' . $free_log_message );
+				} else {
+					SS_Shipping_Logger::log( 'Flat rate shipping is NOT available' . $free_log_message );
+				}
             }
 
             return apply_filters('woocommerce_shipping_' . $this->id . '_is_free_shipping', $is_available, $package,

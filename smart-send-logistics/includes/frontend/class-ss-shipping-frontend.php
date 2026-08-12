@@ -111,36 +111,32 @@ if (!class_exists('SS_Shipping_Frontend')) :
             }
         }
 
-	    /**
-	     * Find the closest agents by address
-         *
-         * @param $carrier string | unique carrier code
-         * @param $country string | ISO3166-A2 Country code
-         * @param $postal_code string
-         * @param $city string
-         * @param $street string
-         *
-         * @return array
-	     */
-        public function find_closest_agents_by_address($carrier, $country, $postal_code, $city, $street)
-        {
-	        SS_SHIPPING_WC()->log_msg('Called "findClosestAgentByAddress" for website ' . SS_SHIPPING_WC()->get_website_url() . ' with carrier = "' . $carrier . '", country = "' . $country . '", postcode = "' . $postal_code . '", city = "' . $city . '", street = "' . $street . '"');
+		/**
+		 * Find the closest agents by address
+		 *
+		 * @param $carrier string | unique carrier code
+		 * @param $country string | ISO3166-A2 Country code
+		 * @param $postal_code string
+		 * @param $city string
+		 * @param $street string
+		 *
+		 * @return array
+		 */
+		public function find_closest_agents_by_address( $carrier, $country, $postal_code, $city, $street ) {
+			// The request and response (incl. HTTP status code and endpoint)
+			// are logged by the client's request logger.
+			if ( SS_SHIPPING_WC()->get_api_handle()->findClosestAgentByAddress( $carrier, $country, $postal_code, $city, $street ) ) {
 
-	        if (SS_SHIPPING_WC()->get_api_handle()->findClosestAgentByAddress($carrier, $country, $postal_code, $city, $street)) {
+				$ss_agents = SS_SHIPPING_WC()->get_api_handle()->getData();
 
-		        $ss_agents = SS_SHIPPING_WC()->get_api_handle()->getData();
+				// Save all of the agents in sessions.
+				WC()->session->set( 'ss_shipping_agents', $ss_agents );
 
-		        SS_SHIPPING_WC()->log_msg('Response from "findClosestAgentByAddress": ' . SS_SHIPPING_WC()->get_api_handle()->getResponseBody());
-		        // Save all of the agents in sessions
-		        WC()->session->set('ss_shipping_agents', $ss_agents);
-
-		        return $ss_agents;
-	        } else {
-		        SS_SHIPPING_WC()->log_msg( 'Response from "findClosestAgentByAddress": ' . SS_SHIPPING_WC()->get_api_handle()->getErrorString() );
-
-		        return array();
-	        }
-        }
+				return $ss_agents;
+			} else {
+				return array();
+			}
+		}
 
         /**
          * Get the formatted address to display on the frontend
