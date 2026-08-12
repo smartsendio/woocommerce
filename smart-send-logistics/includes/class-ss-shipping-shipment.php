@@ -1,9 +1,4 @@
 <?php
-
-if (!defined('ABSPATH')) {
-    exit; // Exit if accessed directly
-}
-
 /**
  * WooCommerce Smart Send Shipping Order Payload.
  *
@@ -12,476 +7,417 @@ if (!defined('ABSPATH')) {
  * @author   Smart Send
  */
 
-if (!class_exists('SS_Shipping_Shipment')) :
-
-    class SS_Shipping_Shipment
-    {
-
-    	/*
-    	 * WC_Order object
-    	 */
-        protected $order = null;
-        
-        /*
-         * SS_Shipping_WC_Order object
-         */
-        protected $shipping_order = null;
-
-        /*
-         * \Smartsend\Models\Shipment object
-         */
-        protected $shipment = null;
-
-
-        /**
-         * Init and hook in the integration.
-         *
-         * @param WC_Order|integer $order
-         * @param array $shipping_order
-         */
-        public function __construct($order, $shipping_order)
-        {
-
-            if (is_numeric($order) && $order > 0) {
-                $this->order = wc_get_order($order);
-
-                if (!$this->order) {
-                    return;
-                }
-
-            } elseif ($order instanceof WC_Order) {
-                $this->order = $order;
-            } else {
-                return;
-            }
-
-            $this->shipping_order = $shipping_order;
-
-            //New shipment model
-            $this->shipment = new \Smartsend\Models\Shipment();
-        }
-
-        /**
-         * Create single order
-         *
-         * @param boolean $return
-         * @return boolean
-         */
-        public function make_single_shipment_api_call( $return )
-        {
-            $this->make_single_shipment_api_payload( $return );
-            $this->make_single_shipment_api_request();
-
-            if (SS_SHIPPING_WC()->get_api_handle()->isSuccessful()) {
-                return true;
-            } else {
-                return false;
-            }
-        }
-
-        /**
-         * Get API call data
-         *
-         * @return object
-         */
-        public function get_shipping_data()
-        {
-            return SS_SHIPPING_WC()->get_api_handle()->getData();
-        }
-
-        /**
-         * Get error message
-         *
-         * @return string
-         */
-        public function get_error_msg()
-        {
-            return SS_SHIPPING_WC()->get_api_handle()->getErrorString();
-        }
-
-        /**
-         * Get shipment object
-         *
-         * @return \Smartsend\Models\Shipment
-         */
-        public function get_shipment()
-        {
-            return $this->shipment;
-        }
-
-        /**
-         * Create Payload for API request
-         *
-         * @param boolean $return
-         * @return void
-         */
-        protected function make_single_shipment_api_payload( $return )
-        {
-            $order_id = $this->getOrderId($this->order);
-            
-            $ss_args = array();
-
-            // Get shipping method
-            $ss_shipping_method_id = $this->shipping_order->get_smart_send_method_id($order_id, $return);
-
-            if ($return && isset($ss_shipping_method_id['smart_send_return_method'])) {
-                // If no return method set return error
-                if (empty($ss_shipping_method_id['smart_send_return_method'])) {
-                    return array('error' => __('No return method set', 'smart-send-logistics'));
-                } else {
-                    $ss_shipping_method_id = $ss_shipping_method_id['smart_send_return_method'];
-                }
-
-            } else {
-                $ss_args['ss_agent'] = $this->shipping_order->get_ss_shipping_order_agent($order_id);
-            }
-
-            // Determine shipping method and carrier from return settings
-            $shipping_method_carrier = SS_SHIPPING_WC()->get_shipping_method_carrier($ss_shipping_method_id);
-            $shipping_method_type = SS_SHIPPING_WC()->get_shipping_method_type($ss_shipping_method_id);
-
-            $ss_args['ss_carrier'] = $shipping_method_carrier;
-            $ss_args['ss_type'] = $shipping_method_type;
-            $ss_args['ss_parcels'] = $this->shipping_order->get_ss_shipping_order_parcels($order_id);
-
-            /*
-             * Filter the arguments used when creating a shipping label
-             *
-             * @param array $ss_args contains info about shipping carrier, shipping method, agent and parcels
-             * @param int  $order_id  Order ID
-             * @param boolean $return Whether or not the label is return (true) or normal (false)
-             */
-            $ss_args = apply_filters('smart_send_shipping_label_args', $ss_args, $order_id, $return);
-
-            $ss_settings = SS_SHIPPING_WC()->get_ss_shipping_settings();
-
-            // Get address related information
-            $billing_address = $this->order->get_address();
-            $shipping_address = apply_filters(
-            	'smart_send_order_receiver',
-	            $this->order->get_address('shipping'),
-                $this->getOrderId($this->order)
-            );
-
-            // The shipping phone field was added in WooCommerce 5.6 but often added by hooks/plugins before that.
-            // Note that the field is not shown on checkout per default but can be enabled by filters/plugins.
-            // See: https://github.com/woocommerce/woocommerce/pull/30097#issuecomment-943114632
-            if (isset($shipping_address['phone']) && $shipping_address['phone']) { // Field did not exist prior to WooCommerce 5.6
-                $phone = $shipping_address['phone'];
-            } elseif ($shipping_address['country'] == $billing_address['country']) { // Require as only local phone numbers is accepted
-                $phone = $billing_address['phone'];
-            } else {
-                $phone = null;
-            }
-
-            // The shipping email field does not exist in default WP installations but can be added by filters/hooks.
-            if (!isset($shipping_address['email']) && isset($billing_address['email'])) {
-                $shipping_address['email'] = $billing_address['email'];
-            }
-
-            // Make receiver object.
-            $receiver = new \Smartsend\Models\Shipment\Receiver();
-            $receiver->setInternalId($this->getOrderId($this->order))
-                ->setInternalReference($this->order->get_order_number() ? $this->order->get_order_number() : null)
-                ->setCompany($shipping_address['company'] ?: null)
-                ->setNameLine1($shipping_address['first_name'] ?: null)
-                ->setNameLine2($shipping_address['last_name'] ?: null)
-                ->setAddressLine1($shipping_address['address_1'] ?: null)
-                ->setAddressLine2($shipping_address['address_2'] ?: null)
-                ->setPostalCode($shipping_address['postcode'] ?: null)
-                ->setCity($shipping_address['city'] ?: null)
-                ->setCountry($shipping_address['country'] ?: null)
-                ->setSms($phone ?: null)
-                ->setEmail($shipping_address['email'] ?: null);
-
-            // Add the receiver to the shipment
-            $this->shipment->setReceiver($receiver);
-
-            // Add the sender to the shipment (we use the system default for now)
-            //$this->shipment->setSender(Sender $sender);
-
-            $ss_agent = apply_filters(
-              'smart_send_order_agent',
-              empty($ss_args['ss_agent']) ? null : $ss_args['ss_agent'],
-              $this->getOrderId($this->order)
-            );
-
-            if (!empty($ss_agent)) {
-                // Add an agent (pick-up point) to the shipment
-                $agent = new Smartsend\Models\Shipment\Agent();
-                $agent->setInternalId(isset($ss_agent->id) ? $ss_agent->id : $ss_agent->agent_no)
-                    ->setInternalReference(isset($ss_agent->id) ? $ss_agent->id : $ss_agent->agent_no)
-                    ->setAgentNo($ss_agent->agent_no ?: null)
-                    ->setCompany($ss_agent->company ?: null)
-                    // ->setNameLine1(null)
-                    // ->setNameLine2(null)
-                    ->setAddressLine1($ss_agent->address_line1 ?: null)
-                    ->setAddressLine2($ss_agent->address_line2 ?: null)
-                    ->setPostalCode($ss_agent->postal_code ?: null)
-                    ->setCity($ss_agent->city ?: null)
-                    ->setCountry($ss_agent->country ?: null);
-                // ->setSms(null)
-                // ->setEmail(null);
-
-                // Add the agent to the shipment
-                $this->shipment->setAgent($agent);
-            }
-
-            // Get order item specific data
-            $ordered_items = $this->order->get_items();
-
-            // Get product info from the same routine so that we won't have
-            // to iterate through the ordered items once again.
-            $item_data = array();
-
-            if (!empty($ordered_items)) {
-                $items = array();
-                $index = 0;
-                $weight_total = 0;
-                foreach ($ordered_items as $key => $item) {
-                    $product = wc_get_product($item['product_id']);
-
-                    if (!empty($item['variation_id'])) {
-                        $product_variation = wc_get_product($item['variation_id']);
-                        // Ensure id is string and not int
-                        $product_id = $item['variation_id'];
-                        $product_sku = $product_variation->get_sku() ? $product_variation->get_sku() : strval($item['variation_id']);
-
-                        // $product_attribute = wc_get_product_variation_attributes($item['variation_id']);
-                        // $product_description .= ' : ' . current( $product_attribute );
-
-                    } else {
-                        $product_variation = $product;
-                        $product_id = $item['product_id'];
-                        // Ensure id is string and not int
-                        $product_sku = $product->get_sku() ? $product->get_sku() : strval($item['product_id']);
-                    }
-
-                    $product_description = $product->get_title();
-
-                    // WC 3.0 code!
-                    if (defined('WOOCOMMERCE_VERSION') && version_compare(WOOCOMMERCE_VERSION, '3.0', '>=')) {
-                        // $product_val_tax = wc_get_price_including_tax( $product_variation );
-                        // $args['qty'] = $item['qty'];
-                        // $product_val_tax_total = wc_get_price_including_tax( $product_variation, $args );
-
-                        // Total w/o tax and individual w/o tax
-                        $product_val_total = (float)$item->get_subtotal();
-                        $product_val = $product_val_total / $item['qty'];
-
-                        // Total tax
-                        $product_tax_total = (float)$item->get_subtotal_tax();
-
-                        // Total w/ tax and indivdual w/ tax
-                        $product_val_tax_total = $product_val_total + $product_tax_total;
-                        $product_val_tax = $product_val_tax_total / $item['qty'];
-
-
-                        if (!empty($product->get_short_description())) {
-                            $product_description = $product->get_short_description();
-                        } elseif (!empty($product->get_description())) {
-                            $product_description = $product->get_description();
-                        }
-
-                    } else {
-                        // Total w/o tax and individual w/o tax
-                        $product_val_total = (float)$item['line_subtotal'];
-                        $product_val = $product_val_total / $item['qty'];
-
-                        // Total tax
-                        $product_tax_total = (float)$item['line_tax'];
-
-                        // Total w/ tax and indivdual w/ tax
-                        $product_val_tax_total = $product_val_total + $product_tax_total;
-                        $product_val_tax = $product_val_tax_total / $item['qty'];
-
-                        if (!empty($product->post->post_excerpt)) {
-                            $product_description = $product->post->post_excerpt;
-                        } elseif (!empty($product->post->post_content)) {
-                            $product_description = $product->post->post_content;
-                        }
-
-                    }
-
-                    $product_weight = round(wc_get_weight($product_variation->get_weight(), 'kg'), 2);
-                    if ($product_weight) {
-                        $weight_total += ($item['qty'] * $product_weight);
-                    }
-
-                    // Update product/item data array
-                    $item_data[$product_id] = array(
-                        'product_val'     => $product_val,
-                        'product_val_tax' => $product_val_tax,
-                        'product_weight'  => $product_weight,
-                    );
-
-                    $product_img_id = $product->get_image_id();
-                    $product_img_url = wp_get_attachment_url($product_img_id);
-
-                    $hs_code = get_post_meta($item['product_id'], '_ss_hs_code', true);
-                    $custom_desc = get_post_meta($item['product_id'], '_ss_customs_desc', true);
-	                $country_of_origin = get_post_meta($item['product_id'], '_ss_country_of_origin', true);
-
-                    $items[$index] = new \Smartsend\Models\Shipment\Item();
-                    $items[$index]->setInternalId($product_id ?: null)
-                        ->setInternalReference($product_id ?: null)
-                        ->setSku($product_sku ?: null)
-                        ->setName($product->get_title() ?: null)
-                        ->setDescription($custom_desc ?: null)//$product_description can be used, but is often to long (255)
-                        ->setHsCode($hs_code ?: null)
-	                    ->setCountryOfOrigin($country_of_origin ?: null)
-                        ->setImageUrl(null)//$product_img_url can be used, but sometimes include spaces (bug) which causes validation error
-                        ->setUnitWeight($product_weight > 0 ? $product_weight : null)
-                        ->setUnitPriceExcludingTax($product_val ?: null)
-                        ->setUnitPriceIncludingTax($product_val_tax ?: null)
-                        ->setQuantity($item['qty'] ?: null)
-                        ->setTotalPriceExcludingTax($product_val_total ?: null)
-                        ->setTotalPriceIncludingTax($product_val_tax_total ?: null)
-                        ->setTotalTaxAmount($product_tax_total ?: null);
-
-                    // Store product item in data item array for later reference
-                    $item_data[$product_id]['product_item'] = $items[$index];
-
-                    $index++;
-                }
-
-                $order_note = null;
-                // Create the parcels array
-                if (defined('WOOCOMMERCE_VERSION') && version_compare(WOOCOMMERCE_VERSION, '3.0', '>=')) {
-                    if ($ss_settings['include_order_comment'] == 'yes') {
-                        $order_note = $this->order->get_customer_note();
-                    }
-                    $order_currency = $this->order->get_currency();
-                } else {
-                    if ($ss_settings['include_order_comment'] == 'yes') {
-                        $order_note = $this->order->customer_note;
-                    }
-                    $order_currency = $this->order->get_currency();
-                }
-
-                /*
-                 * Filter the order note which can be printed as freetext on the shipping label
-                 *
-                 * @param string $order_note is the customer note of the order
-                 * @param WC_Order object
-                 */
-                $order_note = apply_filters('smart_send_order_note', $order_note, $this->order);
-
-                // Order totals
-                $order_total = $this->order->get_total();
-                $order_total_tax = $this->order->get_total_tax();
-                $order_total_excl = $order_total - $order_total_tax;
-
-                // Shipping totals
-                $order_shipping = $this->order->get_shipping_total();
-                $order_shipping_tax = $this->order->get_shipping_tax();
-                $order_shipping_excl = $order_shipping - $order_shipping_tax;
-
-                // Order totals without shipping
-                $order_subtotal = $order_total - $order_shipping;
-                $order_subtotal_tax = $order_total_tax - $order_shipping_tax;
-                $order_subtotal_excl = $order_total_excl - $order_subtotal_tax;
-
-                $parcels = array();
-                if (!empty($ss_args['ss_parcels'])) {
-                    if (is_array($ss_args['ss_parcels'])) {
-
-                        $boxes = array();
-                        foreach ($ss_args['ss_parcels'] as $parcel) {
-                            $boxes[$parcel['value']][] = array(
-                                'id'   => $parcel['id'],
-                                'name' => $parcel['name'],
-                            );
-                        }
-
-                        foreach ($boxes as $box_number => $items) {
-                            $item_total_wo_tax = 0;
-                            $item_total_tax = 0;
-                            $item_total_incl_tax = 0;
-                            $item_weight_total = 0;
-                            $product_items = array();
-
-                            foreach ($items as $item) {
-                                $data = $item_data[$item['id']];
-
-                                $item_total_wo_tax += floatval($data['product_val']);
-                                $item_total_incl_tax += floatval($data['product_val_tax']);
-                                $item_weight_total += floatval($data['product_weight']);
-
-                                // Compute for the total tax per individual
-                                $item_total_tax += $item_total_incl_tax - $item_total_wo_tax;
-
-                                array_push($product_items, $data['product_item']);
-                            }
-
-							$parcel_total_weight = apply_filters(
-								'smart_send_parcel_weight',
-								$item_weight_total ? $item_weight_total : null,
-								$this->getOrderId($this->order)
-							);
-
-                            $parcel = new \Smartsend\Models\Shipment\Parcel();
-                            $parcel->setInternalId($this->getOrderId($this->order) ?: null)
-                                ->setInternalReference($this->order->get_order_number() ?: null)
-                                ->setWeight($parcel_total_weight)
-                                ->setHeight(null)
-                                ->setWidth(null)
-                                ->setLength(null)
-                                ->setFreetext($order_note ?: null)
-                                ->setItems($product_items)// Alternatively add each item using $parcel->addItem(Item $item)
-                                ->setTotalPriceExcludingTax($item_total_wo_tax ?: null)
-                                ->setTotalPriceIncludingTax($item_total_incl_tax ?: null)
-                                ->setTotalTaxAmount($item_total_tax ?: null);
-
-                            array_push($parcels, $parcel);
-                        }
-                    }
-                } else {
-                    // Create a parcel containing the items just defined
-                    $parcels[0] = new \Smartsend\Models\Shipment\Parcel();
-                    $parcels[0]->setInternalId($this->getOrderId($this->order) ?: null)
-                        ->setInternalReference($this->order->get_order_number() ?: null)
-                        ->setWeight($weight_total ?: null)
-                        ->setHeight(null)
-                        ->setWidth(null)
-                        ->setLength(null)
-                        ->setFreetext($order_note ?: null)
-                        ->setItems($items)// Alternatively add each item using $parcel->addItem(Item $item)
-                        ->setTotalPriceExcludingTax($order_subtotal_excl ?: null)
-                        ->setTotalPriceIncludingTax($order_subtotal ?: null)
-                        ->setTotalTaxAmount($order_subtotal_tax ?: null);
-                }
-            }
-
-            // Create services
-            $services = new \Smartsend\Models\Shipment\Services();
-            $services->setSmsNotification($receiver->getSms())//Always enable SMS notification
-            ->setEmailNotification($receiver->getEmail()); //Always enable Email notification
-
-            // Determine shipping method and carrier from return settings
-            $shipping_method_carrier = $ss_args['ss_carrier'];
-            $shipping_method_type = $ss_args['ss_type'];
-
-            // Add final parameters to shipment
-            $this->shipment->setInternalId($this->getOrderId($this->order) ?: null)
-                ->setInternalReference($this->order->get_order_number() ?: null)
-                ->setShippingCarrier($shipping_method_carrier ?: null)
-                ->setShippingMethod($shipping_method_type ?: null)
-                ->setShippingDate(date('Y-m-d'))
-                ->setParcels($parcels)// Alternatively add each parcel using $this->shipment->addParcel(Parcel $parcel);
-                ->setServices($services)
-                ->setSubtotalPriceExcludingTax($order_subtotal_excl ?: null)
-                ->setSubtotalPriceIncludingTax($order_subtotal ?: null)
-                ->setTotalPriceExcludingTax($order_total_excl ?: null)
-                ->setTotalPriceIncludingTax($order_total ?: null)
-                ->setShippingPriceExcludingTax($order_shipping_excl ?: null)
-                ->setShippingPriceIncludingTax($order_shipping ?: null)
-                ->setTotalTaxAmount($order_total_tax ?: null)
-                ->setCurrency($order_currency ?: null);
-        }
+if ( ! defined( 'ABSPATH' ) ) {
+	exit; // Exit if accessed directly.
+}
+
+if ( ! class_exists( 'SS_Shipping_Shipment' ) ) :
+
+	/**
+	 * Assembles the Smart Send API shipment model for a WooCommerce order and
+	 * sends it to the API. All WooCommerce data access goes through
+	 * SS_Shipping_Order_Data; this class only builds the API models.
+	 */
+	class SS_Shipping_Shipment {
 
 		/**
-		 * Call Smart Send Shipment API, log response
+		 * The WooCommerce order.
+		 *
+		 * @var WC_Order|null
+		 */
+		protected $order = null;
+
+		/**
+		 * Order data access utility.
+		 *
+		 * @var SS_Shipping_Order_Data|null
+		 */
+		protected $order_data = null;
+
+		/**
+		 * The admin order integration.
+		 *
+		 * @var SS_Shipping_WC_Order|null
+		 */
+		protected $shipping_order = null;
+
+		/**
+		 * The shipment model being assembled.
+		 *
+		 * @var \Smartsend\Models\Shipment|null
+		 */
+		protected $shipment = null;
+
+		/**
+		 * Init and hook in the integration.
+		 *
+		 * @param WC_Order|integer     $order          The order (object or id) to build a shipment for.
+		 * @param SS_Shipping_WC_Order $shipping_order The admin order integration.
+		 */
+		public function __construct( $order, $shipping_order ) {
+			if ( is_numeric( $order ) && $order > 0 ) {
+				$this->order = wc_get_order( $order );
+
+				if ( ! $this->order ) {
+					return;
+				}
+			} elseif ( $order instanceof WC_Order ) {
+				$this->order = $order;
+			} else {
+				return;
+			}
+
+			$this->order_data     = new SS_Shipping_Order_Data( $this->order );
+			$this->shipping_order = $shipping_order;
+
+			// New shipment model.
+			$this->shipment = new \Smartsend\Models\Shipment();
+		}
+
+		/**
+		 * Create single order.
+		 *
+		 * @param boolean $is_return Whether the label is a return label.
+		 *
+		 * @return boolean
+		 */
+		public function make_single_shipment_api_call( $is_return ) {
+			$this->make_single_shipment_api_payload( $is_return );
+			$this->make_single_shipment_api_request();
+
+			if ( SS_SHIPPING_WC()->get_api_handle()->isSuccessful() ) {
+				return true;
+			} else {
+				return false;
+			}
+		}
+
+		/**
+		 * Get API call data.
+		 *
+		 * @return object
+		 */
+		public function get_shipping_data() {
+			return SS_SHIPPING_WC()->get_api_handle()->getData();
+		}
+
+		/**
+		 * Get error message.
+		 *
+		 * @return string
+		 */
+		public function get_error_msg() {
+			return SS_SHIPPING_WC()->get_api_handle()->getErrorString();
+		}
+
+		/**
+		 * Get shipment object.
+		 *
+		 * @return \Smartsend\Models\Shipment
+		 */
+		public function get_shipment() {
+			return $this->shipment;
+		}
+
+		/**
+		 * Create Payload for API request.
+		 *
+		 * @param boolean $is_return Whether the label is a return label.
+		 *
+		 * @return array|void
+		 */
+		protected function make_single_shipment_api_payload( $is_return ) {
+			$order_id = $this->order_data->get_order_id();
+
+			$ss_args = array();
+
+			// Get shipping method.
+			$ss_shipping_method_id = $this->shipping_order->get_smart_send_method_id( $order_id, $is_return );
+
+			if ( $is_return && isset( $ss_shipping_method_id['smart_send_return_method'] ) ) {
+				// If no return method set return error.
+				if ( empty( $ss_shipping_method_id['smart_send_return_method'] ) ) {
+					return array( 'error' => __( 'No return method set', 'smart-send-logistics' ) );
+				} else {
+					$ss_shipping_method_id = $ss_shipping_method_id['smart_send_return_method'];
+				}
+			} else {
+				$ss_args['ss_agent'] = $this->shipping_order->get_ss_shipping_order_agent( $order_id );
+			}
+
+			// Determine shipping method and carrier from return settings.
+			$ss_args['ss_carrier'] = SS_SHIPPING_WC()->get_shipping_method_carrier( $ss_shipping_method_id );
+			$ss_args['ss_type']    = SS_SHIPPING_WC()->get_shipping_method_type( $ss_shipping_method_id );
+			$ss_args['ss_parcels'] = $this->shipping_order->get_ss_shipping_order_parcels( $order_id );
+
+			/*
+			 * Filter the arguments used when creating a shipping label
+			 *
+			 * @param array   $ss_args  contains info about shipping carrier, shipping method, agent and parcels
+			 * @param int     $order_id Order ID
+			 * @param boolean $is_return Whether or not the label is return (true) or normal (false)
+			 */
+			$ss_args = apply_filters( 'smart_send_shipping_label_args', $ss_args, $order_id, $is_return );
+
+			// Add the receiver to the shipment.
+			$receiver = $this->build_receiver();
+			$this->shipment->setReceiver( $receiver );
+
+			// Add the agent (pick-up point) to the shipment, if any.
+			$ss_agent = apply_filters(
+				'smart_send_order_agent',
+				empty( $ss_args['ss_agent'] ) ? null : $ss_args['ss_agent'],
+				$order_id
+			);
+
+			if ( ! empty( $ss_agent ) ) {
+				$this->shipment->setAgent( $this->build_agent( $ss_agent ) );
+			}
+
+			// Item lines and totals.
+			$items_data = $this->order_data->get_items_data();
+
+			$parcels = array();
+			$totals  = array(
+				'subtotal_price_excluding_tax' => null,
+				'subtotal_price_including_tax' => null,
+				'subtotal_tax_amount'          => null,
+				'shipping_price_excluding_tax' => null,
+				'shipping_price_including_tax' => null,
+				'shipping_tax_amount'          => null,
+				'total_price_excluding_tax'    => null,
+				'total_price_including_tax'    => null,
+				'total_tax_amount'             => null,
+				'currency'                     => null,
+			);
+
+			if ( ! empty( $items_data ) ) {
+				$totals     = $this->order_data->get_totals();
+				$order_note = $this->order_data->get_order_note();
+
+				// Build the item models, keyed by product/variation id so a
+				// parcel split can reference them.
+				$items        = array();
+				$item_lookup  = array();
+				$weight_total = 0;
+
+				foreach ( $items_data as $item_row ) {
+					$item_model = $this->build_item( $item_row );
+
+					$items[] = $item_model;
+
+					$item_lookup[ $item_row['id'] ] = array(
+						'row'   => $item_row,
+						'model' => $item_model,
+					);
+
+					if ( $item_row['unit_weight'] ) {
+						$weight_total += ( $item_row['quantity'] * $item_row['unit_weight'] );
+					}
+				}
+
+				if ( ! empty( $ss_args['ss_parcels'] ) ) {
+					if ( is_array( $ss_args['ss_parcels'] ) ) {
+						$parcels = $this->build_split_parcels( $ss_args['ss_parcels'], $item_lookup, $order_note );
+					}
+				} else {
+					// Create a single parcel containing the items just defined.
+					$parcel = new \Smartsend\Models\Shipment\Parcel();
+					$parcel->setInternalId( $this->value_or_null( $order_id ) )
+						->setInternalReference( $this->value_or_null( $this->order_data->get_order_number() ) )
+						->setWeight( $this->value_or_null( $weight_total ) )
+						->setHeight( null )
+						->setWidth( null )
+						->setLength( null )
+						->setFreetext( $this->value_or_null( $order_note ) )
+						->setItems( $items )// Alternatively add each item using $parcel->addItem(Item $item).
+						->setTotalPriceExcludingTax( $this->value_or_null( $totals['subtotal_price_excluding_tax'] ) )
+						->setTotalPriceIncludingTax( $this->value_or_null( $totals['subtotal_price_including_tax'] ) )
+						->setTotalTaxAmount( $this->value_or_null( $totals['subtotal_tax_amount'] ) );
+
+					$parcels[] = $parcel;
+				}
+			}
+
+			/*
+			 * Filter the parcels section of the booking request.
+			 *
+			 * @param \Smartsend\Models\Shipment\Parcel[] $parcels The assembled parcel models.
+			 * @param WC_Order                            $order   The WooCommerce order.
+			 */
+			$parcels = apply_filters( 'smart_send_payload_parcels', $parcels, $this->order );
+
+			// Create services.
+			$services = new \Smartsend\Models\Shipment\Services();
+			$services->setSmsNotification( $receiver->getSms() )// Always enable SMS notification.
+				->setEmailNotification( $receiver->getEmail() ); // Always enable Email notification.
+
+			// Add final parameters to shipment.
+			$this->shipment->setInternalId( $this->value_or_null( $order_id ) )
+				->setInternalReference( $this->value_or_null( $this->order_data->get_order_number() ) )
+				->setShippingCarrier( $this->value_or_null( $ss_args['ss_carrier'] ) )
+				->setShippingMethod( $this->value_or_null( $ss_args['ss_type'] ) )
+				->setShippingDate( gmdate( 'Y-m-d' ) )
+				->setParcels( $parcels )// Alternatively add each parcel using $this->shipment->addParcel(Parcel $parcel).
+				->setServices( $services )
+				->setSubtotalPriceExcludingTax( $this->value_or_null( $totals['subtotal_price_excluding_tax'] ) )
+				->setSubtotalPriceIncludingTax( $this->value_or_null( $totals['subtotal_price_including_tax'] ) )
+				->setTotalPriceExcludingTax( $this->value_or_null( $totals['total_price_excluding_tax'] ) )
+				->setTotalPriceIncludingTax( $this->value_or_null( $totals['total_price_including_tax'] ) )
+				->setShippingPriceExcludingTax( $this->value_or_null( $totals['shipping_price_excluding_tax'] ) )
+				->setShippingPriceIncludingTax( $this->value_or_null( $totals['shipping_price_including_tax'] ) )
+				->setTotalTaxAmount( $this->value_or_null( $totals['total_tax_amount'] ) )
+				->setCurrency( $this->value_or_null( $totals['currency'] ) );
+		}
+
+		/**
+		 * Build the receiver model from the order data.
+		 *
+		 * @return \Smartsend\Models\Shipment\Receiver
+		 */
+		protected function build_receiver() {
+			$receiver_data = $this->order_data->get_receiver_data();
+
+			$receiver = new \Smartsend\Models\Shipment\Receiver();
+			$receiver->setInternalId( $this->order_data->get_order_id() )
+				->setInternalReference( $this->value_or_null( $this->order_data->get_order_number() ) )
+				->setCompany( $this->value_or_null( $receiver_data['company'] ) )
+				->setNameLine1( $this->value_or_null( $receiver_data['name_line1'] ) )
+				->setNameLine2( $this->value_or_null( $receiver_data['name_line2'] ) )
+				->setAddressLine1( $this->value_or_null( $receiver_data['address_line1'] ) )
+				->setAddressLine2( $this->value_or_null( $receiver_data['address_line2'] ) )
+				->setPostalCode( $this->value_or_null( $receiver_data['postal_code'] ) )
+				->setCity( $this->value_or_null( $receiver_data['city'] ) )
+				->setCountry( $this->value_or_null( $receiver_data['country'] ) )
+				->setSms( $this->value_or_null( $receiver_data['phone'] ) )
+				->setEmail( $this->value_or_null( $receiver_data['email'] ) );
+
+			return $receiver;
+		}
+
+		/**
+		 * Build the agent (pick-up point) model from the stored agent object.
+		 *
+		 * @param object $ss_agent The agent object stored on the order.
+		 *
+		 * @return \Smartsend\Models\Shipment\Agent
+		 */
+		protected function build_agent( $ss_agent ) {
+			$agent = new \Smartsend\Models\Shipment\Agent();
+			$agent->setInternalId( isset( $ss_agent->id ) ? $ss_agent->id : $ss_agent->agent_no )
+				->setInternalReference( isset( $ss_agent->id ) ? $ss_agent->id : $ss_agent->agent_no )
+				->setAgentNo( $this->value_or_null( $ss_agent->agent_no ) )
+				->setCompany( $this->value_or_null( $ss_agent->company ) )
+				->setAddressLine1( $this->value_or_null( $ss_agent->address_line1 ) )
+				->setAddressLine2( $this->value_or_null( $ss_agent->address_line2 ) )
+				->setPostalCode( $this->value_or_null( $ss_agent->postal_code ) )
+				->setCity( $this->value_or_null( $ss_agent->city ) )
+				->setCountry( $this->value_or_null( $ss_agent->country ) );
+
+			return $agent;
+		}
+
+		/**
+		 * Build an item model from an item data row.
+		 *
+		 * @param array $item_row Item row from SS_Shipping_Order_Data::get_items_data().
+		 *
+		 * @return \Smartsend\Models\Shipment\Item
+		 */
+		protected function build_item( $item_row ) {
+			$item = new \Smartsend\Models\Shipment\Item();
+			$item->setInternalId( $this->value_or_null( $item_row['id'] ) )
+				->setInternalReference( $this->value_or_null( $item_row['id'] ) )
+				->setSku( $this->value_or_null( $item_row['sku'] ) )
+				->setName( $this->value_or_null( $item_row['name'] ) )
+				->setDescription( $this->value_or_null( $item_row['description'] ) )// The product description can be used, but is often too long (255).
+				->setHsCode( $this->value_or_null( $item_row['hs_code'] ) )
+				->setCountryOfOrigin( $this->value_or_null( $item_row['country_of_origin'] ) )
+				->setImageUrl( null )// The product image url can be used, but sometimes includes spaces (bug) which causes validation error.
+				->setUnitWeight( $item_row['unit_weight'] > 0 ? $item_row['unit_weight'] : null )
+				->setUnitPriceExcludingTax( $this->value_or_null( $item_row['unit_price_excluding_tax'] ) )
+				->setUnitPriceIncludingTax( $this->value_or_null( $item_row['unit_price_including_tax'] ) )
+				->setQuantity( $this->value_or_null( $item_row['quantity'] ) )
+				->setTotalPriceExcludingTax( $this->value_or_null( $item_row['total_price_excluding_tax'] ) )
+				->setTotalPriceIncludingTax( $this->value_or_null( $item_row['total_price_including_tax'] ) )
+				->setTotalTaxAmount( $this->value_or_null( $item_row['total_tax_amount'] ) );
+
+			return $item;
+		}
+
+		/**
+		 * Build one parcel per box from the parcel-split meta stored on the order.
+		 *
+		 * @param array       $ss_parcels  Parcel split meta rows (id, name, value).
+		 * @param array       $item_lookup Item rows and models keyed by product/variation id.
+		 * @param string|null $order_note  Freetext for the parcels.
+		 *
+		 * @return \Smartsend\Models\Shipment\Parcel[]
+		 */
+		protected function build_split_parcels( $ss_parcels, $item_lookup, $order_note ) {
+			$parcels = array();
+
+			$boxes = array();
+			foreach ( $ss_parcels as $parcel_meta ) {
+				$boxes[ $parcel_meta['value'] ][] = array(
+					'id'   => $parcel_meta['id'],
+					'name' => $parcel_meta['name'],
+				);
+			}
+
+			foreach ( $boxes as $box_items ) {
+				$item_total_wo_tax   = 0;
+				$item_total_tax      = 0;
+				$item_total_incl_tax = 0;
+				$item_weight_total   = 0;
+				$product_items       = array();
+
+				foreach ( $box_items as $box_item ) {
+					$item_row = $item_lookup[ $box_item['id'] ]['row'];
+
+					$item_total_wo_tax   += floatval( $item_row['unit_price_excluding_tax'] );
+					$item_total_incl_tax += floatval( $item_row['unit_price_including_tax'] );
+					$item_weight_total   += floatval( $item_row['unit_weight'] );
+
+					// Compute for the total tax per individual.
+					$item_total_tax += $item_total_incl_tax - $item_total_wo_tax;
+
+					$product_items[] = $item_lookup[ $box_item['id'] ]['model'];
+				}
+
+				/*
+				 * Filter the weight of a parcel.
+				 *
+				 * @param float|null $parcel_weight Total weight of the items in the parcel.
+				 * @param int        $order_id      Order ID.
+				 */
+				$parcel_total_weight = apply_filters(
+					'smart_send_parcel_weight',
+					$this->value_or_null( $item_weight_total ),
+					$this->order_data->get_order_id()
+				);
+
+				$parcel = new \Smartsend\Models\Shipment\Parcel();
+				$parcel->setInternalId( $this->value_or_null( $this->order_data->get_order_id() ) )
+					->setInternalReference( $this->value_or_null( $this->order_data->get_order_number() ) )
+					->setWeight( $parcel_total_weight )
+					->setHeight( null )
+					->setWidth( null )
+					->setLength( null )
+					->setFreetext( $this->value_or_null( $order_note ) )
+					->setItems( $product_items )// Alternatively add each item using $parcel->addItem(Item $item).
+					->setTotalPriceExcludingTax( $this->value_or_null( $item_total_wo_tax ) )
+					->setTotalPriceIncludingTax( $this->value_or_null( $item_total_incl_tax ) )
+					->setTotalTaxAmount( $this->value_or_null( $item_total_tax ) );
+
+				$parcels[] = $parcel;
+			}
+
+			return $parcels;
+		}
+
+		/**
+		 * Call Smart Send Shipment API, log response.
 		 *
 		 * @return void
 		 */
@@ -491,21 +427,21 @@ if (!class_exists('SS_Shipping_Shipment')) :
 			SS_SHIPPING_WC()->get_api_handle()->createShipmentAndLabels( $this->shipment );
 		}
 
-        /**
-         * Get the order id
-         *
-         * @param WC_Order
-         * @return string
-         */
-        protected function getOrderId($order)
-        {
-            // WC 3.0 code!
-            if (defined('WOOCOMMERCE_VERSION') && version_compare(WOOCOMMERCE_VERSION, '3.0', '>=')) {
-                return $order->get_id();
-            } else {
-                return $order->id;
-            }
-        }
-    }
+		/**
+		 * Return the value when truthy, null otherwise (the API models expect
+		 * null instead of empty/zero values).
+		 *
+		 * @param mixed $value The value to check.
+		 *
+		 * @return mixed|null
+		 */
+		protected function value_or_null( $value ) {
+			if ( $value ) {
+				return $value;
+			}
+
+			return null;
+		}
+	}
 
 endif;

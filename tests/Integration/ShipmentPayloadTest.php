@@ -154,16 +154,12 @@ it('books a simple domestic agent order with the full expected payload', functio
                         'total_price_including_tax' => 200,
                     ]),
                 ],
-                // v8 oddity: with zero tax, the parcel "excluding tax" total
-                // includes shipping (order_total - subtotal_tax) while the
-                // "including tax" total does not.
-                'total_price_excluding_tax' => 239,
+                'total_price_excluding_tax' => 200,
                 'total_price_including_tax' => 200,
                 'total_tax_amount'          => null,
             ],
         ],
-        // v8 oddity: same asymmetry on the shipment-level subtotal.
-        'subtotal_price_excluding_tax' => 239,
+        'subtotal_price_excluding_tax' => 200,
         'subtotal_price_including_tax' => 200,
         'shipping_price_excluding_tax' => 39,
         'shipping_price_including_tax' => 39,
@@ -205,12 +201,13 @@ it('prices item lines pre-discount when a percentage coupon is applied', functio
                         'total_price_including_tax' => 200,
                     ]),
                 ],
-                'total_price_excluding_tax' => 219,
+                // The coupon discount is reflected in the parcel totals.
+                'total_price_excluding_tax' => 180,
                 'total_price_including_tax' => 180,
                 'total_tax_amount'          => null,
             ],
         ],
-        'subtotal_price_excluding_tax' => 219,
+        'subtotal_price_excluding_tax' => 180,
         'subtotal_price_including_tax' => 180,
         'shipping_price_excluding_tax' => 39,
         'shipping_price_including_tax' => 39,
@@ -245,12 +242,12 @@ it('folds an order fee into the parcel totals but not into any item line', funct
                 'items'              => [expected_item($product)],
                 // Fee is part of the order subtotal, so the parcel totals
                 // exceed the sum of the item lines.
-                'total_price_excluding_tax' => 164,
+                'total_price_excluding_tax' => 125,
                 'total_price_including_tax' => 125,
                 'total_tax_amount'          => null,
             ],
         ],
-        'subtotal_price_excluding_tax' => 164,
+        'subtotal_price_excluding_tax' => 125,
         'subtotal_price_including_tax' => 125,
         'shipping_price_excluding_tax' => 39,
         'shipping_price_including_tax' => 39,
@@ -291,18 +288,16 @@ it('books a taxed order with the v8 tax semantics', function () {
                         'total_tax_amount'          => 25,
                     ]),
                 ],
-                'total_price_excluding_tax' => 114,
-                'total_price_including_tax' => 134.75,
+                'total_price_excluding_tax' => 100,
+                'total_price_including_tax' => 125,
                 'total_tax_amount'          => 25,
             ],
         ],
-        // v8 oddity: WC_Order::get_shipping_total() is already excluding
-        // tax, but the plugin treats it as including tax; the resulting
-        // "excluding tax" shipping price subtracts the shipping tax twice.
-        'subtotal_price_excluding_tax' => 114,
-        'subtotal_price_including_tax' => 134.75,
-        'shipping_price_excluding_tax' => 29.25,
-        'shipping_price_including_tax' => 39,
+        // Totals reconcile: subtotal + shipping = total on both bases.
+        'subtotal_price_excluding_tax' => 100,
+        'subtotal_price_including_tax' => 125,
+        'shipping_price_excluding_tax' => 39,
+        'shipping_price_including_tax' => 48.75,
         'total_price_excluding_tax'    => 139,
         'total_price_including_tax'    => 173.75,
         'total_tax_amount'             => 34.75,
@@ -357,12 +352,12 @@ it('includes customs data on the item lines for an international order', functio
                         'country_of_origin' => 'DK',
                     ]),
                 ],
-                'total_price_excluding_tax' => 250,
+                'total_price_excluding_tax' => 100,
                 'total_price_including_tax' => 100,
                 'total_tax_amount'          => null,
             ],
         ],
-        'subtotal_price_excluding_tax' => 250,
+        'subtotal_price_excluding_tax' => 100,
         'subtotal_price_including_tax' => 100,
         'shipping_price_excluding_tax' => 150,
         'shipping_price_including_tax' => 150,
@@ -457,6 +452,33 @@ it('uses the variation id, sku and weight for variable products', function () {
     ]));
 });
 
+it('reads customs meta from the variation, falling back to the parent product', function () {
+    [$parent, $variation] = create_variable_product([
+        'name'   => 'Variable Customs Product',
+        'price'  => 100,
+        'weight' => 1,
+    ]);
+    $parent->update_meta_data('_ss_hs_code', '61091000');
+    $parent->update_meta_data('_ss_customs_desc', 'Cotton t-shirt');
+    $parent->update_meta_data('_ss_country_of_origin', 'DK');
+    $parent->save();
+
+    // The variation overrides only the HS code.
+    $variation->update_meta_data('_ss_hs_code', '62052000');
+    $variation->save();
+
+    $order = create_order([
+        'products'        => [$variation],
+        'shipping_method' => 'postnord_agent',
+    ]);
+
+    $payload = capture_shipment_payload($order);
+
+    expect($payload['parcels'][0]['items'][0]['hs_code'])->toBe('62052000')
+        ->and($payload['parcels'][0]['items'][0]['description'])->toBe('Cotton t-shirt')
+        ->and($payload['parcels'][0]['items'][0]['country_of_origin'])->toBe('DK');
+});
+
 it('sends a null parcel weight when products have no weight', function () {
     $product = create_simple_product(['name' => 'Weightless Product', 'price' => 50, 'weight' => null]);
     $order   = create_order([
@@ -512,6 +534,143 @@ it('includes the customer note as parcel freetext when enabled in settings', fun
     $payload = capture_shipment_payload($order);
 
     expect($payload['parcels'][0]['freetext'])->toBe('Please leave at the back door');
+});
+
+it('reconciles totals with the order total when a gift card partially covers the items', function () {
+    $product = create_simple_product(['name' => 'Partially Gifted Product', 'price' => 100, 'weight' => 1]);
+    $order   = create_order([
+        'products'        => [$product],
+        'fees'            => [['Gift card', -50]],
+        'shipping_method' => 'postnord_homedelivery',
+        'shipping_total'  => '39',
+    ]);
+
+    $payload = capture_shipment_payload($order);
+
+    // total = 100 - 50 + 39 = 89; subtotal + shipping = total on both bases.
+    expect($payload['parcels'][0]['total_price_excluding_tax'])->toEqual(50)
+        ->and($payload['parcels'][0]['total_price_including_tax'])->toEqual(50)
+        ->and($payload['subtotal_price_excluding_tax'])->toEqual(50)
+        ->and($payload['subtotal_price_including_tax'])->toEqual(50)
+        ->and($payload['shipping_price_excluding_tax'])->toEqual(39)
+        ->and($payload['shipping_price_including_tax'])->toEqual(39)
+        ->and($payload['total_price_excluding_tax'])->toEqual(89)
+        ->and($payload['total_price_including_tax'])->toEqual(89);
+});
+
+it('clamps negative values to zero when a gift card exceeds the item value', function () {
+    $product = create_simple_product(['name' => 'Gifted Product', 'price' => 100, 'weight' => 1]);
+    $order   = create_order([
+        'products'        => [$product],
+        'fees'            => [['Gift card', -120]],
+        'shipping_method' => 'postnord_homedelivery',
+        'shipping_total'  => '39',
+    ]);
+
+    $payload = capture_shipment_payload($order);
+
+    // total = 100 - 120 + 39 = 19. The non-shipping subtotal would be
+    // 19 - 39 = -20 (the #54 failure mode); it is clamped to zero and a
+    // zero amount is sent as null. No negative value appears anywhere.
+    expect($payload['parcels'][0]['total_price_excluding_tax'])->toBeNull()
+        ->and($payload['parcels'][0]['total_price_including_tax'])->toBeNull()
+        ->and($payload['parcels'][0]['items'][0]['total_price_excluding_tax'])->toEqual(100)
+        ->and($payload['subtotal_price_excluding_tax'])->toBeNull()
+        ->and($payload['subtotal_price_including_tax'])->toBeNull()
+        ->and($payload['shipping_price_excluding_tax'])->toEqual(39)
+        ->and($payload['shipping_price_including_tax'])->toEqual(39)
+        ->and($payload['total_price_excluding_tax'])->toEqual(19)
+        ->and($payload['total_price_including_tax'])->toEqual(19);
+});
+
+it('normalizes the receiver phone by trimming surrounding whitespace', function () {
+    $product = create_simple_product(['price' => 100, 'weight' => 1]);
+    $order   = create_order([
+        'products'        => [$product],
+        'billing_address' => ['phone' => '  +4512345678  '],
+        'shipping_method' => 'postnord_homedelivery',
+    ]);
+
+    $payload = capture_shipment_payload($order);
+
+    expect($payload['receiver']['sms'])->toBe('+4512345678')
+        ->and($payload['services']['sms_notification'])->toBe('+4512345678');
+});
+
+it('lets the smart_send_receiver_phone filter adjust the receiver phone', function () {
+    $product = create_simple_product(['price' => 100, 'weight' => 1]);
+    $order   = create_order([
+        'products'        => [$product],
+        'shipping_method' => 'postnord_homedelivery',
+    ]);
+
+    $filter = function ($phone, $filtered_order) use ($order) {
+        expect($phone)->toBe('+4512345678')
+            ->and($filtered_order)->toBeInstanceOf(WC_Order::class)
+            ->and($filtered_order->get_id())->toBe($order->get_id());
+
+        return '+4587654321';
+    };
+    add_filter('smart_send_receiver_phone', $filter, 10, 2);
+    remember_cleanup_callback(function () use ($filter): void {
+        remove_filter('smart_send_receiver_phone', $filter, 10);
+    });
+
+    $payload = capture_shipment_payload($order);
+
+    expect($payload['receiver']['sms'])->toBe('+4587654321')
+        ->and($payload['services']['sms_notification'])->toBe('+4587654321');
+});
+
+it('lets the per-section payload filters adjust receiver, items, parcels and totals', function () {
+    $product = create_simple_product(['name' => 'Filtered Product', 'price' => 100, 'weight' => 1]);
+    $order   = create_order([
+        'products'        => [$product],
+        'shipping_method' => 'postnord_homedelivery',
+        'shipping_total'  => '39',
+    ]);
+
+    $receiver_filter = function (array $receiver_data, WC_Order $filtered_order) {
+        $receiver_data['company'] = 'Filtered Company';
+
+        return $receiver_data;
+    };
+    $items_filter = function (array $items, WC_Order $filtered_order) {
+        $items[0]['name'] = 'Filtered Item Name';
+
+        return $items;
+    };
+    $totals_filter = function (array $totals, WC_Order $filtered_order) {
+        $totals['total_price_including_tax'] = 999;
+
+        return $totals;
+    };
+    $parcels_filter = function (array $parcels, WC_Order $filtered_order) {
+        foreach ($parcels as $parcel) {
+            expect($parcel)->toBeInstanceOf(\Smartsend\Models\Shipment\Parcel::class);
+            $parcel->setWeight(42);
+        }
+
+        return $parcels;
+    };
+
+    add_filter('smart_send_payload_receiver', $receiver_filter, 10, 2);
+    add_filter('smart_send_payload_items', $items_filter, 10, 2);
+    add_filter('smart_send_payload_totals', $totals_filter, 10, 2);
+    add_filter('smart_send_payload_parcels', $parcels_filter, 10, 2);
+    remember_cleanup_callback(function () use ($receiver_filter, $items_filter, $totals_filter, $parcels_filter): void {
+        remove_filter('smart_send_payload_receiver', $receiver_filter, 10);
+        remove_filter('smart_send_payload_items', $items_filter, 10);
+        remove_filter('smart_send_payload_totals', $totals_filter, 10);
+        remove_filter('smart_send_payload_parcels', $parcels_filter, 10);
+    });
+
+    $payload = capture_shipment_payload($order);
+
+    expect($payload['receiver']['company'])->toBe('Filtered Company')
+        ->and($payload['parcels'][0]['items'][0]['name'])->toBe('Filtered Item Name')
+        ->and($payload['parcels'][0]['weight'])->toEqual(42)
+        ->and($payload['total_price_including_tax'])->toEqual(999);
 });
 
 it('lets the smart_send_shipping_label_args filter override carrier and method', function () {
