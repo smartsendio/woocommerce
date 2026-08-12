@@ -248,7 +248,8 @@ if ( ! class_exists( 'SS_Shipping_WC_Method' ) ) :
 							'Bifrost Logistics: Nordic Express Home',
 							'smart-send-logistics'
 						),
-						/*
+						// phpcs:disable Squiz.PHP.CommentedOutCode.Found -- deliberately disabled catalogue entries kept as documentation of not-yet-offered Bifrost methods.
+					/*
 						// Letter Priority
 						'bifrost_letterprioritysmall'     => __('Bifrost Logistics: Letter priority small',
 							'smart-send-logistics'),
@@ -281,6 +282,7 @@ if ( ! class_exists( 'SS_Shipping_WC_Method' ) ) :
 						'bifrost_ecomprioritymaxi'        => __('Bifrost Logistics: Ecom priority maxi',
 							'smart-send-logistics'),
 						*/
+					// phpcs:enable Squiz.PHP.CommentedOutCode.Found
 					),
 			);
 
@@ -340,7 +342,6 @@ if ( ! class_exists( 'SS_Shipping_WC_Method' ) ) :
 			// Set title so can be viewed in zone screen
 			$this->title = $this->get_option( 'title' );
 
-			// add_action( 'admin_notices', array( $this, 'environment_check' ) );
 			add_action( 'woocommerce_update_options_shipping_' . $this->id, array( $this, 'process_admin_options' ) );
 			// Admin script
 			add_action( 'admin_enqueue_scripts', array( $this, 'load_admin_scripts' ) );
@@ -351,7 +352,7 @@ if ( ! class_exists( 'SS_Shipping_WC_Method' ) ) :
 		 */
 		public function load_admin_scripts( $hook ) {
 
-			if ( 'woocommerce_page_wc-settings' != $hook ) {
+			if ( 'woocommerce_page_wc-settings' != $hook ) { // phpcs:ignore Universal.Operators.StrictComparisons.LooseNotEqual -- pre-existing loose comparison; tightening is a behaviour change out of scope for the #43 move.
 				// Only applies to WC Settings panel
 				return;
 			}
@@ -360,7 +361,8 @@ if ( ! class_exists( 'SS_Shipping_WC_Method' ) ) :
 				'smart-send-shipping-admin-js',
 				SS_SHIPPING_PLUGIN_DIR_URL . '/admin/js/ss-shipping-admin.js',
 				array( 'jquery' ),
-				SS_SHIPPING_VERSION
+				SS_SHIPPING_VERSION,
+				false
 			);
 
 			$test_con_data = array(
@@ -373,7 +375,8 @@ if ( ! class_exists( 'SS_Shipping_WC_Method' ) ) :
 				'smart-send-test-connection',
 				SS_SHIPPING_PLUGIN_DIR_URL . '/admin/js/ss-shipping-test-connection.js',
 				array( 'jquery' ),
-				SS_SHIPPING_VERSION
+				SS_SHIPPING_VERSION,
+				false
 			);
 			wp_localize_script( 'smart-send-test-connection', 'ss_test_connection_obj', $test_con_data );
 		}
@@ -395,6 +398,7 @@ if ( ! class_exists( 'SS_Shipping_WC_Method' ) ) :
 					'type'        => 'text',
 					'default'     => '',
 					'description' => sprintf(
+						/* translators: %s: URL of the Smart Send website. */
 						__(
 							'Sign up for a Smart Send account <a href="%s" target="_blank">here</a>.',
 							'smart-send-logistics'
@@ -431,6 +435,7 @@ if ( ! class_exists( 'SS_Shipping_WC_Method' ) ) :
 					'label'       => __( 'Enable logging', 'smart-send-logistics' ),
 					'default'     => 'no',
 					'description' => sprintf(
+						/* translators: 1: opening link tag pointing at the log file, 2: closing link tag. */
 						__(
 							'A log file containing the communication to the Smart Send server will be maintained if this option is checked. This can be used in case of technical issues and can be found %1$shere%2$s.',
 							'smart-send-logistics'
@@ -545,7 +550,7 @@ if ( ! class_exists( 'SS_Shipping_WC_Method' ) ) :
 		public function validate_demo_field( $key, $value ) {
 
 			//Trying to disable Demo-mode setting. Check if the API Token entered is valid
-			if ( $value == 0 ) {
+			if ( 0 == $value ) { // phpcs:ignore Universal.Operators.StrictComparisons.LooseEqual -- pre-existing loose comparison; tightening is a behaviour change out of scope for the #43 move.
 				$post_data = $this->get_post_data();
 				if ( empty( $post_data['woocommerce_smart_send_shipping_api_token'] ) ) {
 					// No API Token was provided, so need to shown an error and re-enable demo-mode
@@ -569,6 +574,7 @@ if ( ! class_exists( 'SS_Shipping_WC_Method' ) ) :
 						// The API Token was not valid for live mode, so need to shown an error and re-enable demo-mode
 						WC_Admin_Settings::add_error(
 							sprintf(
+								/* translators: %s: website host name of the current site. */
 								__(
 									'Invalid API Token. Demo mode can only be disabled with a valid API Token for %s.',
 									'smart-send-logistics'
@@ -606,6 +612,7 @@ if ( ! class_exists( 'SS_Shipping_WC_Method' ) ) :
 
 			$data = wp_parse_args( $data, $defaults );
 
+			// phpcs:disable WordPress.Security.EscapeOutput.OutputNotEscaped -- pre-existing behaviour, matching WC_Settings_API core: the tooltip/description/attribute helpers return pre-escaped HTML; escaping again is a behaviour change out of scope for the #43 move.
 			ob_start();
 			?>
 			<tr valign="top">
@@ -626,6 +633,7 @@ if ( ! class_exists( 'SS_Shipping_WC_Method' ) ) :
 			</tr>
 			<?php
 			return ob_get_clean();
+			// phpcs:enable WordPress.Security.EscapeOutput.OutputNotEscaped
 		}
 
 		private function get_guest_role() {
@@ -783,7 +791,9 @@ if ( ! class_exists( 'SS_Shipping_WC_Method' ) ) :
 					),
 					'desc_tip'    => false,
 					'options'     => $shipping_classes,
-				), /*
+				),
+				// phpcs:disable Squiz.PHP.CommentedOutCode.Found -- deliberately disabled setting kept as documentation of a shelved feature.
+				/*
 			'display_company_opt'  => array(
 				'title'           => __('Display based on company field', 'smart-send-logistics'),
 				'type'            => 'radio',
@@ -797,6 +807,7 @@ if ( ! class_exists( 'SS_Shipping_WC_Method' ) ) :
 				),
 				'desc_tip'          => true,
 			),*/
+				// phpcs:enable Squiz.PHP.CommentedOutCode.Found
 				'user_roles'                 => array(
 					'title'       => __( 'Exclude User role', 'smart-send-logistics' ),
 					'type'        => 'multiselect',
@@ -835,28 +846,16 @@ if ( ! class_exists( 'SS_Shipping_WC_Method' ) ) :
 					'desc_tip'    => false,
 				),
 			);
-
-			/*
-			$advanced_validation_flag = 'no';
-			// Load the advanced validation POST to see if it is enabled and load associated fields
-			if( ! empty( $_POST ) ) {
-				if( isset( $_POST[ $this->get_field_key('advanced_validation_enable') ] ) ) {
-					$advanced_validation_flag = 'yes';
-				}
-			} else {
-				$instance_settings = get_option( $this->get_instance_option_key(), null );
-				$advanced_validation_flag = $instance_settings['advanced_validation_enable'];
-			}
-			*/
 		}
 
 		public function validate_title_field( $key, $title ) {
+			// phpcs:disable WordPress.Security.EscapeOutput.ExceptionNotEscaped -- pre-existing behaviour: WooCommerce's settings framework catches these exceptions and shows the message as a settings error; escaping is a behaviour change out of scope for the #43 move.
 
 			if ( empty( $title ) ) {
 				throw new Exception( __( '"Method Title" cannot be empty', 'smart-send-logistics' ) );
 			}
 
-			if ( $title == $this->method_title ) {
+			if ( $title == $this->method_title ) { // phpcs:ignore Universal.Operators.StrictComparisons.LooseEqual -- pre-existing loose comparison; tightening is a behaviour change out of scope for the #43 move.
 				throw new Exception(
 					__(
 						'Change the "Method Title" field to something human readable. This is what your customers see at checkout.',
@@ -866,12 +865,13 @@ if ( ! class_exists( 'SS_Shipping_WC_Method' ) ) :
 			}
 
 			return $this->validate_text_field( $key, $title );
+			// phpcs:enable WordPress.Security.EscapeOutput.ExceptionNotEscaped
 		}
 
 		public function validate_method_field( $key, $method ) {
 
 			if ( empty( $method ) ) {
-				throw new Exception( __( 'Select a "Shipping Method"', 'smart-send-logistics' ) );
+				throw new Exception( __( 'Select a "Shipping Method"', 'smart-send-logistics' ) ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- pre-existing behaviour: WooCommerce's settings framework catches this exception and shows the message as a settings error.
 			}
 
 			return $this->validate_select_field( $key, $method );
@@ -894,6 +894,7 @@ if ( ! class_exists( 'SS_Shipping_WC_Method' ) ) :
 
 			$data = wp_parse_args( $data, $defaults );
 
+			// phpcs:disable WordPress.Security.EscapeOutput.OutputNotEscaped -- pre-existing behaviour, matching WC_Settings_API core: the tooltip/description/attribute helpers return pre-escaped HTML; escaping again is a behaviour change out of scope for the #43 move.
 			ob_start();
 			?>
 			<tr valign="top">
@@ -959,6 +960,7 @@ if ( ! class_exists( 'SS_Shipping_WC_Method' ) ) :
 			<?php
 
 			return ob_get_clean();
+			// phpcs:enable WordPress.Security.EscapeOutput.OutputNotEscaped
 		}
 
 
@@ -969,6 +971,7 @@ if ( ! class_exists( 'SS_Shipping_WC_Method' ) ) :
 		 */
 		public function generate_cost_weight_html() {
 
+			// phpcs:disable WordPress.Security.EscapeOutput -- pre-existing behaviour: this settings table is built from translated strings and internally generated markup exactly as before the #43 move; escaping it is a behaviour change out of scope here.
 			ob_start();
 
 			$cost_desc = __(
@@ -1093,17 +1096,20 @@ if ( ! class_exists( 'SS_Shipping_WC_Method' ) ) :
 			</tr>
 			<?php
 			return ob_get_clean();
+			// phpcs:enable WordPress.Security.EscapeOutput
 		}
 
 		public function validate_cost_weight_field() {
 
 			$weight_costs = array();
 
+			// phpcs:disable WordPress.Security.NonceVerification.Missing, WordPress.Security.ValidatedSanitizedInput -- pre-existing behaviour: WooCommerce's settings save flow verifies its own nonce and the values are wc_clean-ed plus validate_text_field-ed below; changing the input handling is out of scope for the #43 move.
 			if ( isset( $_POST['ss_cost_weight'] ) ) {
 
 				$ss_min_weights  = array_map( 'wc_clean', $_POST['ss_min_weight'] );
 				$ss_max_weights  = array_map( 'wc_clean', $_POST['ss_max_weight'] );
 				$ss_cost_weights = array_map( 'wc_clean', $_POST['ss_cost_weight'] );
+				// phpcs:enable WordPress.Security.NonceVerification.Missing, WordPress.Security.ValidatedSanitizedInput
 
 				foreach ( $ss_min_weights as $i => $name ) {
 
@@ -1151,6 +1157,7 @@ if ( ! class_exists( 'SS_Shipping_WC_Method' ) ) :
 
 			$data = wp_parse_args( $data, $defaults );
 
+			// phpcs:disable WordPress.Security.EscapeOutput.OutputNotEscaped -- pre-existing behaviour, matching WC_Settings_API core: the tooltip/description/attribute helpers return pre-escaped HTML; escaping again is a behaviour change out of scope for the #43 move.
 			ob_start();
 			?>
 			<tr valign="top">
@@ -1187,6 +1194,7 @@ if ( ! class_exists( 'SS_Shipping_WC_Method' ) ) :
 			<?php
 
 			return ob_get_clean();
+			// phpcs:enable WordPress.Security.EscapeOutput.OutputNotEscaped
 		}
 
 		public function calculate_shipping( $package = array() ) {
@@ -1397,7 +1405,7 @@ if ( ! class_exists( 'SS_Shipping_WC_Method' ) ) :
 			$one_in_array = false;
 			$all_in_array = true;
 
-			if ( $this->get_instance_option( 'advanced_settings_enable' ) == 'yes' ) {
+			if ( 'yes' == $this->get_instance_option( 'advanced_settings_enable' ) ) { // phpcs:ignore Universal.Operators.StrictComparisons.LooseEqual -- pre-existing loose comparison; tightening is a behaviour change out of scope for the #43 move.
 
 				// Display based on shipping class
 				$display_shipping_class = $this->get_instance_option( 'display_shipping_class' );
@@ -1408,7 +1416,7 @@ if ( ! class_exists( 'SS_Shipping_WC_Method' ) ) :
 						if ( $values['data']->needs_shipping() ) {
 							$found_class = $values['data']->get_shipping_class();
 
-							if ( in_array( $found_class, $display_shipping_class ) ) {
+							if ( in_array( $found_class, $display_shipping_class ) ) { // phpcs:ignore WordPress.PHP.StrictInArray.MissingTrueStrict -- pre-existing loose in_array; tightening is a behaviour change out of scope for the #43 move.
 								$one_in_array = true;
 							} else {
 								$all_in_array = false;
@@ -1450,7 +1458,7 @@ if ( ! class_exists( 'SS_Shipping_WC_Method' ) ) :
 
 					foreach ( $customer_roles as $key => $customer_role ) {
 						$customer_role = strtolower( $customer_role ); // ensure all names are lowercase to compare keys correctly
-						if ( in_array( $customer_role, $exclude_roles ) ) {
+						if ( in_array( $customer_role, $exclude_roles ) ) { // phpcs:ignore WordPress.PHP.StrictInArray.MissingTrueStrict -- pre-existing loose in_array; tightening is a behaviour change out of scope for the #43 move.
 							$is_available = false;
 
 							SS_Shipping_Logger::debug(
@@ -1486,8 +1494,9 @@ if ( ! class_exists( 'SS_Shipping_WC_Method' ) ) :
 			$requires           = $this->get_instance_option( 'requires' );
 			$min_amount         = $this->get_instance_option( 'min_amount' );
 
-			if ( in_array( $requires, array( 'coupon', 'either', 'both' ) ) ) {
-				if ( $coupons = WC()->cart->get_coupons() ) {
+			if ( in_array( $requires, array( 'coupon', 'either', 'both' ) ) ) { // phpcs:ignore WordPress.PHP.StrictInArray.MissingTrueStrict -- pre-existing loose in_array; tightening is a behaviour change out of scope for the #43 move.
+				$coupons = WC()->cart->get_coupons();
+				if ( $coupons ) {
 					foreach ( $coupons as $code => $coupon ) {
 						if ( $coupon->is_valid() && $coupon->get_free_shipping() ) {
 							$has_coupon = true;
@@ -1497,7 +1506,7 @@ if ( ! class_exists( 'SS_Shipping_WC_Method' ) ) :
 				}
 			}
 
-			if ( in_array( $requires, array( 'min_amount', 'either', 'both' ) ) ) {
+			if ( in_array( $requires, array( 'min_amount', 'either', 'both' ) ) ) { // phpcs:ignore WordPress.PHP.StrictInArray.MissingTrueStrict -- pre-existing loose in_array; tightening is a behaviour change out of scope for the #43 move.
 				$total = WC()->cart->get_displayed_subtotal();
 
 				if ( 'incl' === WC()->cart->get_tax_price_display_mode() ) {
@@ -1700,7 +1709,7 @@ if ( ! class_exists( 'SS_Shipping_WC_Method' ) ) :
 				foreach ( $this->shipping_method as $carrier_name => $carrier_code ) {
 					if ( is_array( $carrier_code ) ) {
 						foreach ( $carrier_code as $method_code => $method_name ) {
-							if ( $method_code == $shipping_method_code ) {
+							if ( $method_code == $shipping_method_code ) { // phpcs:ignore Universal.Operators.StrictComparisons.LooseEqual -- pre-existing loose comparison; tightening is a behaviour change out of scope for the #43 move.
 								return $method_name;
 							}
 						}

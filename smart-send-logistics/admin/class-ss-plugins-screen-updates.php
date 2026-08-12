@@ -48,7 +48,7 @@ class SS_Plugins_Screen_Updates {
 		$this->new_version    = $response->new_version;
 		$this->upgrade_notice = $this->get_upgrade_notice( $response->new_version );
 
-		echo apply_filters( 'ss_in_plugin_update_message', $this->upgrade_notice ? '</p>' . wp_kses_post( $this->upgrade_notice ) . '<p class="dummy">' : '' ); // phpcs:ignore WordPress.XSS.EscapeOutput.OutputNotEscaped
+		echo apply_filters( 'ss_in_plugin_update_message', $this->upgrade_notice ? '</p>' . wp_kses_post( $this->upgrade_notice ) . '<p class="dummy">' : '' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- notice HTML is wp_kses_post-sanitised above; the surrounding markup is static.
 	}
 
 	/**
@@ -91,7 +91,7 @@ class SS_Plugins_Screen_Updates {
 		// Remove any duplicates to not display the message twice
 		$check_for_notices = array_unique( $check_for_notices );
 
-		$notice_regexp  = '~==\s*Upgrade Notice\s*==\s*=\s*(.*)\s*=(.*)(=\s*' . preg_quote( $new_version ) . '\s*=|$)~Uis';
+		$notice_regexp  = '~==\s*Upgrade Notice\s*==\s*=\s*(.*)\s*=(.*)(=\s*' . preg_quote( $new_version, '~' ) . '\s*=|$)~Uis';
 		$upgrade_notice = '';
 
 		foreach ( $check_for_notices as $check_version ) {

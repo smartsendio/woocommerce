@@ -241,22 +241,19 @@ if ( ! class_exists( 'SS_Shipping_WC' ) ) :
             load_plugin_textdomain('smart-send-logistics', false, dirname(plugin_basename(__FILE__)) . '/lang/');
         }
 
-        /**
-         * Load Admin CSS
-         */
-        public function ss_shipping_theme_enqueue_admin_styles()
-        {
-            wp_enqueue_style('ss-shipping-admin-css', SS_SHIPPING_PLUGIN_DIR_URL . '/admin/css/ss-shipping-admin.css');
-        }
+		/**
+		 * Load Admin CSS
+		 */
+		public function ss_shipping_theme_enqueue_admin_styles() {
+			wp_enqueue_style( 'ss-shipping-admin-css', SS_SHIPPING_PLUGIN_DIR_URL . '/admin/css/ss-shipping-admin.css' ); // phpcs:ignore WordPress.WP.EnqueuedResourceParameters.MissingVersion -- pre-existing behaviour: the default WordPress version query string is kept; pinning a version is out of scope for the #43 move.
+		}
 
-        /**
-         * Load Frontend CSS
-         */
-        public function ss_shipping_theme_enqueue_frontend_styles()
-        {
-            wp_enqueue_style('ss-shipping-frontend-css',
-                SS_SHIPPING_PLUGIN_DIR_URL . '/public/css/ss-shipping-frontend.css');
-        }
+		/**
+		 * Load Frontend CSS
+		 */
+		public function ss_shipping_theme_enqueue_frontend_styles() {
+			wp_enqueue_style( 'ss-shipping-frontend-css', SS_SHIPPING_PLUGIN_DIR_URL . '/public/css/ss-shipping-frontend.css' ); // phpcs:ignore WordPress.WP.EnqueuedResourceParameters.MissingVersion -- pre-existing behaviour: the default WordPress version query string is kept; pinning a version is out of scope for the #43 move.
+		}
 
         /**
          * Define constant if not already set.
@@ -316,18 +313,17 @@ if ( ! class_exists( 'SS_Shipping_WC' ) ) :
             return (array)$links;
         }
 
-        /**
-         * Add a new integration to WooCommerce.
-         */
-        public function add_shipping_method($shipping_method)
-        {
-            $this->include_shipping_method_class();
+		/**
+		 * Add a new integration to WooCommerce.
+		 */
+		public function add_shipping_method( $shipping_method ) {
+			$this->include_shipping_method_class();
 
-            $ss_shipping_shipping_method = 'SS_Shipping_WC_Method';
-            $shipping_method['smart_send_shipping'] = $ss_shipping_shipping_method;
+			$ss_shipping_shipping_method            = 'SS_Shipping_WC_Method';
+			$shipping_method['smart_send_shipping'] = $ss_shipping_shipping_method;
 
-            return $shipping_method;
-        }
+			return $shipping_method;
+		}
 
         /**
          * Admin error notifying user that WC is required

@@ -73,6 +73,7 @@ if ( ! class_exists( 'SS_Shipping_WC_Product' ) ) :
 		}
 
 		public function save_additional_product_shipping_options( $post_id ) {
+			// phpcs:disable WordPress.Security.NonceVerification.Missing, WordPress.Security.ValidatedSanitizedInput -- pre-existing behaviour: WooCommerce's own product-save nonce guards this hook, values are wc_clean-ed; changing the input handling is out of scope for the #43 move.
 			//Country of origin
 			if ( isset( $_POST['_ss_country_of_origin'] ) ) {
 				update_post_meta( $post_id, '_ss_country_of_origin', wc_clean( $_POST['_ss_country_of_origin'] ) );
@@ -85,6 +86,7 @@ if ( ! class_exists( 'SS_Shipping_WC_Product' ) ) :
 			if ( isset( $_POST['_ss_hs_code'] ) ) {
 				update_post_meta( $post_id, '_ss_hs_code', wc_clean( $_POST['_ss_hs_code'] ) );
 			}
+			// phpcs:enable
 		}
 	}
 
