@@ -4,7 +4,8 @@
  * WooCommerce shipping debug mode support (#5): when the merchant enables
  * WooCommerce → Settings → Shipping → "Enable debug mode", the Smart Send
  * rate-calculation trace is surfaced as checkout notices through
- * SS_Shipping_Logger::debug_notice(). With the option off nothing changes.
+ * SS_Shipping_Checkout_Debug::add_notice(). With the option off nothing
+ * changes.
  *
  * The notice gating mirrors WooCommerce core: only when
  * woocommerce_shipping_debug_mode is "yes", never when WOOCOMMERCE_CHECKOUT
@@ -199,9 +200,10 @@ it('does not duplicate notices when rates are calculated twice', function () {
 });
 
 /*
- * WARNING: this test defines WC_DOING_AJAX for the remainder of the PHP
- * process (constants cannot be undefined), which is why it must stay the
- * LAST test in this file. No later suite file asserts on checkout notices.
+ * WARNING: the tests below define WC_DOING_AJAX for the remainder of the
+ * PHP process (constants cannot be undefined), which is why they must stay
+ * the LAST tests in this file. No later suite file asserts on checkout
+ * notices.
  */
 it('never adds notices when WC_DOING_AJAX is defined', function () {
     with_option('woocommerce_shipping_debug_mode', 'yes');
@@ -220,4 +222,20 @@ it('never adds notices when WC_DOING_AJAX is defined', function () {
 
     expect($method->rates)->toHaveCount(1)
         ->and(wc_notice_count())->toBe(0);
+});
+
+/*
+ * Focused SS_Shipping_Checkout_Debug gating check that needs WC_DOING_AJAX
+ * defined. It lives here (not in CheckoutDebugTest.php) because that file
+ * runs before this one and defining the constant there would poison every
+ * notice test in this file.
+ */
+it('SS_Shipping_Checkout_Debug adds no notice when WC_DOING_AJAX is defined', function () {
+    with_option('woocommerce_shipping_debug_mode', 'yes');
+
+    expect(defined('WC_DOING_AJAX'))->toBeTrue();
+
+    SS_Shipping_Checkout_Debug::add_notice('Smart Send AJAX-gated debug notice.');
+
+    expect(wc_notice_count())->toBe(0);
 });
