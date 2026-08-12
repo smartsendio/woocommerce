@@ -4,59 +4,59 @@ namespace Smartsend\Models\Agent;
 
 class OpeningHour implements \JsonSerializable
 {
-    private $day;
-    private $opens;
-    private $closes;
+    private ?string $day = null;
+    private ?string $opens = null;
+    private ?string $closes = null;
 
     /**
-     * @return mixed
+     * @return string|null
      */
-    public function getDay()
+    public function getDay(): ?string
     {
         return $this->day;
     }
 
     /**
-     * @param mixed $day
-     * @return OpeningHour
+     * @param string|null $day
+     * @return self
      */
-    public function setDay($day)
+    public function setDay(?string $day): self
     {
         $this->day = $day;
         return $this;
     }
 
     /**
-     * @return mixed
+     * @return string|null
      */
-    public function getOpens()
+    public function getOpens(): ?string
     {
         return $this->opens;
     }
 
     /**
-     * @param mixed $opens
-     * @return OpeningHour
+     * @param string|null $opens
+     * @return self
      */
-    public function setOpens($opens)
+    public function setOpens(?string $opens): self
     {
         $this->opens = $opens;
         return $this;
     }
 
     /**
-     * @return mixed
+     * @return string|null
      */
-    public function getCloses()
+    public function getCloses(): ?string
     {
         return $this->closes;
     }
 
     /**
-     * @param mixed $closes
-     * @return OpeningHour
+     * @param string|null $closes
+     * @return self
      */
-    public function setCloses($closes)
+    public function setCloses(?string $closes): self
     {
         $this->closes = $closes;
         return $this;
