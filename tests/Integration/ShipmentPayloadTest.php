@@ -1,0 +1,539 @@
+<?php
+
+/*
+ * Characterization ("golden") tests for the booking payload that
+ * SS_Shipping_Shipment sends to the Smart Send API. Each test builds a
+ * representative order, captures the JSON body posted to the (mocked) API,
+ * and compares it to the complete expected payload. If any field of the
+ * booking request changes, these tests fail.
+ *
+ * IMPORTANT: these tests assert CURRENT v8 behaviour, including known
+ * oddities (marked "v8 oddity"). Do not "fix" an expectation here without a
+ * deliberate behaviour change in the plugin.
+ */
+
+/**
+ * Send the order through SS_Shipping_Shipment against a mocked API and
+ * return the decoded JSON payload of the createShipmentAndLabels request.
+ */
+function capture_shipment_payload(WC_Order $order, bool $return = false): array
+{
+    $capture = mock_smart_send_api();
+
+    $shipment = new SS_Shipping_Shipment($order, SS_SHIPPING_WC()->get_ss_shipping_wc_order());
+    expect($shipment->make_single_shipment_api_call($return))->toBeTrue();
+
+    $request = end($capture->requests);
+    expect($request['url'])->toContain('shipments/labels');
+
+    return json_decode($request['body'], true);
+}
+
+/**
+ * The full expected payload for a plain domestic order: one parcel with one
+ * item line per product. $overrides is array_replace_recursive'd over the
+ * base so each scenario states exactly what it changes.
+ */
+function expected_payload(WC_Order $order, array $overrides = []): array
+{
+    $order_id = (string) $order->get_id();
+
+    $base = [
+        'internal_id'        => $order_id,
+        'internal_reference' => $order_id,
+        'shipping_carrier'   => 'postnord',
+        'shipping_method'    => 'agent',
+        'shipping_date'      => date('Y-m-d'),
+        'sender'             => null,
+        'receiver'           => [
+            'internal_id'        => $order_id,
+            'internal_reference' => $order_id,
+            'company'            => null,
+            'name_line1'         => 'Test',
+            'name_line2'         => 'Customer',
+            'address_line1'      => 'Islands Brygge 39',
+            'address_line2'      => null,
+            'postal_code'        => '2300',
+            'city'               => 'Copenhagen',
+            'country'            => 'DK',
+            'sms'                => '+4512345678',
+            'email'              => 'integration-test@smartsend.io',
+        ],
+        'agent'              => null,
+        'parcels'            => [],
+        'services'           => [
+            'email_notification' => 'integration-test@smartsend.io',
+            'sms_notification'   => '+4512345678',
+            'flex_delivery'      => null,
+        ],
+        'subtotal_price_excluding_tax' => null,
+        'subtotal_price_including_tax' => null,
+        'shipping_price_excluding_tax' => null,
+        'shipping_price_including_tax' => null,
+        'total_price_excluding_tax'    => null,
+        'total_price_including_tax'    => null,
+        'total_tax_amount'             => null,
+        'currency'                     => 'DKK',
+    ];
+
+    return array_replace_recursive($base, $overrides);
+}
+
+/**
+ * A full expected item line for a simple product.
+ */
+function expected_item(WC_Product $product, array $overrides = []): array
+{
+    $product_id = (string) $product->get_id();
+
+    return array_replace([
+        'internal_id'        => $product_id,
+        'internal_reference' => $product_id,
+        'sku'                => $product->get_sku() ? $product->get_sku() : $product_id,
+        'name'               => $product->get_name(),
+        'description'        => null,
+        'hs_code'            => null,
+        'country_of_origin'  => null,
+        'image_url'          => null,
+        'unit_weight'        => 1,
+        'unit_price_excluding_tax' => 100,
+        'unit_price_including_tax' => 100,
+        'quantity'           => 1,
+        'total_price_excluding_tax' => 100,
+        'total_price_including_tax' => 100,
+        'total_tax_amount'   => null,
+    ], $overrides);
+}
+
+beforeEach(function (): void {
+    with_ss_settings();
+});
+
+it('books a simple domestic agent order with the full expected payload', function () {
+    $product = create_simple_product(['name' => 'Simple Product', 'price' => 100, 'weight' => 1.5, 'sku' => 'SIMPLE-' . uniqid()]);
+    $order   = create_order([
+        'products'        => [[$product, 2]],
+        'shipping_method' => 'postnord_agent',
+        'shipping_total'  => '39',
+    ]);
+    SS_SHIPPING_WC()->get_ss_shipping_wc_order()->save_ss_shipping_order_agent($order->get_id(), sample_agent());
+
+    $payload  = capture_shipment_payload($order);
+    $order_id = (string) $order->get_id();
+
+    expect($payload)->toEqual(expected_payload($order, [
+        'agent' => [
+            'internal_id'        => '7',
+            'internal_reference' => '7',
+            'agent_no'           => '1234',
+            'company'            => 'Corner Shop',
+            'name_line1'         => null,
+            'name_line2'         => null,
+            'address_line1'      => 'Main Street 1',
+            'address_line2'      => null,
+            'postal_code'        => '2300',
+            'city'               => 'Copenhagen',
+            'country'            => 'DK',
+            'sms'                => null,
+            'email'              => null,
+        ],
+        'parcels' => [
+            [
+                'internal_id'        => $order_id,
+                'internal_reference' => $order_id,
+                'weight'             => 3,
+                'height'             => null,
+                'width'              => null,
+                'length'             => null,
+                'freetext'           => null,
+                'items'              => [
+                    expected_item($product, [
+                        'unit_weight'               => 1.5,
+                        'quantity'                  => 2,
+                        'total_price_excluding_tax' => 200,
+                        'total_price_including_tax' => 200,
+                    ]),
+                ],
+                // v8 oddity: with zero tax, the parcel "excluding tax" total
+                // includes shipping (order_total - subtotal_tax) while the
+                // "including tax" total does not.
+                'total_price_excluding_tax' => 239,
+                'total_price_including_tax' => 200,
+                'total_tax_amount'          => null,
+            ],
+        ],
+        // v8 oddity: same asymmetry on the shipment-level subtotal.
+        'subtotal_price_excluding_tax' => 239,
+        'subtotal_price_including_tax' => 200,
+        'shipping_price_excluding_tax' => 39,
+        'shipping_price_including_tax' => 39,
+        'total_price_excluding_tax'    => 239,
+        'total_price_including_tax'    => 239,
+    ]));
+});
+
+it('prices item lines pre-discount when a percentage coupon is applied', function () {
+    $product = create_simple_product(['name' => 'Couponed Product', 'price' => 100, 'weight' => 1]);
+    $coupon  = create_coupon(['type' => 'percent', 'amount' => 10]);
+    $order   = create_order([
+        'products'        => [[$product, 2]],
+        'coupons'         => $coupon->get_code(),
+        'shipping_method' => 'postnord_homedelivery',
+        'shipping_total'  => '39',
+    ]);
+    $order_id = (string) $order->get_id();
+
+    $payload = capture_shipment_payload($order);
+
+    expect($payload)->toEqual(expected_payload($order, [
+        'shipping_method' => 'homedelivery',
+        'parcels'         => [
+            [
+                'internal_id'        => $order_id,
+                'internal_reference' => $order_id,
+                'weight'             => 2,
+                'height'             => null,
+                'width'              => null,
+                'length'             => null,
+                'freetext'           => null,
+                'items'              => [
+                    // v8 oddity: item lines use the pre-discount subtotal, so
+                    // the coupon discount never shows up on the item lines.
+                    expected_item($product, [
+                        'quantity'                  => 2,
+                        'total_price_excluding_tax' => 200,
+                        'total_price_including_tax' => 200,
+                    ]),
+                ],
+                'total_price_excluding_tax' => 219,
+                'total_price_including_tax' => 180,
+                'total_tax_amount'          => null,
+            ],
+        ],
+        'subtotal_price_excluding_tax' => 219,
+        'subtotal_price_including_tax' => 180,
+        'shipping_price_excluding_tax' => 39,
+        'shipping_price_including_tax' => 39,
+        'total_price_excluding_tax'    => 219,
+        'total_price_including_tax'    => 219,
+    ]));
+});
+
+it('folds an order fee into the parcel totals but not into any item line', function () {
+    $product = create_simple_product(['name' => 'Product With Fee', 'price' => 100, 'weight' => 1]);
+    $order   = create_order([
+        'products'        => [$product],
+        'fees'            => [['Handling fee', 25]],
+        'shipping_method' => 'postnord_homedelivery',
+        'shipping_total'  => '39',
+    ]);
+    $order_id = (string) $order->get_id();
+
+    $payload = capture_shipment_payload($order);
+
+    expect($payload)->toEqual(expected_payload($order, [
+        'shipping_method' => 'homedelivery',
+        'parcels'         => [
+            [
+                'internal_id'        => $order_id,
+                'internal_reference' => $order_id,
+                'weight'             => 1,
+                'height'             => null,
+                'width'              => null,
+                'length'             => null,
+                'freetext'           => null,
+                'items'              => [expected_item($product)],
+                // Fee is part of the order subtotal, so the parcel totals
+                // exceed the sum of the item lines.
+                'total_price_excluding_tax' => 164,
+                'total_price_including_tax' => 125,
+                'total_tax_amount'          => null,
+            ],
+        ],
+        'subtotal_price_excluding_tax' => 164,
+        'subtotal_price_including_tax' => 125,
+        'shipping_price_excluding_tax' => 39,
+        'shipping_price_including_tax' => 39,
+        'total_price_excluding_tax'    => 164,
+        'total_price_including_tax'    => 164,
+    ]));
+});
+
+it('books a taxed order with the v8 tax semantics', function () {
+    with_option('woocommerce_calc_taxes', 'yes');
+    create_tax_rate(['rate' => '25.0000', 'country' => 'DK', 'shipping' => 1]);
+
+    $product = create_simple_product(['name' => 'Taxed Product', 'price' => 100, 'weight' => 1]);
+    $order   = create_order([
+        'products'        => [$product],
+        'shipping_method' => 'postnord_homedelivery',
+        'shipping_total'  => '39',
+    ]);
+    $order_id = (string) $order->get_id();
+
+    $payload = capture_shipment_payload($order);
+
+    expect($payload)->toEqual(expected_payload($order, [
+        'shipping_method' => 'homedelivery',
+        'parcels'         => [
+            [
+                'internal_id'        => $order_id,
+                'internal_reference' => $order_id,
+                'weight'             => 1,
+                'height'             => null,
+                'width'              => null,
+                'length'             => null,
+                'freetext'           => null,
+                'items'              => [
+                    expected_item($product, [
+                        'unit_price_including_tax'  => 125,
+                        'total_price_including_tax' => 125,
+                        'total_tax_amount'          => 25,
+                    ]),
+                ],
+                'total_price_excluding_tax' => 114,
+                'total_price_including_tax' => 134.75,
+                'total_tax_amount'          => 25,
+            ],
+        ],
+        // v8 oddity: WC_Order::get_shipping_total() is already excluding
+        // tax, but the plugin treats it as including tax; the resulting
+        // "excluding tax" shipping price subtracts the shipping tax twice.
+        'subtotal_price_excluding_tax' => 114,
+        'subtotal_price_including_tax' => 134.75,
+        'shipping_price_excluding_tax' => 29.25,
+        'shipping_price_including_tax' => 39,
+        'total_price_excluding_tax'    => 139,
+        'total_price_including_tax'    => 173.75,
+        'total_tax_amount'             => 34.75,
+    ]));
+});
+
+it('includes customs data on the item lines for an international order', function () {
+    $product = create_simple_product([
+        'name'              => 'Customs Product',
+        'price'             => 100,
+        'weight'            => 1,
+        'hs_code'           => '61091000',
+        'customs_desc'      => 'Cotton t-shirt',
+        'country_of_origin' => 'DK',
+    ]);
+    $order = create_order([
+        'products'        => [$product],
+        'address'         => [
+            'address_1' => '350 Fifth Avenue',
+            'city'      => 'New York',
+            'postcode'  => '10118',
+            'country'   => 'US',
+        ],
+        'shipping_method' => 'postnord_commercial',
+        'shipping_total'  => '150',
+    ]);
+    $order_id = (string) $order->get_id();
+
+    $payload = capture_shipment_payload($order);
+
+    expect($payload)->toEqual(expected_payload($order, [
+        'shipping_method' => 'commercial',
+        'receiver'        => [
+            'address_line1' => '350 Fifth Avenue',
+            'postal_code'   => '10118',
+            'city'          => 'New York',
+            'country'       => 'US',
+        ],
+        'parcels' => [
+            [
+                'internal_id'        => $order_id,
+                'internal_reference' => $order_id,
+                'weight'             => 1,
+                'height'             => null,
+                'width'              => null,
+                'length'             => null,
+                'freetext'           => null,
+                'items'              => [
+                    expected_item($product, [
+                        'description'       => 'Cotton t-shirt',
+                        'hs_code'           => '61091000',
+                        'country_of_origin' => 'DK',
+                    ]),
+                ],
+                'total_price_excluding_tax' => 250,
+                'total_price_including_tax' => 100,
+                'total_tax_amount'          => null,
+            ],
+        ],
+        'subtotal_price_excluding_tax' => 250,
+        'subtotal_price_including_tax' => 100,
+        'shipping_price_excluding_tax' => 150,
+        'shipping_price_including_tax' => 150,
+        'total_price_excluding_tax'    => 250,
+        'total_price_including_tax'    => 250,
+    ]));
+});
+
+it('drops the receiver phone when billing and shipping countries differ', function () {
+    $product = create_simple_product(['price' => 100, 'weight' => 1]);
+    $order   = create_order([
+        'products'        => [$product],
+        'address'         => [
+            'address_1' => 'Karl Johans gate 1',
+            'city'      => 'Oslo',
+            'postcode'  => '0154',
+            'country'   => 'NO',
+        ],
+        'billing_address' => [
+            'address_1' => 'Islands Brygge 39',
+            'city'      => 'Copenhagen',
+            'postcode'  => '2300',
+            'country'   => 'DK',
+        ],
+        'shipping_method' => 'postnord_homedelivery',
+    ]);
+
+    $payload = capture_shipment_payload($order);
+
+    // Only local phone numbers are accepted by the API, so the billing
+    // phone is dropped when the shipping country differs from billing.
+    expect($payload['receiver']['sms'])->toBeNull()
+        ->and($payload['receiver']['country'])->toBe('NO')
+        ->and($payload['services']['sms_notification'])->toBeNull()
+        ->and($payload['services']['email_notification'])->toBe('integration-test@smartsend.io');
+});
+
+it('uses the variation id, sku and weight for variable products', function () {
+    [$parent, $variation] = create_variable_product([
+        'name'   => 'Variable Product',
+        'price'  => 100,
+        'weight' => 2.5,
+        'sku'    => 'VAR-L-' . uniqid(),
+    ]);
+    $order = create_order([
+        'products'        => [$variation],
+        'shipping_method' => 'postnord_agent',
+    ]);
+    $order_id     = (string) $order->get_id();
+    $variation_id = (string) $variation->get_id();
+
+    $payload = capture_shipment_payload($order);
+
+    expect($payload)->toEqual(expected_payload($order, [
+        'parcels' => [
+            [
+                'internal_id'        => $order_id,
+                'internal_reference' => $order_id,
+                'weight'             => 2.5,
+                'height'             => null,
+                'width'              => null,
+                'length'             => null,
+                'freetext'           => null,
+                'items'              => [
+                    [
+                        'internal_id'        => $variation_id,
+                        'internal_reference' => $variation_id,
+                        'sku'                => $variation->get_sku(),
+                        'name'               => 'Variable Product',
+                        'description'        => null,
+                        'hs_code'            => null,
+                        'country_of_origin'  => null,
+                        'image_url'          => null,
+                        'unit_weight'        => 2.5,
+                        'unit_price_excluding_tax' => 100,
+                        'unit_price_including_tax' => 100,
+                        'quantity'           => 1,
+                        'total_price_excluding_tax' => 100,
+                        'total_price_including_tax' => 100,
+                        'total_tax_amount'   => null,
+                    ],
+                ],
+                'total_price_excluding_tax' => 100,
+                'total_price_including_tax' => 100,
+                'total_tax_amount'          => null,
+            ],
+        ],
+        'subtotal_price_excluding_tax' => 100,
+        'subtotal_price_including_tax' => 100,
+        'total_price_excluding_tax'    => 100,
+        'total_price_including_tax'    => 100,
+    ]));
+});
+
+it('sends a null parcel weight when products have no weight', function () {
+    $product = create_simple_product(['name' => 'Weightless Product', 'price' => 50, 'weight' => null]);
+    $order   = create_order([
+        'products'        => [$product],
+        'shipping_method' => 'postnord_homedelivery',
+    ]);
+
+    $payload = capture_shipment_payload($order);
+
+    expect($payload['parcels'][0]['weight'])->toBeNull()
+        ->and($payload['parcels'][0]['items'][0]['unit_weight'])->toBeNull()
+        // v8 oddity: a zero shipping total is sent as null, not 0.
+        ->and($payload['shipping_price_excluding_tax'])->toBeNull()
+        ->and($payload['shipping_price_including_tax'])->toBeNull();
+});
+
+it('splits the shipment into one parcel per box when parcels meta is set', function () {
+    $product_a = create_simple_product(['name' => 'Box One Product', 'price' => 100, 'weight' => 1]);
+    $product_b = create_simple_product(['name' => 'Box Two Product', 'price' => 50, 'weight' => 2]);
+    $order     = create_order([
+        'products'        => [$product_a, $product_b],
+        'shipping_method' => 'postnord_agent',
+        'shipping_total'  => '39',
+    ]);
+    SS_SHIPPING_WC()->get_ss_shipping_wc_order()->save_ss_shipping_order_parcels($order->get_id(), [
+        ['id' => $product_a->get_id(), 'name' => 'Box One Product', 'value' => '1'],
+        ['id' => $product_b->get_id(), 'name' => 'Box Two Product', 'value' => '2'],
+    ]);
+
+    $payload = capture_shipment_payload($order);
+
+    expect($payload['parcels'])->toHaveCount(2)
+        ->and($payload['parcels'][0]['items'][0]['name'])->toBe('Box One Product')
+        ->and($payload['parcels'][0]['weight'])->toEqual(1)
+        ->and($payload['parcels'][0]['total_price_excluding_tax'])->toEqual(100)
+        ->and($payload['parcels'][0]['total_price_including_tax'])->toEqual(100)
+        ->and($payload['parcels'][1]['items'][0]['name'])->toBe('Box Two Product')
+        ->and($payload['parcels'][1]['weight'])->toEqual(2)
+        ->and($payload['parcels'][1]['total_price_excluding_tax'])->toEqual(50)
+        ->and($payload['parcels'][1]['total_price_including_tax'])->toEqual(50);
+});
+
+it('includes the customer note as parcel freetext when enabled in settings', function () {
+    with_ss_settings(['include_order_comment' => 'yes']);
+
+    $product = create_simple_product(['price' => 100, 'weight' => 1]);
+    $order   = create_order([
+        'products'        => [$product],
+        'shipping_method' => 'postnord_homedelivery',
+        'customer_note'   => 'Please leave at the back door',
+    ]);
+
+    $payload = capture_shipment_payload($order);
+
+    expect($payload['parcels'][0]['freetext'])->toBe('Please leave at the back door');
+});
+
+it('lets the smart_send_shipping_label_args filter override carrier and method', function () {
+    $product = create_simple_product(['price' => 100, 'weight' => 1]);
+    $order   = create_order([
+        'products'        => [$product],
+        'shipping_method' => 'postnord_homedelivery',
+    ]);
+
+    $filter = function (array $ss_args) {
+        $ss_args['ss_carrier'] = 'gls';
+        $ss_args['ss_type']    = 'homedelivery';
+
+        return $ss_args;
+    };
+    add_filter('smart_send_shipping_label_args', $filter);
+    remember_cleanup_callback(function () use ($filter): void {
+        remove_filter('smart_send_shipping_label_args', $filter);
+    });
+
+    $payload = capture_shipment_payload($order);
+
+    expect($payload['shipping_carrier'])->toBe('gls')
+        ->and($payload['shipping_method'])->toBe('homedelivery');
+});

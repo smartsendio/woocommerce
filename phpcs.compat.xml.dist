@@ -1,0 +1,24 @@
+<?xml version="1.0"?>
+<ruleset name="Smart Send PHP Compatibility">
+    <description>PHP 7.4+ compatibility scan for the shipped plugin code.</description>
+
+    <!-- The whole shipped plugin, including the bundled API client. -->
+    <file>smart-send-logistics</file>
+
+    <exclude-pattern>*/vendor/*</exclude-pattern>
+    <exclude-pattern>*/local-dev/*</exclude-pattern>
+    <exclude-pattern>*.js</exclude-pattern>
+    <exclude-pattern>*.css</exclude-pattern>
+
+    <arg name="basepath" value="."/>
+    <arg value="ps"/>
+    <arg name="colors"/>
+    <arg name="parallel" value="20"/>
+    <arg name="extensions" value="php"/>
+
+    <!-- Plugin floor is PHP 7.4; open-ended so new PHP deprecations/removals
+         (8.0 through current) are flagged as they are added to the standard. -->
+    <config name="testVersion" value="7.4-"/>
+
+    <rule ref="PHPCompatibilityWP"/>
+</ruleset>

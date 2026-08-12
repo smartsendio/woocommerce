@@ -11,6 +11,8 @@ if (!class_exists('SS_Shipping_WC_Method')) :
 
         private $shipping_method = array();
 
+		private $return_shipping_method = array();
+
         /**
          * Init and hook in the integration.
          */
@@ -1149,10 +1151,12 @@ if (!class_exists('SS_Shipping_WC_Method')) :
             if (in_array($requires, array('min_amount', 'either', 'both'))) {
                 $total = WC()->cart->get_displayed_subtotal();
 
-                if ('incl' === WC()->cart->tax_display_cart) {
-                    $total = round($total - (WC()->cart->get_cart_discount_total() + WC()->cart->get_cart_discount_tax_total()),
-                        wc_get_price_decimals());
-                } else {
+				if ( 'incl' === WC()->cart->get_tax_price_display_mode() ) {
+					$total = round(
+						$total - ( WC()->cart->get_cart_discount_total() + WC()->cart->get_cart_discount_tax_total() ),
+						wc_get_price_decimals()
+					);
+				} else {
                     $total = round($total - WC()->cart->get_cart_discount_total(), wc_get_price_decimals());
                 }
 

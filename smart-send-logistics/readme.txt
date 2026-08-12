@@ -7,14 +7,14 @@ Developer: SmartSend
 Developer URI: https://smartsend.io/
 Tags: shipping, pick-up-points, shipping-label, postnord, smart send
 Requires at least: 3.0.1
-Tested up to: 6.9
-Stable tag: 8.1.3
+Tested up to: 7.0
+Stable tag: 8.2.0
 License: GNU General Public License v3.0
 License URI: http://www.gnu.org/licenses/gpl-3.0.html
 Requires Plugins: woocommerce
 WC requires at least: 3.0.0
-WC tested up to: 10.3
-Requires PHP: 5.6.0
+WC tested up to: 11.0
+Requires PHP: 7.4
 
 Complete WooCommerce shipping solution for PostNord, GLS, DAO, Burd, Budbee and Bring.
 
@@ -200,6 +200,17 @@ This box appears when a "Select Pick-up Point" shipping method is selected, but 
 
 
 == Changelog ==
+
+= 8.2.0 =
+* Tested with WordPress 7.0
+* Tested with WooCommerce 11.0
+* Minimum required PHP version raised from 5.6 to 7.4 (sites on older PHP will not be offered this update)
+* Fix fatal error "Call to a member function get_meta() on bool" when order hooks run without a real order, e.g. the WooCommerce email preview
+* Fix "_load_textdomain_just_in_time was called incorrectly" notice on WordPress 6.7+ by deferring early translation calls
+* Fix incorrect import that could break instanceof checks in the order handling class
+* Fix type error in the bundled API client when adding a single item to a parcel
+* Replace deprecated WC()->cart->tax_display_cart with WC()->cart->get_tax_price_display_mode() (thanks @Saggre)
+* PHP 8.1-8.4 compatibility: fix dynamic property creation and null passed to strpos()
 
 = 8.1.3 =
 * Fix issue when shipping cost is a string instead of a number (WC_Shipping_Rate::get_cost() can from WooCommerce 9.9.3 be a string)
