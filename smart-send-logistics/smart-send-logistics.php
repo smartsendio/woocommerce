@@ -171,7 +171,7 @@ if ( ! class_exists( 'SS_Shipping_WC' ) ) :
 			require_once SS_SHIPPING_PLUGIN_DIR_PATH . '/includes/class-ss-shipping-wc-product.php';
 
 			// Frontend components.
-			require_once SS_SHIPPING_PLUGIN_DIR_PATH . '/includes/frontend/class-ss-shipping-frontend.php';
+			require_once SS_SHIPPING_PLUGIN_DIR_PATH . '/public/class-ss-shipping-frontend.php';
 		}
 
 		/**
@@ -255,7 +255,7 @@ if ( ! class_exists( 'SS_Shipping_WC' ) ) :
         public function ss_shipping_theme_enqueue_frontend_styles()
         {
             wp_enqueue_style('ss-shipping-frontend-css',
-                SS_SHIPPING_PLUGIN_DIR_URL . '/assets/css/ss-shipping-frontend.css');
+                SS_SHIPPING_PLUGIN_DIR_URL . '/public/css/ss-shipping-frontend.css');
         }
 
         /**
