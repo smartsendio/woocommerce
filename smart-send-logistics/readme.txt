@@ -284,7 +284,7 @@ This box appears when a "Select Pickup Point" shipping method is selected, but n
 = 8.2.0 =
 * Tested with WordPress 7.0
 * Tested with WooCommerce 11.0
-* Minimum required PHP version raised from 5.6 to 7.4 (sites on older PHP will not be offered this update)
+* Minimum required PHP version raised from 5.6 to 7.4 (sites on older PHP will not be offered this update) - see the "9.0.0" entry under Upgrade Notice for the full list of v9 breaking changes
 * Fix fatal error "Call to a member function get_meta() on bool" when order hooks run without a real order, e.g. the WooCommerce email preview
 * Fix "_load_textdomain_just_in_time was called incorrectly" notice on WordPress 6.7+ by deferring early translation calls
 * Fix incorrect import that could break instanceof checks in the order handling class
@@ -622,6 +622,14 @@ This box appears when a "Select Pickup Point" shipping method is selected, but n
 * Initial release for Wordpress.org
 
 == Upgrade Notice ==
+
+= 9.0.0 =
+9.0 is the v9 major release and carries several breaking changes for sites that rely on Smart Send hooks or filters, or that run on older PHP. Note: 9.0.0 has not been released yet as of this writing; this entry is maintained on develop ahead of the actual release and lists every breaking change shipped across v9 so far. Review before upgrading from 8.x:
+
+* Minimum required PHP raised from 5.6 to 7.4. Sites on PHP 5.6-7.3 will not be offered this update and must upgrade PHP first.
+* Shipment payload totals are now reconciled so that subtotal + shipping = total on both tax bases, and clamped to zero. This fixes negative totals but changes the exact numbers sent to Smart Send for orders where a gift card or coupon exceeds the item value.
+* `Smartsend\Models\*` setters and `Smartsend\Client` accessors are now type-hinted. Loosely-typed values passed in from custom code or filters (e.g. a numeric string where an int/float is expected) now coerce or raise a `TypeError` instead of being silently accepted.
+* Six hooks were renamed as part of the pickup-point terminology pass: `smart_send_agent_search_params` to `smart_send_pickup_point_search_params`, `smart_send_agents_found` to `smart_send_pickup_points_found`, `smart_send_agent_option_label` to `smart_send_pickup_point_option_label`, `smart_send_default_selected_agent` to `smart_send_default_selected_pickup_point`, `smart_send_agent_timeout` to `smart_send_pickup_point_timeout`, and `smart_send_order_agent` to `smart_send_order_pickup_point`. Update any code snippet or custom integration that hooks into the old names - the last two (`smart_send_agent_timeout`, `smart_send_order_agent`) were live in the 8.2.0 release, so sites upgrading from 8.2.0 or earlier are most likely to be affected.
 
 = 8.0 =
 8.0 is a major update. Shipping methods moved to WooCommerce Shipping Zones and must be setup again after upgrading. Make a full site backup, and [review update best practices](https://docs.woocommerce.com/document/how-to-update-your-site) before upgrading.

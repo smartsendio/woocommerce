@@ -92,3 +92,5 @@ A version bump must update **three places in lockstep**:
 - `smart-send-logistics/readme.txt`: the `Stable tag:`
 
 Also add a changelog entry under `== Changelog ==` in `readme.txt` (WordPress.org readme format, not Keep a Changelog). When compatibility is verified against newer versions, bump `Tested up to:` / `WC tested up to:` in both files.
+
+Any PR that introduces a breaking change (hook rename, payload shape change, method/filter signature change, raised minimum PHP/WC version, etc.) must update the `== Upgrade Notice ==` section in `readme.txt` in the same PR — add the change to the entry for the next unreleased version (create that version's entry if it doesn't exist yet), so the guide always lists every breaking change since the last release in one place.
