@@ -622,6 +622,57 @@ it('lets the smart_send_receiver_phone filter adjust the receiver phone', functi
         ->and($payload['services']['sms_notification'])->toBe('+4587654321');
 });
 
+it('lets the per-section payload filters adjust receiver, items, parcels and totals', function () {
+    $product = create_simple_product(['name' => 'Filtered Product', 'price' => 100, 'weight' => 1]);
+    $order   = create_order([
+        'products'        => [$product],
+        'shipping_method' => 'postnord_homedelivery',
+        'shipping_total'  => '39',
+    ]);
+
+    $receiver_filter = function (array $receiver_data, WC_Order $filtered_order) {
+        $receiver_data['company'] = 'Filtered Company';
+
+        return $receiver_data;
+    };
+    $items_filter = function (array $items, WC_Order $filtered_order) {
+        $items[0]['name'] = 'Filtered Item Name';
+
+        return $items;
+    };
+    $totals_filter = function (array $totals, WC_Order $filtered_order) {
+        $totals['total_price_including_tax'] = 999;
+
+        return $totals;
+    };
+    $parcels_filter = function (array $parcels, WC_Order $filtered_order) {
+        foreach ($parcels as $parcel) {
+            expect($parcel)->toBeInstanceOf(\Smartsend\Models\Shipment\Parcel::class);
+            $parcel->setWeight(42);
+        }
+
+        return $parcels;
+    };
+
+    add_filter('smart_send_payload_receiver', $receiver_filter, 10, 2);
+    add_filter('smart_send_payload_items', $items_filter, 10, 2);
+    add_filter('smart_send_payload_totals', $totals_filter, 10, 2);
+    add_filter('smart_send_payload_parcels', $parcels_filter, 10, 2);
+    remember_cleanup_callback(function () use ($receiver_filter, $items_filter, $totals_filter, $parcels_filter): void {
+        remove_filter('smart_send_payload_receiver', $receiver_filter, 10);
+        remove_filter('smart_send_payload_items', $items_filter, 10);
+        remove_filter('smart_send_payload_totals', $totals_filter, 10);
+        remove_filter('smart_send_payload_parcels', $parcels_filter, 10);
+    });
+
+    $payload = capture_shipment_payload($order);
+
+    expect($payload['receiver']['company'])->toBe('Filtered Company')
+        ->and($payload['parcels'][0]['items'][0]['name'])->toBe('Filtered Item Name')
+        ->and($payload['parcels'][0]['weight'])->toEqual(42)
+        ->and($payload['total_price_including_tax'])->toEqual(999);
+});
+
 it('lets the smart_send_shipping_label_args filter override carrier and method', function () {
     $product = create_simple_product(['price' => 100, 'weight' => 1]);
     $order   = create_order([

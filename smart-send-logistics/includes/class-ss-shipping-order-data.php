@@ -118,7 +118,7 @@ if ( ! class_exists( 'SS_Shipping_Order_Data' ) ) :
 				$shipping_address['email'] = $billing_address['email'];
 			}
 
-			return array(
+			$receiver_data = array(
 				'company'       => $shipping_address['company'],
 				'name_line1'    => $shipping_address['first_name'],
 				'name_line2'    => $shipping_address['last_name'],
@@ -130,6 +130,14 @@ if ( ! class_exists( 'SS_Shipping_Order_Data' ) ) :
 				'phone'         => $phone,
 				'email'         => isset( $shipping_address['email'] ) ? $shipping_address['email'] : null,
 			);
+
+			/*
+			 * Filter the receiver section of the booking request.
+			 *
+			 * @param array    $receiver_data The receiver data (see the return doc above).
+			 * @param WC_Order $order         The WooCommerce order.
+			 */
+			return apply_filters( 'smart_send_payload_receiver', $receiver_data, $this->order );
 		}
 
 		/**
@@ -192,7 +200,13 @@ if ( ! class_exists( 'SS_Shipping_Order_Data' ) ) :
 				);
 			}
 
-			return $items;
+			/*
+			 * Filter the item lines of the booking request.
+			 *
+			 * @param array[]  $items One row per order line (see the return doc above).
+			 * @param WC_Order $order The WooCommerce order.
+			 */
+			return apply_filters( 'smart_send_payload_items', $items, $this->order );
 		}
 
 		/**
@@ -238,7 +252,7 @@ if ( ! class_exists( 'SS_Shipping_Order_Data' ) ) :
 			$subtotal_tax           = $total_tax - $shipping_tax;
 			$subtotal_excluding_tax = $subtotal_including_tax - $subtotal_tax;
 
-			return array(
+			$totals = array(
 				'subtotal_price_excluding_tax' => max( 0.0, $subtotal_excluding_tax ),
 				'subtotal_price_including_tax' => max( 0.0, $subtotal_including_tax ),
 				'subtotal_tax_amount'          => max( 0.0, $subtotal_tax ),
@@ -250,6 +264,16 @@ if ( ! class_exists( 'SS_Shipping_Order_Data' ) ) :
 				'total_tax_amount'             => max( 0.0, $total_tax ),
 				'currency'                     => $this->order->get_currency(),
 			);
+
+			/*
+			 * Filter the totals section of the booking request. The filter
+			 * runs after the clamping rule, so returned values are used
+			 * as-is.
+			 *
+			 * @param array    $totals The order totals (see the return doc above).
+			 * @param WC_Order $order  The WooCommerce order.
+			 */
+			return apply_filters( 'smart_send_payload_totals', $totals, $this->order );
 		}
 
 		/**

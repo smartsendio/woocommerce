@@ -239,6 +239,14 @@ if ( ! class_exists( 'SS_Shipping_Shipment' ) ) :
 				}
 			}
 
+			/*
+			 * Filter the parcels section of the booking request.
+			 *
+			 * @param \Smartsend\Models\Shipment\Parcel[] $parcels The assembled parcel models.
+			 * @param WC_Order                            $order   The WooCommerce order.
+			 */
+			$parcels = apply_filters( 'smart_send_payload_parcels', $parcels, $this->order );
+
 			// Create services.
 			$services = new \Smartsend\Models\Shipment\Services();
 			$services->setSmsNotification( $receiver->getSms() )// Always enable SMS notification.
