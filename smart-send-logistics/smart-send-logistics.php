@@ -147,15 +147,45 @@ if ( ! class_exists( 'SS_Shipping_WC' ) ) :
 			$this->define( 'SS_SHIPPING_METHOD_ID', 'smart_send_shipping' );
 		}
 
-        /**
-         * Include required core files used in admin and on the frontend.
-         */
-        public function includes()
-        {
-            // Auto loader class
-            include_once('includes/class-ss-shipping-autoloader.php');
-            include_once('includes/lib/Smartsend/Api.php');
-        }
+		/**
+		 * Include required core files used in admin and on the frontend.
+		 *
+		 * Classes are loaded with explicit require_once calls (no autoloader):
+		 * Composer cannot be assumed on a WordPress install and a bespoke
+		 * autoloader is not worth maintaining. See issue #43.
+		 */
+		public function includes() {
+			// Smart Send PHP API client (PSR-style, namespace Smartsend).
+			require_once SS_SHIPPING_PLUGIN_DIR_PATH . '/includes/lib/Smartsend/Api.php';
+
+			// Shared components used in admin and on the frontend.
+			require_once SS_SHIPPING_PLUGIN_DIR_PATH . '/includes/class-ss-shipping-logger.php';
+			require_once SS_SHIPPING_PLUGIN_DIR_PATH . '/includes/class-ss-shipping-checkout-debug.php';
+			require_once SS_SHIPPING_PLUGIN_DIR_PATH . '/includes/class-ss-shipping-admin-notices.php';
+			require_once SS_SHIPPING_PLUGIN_DIR_PATH . '/includes/class-ss-shipping-order-data.php';
+
+			// Admin components.
+			require_once SS_SHIPPING_PLUGIN_DIR_PATH . '/includes/class-ss-plugins-screen-updates.php';
+			require_once SS_SHIPPING_PLUGIN_DIR_PATH . '/includes/class-ss-shipping-shipment.php';
+			require_once SS_SHIPPING_PLUGIN_DIR_PATH . '/includes/class-ss-shipping-wc-order.php';
+			require_once SS_SHIPPING_PLUGIN_DIR_PATH . '/includes/class-ss-shipping-wc-product.php';
+
+			// Frontend components.
+			require_once SS_SHIPPING_PLUGIN_DIR_PATH . '/includes/frontend/class-ss-shipping-frontend.php';
+		}
+
+		/**
+		 * Load the shipping method class.
+		 *
+		 * SS_Shipping_WC_Method extends WC_Shipping_Flat_Rate, so its file can
+		 * only be loaded once WooCommerce (and its autoloader) is available -
+		 * this plugin loads before WooCommerce. Loaded from init() behind the
+		 * bootstrap-level WooCommerce gate and defensively from
+		 * add_shipping_method(); require_once makes the call idempotent.
+		 */
+		public function include_shipping_method_class() {
+			require_once SS_SHIPPING_PLUGIN_DIR_PATH . '/includes/class-ss-shipping-wc-method.php';
+		}
 
         protected function init_hooks()
         {
@@ -190,6 +220,8 @@ if ( ! class_exists( 'SS_Shipping_WC' ) ) :
 			// already guarantees WooCommerce on WP >= 6.5, so this check is belt-and-braces for
 			// older WordPress. Everything downstream of it assumes WooCommerce is present.
 			if ( defined( 'WOOCOMMERCE_VERSION' ) && version_compare( WOOCOMMERCE_VERSION, '2.6', '>=' ) ) {
+				$this->include_shipping_method_class();
+
 				$this->ss_shipping_frontend     = new SS_Shipping_Frontend();
 				$this->ss_shipping_wc_order     = new SS_Shipping_WC_Order();
 				$this->ss_shipping_wc_product   = new SS_Shipping_WC_Product();
@@ -289,6 +321,8 @@ if ( ! class_exists( 'SS_Shipping_WC' ) ) :
          */
         public function add_shipping_method($shipping_method)
         {
+            $this->include_shipping_method_class();
+
             $ss_shipping_shipping_method = 'SS_Shipping_WC_Method';
             $shipping_method['smart_send_shipping'] = $ss_shipping_shipping_method;
 
