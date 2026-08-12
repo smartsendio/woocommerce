@@ -288,54 +288,59 @@ if ( ! class_exists( 'SS_Shipping_WC_Method' ) ) :
 				if ( $weight_costs ) {
 					foreach ( $weight_costs as $weight_cost ) {
 
-						// If empty ignore field and continue, otherwise check if equal or greater than
-						if ( empty( $weight_cost['ss_min_weight'] ) || ( $cart_weight >= $weight_cost['ss_min_weight'] ) ) {
-							// IF empty ignore field and contine, otherwise check if less than
-							if ( empty( $weight_cost['ss_max_weight'] ) || ( $cart_weight < $weight_cost['ss_max_weight'] ) ) {
-								// If cost NOT empty add a fee
-								if ( ! empty( $weight_cost['ss_cost_weight'] ) ) {
-
-									$rate['cost'] = $this->evaluate_cost(
-										$weight_cost['ss_cost_weight'],
-										array(
-											'qty'  => $this->get_package_item_qty( $package ),
-											'cost' => $package['contents_cost'],
-										)
-									);
-
-									$this->add_rate( $rate );
-									$rate_added     = true;
-									$matched_row    = sprintf( '%1$s-%2$s %3$s', $weight_cost['ss_min_weight'], $weight_cost['ss_max_weight'], $weight_unit );
-									$matched_rows[] = $matched_row;
-									SS_Shipping_Logger::debug(
-										sprintf(
-											'Smart Send "%1$s": cart weight %2$s %3$s matched weight table row %4$s - rate added with cost %5$s.',
-											$rate['label'],
-											$cart_weight,
-											$weight_unit,
-											$matched_row,
-											$rate['cost']
-										),
-										array(
-											'rate_id'     => $rate['id'],
-											'cost'        => $rate['cost'],
-											'cart_weight' => $cart_weight,
-										)
-									);
-									SS_Shipping_Checkout_Debug::add_notice(
-										sprintf(
-											/* translators: 1: shipping rate label, 2: cart weight, 3: weight unit, 4: matched weight table row as "min-max unit", 5: rate cost. */
-											__( 'Smart Send "%1$s": cart weight %2$s %3$s matched weight table row %4$s - rate added with cost %5$s.', 'smart-send-logistics' ),
-											$rate['label'],
-											$cart_weight,
-											$weight_unit,
-											$matched_row,
-											$rate['cost']
-										)
-									);
-								}
-							}
+						// If min weight is set and the cart weight is below it, this row does not apply.
+						if ( ! empty( $weight_cost['ss_min_weight'] ) && ( $cart_weight < $weight_cost['ss_min_weight'] ) ) {
+							continue;
 						}
+
+						// If max weight is set and the cart weight is at or above it, this row does not apply.
+						if ( ! empty( $weight_cost['ss_max_weight'] ) && ( $cart_weight >= $weight_cost['ss_max_weight'] ) ) {
+							continue;
+						}
+
+						// No cost formula configured for this row - nothing to add.
+						if ( empty( $weight_cost['ss_cost_weight'] ) ) {
+							continue;
+						}
+
+						$rate['cost'] = $this->evaluate_cost(
+							$weight_cost['ss_cost_weight'],
+							array(
+								'qty'  => $this->get_package_item_qty( $package ),
+								'cost' => $package['contents_cost'],
+							)
+						);
+
+						$this->add_rate( $rate );
+						$rate_added     = true;
+						$matched_row    = sprintf( '%1$s-%2$s %3$s', $weight_cost['ss_min_weight'], $weight_cost['ss_max_weight'], $weight_unit );
+						$matched_rows[] = $matched_row;
+						SS_Shipping_Logger::debug(
+							sprintf(
+								'Smart Send "%1$s": cart weight %2$s %3$s matched weight table row %4$s - rate added with cost %5$s.',
+								$rate['label'],
+								$cart_weight,
+								$weight_unit,
+								$matched_row,
+								$rate['cost']
+							),
+							array(
+								'rate_id'     => $rate['id'],
+								'cost'        => $rate['cost'],
+								'cart_weight' => $cart_weight,
+							)
+						);
+						SS_Shipping_Checkout_Debug::add_notice(
+							sprintf(
+								/* translators: 1: shipping rate label, 2: cart weight, 3: weight unit, 4: matched weight table row as "min-max unit", 5: rate cost. */
+								__( 'Smart Send "%1$s": cart weight %2$s %3$s matched weight table row %4$s - rate added with cost %5$s.', 'smart-send-logistics' ),
+								$rate['label'],
+								$cart_weight,
+								$weight_unit,
+								$matched_row,
+								$rate['cost']
+							)
+						);
 					}
 				}
 
