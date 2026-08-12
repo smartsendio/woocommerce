@@ -15,23 +15,6 @@ if ( ! defined( 'ABSPATH' ) ) {
 class SS_Plugins_Screen_Updates {
 
 	/**
-	 * The upgrade notice shown inline.
-	 *
-	 * Deliberately untyped: get_upgrade_notice() returns false when the
-	 * transient is empty and the readme fetch fails.
-	 *
-	 * @var string|false
-	 */
-	protected $upgrade_notice = '';
-
-	/**
-	 * The new plugin version offered by the update response.
-	 *
-	 * @var string|null
-	 */
-	protected ?string $new_version = null;
-
-	/**
 	 * Constructor.
 	 */
 	public function __construct() {
@@ -39,78 +22,59 @@ class SS_Plugins_Screen_Updates {
 	}
 
 	/**
-	 * Show plugin changes on the plugins screen.
+	 * Show a generic major-version upgrade notice on the plugins screen.
+	 *
+	 * No external request is made: the notice is computed locally by
+	 * comparing the major version component of the installed and available
+	 * versions. Minor and patch bumps show no notice.
 	 *
 	 * @param array    $args Unused parameter.
 	 * @param stdClass $response Plugin update response.
 	 */
 	public function in_plugin_update_message( $args, $response ) {
-		$this->new_version    = $response->new_version;
-		$this->upgrade_notice = $this->get_upgrade_notice( $response->new_version );
-
-		echo apply_filters( 'ss_in_plugin_update_message', $this->upgrade_notice ? '</p>' . wp_kses_post( $this->upgrade_notice ) . '<p class="dummy">' : '' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- notice HTML is wp_kses_post-sanitised above; the surrounding markup is static.
-	}
-
-	/**
-	 * Get the upgrade notice from WordPress.org.
-	 *
-	 * @param  string $version Smart Send new version.
-	 * @return string
-	 */
-	protected function get_upgrade_notice( $version ) {
-		$transient_name = 'ss_upgrade_notice_' . $version;
-		$upgrade_notice = get_transient( $transient_name );//Set to false to skip cashing for debugging
-
-		if ( false === $upgrade_notice ) {
-			$response = wp_safe_remote_get( 'https://plugins.svn.wordpress.org/smart-send-logistics/trunk/readme.txt' );
-
-			if ( ! is_wp_error( $response ) && ! empty( $response['body'] ) ) {
-				$upgrade_notice = $this->parse_update_notice( $response['body'], $version );
-				set_transient( $transient_name, $upgrade_notice, DAY_IN_SECONDS );
-			}
+		if ( ! $this->is_major_version_bump( SS_SHIPPING_VERSION, $response->new_version ) ) {
+			return;
 		}
-		return $upgrade_notice;
+
+		echo apply_filters( 'ss_in_plugin_update_message', '</p>' . wp_kses_post( $this->get_upgrade_notice() ) . '<p class="dummy">' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- notice HTML is wp_kses_post-sanitised above; the surrounding markup is static.
 	}
 
 	/**
-	 * Parse update notice from readme file.
+	 * Whether the available version differs from the installed version in
+	 * its major (semver) component.
 	 *
-	 * @param  string $content Smart Send readme file content.
-	 * @param  string $new_version Smart Send new version.
+	 * @param  string $installed_version Currently installed plugin version.
+	 * @param  string $new_version Version offered by the update.
+	 * @return bool
+	 */
+	protected function is_major_version_bump( $installed_version, $new_version ) {
+		return $this->major_version( $installed_version ) !== $this->major_version( $new_version );
+	}
+
+	/**
+	 * Extract the major version component from a semver-ish version string.
+	 *
+	 * @param  string $version Version string, e.g. "8.2.0".
 	 * @return string
 	 */
-	private function parse_update_notice( $content, $new_version ) {
-		$version_parts     = explode( '.', $new_version );
-		$check_for_notices = array(
-			$version_parts[0] . '.0', // Major.
-			$version_parts[0] . '.0.0', // Major.
-			$version_parts[0] . '.' . $version_parts[1], // Minor.
-			$version_parts[0] . '.' . $version_parts[1] . '.' . $version_parts[2], // Patch.
+	private function major_version( $version ) {
+		$parts = explode( '.', $version );
+
+		return $parts[0];
+	}
+
+	/**
+	 * Build the fixed, translated major-version upgrade notice.
+	 *
+	 * @return string
+	 */
+	protected function get_upgrade_notice() {
+		$notice = sprintf(
+			/* translators: %s: URL to the plugin's WordPress.org upgrade notice section. */
+			__( 'This is a major version upgrade. In most cases it will work without any issues. If you have extended this plugin\'s functionality or used its filters/actions, please consult the <a href="%s" target="_blank">upgrade guide</a> before upgrading to make sure everything keeps working.', 'smart-send-logistics' ),
+			esc_url( 'https://wordpress.org/plugins/smart-send-logistics/#upgrade-notice' )
 		);
 
-		// Remove any duplicates to not display the message twice
-		$check_for_notices = array_unique( $check_for_notices );
-
-		$notice_regexp  = '~==\s*Upgrade Notice\s*==\s*=\s*(.*)\s*=(.*)(=\s*' . preg_quote( $new_version, '~' ) . '\s*=|$)~Uis';
-		$upgrade_notice = '';
-
-		foreach ( $check_for_notices as $check_version ) {
-			if ( version_compare( SS_SHIPPING_VERSION, $check_version, '>' ) ) {
-				continue;
-			}
-
-			$matches = null;
-			if ( preg_match( $notice_regexp, $content, $matches ) ) {
-				$notices = (array) preg_split( '~[\r\n]+~', trim( $matches[2] ) );
-
-				if ( version_compare( trim( $matches[1] ), $check_version, '=' ) ) {
-					$upgrade_notice .= '<p class="wc_plugin_upgrade_notice">';
-					$upgrade_notice .= preg_replace( '/\[([^\[]+)\]\(([^\)]+)\)/', "<a href='$2' target='_blank'>$1</a>", $notices[0] );//Replace markdown links
-					$upgrade_notice .= '</p>';
-				}
-			}
-		}
-
-		return wp_kses_post( $upgrade_notice );
+		return '<p class="wc_plugin_upgrade_notice">' . $notice . '</p>';
 	}
 }
