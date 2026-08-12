@@ -150,12 +150,13 @@ if ( ! class_exists( 'SS_Shipping_Order_Data' ) ) :
 
 				$quantity = $item->get_quantity();
 
-				// Total w/o tax and individual w/o tax.
-				$total_price_excluding_tax = (float) $item->get_subtotal();
+				// Total w/o tax and individual w/o tax. Clamped at >= 0 so a
+				// negative line never produces a negative item value (#54).
+				$total_price_excluding_tax = max( 0.0, (float) $item->get_subtotal() );
 				$unit_price_excluding_tax  = $total_price_excluding_tax / $quantity;
 
 				// Total tax.
-				$total_tax_amount = (float) $item->get_subtotal_tax();
+				$total_tax_amount = max( 0.0, (float) $item->get_subtotal_tax() );
 
 				// Total w/ tax and individual w/ tax.
 				$total_price_including_tax = $total_price_excluding_tax + $total_tax_amount;
@@ -186,47 +187,56 @@ if ( ! class_exists( 'SS_Shipping_Order_Data' ) ) :
 		/**
 		 * Get the order totals used on the shipment and parcel level.
 		 *
+		 * The rule (see issue #72): totals are derived from what WooCommerce
+		 * itself reports via CRUD getters and reconcile with
+		 * WC_Order::get_total(): subtotal + shipping = total, on both the
+		 * including-tax and excluding-tax basis. Every value is clamped at
+		 * >= 0, so a discount or gift card larger than the item value (which
+		 * can push the non-shipping subtotal negative) never produces a
+		 * negative amount in the booking request (#54). When a clamp kicks
+		 * in, the clamped value wins over strict reconciliation.
+		 *
 		 * @return array {
 		 *     Order totals.
 		 *
-		 *     @type float|string $subtotal_price_excluding_tax Order total excl. shipping, excl. tax.
-		 *     @type float|string $subtotal_price_including_tax Order total excl. shipping, incl. tax.
-		 *     @type float|string $subtotal_tax_amount          Tax on the order total excl. shipping.
-		 *     @type float|string $shipping_price_excluding_tax Shipping cost excl. tax.
-		 *     @type float|string $shipping_price_including_tax Shipping cost incl. tax.
-		 *     @type float|string $shipping_tax_amount          Tax on the shipping cost.
-		 *     @type float|string $total_price_excluding_tax    Order total excl. tax.
-		 *     @type float|string $total_price_including_tax    Order total incl. tax.
-		 *     @type float|string $total_tax_amount             Total tax on the order.
-		 *     @type string       $currency                     Order currency code.
+		 *     @type float  $subtotal_price_excluding_tax Order total excl. shipping, excl. tax.
+		 *     @type float  $subtotal_price_including_tax Order total excl. shipping, incl. tax.
+		 *     @type float  $subtotal_tax_amount          Tax on the order total excl. shipping.
+		 *     @type float  $shipping_price_excluding_tax Shipping cost excl. tax.
+		 *     @type float  $shipping_price_including_tax Shipping cost incl. tax.
+		 *     @type float  $shipping_tax_amount          Tax on the shipping cost.
+		 *     @type float  $total_price_excluding_tax    Order total excl. tax.
+		 *     @type float  $total_price_including_tax    Order total incl. tax.
+		 *     @type float  $total_tax_amount             Total tax on the order.
+		 *     @type string $currency                     Order currency code.
 		 * }
 		 */
 		public function get_totals() {
-			// Order totals.
-			$order_total      = $this->order->get_total();
-			$order_total_tax  = $this->order->get_total_tax();
-			$order_total_excl = $order_total - $order_total_tax;
+			// Order totals, as WooCommerce itself reports them.
+			$total_including_tax = (float) $this->order->get_total();
+			$total_tax           = (float) $this->order->get_total_tax();
+			$total_excluding_tax = $total_including_tax - $total_tax;
 
-			// Shipping totals.
-			$order_shipping      = $this->order->get_shipping_total();
-			$order_shipping_tax  = $this->order->get_shipping_tax();
-			$order_shipping_excl = $order_shipping - $order_shipping_tax;
+			// Shipping totals. WC_Order::get_shipping_total() is excluding tax.
+			$shipping_excluding_tax = (float) $this->order->get_shipping_total();
+			$shipping_tax           = (float) $this->order->get_shipping_tax();
+			$shipping_including_tax = $shipping_excluding_tax + $shipping_tax;
 
-			// Order totals without shipping.
-			$order_subtotal      = $order_total - $order_shipping;
-			$order_subtotal_tax  = $order_total_tax - $order_shipping_tax;
-			$order_subtotal_excl = $order_total_excl - $order_subtotal_tax;
+			// The non-shipping part of the order: items, fees and discounts.
+			$subtotal_including_tax = $total_including_tax - $shipping_including_tax;
+			$subtotal_tax           = $total_tax - $shipping_tax;
+			$subtotal_excluding_tax = $subtotal_including_tax - $subtotal_tax;
 
 			return array(
-				'subtotal_price_excluding_tax' => $order_subtotal_excl,
-				'subtotal_price_including_tax' => $order_subtotal,
-				'subtotal_tax_amount'          => $order_subtotal_tax,
-				'shipping_price_excluding_tax' => $order_shipping_excl,
-				'shipping_price_including_tax' => $order_shipping,
-				'shipping_tax_amount'          => $order_shipping_tax,
-				'total_price_excluding_tax'    => $order_total_excl,
-				'total_price_including_tax'    => $order_total,
-				'total_tax_amount'             => $order_total_tax,
+				'subtotal_price_excluding_tax' => max( 0.0, $subtotal_excluding_tax ),
+				'subtotal_price_including_tax' => max( 0.0, $subtotal_including_tax ),
+				'subtotal_tax_amount'          => max( 0.0, $subtotal_tax ),
+				'shipping_price_excluding_tax' => max( 0.0, $shipping_excluding_tax ),
+				'shipping_price_including_tax' => max( 0.0, $shipping_including_tax ),
+				'shipping_tax_amount'          => max( 0.0, $shipping_tax ),
+				'total_price_excluding_tax'    => max( 0.0, $total_excluding_tax ),
+				'total_price_including_tax'    => max( 0.0, $total_including_tax ),
+				'total_tax_amount'             => max( 0.0, $total_tax ),
 				'currency'                     => $this->order->get_currency(),
 			);
 		}
