@@ -74,6 +74,7 @@ class SS_Shipping_Logger {
 	 *     @type int|string  $status_code   HTTP status code of the response.
 	 *     @type string      $response_body Raw response body.
 	 *     @type bool        $success       Whether the client deemed the call successful.
+	 *     @type object|null $error         Smartsend\Models\Error describing the failure, if any.
 	 *     @type int|null    $start_time    Timestamp when the request started.
 	 *     @type int|null    $end_time      Timestamp when the request finished.
 	 * }
@@ -92,6 +93,15 @@ class SS_Shipping_Logger {
 		}
 
 		$message .= "\n" . 'Response body: ' . ( isset( $context['response_body'] ) && '' !== $context['response_body'] ? $context['response_body'] : '(empty)' );
+
+		if ( empty( $context['success'] ) && ! empty( $context['error'] ) && is_object( $context['error'] ) ) {
+			$error_code    = isset( $context['error']->code ) && is_scalar( $context['error']->code ) ? (string) $context['error']->code : '';
+			$error_message = isset( $context['error']->message ) && is_scalar( $context['error']->message ) ? (string) $context['error']->message : '';
+
+			if ( '' !== $error_code || '' !== $error_message ) {
+				$message .= "\n" . 'Error: ' . trim( $error_code . ' - ' . $error_message, ' -' );
+			}
+		}
 
 		$start_time = isset( $context['start_time'] ) ? $context['start_time'] : null;
 		$end_time   = isset( $context['end_time'] ) ? $context['end_time'] : null;

@@ -439,6 +439,7 @@ class Client
 
 	    // Make request
 	    $this->request_started_at = time();
+	    $this->request_headers = $headers_key_value;
 	    $res = wp_remote_request($this->request_endpoint, array(
 		    'method'     => strtoupper($http_verb),
 		    'user-agent' => $this->getUserAgent(),
@@ -454,28 +455,14 @@ class Client
 
         // Save http status code and headers
 	    $this->debug = $res;
-	    $this->request_headers = wp_remote_retrieve_headers($res);
+	    $this->response_headers = wp_remote_retrieve_headers($res);
 	    $this->http_status_code = wp_remote_retrieve_response_code($res);
 	    $this->content_type = wp_remote_retrieve_header($res, 'content-type');
 
+        // Transport-level failure: the request never produced an HTTP response
         if (is_wp_error($res)) {
             $this->success = false;
-            $error = new Error();
-
-	        if ($res->get_error_message() == 'cURL error 35: SSL connect error') {
-		        $error->links = null;
-		        $error->id = null;
-		        $error->code = 'curl-35';
-		        $error->message =  'Unsupported cURL version. This is a security issue. Please ask your host to update cURL.';
-	        } else {
-		        $error->links = null;
-		        $error->id = null;
-		        $error->code = $res->get_error_code();
-		        $error->message =  $res->get_error_message();
-	        }
-
-            $error->errors = array();
-            $this->error = $error;
+            $this->error = $this->createErrorFromWpError($res);
             $this->logRequest($http_verb);
             return $this->success;
         }
@@ -488,32 +475,22 @@ class Client
         //Error if response is not 2xx
         if ($this->http_status_code < 200 || $this->http_status_code > 299 ) {
             $this->success = false;
-            if (!empty($this->response->message)) {
-                $this->error = $this->response;
+
+            if (is_object($this->response) && !empty($this->response->message)) {
+                // Well-formed API error body (e.g. a validation error)
+                $this->error = $this->createErrorFromApiResponse($this->response);
             } elseif (empty($this->response_body)) {
-                $error = new Error();
-                $error->links = null;
-                $error->id = null;
-                $error->code = (int) $this->http_status_code;
-                $error->message = 'No API response';
-                $error->errors = array();
-                $this->error = $error;
-            } elseif (empty($this->response)) {
-                $error = new Error();
-                $error->links = null;
-                $error->id = null;
-                $error->code = (int) $this->http_status_code;
-                $error->message = 'Unknown API response';
-                $error->errors = array();
-                $this->error = $error;
+                $this->error = $this->createError(
+                    'api-empty-response',
+                    'The Smart Send API returned an empty response (HTTP '.$this->http_status_code.'). Please try again later.'
+                );
             } else {
-                $error = new Error();
-                $error->links = null;
-                $error->id = null;
-                $error->code = (int) $this->http_status_code;
-                $error->message = $this->response;
-                $error->errors = array();
-                $this->error = $error;
+                // Body present but not a parseable/recognisable JSON error
+                $this->error = $this->createError(
+                    'api-malformed-response',
+                    'The Smart Send API returned an unexpected response (HTTP '.$this->http_status_code.'). Please try again later.',
+                    array('response' => array($this->truncateForError($this->response_body)))
+                );
             }
 
             $this->logRequest($http_verb);
@@ -525,35 +502,24 @@ class Client
             if ($http_verb == 'delete') {
                 //Return TRUE for DELETE with no BODY
                 $this->success = true;
-            } elseif (!empty($this->response->message)) {
-                $this->error = $this->response;
+            } elseif (is_object($this->response) && !empty($this->response->message)) {
+                $this->error = $this->createErrorFromApiResponse($this->response);
                 $this->success = false;
             } elseif (empty($this->response_body)) {
-                $error = new Error();
-                $error->links = null;
-                $error->id = null;
-                $error->code = 'HTTP' . $this->http_status_code;
-                $error->message = 'No API response';
-                $error->errors = array();
-                $this->error = $error;
+                $this->error = $this->createError(
+                    'api-empty-response',
+                    'The Smart Send API returned an empty response (HTTP '.$this->http_status_code.'). Please try again later.'
+                );
                 $this->success = false;
             } elseif (isset($this->response->data)) {
-                $error = new Error();
-                $error->links = null;
-                $error->id = null;
-                $error->code = 'NoResults';
-                $error->message = 'No results found';
-                $error->errors = array();
-                $this->error = $error;
+                $this->error = $this->createError('NoResults', 'No results found');
                 $this->success = false;
             } else {
-                $error = new Error();
-                $error->links = null;
-                $error->id = null;
-                $error->code = 'HTTP'.$this->http_status_code;
-                $error->message = $this->response_body;
-                $error->errors = array();
-                $this->error = $error;
+                $this->error = $this->createError(
+                    'api-malformed-response',
+                    'The Smart Send API returned an unexpected response (HTTP '.$this->http_status_code.'). Please try again later.',
+                    array('response' => array($this->truncateForError($this->response_body)))
+                );
                 $this->success = false;
             }
         } else {
@@ -567,6 +533,167 @@ class Client
 
         $this->logRequest($http_verb);
         return $this->success;
+    }
+
+    /**
+     * Build a Smartsend Error value object.
+     *
+     * @param   string|int $code Machine-readable error code
+     * @param   string $message Human-readable error message
+     * @param   array $errors Optional assoc array of error details
+     * @return  Error
+     */
+    private function createError($code, $message, $errors = array())
+    {
+        $error = new Error();
+        $error->links = null;
+        $error->id = null;
+        $error->code = $code;
+        $error->message = $message;
+        $error->errors = $errors;
+
+        return $error;
+    }
+
+    /**
+     * Normalise a decoded API error body (stdClass) into an Error value
+     * object, keeping the fields the API provided (links, id, code,
+     * message, errors).
+     *
+     * @param   object $response Decoded JSON error body
+     * @return  Error
+     */
+    private function createErrorFromApiResponse($response)
+    {
+        $error = new Error();
+        $error->links = isset($response->links) ? $response->links : null;
+        $error->id = isset($response->id) ? $response->id : null;
+        $error->code = !empty($response->code) ? $response->code : (int) $this->http_status_code;
+        $error->message = $response->message;
+        $error->errors = isset($response->errors) ? $response->errors : array();
+
+        return $error;
+    }
+
+    /**
+     * Map a WP_Error returned by the WordPress HTTP API to a meaningful,
+     * distinguishable Smartsend Error. The raw WP_Error code and message
+     * are preserved in the errors array for support/debugging.
+     *
+     * @param   \WP_Error $wp_error
+     * @return  Error
+     */
+    private function createErrorFromWpError($wp_error)
+    {
+        $wp_error_code = $wp_error->get_error_code();
+        $wp_error_message = $wp_error->get_error_message();
+
+        if ($this->isTimeoutError($wp_error_message)) {
+            $code = 'transport-timeout';
+            $message = 'The connection to the Smart Send API timed out. Please try again. If the problem persists, ask your host whether outgoing requests to app.smartsend.io are blocked or slow.';
+        } elseif ($this->isSslError($wp_error_message)) {
+            $code = 'transport-ssl';
+            $message = 'A secure (SSL/TLS) connection to the Smart Send API could not be established. Please ask your host to update the server\'s SSL/TLS libraries and CA certificates.';
+        } elseif ($this->isConnectionError($wp_error_message)) {
+            $code = 'transport-connection';
+            $message = 'Could not connect to the Smart Send API. Please check that the server can reach app.smartsend.io (DNS and outgoing HTTPS connections) and try again.';
+        } else {
+            $code = 'transport-'.($wp_error_code ? $wp_error_code : 'unknown');
+            $message = 'The request to the Smart Send API failed before a response was received: '.$wp_error_message;
+        }
+
+        return $this->createError($code, $message, array(
+            'transport' => array($wp_error_code.': '.$wp_error_message),
+        ));
+    }
+
+    /**
+     * Whether a WP_Error message describes a timed-out request.
+     *
+     * @param   string $message
+     * @return  bool
+     */
+    private function isTimeoutError($message)
+    {
+        return $this->messageContainsAny($message, array(
+            'timed out',
+            'timeout',
+            'curl error 28',
+        ));
+    }
+
+    /**
+     * Whether a WP_Error message describes an SSL/TLS failure.
+     *
+     * @param   string $message
+     * @return  bool
+     */
+    private function isSslError($message)
+    {
+        return $this->messageContainsAny($message, array(
+            'ssl',
+            'certificate',
+            'curl error 35:',
+            'curl error 51:',
+            'curl error 58:',
+            'curl error 60:',
+        ));
+    }
+
+    /**
+     * Whether a WP_Error message describes a DNS/connection failure.
+     *
+     * @param   string $message
+     * @return  bool
+     */
+    private function isConnectionError($message)
+    {
+        return $this->messageContainsAny($message, array(
+            'could not resolve',
+            "couldn't resolve",
+            'name or service not known',
+            'connection refused',
+            'failed to connect',
+            'network is unreachable',
+            'curl error 6:',
+            'curl error 7:',
+        ));
+    }
+
+    /**
+     * Case-insensitive check whether a message contains any of the needles.
+     *
+     * @param   string $message
+     * @param   array $needles
+     * @return  bool
+     */
+    private function messageContainsAny($message, $needles)
+    {
+        foreach ($needles as $needle) {
+            if (stripos((string) $message, $needle) !== false) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * Truncate a raw response body so it can be embedded in an error
+     * without dumping an entire HTML page on the merchant.
+     *
+     * @param   string $body
+     * @return  string
+     */
+    private function truncateForError($body)
+    {
+        $body = (string) $body;
+
+        if (strlen($body) > 500) {
+            return substr($body, 0, 500).'...';
+        }
+
+        return $body;
     }
 
 }
