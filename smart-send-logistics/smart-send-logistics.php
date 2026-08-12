@@ -36,7 +36,7 @@ if (!class_exists('SS_Shipping_WC')) :
     class SS_Shipping_WC
     {
 
-        private $version = "8.2.0";
+		private $version = '8.2.0';
 
         /**
          * Instance to call certain functions globally within the plugin
