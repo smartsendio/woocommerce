@@ -256,8 +256,34 @@ if ( ! class_exists( 'SS_Shipping_WC_Method' ) ) :
 			// Set tax status based on selection otherwise always taxed
 			$this->tax_status = $this->get_option( 'tax_status' );
 
-			// Check if free shipping, otherwise claculate based on weight and evaluate formulas
-			if ( $this->is_free_shipping( $package ) ) {
+			// The weight table defines which cart weights the method is available for at
+			// all - an empty table means every weight is valid. Free shipping is only
+			// ever applied on top of an otherwise-available rate: it never overrules the
+			// weight table (see issue #16 - this reorders the v8 behaviour, which let the
+			// flat-rate threshold skip the weight table entirely).
+			$cart_weight     = WC()->cart->get_cart_contents_weight();
+			$weight_costs    = $this->get_option( 'cost_weight', array() );
+			$weight_unit     = get_option( 'woocommerce_weight_unit' );
+			$weight_in_table = $this->is_weight_within_table( $cart_weight, $weight_costs );
+
+			if ( ! $weight_in_table ) {
+				SS_Shipping_Logger::debug(
+					sprintf( 'Smart Send "%1$s": no rate added - cart weight %2$s %3$s did not match any weight table row.', $rate['label'], $cart_weight, $weight_unit ),
+					array(
+						'rate_id'     => $rate['id'],
+						'cart_weight' => $cart_weight,
+					)
+				);
+				SS_Shipping_Checkout_Debug::add_notice(
+					sprintf(
+						/* translators: 1: shipping rate label, 2: cart weight, 3: weight unit. */
+						__( 'Smart Send "%1$s": no rate added - cart weight %2$s %3$s did not match any weight table row.', 'smart-send-logistics' ),
+						$rate['label'],
+						$cart_weight,
+						$weight_unit
+					)
+				);
+			} elseif ( $this->is_free_shipping( $package ) ) {
 
 				$rate['cost'] = $this->get_option( 'flatfee_cost' );
 				$this->add_rate( $rate );
@@ -278,10 +304,6 @@ if ( ! class_exists( 'SS_Shipping_WC_Method' ) ) :
 				);
 
 			} else {
-				$cart_weight  = WC()->cart->get_cart_contents_weight();
-				$weight_costs = $this->get_option( 'cost_weight', array() );
-
-				$weight_unit  = get_option( 'woocommerce_weight_unit' );
 				$rate_added   = false;
 				$matched_rows = array();
 
@@ -513,6 +535,38 @@ if ( ! class_exists( 'SS_Shipping_WC_Method' ) ) :
 			// Built from the constant (never $this->id) so the hook name can't drift
 			// out of sync with it if SS_SHIPPING_METHOD_ID's value ever changes - see #106.
 			return apply_filters( 'woocommerce_shipping_' . SS_SHIPPING_METHOD_ID . '_is_available', $is_available, $package, $this );
+		}
+
+		/**
+		 * Whether the cart weight falls inside a configured weight table row.
+		 *
+		 * The weight table defines which weights the method is available for at
+		 * all - an empty table means every weight is valid (see issue #16).
+		 *
+		 * @param float $cart_weight  The cart's total weight.
+		 * @param array $weight_costs The configured weight table rows.
+		 * @return bool
+		 */
+		protected function is_weight_within_table( $cart_weight, $weight_costs ) {
+			if ( empty( $weight_costs ) ) {
+				return true;
+			}
+
+			foreach ( $weight_costs as $weight_cost ) {
+				// If min weight is set and the cart weight is below it, this row does not apply.
+				if ( ! empty( $weight_cost['ss_min_weight'] ) && ( $cart_weight < $weight_cost['ss_min_weight'] ) ) {
+					continue;
+				}
+
+				// If max weight is set and the cart weight is at or above it, this row does not apply.
+				if ( ! empty( $weight_cost['ss_max_weight'] ) && ( $cart_weight >= $weight_cost['ss_max_weight'] ) ) {
+					continue;
+				}
+
+				return true;
+			}
+
+			return false;
 		}
 
 		/**
