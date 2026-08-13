@@ -453,16 +453,16 @@ if ( ! class_exists( 'SS_Shipping_WC_Method' ) ) :
 					$display_shipping_class_opt = $this->get_instance_option( 'display_shipping_class_opt' );
 
 					switch ( $display_shipping_class_opt ) {
-						case 'all_shipping_class':
+						case SS_Shipping_Method_Settings::SHIPPING_CLASS_OPT_ALL:
 							$is_available = $all_in_array;
 							break;
-						case 'one_shipping_class':
+						case SS_Shipping_Method_Settings::SHIPPING_CLASS_OPT_ONE:
 							$is_available = $one_in_array;
 							break;
-						case 'nall_shipping_class':
+						case SS_Shipping_Method_Settings::SHIPPING_CLASS_OPT_NALL:
 							$is_available = ! $one_in_array;
 							break;
-						case 'none_shipping_class':
+						case SS_Shipping_Method_Settings::SHIPPING_CLASS_OPT_NONE:
 							$is_available = ! $all_in_array;
 							break;
 					}
@@ -522,7 +522,7 @@ if ( ! class_exists( 'SS_Shipping_WC_Method' ) ) :
 			$requires           = $this->get_instance_option( 'requires' );
 			$min_amount         = $this->get_instance_option( 'min_amount' );
 
-			if ( in_array( $requires, array( 'coupon', 'either', 'both' ) ) ) { // phpcs:ignore WordPress.PHP.StrictInArray.MissingTrueStrict -- pre-existing loose in_array; tightening is a behaviour change out of scope for the #43 move.
+			if ( in_array( $requires, array( SS_Shipping_Method_Settings::REQUIRES_COUPON, SS_Shipping_Method_Settings::REQUIRES_EITHER, SS_Shipping_Method_Settings::REQUIRES_BOTH ) ) ) { // phpcs:ignore WordPress.PHP.StrictInArray.MissingTrueStrict -- pre-existing loose in_array; tightening is a behaviour change out of scope for the #43 move.
 				$coupons = WC()->cart->get_coupons();
 				if ( $coupons ) {
 					foreach ( $coupons as $code => $coupon ) {
@@ -534,7 +534,7 @@ if ( ! class_exists( 'SS_Shipping_WC_Method' ) ) :
 				}
 			}
 
-			if ( in_array( $requires, array( 'min_amount', 'either', 'both' ) ) ) { // phpcs:ignore WordPress.PHP.StrictInArray.MissingTrueStrict -- pre-existing loose in_array; tightening is a behaviour change out of scope for the #43 move.
+			if ( in_array( $requires, array( SS_Shipping_Method_Settings::REQUIRES_MIN_AMOUNT, SS_Shipping_Method_Settings::REQUIRES_EITHER, SS_Shipping_Method_Settings::REQUIRES_BOTH ) ) ) { // phpcs:ignore WordPress.PHP.StrictInArray.MissingTrueStrict -- pre-existing loose in_array; tightening is a behaviour change out of scope for the #43 move.
 				$total = WC()->cart->get_displayed_subtotal();
 
 				if ( 'incl' === WC()->cart->get_tax_price_display_mode() ) {
@@ -552,22 +552,22 @@ if ( ! class_exists( 'SS_Shipping_WC_Method' ) ) :
 			}
 
 			switch ( $requires ) {
-				case 'min_amount':
+				case SS_Shipping_Method_Settings::REQUIRES_MIN_AMOUNT:
 					$is_available = $has_met_min_amount;
 					break;
-				case 'coupon':
+				case SS_Shipping_Method_Settings::REQUIRES_COUPON:
 					$is_available = $has_coupon;
 					break;
-				case 'both':
+				case SS_Shipping_Method_Settings::REQUIRES_BOTH:
 					$is_available = $has_met_min_amount && $has_coupon;
 					break;
-				case 'either':
+				case SS_Shipping_Method_Settings::REQUIRES_EITHER:
 					$is_available = $has_met_min_amount || $has_coupon;
 					break;
-				case 'enabled':
+				case SS_Shipping_Method_Settings::REQUIRES_ENABLED:
 					$is_available = true;
 					break;
-				case 'disabled':
+				case SS_Shipping_Method_Settings::REQUIRES_DISABLED:
 				default:
 					$is_available = false;
 					break;
@@ -593,7 +593,7 @@ if ( ! class_exists( 'SS_Shipping_WC_Method' ) ) :
 		 */
 		protected function report_shipping_class_availability( $display_shipping_class_opt, $is_available ) {
 			switch ( $display_shipping_class_opt ) {
-				case 'all_shipping_class':
+				case SS_Shipping_Method_Settings::SHIPPING_CLASS_OPT_ALL:
 					if ( $is_available ) {
 						$log_message = sprintf( 'Smart Send "%s": shipping method IS available, because ALL products belong to one of the shipping classes', $this->title );
 						/* translators: %s: shipping method title. */
@@ -604,7 +604,7 @@ if ( ! class_exists( 'SS_Shipping_WC_Method' ) ) :
 						$notice_message = sprintf( __( 'Smart Send "%s": shipping method is NOT available, because ALL products belong to one of the shipping classes', 'smart-send-logistics' ), $this->title );
 					}
 					break;
-				case 'one_shipping_class':
+				case SS_Shipping_Method_Settings::SHIPPING_CLASS_OPT_ONE:
 					if ( $is_available ) {
 						$log_message = sprintf( 'Smart Send "%s": shipping method IS available, because at least ONE product belongs to one of the shipping classes', $this->title );
 						/* translators: %s: shipping method title. */
@@ -615,7 +615,7 @@ if ( ! class_exists( 'SS_Shipping_WC_Method' ) ) :
 						$notice_message = sprintf( __( 'Smart Send "%s": shipping method is NOT available, because at least ONE product belongs to one of the shipping classes', 'smart-send-logistics' ), $this->title );
 					}
 					break;
-				case 'nall_shipping_class':
+				case SS_Shipping_Method_Settings::SHIPPING_CLASS_OPT_NALL:
 					if ( $is_available ) {
 						$log_message = sprintf( 'Smart Send "%s": shipping method IS available, because ALL products do NOT belong to one of the shipping classes', $this->title );
 						/* translators: %s: shipping method title. */
@@ -626,7 +626,7 @@ if ( ! class_exists( 'SS_Shipping_WC_Method' ) ) :
 						$notice_message = sprintf( __( 'Smart Send "%s": shipping method is NOT available, because ALL products do NOT belong to one of the shipping classes', 'smart-send-logistics' ), $this->title );
 					}
 					break;
-				case 'none_shipping_class':
+				case SS_Shipping_Method_Settings::SHIPPING_CLASS_OPT_NONE:
 					if ( $is_available ) {
 						$log_message = sprintf( 'Smart Send "%s": shipping method IS available, because at least ONE product does NOT belongs to one of the shipping classes', $this->title );
 						/* translators: %s: shipping method title. */
@@ -657,7 +657,7 @@ if ( ! class_exists( 'SS_Shipping_WC_Method' ) ) :
 		 */
 		protected function report_free_shipping_availability( $requires, $is_available, $total, $min_amount ) {
 			switch ( $requires ) {
-				case 'min_amount':
+				case SS_Shipping_Method_Settings::REQUIRES_MIN_AMOUNT:
 					if ( $is_available ) {
 						$log_message = sprintf( 'Smart Send "%1$s": free shipping (flat fee) IS available, because the total is %2$s a minimum order amount of %3$s is needed.', $this->title, $total, $min_amount );
 						/* translators: 1: shipping method title, 2: cart total, 3: minimum order amount. */
@@ -668,7 +668,7 @@ if ( ! class_exists( 'SS_Shipping_WC_Method' ) ) :
 						$notice_message = sprintf( __( 'Smart Send "%1$s": free shipping (flat fee) is NOT available, because the total is %2$s a minimum order amount of %3$s is needed.', 'smart-send-logistics' ), $this->title, $total, $min_amount );
 					}
 					break;
-				case 'coupon':
+				case SS_Shipping_Method_Settings::REQUIRES_COUPON:
 					if ( $is_available ) {
 						$log_message = sprintf( 'Smart Send "%s": free shipping (flat fee) IS available, because a coupon is needed.', $this->title );
 						/* translators: %s: shipping method title. */
@@ -679,7 +679,7 @@ if ( ! class_exists( 'SS_Shipping_WC_Method' ) ) :
 						$notice_message = sprintf( __( 'Smart Send "%s": free shipping (flat fee) is NOT available, because a coupon is needed.', 'smart-send-logistics' ), $this->title );
 					}
 					break;
-				case 'both':
+				case SS_Shipping_Method_Settings::REQUIRES_BOTH:
 					if ( $is_available ) {
 						$log_message = sprintf( 'Smart Send "%1$s": free shipping (flat fee) IS available, because the total is %2$s a minimum order amount of %3$s is needed AND a coupon is needed.', $this->title, $total, $min_amount );
 						/* translators: 1: shipping method title, 2: cart total, 3: minimum order amount. */
@@ -690,7 +690,7 @@ if ( ! class_exists( 'SS_Shipping_WC_Method' ) ) :
 						$notice_message = sprintf( __( 'Smart Send "%1$s": free shipping (flat fee) is NOT available, because the total is %2$s a minimum order amount of %3$s is needed AND a coupon is needed.', 'smart-send-logistics' ), $this->title, $total, $min_amount );
 					}
 					break;
-				case 'either':
+				case SS_Shipping_Method_Settings::REQUIRES_EITHER:
 					if ( $is_available ) {
 						$log_message = sprintf( 'Smart Send "%1$s": free shipping (flat fee) IS available, because the total is %2$s a minimum order amount of %3$s is needed OR a coupon is needed.', $this->title, $total, $min_amount );
 						/* translators: 1: shipping method title, 2: cart total, 3: minimum order amount. */
@@ -701,12 +701,12 @@ if ( ! class_exists( 'SS_Shipping_WC_Method' ) ) :
 						$notice_message = sprintf( __( 'Smart Send "%1$s": free shipping (flat fee) is NOT available, because the total is %2$s a minimum order amount of %3$s is needed OR a coupon is needed.', 'smart-send-logistics' ), $this->title, $total, $min_amount );
 					}
 					break;
-				case 'enabled':
+				case SS_Shipping_Method_Settings::REQUIRES_ENABLED:
 					$log_message = sprintf( 'Smart Send "%s": free shipping (flat fee) IS available, because it is always enabled.', $this->title );
 					/* translators: %s: shipping method title. */
 					$notice_message = sprintf( __( 'Smart Send "%s": free shipping (flat fee) IS available, because it is always enabled.', 'smart-send-logistics' ), $this->title );
 					break;
-				case 'disabled':
+				case SS_Shipping_Method_Settings::REQUIRES_DISABLED:
 					$log_message = sprintf( 'Smart Send "%s": free shipping (flat fee) is NOT available, because it is always disabled.', $this->title );
 					/* translators: %s: shipping method title. */
 					$notice_message = sprintf( __( 'Smart Send "%s": free shipping (flat fee) is NOT available, because it is always disabled.', 'smart-send-logistics' ), $this->title );

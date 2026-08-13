@@ -25,6 +25,86 @@ if ( ! class_exists( 'SS_Shipping_Method_Settings' ) ) :
 	class SS_Shipping_Method_Settings {
 
 		/**
+		 * Shipping-class requirement mode: no restriction ("N/A").
+		 *
+		 * @var string
+		 */
+		const SHIPPING_CLASS_OPT_NA = 'no_shipping_class';
+
+		/**
+		 * Shipping-class requirement mode: ALL products belong to one of the shipping classes.
+		 *
+		 * @var string
+		 */
+		const SHIPPING_CLASS_OPT_ALL = 'all_shipping_class';
+
+		/**
+		 * Shipping-class requirement mode: at least ONE product belongs to one of the shipping classes.
+		 *
+		 * @var string
+		 */
+		const SHIPPING_CLASS_OPT_ONE = 'one_shipping_class';
+
+		/**
+		 * Shipping-class requirement mode: ALL products do NOT belong to one of the shipping classes.
+		 *
+		 * Spelling ("nall") is preserved exactly as persisted in existing merchant
+		 * settings - see the #109 investigation note in this class's docblock.
+		 *
+		 * @var string
+		 */
+		const SHIPPING_CLASS_OPT_NALL = 'nall_shipping_class';
+
+		/**
+		 * Shipping-class requirement mode: at least ONE product does NOT belong to one of the shipping classes.
+		 *
+		 * @var string
+		 */
+		const SHIPPING_CLASS_OPT_NONE = 'none_shipping_class';
+
+		/**
+		 * Free-shipping (flat fee) requirement mode: always disabled.
+		 *
+		 * @var string
+		 */
+		const REQUIRES_DISABLED = 'disabled';
+
+		/**
+		 * Free-shipping (flat fee) requirement mode: always enabled.
+		 *
+		 * @var string
+		 */
+		const REQUIRES_ENABLED = 'enabled';
+
+		/**
+		 * Free-shipping (flat fee) requirement mode: a valid free shipping coupon.
+		 *
+		 * @var string
+		 */
+		const REQUIRES_COUPON = 'coupon';
+
+		/**
+		 * Free-shipping (flat fee) requirement mode: a minimum order amount.
+		 *
+		 * @var string
+		 */
+		const REQUIRES_MIN_AMOUNT = 'min_amount';
+
+		/**
+		 * Free-shipping (flat fee) requirement mode: a minimum order amount OR a coupon.
+		 *
+		 * @var string
+		 */
+		const REQUIRES_EITHER = 'either';
+
+		/**
+		 * Free-shipping (flat fee) requirement mode: a minimum order amount AND a coupon.
+		 *
+		 * @var string
+		 */
+		const REQUIRES_BOTH = 'both';
+
+		/**
 		 * The shipping method instance the settings belong to.
 		 *
 		 * @var SS_Shipping_WC_Method
@@ -325,12 +405,12 @@ if ( ! class_exists( 'SS_Shipping_Method_Settings' ) ) :
 					'class'   => 'wc-enhanced-select',
 					'default' => '',
 					'options' => array(
-						'disabled'   => __( 'Always disabled', 'smart-send-logistics' ),
-						'enabled'    => __( 'Always enabled', 'smart-send-logistics' ),
-						'coupon'     => __( 'A valid free shipping coupon', 'smart-send-logistics' ),
-						'min_amount' => __( 'A minimum order amount', 'smart-send-logistics' ),
-						'either'     => __( 'A minimum order amount OR a coupon', 'smart-send-logistics' ),
-						'both'       => __( 'A minimum order amount AND a coupon', 'smart-send-logistics' ),
+						self::REQUIRES_DISABLED   => __( 'Always disabled', 'smart-send-logistics' ),
+						self::REQUIRES_ENABLED    => __( 'Always enabled', 'smart-send-logistics' ),
+						self::REQUIRES_COUPON     => __( 'A valid free shipping coupon', 'smart-send-logistics' ),
+						self::REQUIRES_MIN_AMOUNT => __( 'A minimum order amount', 'smart-send-logistics' ),
+						self::REQUIRES_EITHER     => __( 'A minimum order amount OR a coupon', 'smart-send-logistics' ),
+						self::REQUIRES_BOTH       => __( 'A minimum order amount AND a coupon', 'smart-send-logistics' ),
 					),
 				),
 				'flatfee_cost'               => array(
@@ -381,20 +461,20 @@ if ( ! class_exists( 'SS_Shipping_Method_Settings' ) ) :
 					),
 					'default'     => '',
 					'options'     => array(
-						'no_shipping_class'   => __( 'N/A', 'smart-send-logistics' ),
-						'all_shipping_class'  => __(
+						self::SHIPPING_CLASS_OPT_NA   => __( 'N/A', 'smart-send-logistics' ),
+						self::SHIPPING_CLASS_OPT_ALL  => __(
 							'ALL products belong to one of the shipping classes',
 							'smart-send-logistics'
 						),
-						'one_shipping_class'  => __(
+						self::SHIPPING_CLASS_OPT_ONE  => __(
 							'At least ONE product belongs to one of the shipping classes',
 							'smart-send-logistics'
 						),
-						'nall_shipping_class' => __(
+						self::SHIPPING_CLASS_OPT_NALL => __(
 							'ALL products do NOT belong to one of the shipping classes',
 							'smart-send-logistics'
 						),
-						'none_shipping_class' => __(
+						self::SHIPPING_CLASS_OPT_NONE => __(
 							'At least ONE product does NOT belongs to one of the shipping classes',
 							'smart-send-logistics'
 						),
