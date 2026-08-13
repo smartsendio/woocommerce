@@ -69,16 +69,18 @@ if ( ! class_exists( 'SS_Shipping_Order_Bulk_Actions' ) ) :
 		 */
 		public function register_bulk_order_actions( SS_Shipping_WC_Order $order_integration ) {
 			// The HPOS CustomOrdersTableController exists since WC 6.4; the plugin's WC floor is 4.7.
-			$screen = class_exists( '\Automattic\WooCommerce\Internal\DataStores\Orders\CustomOrdersTableController' )
-				&& wc_get_container()->get( CustomOrdersTableController::class )->custom_orders_table_usage_is_enabled()
-				? 'woocommerce_page_wc-orders' // function not available wc_get_page_screen_id( 'shop-order' )
-				: 'edit-shop_order'; // Index page is called 'edit-shop_order' and not just 'shop_order' as stated in the url
+			$hpos_enabled = class_exists( '\Automattic\WooCommerce\Internal\DataStores\Orders\CustomOrdersTableController' )
+				&& wc_get_container()->get( CustomOrdersTableController::class )->custom_orders_table_usage_is_enabled();
 
-			// An actions in the dropdown
-			add_filter( "bulk_actions-{$screen}", array( $order_integration, 'add_bulk_order_actions' ) );
-
-			// Handling the form submission
-			add_filter( "handle_bulk_actions-{$screen}", array( $order_integration, 'handle_bulk_order_actions' ), 10, 3 );
+			if ( $hpos_enabled ) {
+				// function not available wc_get_page_screen_id( 'shop-order' )
+				add_filter( 'bulk_actions-woocommerce_page_wc-orders', array( $order_integration, 'add_bulk_order_actions' ) );
+				add_filter( 'handle_bulk_actions-woocommerce_page_wc-orders', array( $order_integration, 'handle_bulk_order_actions' ), 10, 3 );
+			} else {
+				// Index page is called 'edit-shop_order' and not just 'shop_order' as stated in the url
+				add_filter( 'bulk_actions-edit-shop_order', array( $order_integration, 'add_bulk_order_actions' ) );
+				add_filter( 'handle_bulk_actions-edit-shop_order', array( $order_integration, 'handle_bulk_order_actions' ), 10, 3 );
+			}
 		}
 
 		public function add_bulk_order_actions( $bulk_actions ) {
