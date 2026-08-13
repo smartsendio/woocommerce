@@ -184,7 +184,7 @@ if ( ! class_exists( 'SS_Shipping_Order_Meta' ) ) :
 				if ( ! empty( $shipping_method_carrier ) && ! empty( $shipping_address['country'] ) ) {
 
 					// API call to get agent info by agent no.
-					if ( SS_SHIPPING_WC()->get_api_handle()->getAgentByAgentNo( $shipping_method_carrier, $shipping_address['country'], $ss_shipping_agent_no ) ) {
+					if ( SS_SHIPPING_WC()->get_api_handle()->pickupPoints()->findByAgentNo( $shipping_method_carrier, $shipping_address['country'], $ss_shipping_agent_no ) ) {
 
 						SS_Shipping_Logger::info(
 							'Pickup point changed on order',

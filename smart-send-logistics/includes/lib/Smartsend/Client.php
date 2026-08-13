@@ -464,6 +464,13 @@ class Client
 		    'timeout'    => $timeout,
 		    'httpversion' => '1.1',
             'sslverify'  => apply_filters('smart_send_sslverify', true),
+            // Equivalent to using wp_safe_remote_*(): the endpoint is
+            // filterable at runtime (smart_send_api_endpoint), so reject
+            // requests that resolve to a private/internal IP range (SSRF
+            // hardening). Independent of sslverify above and does not
+            // affect the mocked pre_http_request tests, which short-circuit
+            // before this check runs.
+            'reject_unsafe_urls' => true,
 	    ));
 
         // execute request

@@ -283,7 +283,7 @@ if ( ! class_exists( 'SS_Shipping_Order_Bulk_Actions' ) ) :
 			} elseif ( count( $array_shipment_ids ) > 1 ) {
 				// If more than one smart send shipment label created, then create combo labels.
 				// Create combined label with successful shipments
-				$combined_shipments = SS_SHIPPING_WC()->get_api_handle()->combineLabelsForShipments(
+				$combined_shipments = SS_SHIPPING_WC()->get_api_handle()->bookings()->combine(
 					wp_list_pluck(
 						$array_shipment_ids,
 						'shipment_id'
