@@ -68,7 +68,9 @@ if ( ! class_exists( 'SS_Shipping_WC_Method' ) ) :
 			// Set title so can be viewed in zone screen
 			$this->title = $this->get_option( 'title' );
 
-			add_action( 'woocommerce_update_options_shipping_' . $this->id, array( $this, 'process_admin_options' ) );
+			// Built from the constant (never $this->id) so the hook name can't drift
+			// out of sync with it if SS_SHIPPING_METHOD_ID's value ever changes - see #106.
+			add_action( 'woocommerce_update_options_shipping_' . SS_SHIPPING_METHOD_ID, array( $this, 'process_admin_options' ) );
 			// Admin script
 			add_action( 'admin_enqueue_scripts', array( $this, 'load_admin_scripts' ) );
 		}
@@ -419,7 +421,9 @@ if ( ! class_exists( 'SS_Shipping_WC_Method' ) ) :
 			 *            $method->add_rate( $new_rate );
 			 *        }.
 			 */
-			do_action( 'woocommerce_' . $this->id . '_shipping_add_rate', $this, $rate );
+			// Built from the constant (never $this->id) so the hook name can't drift
+			// out of sync with it if SS_SHIPPING_METHOD_ID's value ever changes - see #106.
+			do_action( 'woocommerce_' . SS_SHIPPING_METHOD_ID . '_shipping_add_rate', $this, $rate );
 		}
 
 		public function is_available( $package ) {
@@ -501,7 +505,9 @@ if ( ! class_exists( 'SS_Shipping_WC_Method' ) ) :
 				}
 			}
 
-			return apply_filters( 'woocommerce_shipping_' . $this->id . '_is_available', $is_available, $package, $this );
+			// Built from the constant (never $this->id) so the hook name can't drift
+			// out of sync with it if SS_SHIPPING_METHOD_ID's value ever changes - see #106.
+			return apply_filters( 'woocommerce_shipping_' . SS_SHIPPING_METHOD_ID . '_is_available', $is_available, $package, $this );
 		}
 
 		/**
