@@ -12,5 +12,8 @@
         <testsuite name="Browser">
             <directory>tests/Browser</directory>
         </testsuite>
+        <testsuite name="Docs">
+            <directory>tests/Docs</directory>
+        </testsuite>
     </testsuites>
 </phpunit>

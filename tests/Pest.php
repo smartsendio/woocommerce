@@ -1,5 +1,7 @@
 <?php
 
+use Pest\Browser\Playwright\Playwright;
+
 /*
 |--------------------------------------------------------------------------
 | Pest configuration
@@ -14,6 +16,32 @@
 // Bound every browser operation so a broken page fails the test instead of
 // hanging the suite (observed in CI after an fpm worker crash).
 pest()->browser()->timeout(15_000);
+
+/*
+|--------------------------------------------------------------------------
+| Docs suite
+|--------------------------------------------------------------------------
+|
+| Drives Playwright through real admin UI flows and captures named
+| screenshots for documentation - see tests/Docs/Support/Screenshots.php.
+|
+| This bootstrap lives here rather than in a tests/Docs/Pest.php: Pest does
+| not load a directory-level Pest.php for test files that sit in a
+| subdirectory of it (confirmed the hard way - see the ShippingMethod test's
+| git history), so a Pest.php any deeper than tests/ itself is silently
+| never executed. Everything Docs-specific is registered here instead, with
+| the headed-mode switch scoped to the Docs directory via uses()->in() so it
+| does not affect the Browser suite.
+|
+*/
+
+require __DIR__ . '/Docs/Support/Screenshots.php';
+
+uses()->beforeEach(function (): void {
+    if (! getenv('CI') && ! getenv('SS_DOCS_HEADLESS')) {
+        Playwright::headed();
+    }
+})->in('Docs');
 
 /*
 |--------------------------------------------------------------------------
