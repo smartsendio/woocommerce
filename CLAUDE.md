@@ -14,18 +14,20 @@ There is no build step. Development is done against a local WordPress + WooComme
 
 ## Testing
 
-Two Pest suites live in `tests/` (run on modern PHP; the plugin's PHP 5.6 floor only applies to `smart-send-logistics/` code):
+Three Pest suites live in `tests/` (run on modern PHP; the plugin's PHP 5.6 floor only applies to `smart-send-logistics/` code):
 
 - **Browser** (`tests/Browser`) — end-to-end Playwright tests against a *running* store over HTTP (`WP_BASE_URL`, default `http://127.0.0.1:8181`). Few and slow; cover the big flows.
 - **Integration** (`tests/Integration`) — WordPress + WooCommerce loaded *in-process* by `tests/bootstrap.php` from the `bin/setup-local-dev.sh` install (override with `WP_DEV_PATH`); no web server needed. This is where scenario coverage lives (orders with coupons, discounts, fees → shipment payload, filters). Fixtures are built via the factories in `tests/Integration/Helpers.php`, which force-delete everything they create after each test — always create test data through them.
+- **Docs** (`tests/Docs`) — *not* a correctness suite. Drives Playwright through real admin UI flows (same running store as Browser) and captures named screenshots for documentation, one test per meaningful UI state (see `tests/Docs/ShippingMethod/ConfigureShippingMethodTest.php` for the pattern — configuring a Smart Send shipping method on a zone, step by step). Shared helpers live in `tests/Docs/Support/Screenshots.php`: `capture_doc_screenshot()` (asserts `assertNoJavaScriptErrors()` - not the stricter `assertNoSmoke()`, since WordPress admin always emits at least one benign console log - then saves under `docs/screenshots/<Area>/<name>.png`) and `highlight_element()` (spotlight-outlines the field a screenshot is calling out). Runs **headed** (a visible browser window) by default via `Playwright::headed()` in `tests/Pest.php` (a directory-level `tests/Docs/Pest.php` is never loaded by Pest for nested test files, so this lives at the root instead), so a developer regenerating screenshots locally can watch it work; falls back to headless when the `CI` env var is set (GitHub Actions sets this automatically) or when `SS_DOCS_HEADLESS` is set for a manual opt-out.
 
 ```bash
 composer test:integration   # or: vendor/bin/pest --testsuite=Integration
 composer test:browser       # needs the store running (see README)
-composer test               # both
+composer test:docs          # needs the store running; opens a visible browser locally
+composer test               # Integration + Browser (not Docs - see below)
 ```
 
-CI runs both suites (`.github/workflows/browser-tests.yml` and `integration-tests.yml`) on every pull request and on pushes to `main` and `develop`.
+CI runs Integration and Browser (`.github/workflows/browser-tests.yml` and `integration-tests.yml`) on every pull request and on pushes to `main` and `develop`. **Docs is intentionally not part of that PR-blocking path** — screenshot generation is slow and a broken screenshot doesn't mean broken code (assertions only guard against a broken/erroring page, not visual regressions). It runs on demand from `.github/workflows/docs-screenshots.yml` (`workflow_dispatch` only, headless, uploads `docs/screenshots/` as a build artifact rather than committing — a human reviews and commits the images after eyeballing them) and locally via `composer test:docs`. Screenshots are committed to `docs/screenshots/` at the repo root (outside `smart-send-logistics/`, mirroring the existing plugin-vs-dev-tooling split) since the whole point of the suite is producing images for direct use in documentation, same as `smartsendio/dumbledore`'s `tests/Docs/`.
 
 **v9 refactoring rule: no refactor PR merges without tests covering the moved behaviour.** The characterization suites (payload golden tests, rate calculation, order meta, label generation, frontend display — see `tests/Integration`) capture current behaviour; a refactor PR must keep them green, and any code it moves that is not yet covered must gain tests in the same PR. Tests assert *current* behaviour, including known oddities (marked `v8 oddity` in the test files) — changing such an expectation is a deliberate behaviour change and must be called out in the PR.
 

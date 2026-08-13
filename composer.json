@@ -32,8 +32,9 @@
     "phpcs": "phpcs",
     "phpcs:compat": "phpcs --standard=phpcs.compat.xml.dist",
     "phpcs:fix": "phpcbf",
-    "test": "pest",
+    "test": "pest --testsuite=Integration,Browser",
     "test:integration": "pest --testsuite=Integration",
-    "test:browser": "pest --testsuite=Browser"
+    "test:browser": "pest --testsuite=Browser",
+    "test:docs": "pest --testsuite=Docs"
   }
 }

@@ -5,11 +5,11 @@
 | PHPUnit / Pest bootstrap
 |--------------------------------------------------------------------------
 |
-| The Browser suite talks to a running store over HTTP and must not load
-| WordPress into the test process. The Integration suite runs against an
-| in-process WordPress + WooCommerce, bootstrapped from the development
-| install created by bin/setup-local-dev.sh (default ./local-dev/wordpress,
-| override with WP_DEV_PATH).
+| The Browser and Docs suites both talk to a running store over HTTP and
+| must not load WordPress into the test process. The Integration suite runs
+| against an in-process WordPress + WooCommerce, bootstrapped from the
+| development install created by bin/setup-local-dev.sh (default
+| ./local-dev/wordpress, override with WP_DEV_PATH).
 |
 | WordPress has to be loaded in global scope before any test runs, so the
 | decision is made here from the requested test suite.
@@ -28,7 +28,7 @@ foreach ($argv as $i => $arg) {
     }
 }
 
-if ($suite === 'Browser') {
+if ($suite === 'Browser' || $suite === 'Docs') {
     return;
 }
 
