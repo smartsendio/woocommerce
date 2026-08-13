@@ -165,7 +165,7 @@ Example: show at most 5 pickup points and pre-select the closest one:
 * **smart_send_payload_totals** (since 9.0.0)
     A filter on the totals section (array) of the booking request
 * **smart_send_payload_parcels** (since 9.0.0)
-    A filter on the assembled parcel models (Smartsend\Models\Shipment\Parcel objects) of the booking request
+    A filter on the assembled parcels (array of parcel rows, each with an 'items' array of item rows - see #113) of the booking request
 * **smart_send_parcel_weight**
     A filter on the weight of each parcel when the order is split into parcels
 * **smart_send_order_note**

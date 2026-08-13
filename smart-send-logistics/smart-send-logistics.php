@@ -176,6 +176,7 @@ if ( ! class_exists( 'SS_Shipping_WC' ) ) :
 
 			// Admin components.
 			require_once SS_SHIPPING_PLUGIN_DIR_PATH . '/admin/class-ss-plugins-screen-updates.php';
+			require_once SS_SHIPPING_PLUGIN_DIR_PATH . '/admin/class-ss-shipping-shipment-builder.php';
 			require_once SS_SHIPPING_PLUGIN_DIR_PATH . '/admin/class-ss-shipping-shipment.php';
 			require_once SS_SHIPPING_PLUGIN_DIR_PATH . '/admin/class-ss-shipping-order-meta.php';
 			require_once SS_SHIPPING_PLUGIN_DIR_PATH . '/admin/class-ss-shipping-order-meta-box.php';

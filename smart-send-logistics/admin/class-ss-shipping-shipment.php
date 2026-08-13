@@ -15,9 +15,16 @@ if ( ! defined( 'ABSPATH' ) ) {
 if ( ! class_exists( 'SS_Shipping_Shipment' ) ) :
 
 	/**
-	 * Assembles the Smart Send API shipment model for a WooCommerce order and
-	 * sends it to the API. All WooCommerce data access goes through
-	 * SS_Shipping_Order_Data; this class only builds the API models.
+	 * Sends a WooCommerce order to the Smart Send API as a shipment.
+	 *
+	 * SS_Shipping_Shipment_Builder assembles the new internal shipment
+	 * representation (#113); this class is now only a thin adapter that
+	 * translates that representation into the v1 wire request
+	 * (Smartsend\Models\Shipment and its sub-models) and sends it. That
+	 * translation exists here only because #112's resource layer, which is
+	 * meant to own it permanently, is not part of this change - once #112
+	 * lands, this class's translate_to_wire_shipment() and its helpers
+	 * move there.
 	 */
 	class SS_Shipping_Shipment {
 
@@ -46,7 +53,15 @@ if ( ! class_exists( 'SS_Shipping_Shipment' ) ) :
 		protected ?SS_Shipping_WC_Order $shipping_order = null;
 
 		/**
-		 * The shipment model being assembled.
+		 * The internal shipment representation assembled by
+		 * SS_Shipping_Shipment_Builder, or an error array.
+		 *
+		 * @var array|null
+		 */
+		protected ?array $representation = null;
+
+		/**
+		 * The v1 wire shipment model translated from the representation.
 		 *
 		 * @var \Smartsend\Models\Shipment|null
 		 */
@@ -74,7 +89,9 @@ if ( ! class_exists( 'SS_Shipping_Shipment' ) ) :
 			$this->order_data     = new SS_Shipping_Order_Data( $this->order );
 			$this->shipping_order = $shipping_order;
 
-			// New shipment model.
+			// Wire shipment model, empty until the representation is
+			// translated. Kept even on a build error so a caller that
+			// still sends the (empty) request behaves as it always has.
 			$this->shipment = new \Smartsend\Models\Shipment();
 		}
 
@@ -124,190 +141,87 @@ if ( ! class_exists( 'SS_Shipping_Shipment' ) ) :
 		}
 
 		/**
-		 * Create Payload for API request.
+		 * Build the internal shipment representation and translate it into
+		 * the v1 wire shipment model.
 		 *
 		 * @param boolean $is_return Whether the label is a return label.
 		 *
-		 * @return array|void
+		 * @return array|void The representation, only when it is an error.
 		 */
 		protected function make_single_shipment_api_payload( $is_return ) {
-			$order_id = $this->order_data->get_order_id();
+			$builder              = new SS_Shipping_Shipment_Builder( $this->order, $this->order_data, $this->shipping_order );
+			$this->representation = $builder->build( $is_return );
 
-			$ss_args = array();
-
-			// Get shipping method.
-			$ss_shipping_method_id = $this->shipping_order->get_smart_send_method_id( $order_id, $is_return );
-
-			if ( $is_return && isset( $ss_shipping_method_id['smart_send_return_method'] ) ) {
-				// If no return method set return error.
-				if ( empty( $ss_shipping_method_id['smart_send_return_method'] ) ) {
-					return array( 'error' => __( 'No return method set', 'smart-send-logistics' ) );
-				} else {
-					$ss_shipping_method_id = $ss_shipping_method_id['smart_send_return_method'];
-				}
-			} else {
-				$ss_args['ss_agent'] = $this->shipping_order->get_ss_shipping_order_agent( $order_id );
+			if ( isset( $this->representation['error'] ) ) {
+				return $this->representation;
 			}
 
-			// Determine shipping method and carrier from return settings.
-			$ss_args['ss_carrier'] = SS_SHIPPING_WC()->get_shipping_method_carrier( $ss_shipping_method_id );
-			$ss_args['ss_type']    = SS_SHIPPING_WC()->get_shipping_method_type( $ss_shipping_method_id );
-			/*
-			 * Filter the parcel split used for the order before the shipment
-			 * payload is assembled. The split is the value stored by the
-			 * "Split into parcels" admin option: an array of rows, each with
-			 * keys 'id' (product/variation id), 'name' (product name) and
-			 * 'value' (box number, 1-9). An empty value means a single parcel
-			 * containing all items. Runs before smart_send_shipping_label_args,
-			 * which receives the filtered split as $ss_args['ss_parcels'] and
-			 * keeps the final say.
-			 *
-			 * @since 9.0.0
-			 *
-			 * @param array|string|false $parcels   The stored parcel split rows, or an empty value when the order is not split.
-			 * @param int                $order_id  Order ID.
-			 * @param boolean            $is_return Whether the label is a return label.
-			 *
-			 * @return array|string|false The parcel split rows to use.
-			 */
-			$ss_args['ss_parcels'] = apply_filters(
-				'smart_send_order_parcels',
-				$this->shipping_order->get_ss_shipping_order_parcels( $order_id ),
-				$order_id,
-				$is_return
-			);
+			$this->shipment = $this->translate_to_wire_shipment( $this->representation );
+		}
 
-			/*
-			 * Filter the arguments used when creating a shipping label
-			 *
-			 * @param array   $ss_args  contains info about shipping carrier, shipping method, agent and parcels
-			 * @param int     $order_id Order ID
-			 * @param boolean $is_return Whether or not the label is return (true) or normal (false)
-			 */
-			$ss_args = apply_filters( 'smart_send_shipping_label_args', $ss_args, $order_id, $is_return );
+		/**
+		 * Translate the internal shipment representation into the v1 wire
+		 * shipment model. This is the single point where the excl/incl
+		 * pairs are (re)computed from the representation's single net/tax
+		 * amounts (#113) - the actual v1 wire payload is unchanged.
+		 *
+		 * @param array $representation The internal shipment representation from SS_Shipping_Shipment_Builder::build().
+		 *
+		 * @return \Smartsend\Models\Shipment
+		 */
+		protected function translate_to_wire_shipment( array $representation ) {
+			$receiver = $this->build_receiver( $representation );
 
-			// Add the receiver to the shipment.
-			$receiver = $this->build_receiver();
-			$this->shipment->setReceiver( $receiver );
+			$shipment = new \Smartsend\Models\Shipment();
+			$shipment->setReceiver( $receiver );
 
-			// Add the agent (pickup point) to the shipment, if any.
-			$ss_agent = apply_filters(
-				'smart_send_order_pickup_point',
-				empty( $ss_args['ss_agent'] ) ? null : $ss_args['ss_agent'],
-				$order_id
-			);
-
-			if ( ! empty( $ss_agent ) ) {
-				$this->shipment->setAgent( $this->build_agent( $ss_agent ) );
+			if ( ! empty( $representation['pickup_point'] ) ) {
+				$shipment->setAgent( $this->build_agent( $representation['pickup_point'] ) );
 			}
-
-			// Item lines and totals.
-			$items_data = $this->order_data->get_items_data();
 
 			$parcels = array();
-			$totals  = array(
-				'subtotal_price_excluding_tax' => null,
-				'subtotal_price_including_tax' => null,
-				'subtotal_tax_amount'          => null,
-				'shipping_price_excluding_tax' => null,
-				'shipping_price_including_tax' => null,
-				'shipping_tax_amount'          => null,
-				'total_price_excluding_tax'    => null,
-				'total_price_including_tax'    => null,
-				'total_tax_amount'             => null,
-				'currency'                     => null,
-			);
-
-			if ( ! empty( $items_data ) ) {
-				$totals     = $this->order_data->get_totals();
-				$order_note = $this->order_data->get_order_note();
-
-				// Build the item models, keyed by product/variation id so a
-				// parcel split can reference them.
-				$items        = array();
-				$item_lookup  = array();
-				$weight_total = 0;
-
-				foreach ( $items_data as $item_row ) {
-					$item_model = $this->build_item( $item_row );
-
-					$items[] = $item_model;
-
-					$item_lookup[ $item_row['id'] ] = array(
-						'row'   => $item_row,
-						'model' => $item_model,
-					);
-
-					if ( $item_row['unit_weight'] ) {
-						$weight_total += ( $item_row['quantity'] * $item_row['unit_weight'] );
-					}
-				}
-
-				if ( ! empty( $ss_args['ss_parcels'] ) ) {
-					if ( is_array( $ss_args['ss_parcels'] ) ) {
-						$parcels = $this->build_split_parcels( $ss_args['ss_parcels'], $item_lookup, $order_note );
-					}
-				} else {
-					// Create a single parcel containing the items just defined.
-					$parcel = new \Smartsend\Models\Shipment\Parcel();
-					$parcel->setInternalId( $this->value_or_null( $order_id ) )
-						->setInternalReference( $this->value_or_null( $this->order_data->get_order_number() ) )
-						->setWeight( $this->value_or_null( $weight_total ) )
-						->setHeight( null )
-						->setWidth( null )
-						->setLength( null )
-						->setFreetext( $this->value_or_null( $order_note ) )
-						->setItems( $items )// Alternatively add each item using $parcel->addItem(Item $item).
-						->setTotalPriceExcludingTax( $this->value_or_null( $totals['subtotal_price_excluding_tax'] ) )
-						->setTotalPriceIncludingTax( $this->value_or_null( $totals['subtotal_price_including_tax'] ) )
-						->setTotalTaxAmount( $this->value_or_null( $totals['subtotal_tax_amount'] ) );
-
-					$parcels[] = $parcel;
-				}
+			foreach ( $representation['parcels'] as $parcel_row ) {
+				$parcels[] = $this->build_parcel( $parcel_row );
 			}
-
-			/*
-			 * Filter the parcels section of the booking request.
-			 *
-			 * @param \Smartsend\Models\Shipment\Parcel[] $parcels The assembled parcel models.
-			 * @param WC_Order                            $order   The WooCommerce order.
-			 */
-			$parcels = apply_filters( 'smart_send_payload_parcels', $parcels, $this->order );
 
 			// Create services.
 			$services = new \Smartsend\Models\Shipment\Services();
 			$services->setSmsNotification( $receiver->getSms() )// Always enable SMS notification.
 				->setEmailNotification( $receiver->getEmail() ); // Always enable Email notification.
 
-			// Add final parameters to shipment.
-			$this->shipment->setInternalId( $this->value_or_null( $order_id ) )
-				->setInternalReference( $this->value_or_null( $this->order_data->get_order_number() ) )
-				->setShippingCarrier( $this->value_or_null( $ss_args['ss_carrier'] ) )
-				->setShippingMethod( $this->value_or_null( $ss_args['ss_type'] ) )
-				->setShippingDate( gmdate( 'Y-m-d' ) )
-				->setParcels( $parcels )// Alternatively add each parcel using $this->shipment->addParcel(Parcel $parcel).
+			$shipment->setInternalId( $representation['internal_id'] )
+				->setInternalReference( $this->value_or_null( $representation['internal_reference'] ) )
+				->setShippingCarrier( $this->value_or_null( $representation['shipping_carrier'] ) )
+				->setShippingMethod( $this->value_or_null( $representation['shipping_method'] ) )
+				->setShippingDate( $representation['shipping_date'] )
+				->setParcels( $parcels )// Alternatively add each parcel using $shipment->addParcel(Parcel $parcel).
 				->setServices( $services )
-				->setSubtotalPriceExcludingTax( $this->value_or_null( $totals['subtotal_price_excluding_tax'] ) )
-				->setSubtotalPriceIncludingTax( $this->value_or_null( $totals['subtotal_price_including_tax'] ) )
-				->setTotalPriceExcludingTax( $this->value_or_null( $totals['total_price_excluding_tax'] ) )
-				->setTotalPriceIncludingTax( $this->value_or_null( $totals['total_price_including_tax'] ) )
-				->setShippingPriceExcludingTax( $this->value_or_null( $totals['shipping_price_excluding_tax'] ) )
-				->setShippingPriceIncludingTax( $this->value_or_null( $totals['shipping_price_including_tax'] ) )
-				->setTotalTaxAmount( $this->value_or_null( $totals['total_tax_amount'] ) )
-				->setCurrency( $this->value_or_null( $totals['currency'] ) );
+				->setSubtotalPriceExcludingTax( $this->value_or_null( $representation['subtotal_net_amount'] ) )
+				->setSubtotalPriceIncludingTax( $this->value_or_null( $this->net_plus_tax( $representation['subtotal_net_amount'], $representation['subtotal_tax_amount'] ) ) )
+				->setTotalPriceExcludingTax( $this->value_or_null( $representation['total_net_amount'] ) )
+				->setTotalPriceIncludingTax( $this->value_or_null( $this->net_plus_tax( $representation['total_net_amount'], $representation['total_tax_amount'] ) ) )
+				->setShippingPriceExcludingTax( $this->value_or_null( $representation['shipping_net_amount'] ) )
+				->setShippingPriceIncludingTax( $this->value_or_null( $this->net_plus_tax( $representation['shipping_net_amount'], $representation['shipping_tax_amount'] ) ) )
+				->setTotalTaxAmount( $this->value_or_null( $representation['total_tax_amount'] ) )
+				->setCurrency( $this->value_or_null( $representation['currency'] ) );
+
+			return $shipment;
 		}
 
 		/**
-		 * Build the receiver model from the order data.
+		 * Build the receiver model from the representation's receiver
+		 * section.
+		 *
+		 * @param array $representation The internal shipment representation.
 		 *
 		 * @return \Smartsend\Models\Shipment\Receiver
 		 */
-		protected function build_receiver() {
-			$receiver_data = $this->order_data->get_receiver_data();
+		protected function build_receiver( array $representation ) {
+			$receiver_data = $representation['receiver'];
 
 			$receiver = new \Smartsend\Models\Shipment\Receiver();
-			$receiver->setInternalId( $this->order_data->get_order_id() )
-				->setInternalReference( $this->value_or_null( $this->order_data->get_order_number() ) )
+			$receiver->setInternalId( $representation['internal_id'] )
+				->setInternalReference( $this->value_or_null( $representation['internal_reference'] ) )
 				->setCompany( $this->value_or_null( $receiver_data['company'] ) )
 				->setNameLine1( $this->value_or_null( $receiver_data['name_line1'] ) )
 				->setNameLine2( $this->value_or_null( $receiver_data['name_line2'] ) )
@@ -323,35 +237,43 @@ if ( ! class_exists( 'SS_Shipping_Shipment' ) ) :
 		}
 
 		/**
-		 * Build the agent (pickup point) model from the stored agent object.
+		 * Build the agent (pickup point) model from the representation's
+		 * pickup-point section.
 		 *
-		 * @param object $ss_agent The agent object stored on the order.
+		 * @param array $pickup_point Pickup point data, see SS_Shipping_Shipment_Builder::build_pickup_point().
 		 *
 		 * @return \Smartsend\Models\Shipment\Agent
 		 */
-		protected function build_agent( $ss_agent ) {
+		protected function build_agent( array $pickup_point ) {
 			$agent = new \Smartsend\Models\Shipment\Agent();
-			$agent->setInternalId( isset( $ss_agent->id ) ? $ss_agent->id : $ss_agent->agent_no )
-				->setInternalReference( isset( $ss_agent->id ) ? $ss_agent->id : $ss_agent->agent_no )
-				->setAgentNo( $this->value_or_null( $ss_agent->agent_no ) )
-				->setCompany( $this->value_or_null( $ss_agent->company ) )
-				->setAddressLine1( $this->value_or_null( $ss_agent->address_line1 ) )
-				->setAddressLine2( $this->value_or_null( $ss_agent->address_line2 ) )
-				->setPostalCode( $this->value_or_null( $ss_agent->postal_code ) )
-				->setCity( $this->value_or_null( $ss_agent->city ) )
-				->setCountry( $this->value_or_null( $ss_agent->country ) );
+			$agent->setInternalId( $pickup_point['internal_id'] )
+				->setInternalReference( $pickup_point['internal_reference'] )
+				->setAgentNo( $pickup_point['service_point_code'] )
+				->setCompany( $pickup_point['company'] )
+				->setAddressLine1( $pickup_point['address_line1'] )
+				->setAddressLine2( $pickup_point['address_line2'] )
+				->setPostalCode( $pickup_point['postal_code'] )
+				->setCity( $pickup_point['city'] )
+				->setCountry( $pickup_point['country'] );
 
 			return $agent;
 		}
 
 		/**
-		 * Build an item model from an item data row.
+		 * Build an item model from an item row of the representation.
 		 *
-		 * @param array $item_row Item row from SS_Shipping_Order_Data::get_items_data().
+		 * @param array $item_row Item row, see SS_Shipping_Order_Data::get_items_data().
 		 *
 		 * @return \Smartsend\Models\Shipment\Item
 		 */
-		protected function build_item( $item_row ) {
+		protected function build_item( array $item_row ) {
+			$quantity = $item_row['quantity'] ? $item_row['quantity'] : 1;
+
+			// The wire format's unit_price_* pair is recomputed here, once,
+			// from the representation's single net/tax amount (#113).
+			$unit_net_amount = $item_row['total_net_amount'] / $quantity;
+			$unit_tax_amount = $item_row['total_tax_amount'] / $quantity;
+
 			$item = new \Smartsend\Models\Shipment\Item();
 			$item->setInternalId( $this->value_or_null( $item_row['id'] ) )
 				->setInternalReference( $this->value_or_null( $item_row['id'] ) )
@@ -362,85 +284,43 @@ if ( ! class_exists( 'SS_Shipping_Shipment' ) ) :
 				->setCountryOfOrigin( $this->value_or_null( $item_row['country_of_origin'] ) )
 				->setImageUrl( null )// The product image url can be used, but sometimes includes spaces (bug) which causes validation error.
 				->setUnitWeight( $item_row['unit_weight'] > 0 ? $item_row['unit_weight'] : null )
-				->setUnitPriceExcludingTax( $this->value_or_null( $item_row['unit_price_excluding_tax'] ) )
-				->setUnitPriceIncludingTax( $this->value_or_null( $item_row['unit_price_including_tax'] ) )
+				->setUnitPriceExcludingTax( $this->value_or_null( $unit_net_amount ) )
+				->setUnitPriceIncludingTax( $this->value_or_null( $unit_net_amount + $unit_tax_amount ) )
 				->setQuantity( $this->value_or_null( $item_row['quantity'] ) )
-				->setTotalPriceExcludingTax( $this->value_or_null( $item_row['total_price_excluding_tax'] ) )
-				->setTotalPriceIncludingTax( $this->value_or_null( $item_row['total_price_including_tax'] ) )
+				->setTotalPriceExcludingTax( $this->value_or_null( $item_row['total_net_amount'] ) )
+				->setTotalPriceIncludingTax( $this->value_or_null( $this->net_plus_tax( $item_row['total_net_amount'], $item_row['total_tax_amount'] ) ) )
 				->setTotalTaxAmount( $this->value_or_null( $item_row['total_tax_amount'] ) );
 
 			return $item;
 		}
 
 		/**
-		 * Build one parcel per box from the parcel-split meta stored on the order.
+		 * Build a parcel model from a parcel row of the representation.
 		 *
-		 * @param array       $ss_parcels  Parcel split meta rows (id, name, value).
-		 * @param array       $item_lookup Item rows and models keyed by product/variation id.
-		 * @param string|null $order_note  Freetext for the parcels.
+		 * @param array $parcel_row Parcel row, see SS_Shipping_Shipment_Builder::build().
 		 *
-		 * @return \Smartsend\Models\Shipment\Parcel[]
+		 * @return \Smartsend\Models\Shipment\Parcel
 		 */
-		protected function build_split_parcels( $ss_parcels, $item_lookup, $order_note ) {
-			$parcels = array();
-
-			$boxes = array();
-			foreach ( $ss_parcels as $parcel_meta ) {
-				$boxes[ $parcel_meta['value'] ][] = array(
-					'id'   => $parcel_meta['id'],
-					'name' => $parcel_meta['name'],
-				);
+		protected function build_parcel( array $parcel_row ) {
+			$items = array();
+			foreach ( $parcel_row['items'] as $item_row ) {
+				$items[] = $this->build_item( $item_row );
 			}
 
-			foreach ( $boxes as $box_items ) {
-				$item_total_wo_tax   = 0;
-				$item_total_tax      = 0;
-				$item_total_incl_tax = 0;
-				$item_weight_total   = 0;
-				$product_items       = array();
+			$parcel = new \Smartsend\Models\Shipment\Parcel();
+			$parcel->setInternalId( $this->value_or_null( $parcel_row['internal_id'] ) )
+				->setInternalReference( $this->value_or_null( $parcel_row['internal_reference'] ) )
+				->setWeight( $this->value_or_null( $parcel_row['weight'] ) )
+				->setHeight( $parcel_row['height'] )
+				->setWidth( $parcel_row['width'] )
+				->setLength( $parcel_row['length'] )
+				->setFreetext( $this->value_or_null( $parcel_row['freetext'] ) )
+				->setItems( $items )// Alternatively add each item using $parcel->addItem(Item $item).
+				->setTotalPriceExcludingTax( $this->value_or_null( $parcel_row['total_net_amount'] ) )
+				->setTotalPriceIncludingTax( $this->value_or_null( $this->net_plus_tax( $parcel_row['total_net_amount'], $parcel_row['total_tax_amount'] ) ) )
+				->setTotalTaxAmount( $this->value_or_null( $parcel_row['total_tax_amount'] ) );
 
-				foreach ( $box_items as $box_item ) {
-					$item_row = $item_lookup[ $box_item['id'] ]['row'];
-
-					$item_total_wo_tax   += floatval( $item_row['unit_price_excluding_tax'] );
-					$item_total_incl_tax += floatval( $item_row['unit_price_including_tax'] );
-					$item_weight_total   += floatval( $item_row['unit_weight'] );
-
-					// Compute for the total tax per individual.
-					$item_total_tax += $item_total_incl_tax - $item_total_wo_tax;
-
-					$product_items[] = $item_lookup[ $box_item['id'] ]['model'];
-				}
-
-				/*
-				 * Filter the weight of a parcel.
-				 *
-				 * @param float|null $parcel_weight Total weight of the items in the parcel.
-				 * @param int        $order_id      Order ID.
-				 */
-				$parcel_total_weight = apply_filters(
-					'smart_send_parcel_weight',
-					$this->value_or_null( $item_weight_total ),
-					$this->order_data->get_order_id()
-				);
-
-				$parcel = new \Smartsend\Models\Shipment\Parcel();
-				$parcel->setInternalId( $this->value_or_null( $this->order_data->get_order_id() ) )
-					->setInternalReference( $this->value_or_null( $this->order_data->get_order_number() ) )
-					->setWeight( $parcel_total_weight )
-					->setHeight( null )
-					->setWidth( null )
-					->setLength( null )
-					->setFreetext( $this->value_or_null( $order_note ) )
-					->setItems( $product_items )// Alternatively add each item using $parcel->addItem(Item $item).
-					->setTotalPriceExcludingTax( $this->value_or_null( $item_total_wo_tax ) )
-					->setTotalPriceIncludingTax( $this->value_or_null( $item_total_incl_tax ) )
-					->setTotalTaxAmount( $this->value_or_null( $item_total_tax ) );
-
-				$parcels[] = $parcel;
-			}
-
-			return $parcels;
+			return $parcel;
 		}
 
 		/**
@@ -455,8 +335,22 @@ if ( ! class_exists( 'SS_Shipping_Shipment' ) ) :
 		}
 
 		/**
-		 * Return the value when truthy, null otherwise (the API models expect
-		 * null instead of empty/zero values).
+		 * Add a net amount and a tax amount together, treating a null
+		 * operand as zero - the including-tax wire figure derived from the
+		 * representation's single net/tax amount (#113).
+		 *
+		 * @param float|null $net_amount Net (excluding tax) amount.
+		 * @param float|null $tax_amount Tax amount.
+		 *
+		 * @return float
+		 */
+		protected function net_plus_tax( $net_amount, $tax_amount ) {
+			return (float) $net_amount + (float) $tax_amount;
+		}
+
+		/**
+		 * Return the value when truthy, null otherwise (the API models
+		 * expect null instead of empty/zero values).
 		 *
 		 * @param mixed $value The value to check.
 		 *
