@@ -44,13 +44,15 @@ if ( ! class_exists( 'SS_Shipping_Subscriptions_Compat' ) ) :
 		}
 
 		/**
-		 * Prevents data being copied to subscription renewals.
+		 * Prevents booked-label outcomes being copied to subscription renewals.
 		 *
-		 * Excludes every order meta key Smart Send writes (shipment ids,
-		 * pickup point agent object and number, parcel split) - a renewal
-		 * must get its own label and pickup point selection, not inherit
-		 * the parent order's. The list is built from the meta-key constants
-		 * on SS_Shipping_Order_Meta so it cannot drift from the vocabulary.
+		 * Excludes only the booking-outcome meta keys (the outbound and
+		 * return shipment ids) - a renewal must get its own label. The
+		 * delivery-configuration meta (pickup point agent object and number,
+		 * parcel split) deliberately copies through: a renewal ships the same
+		 * way as its parent, it just has not been booked yet. The list is
+		 * built from the meta-key classification on SS_Shipping_Order_Meta
+		 * so it cannot drift from the vocabulary.
 		 *
 		 * @param string $order_meta_query SQL fragment selecting the meta rows to copy.
 		 *
@@ -58,7 +60,7 @@ if ( ! class_exists( 'SS_Shipping_Subscriptions_Compat' ) ) :
 		 */
 		public function woocommerce_subscriptions_renewal_order_meta_query( $order_meta_query ) {
 			$excluded_keys = array();
-			foreach ( SS_Shipping_Order_Meta::all_meta_keys() as $meta_key ) {
+			foreach ( SS_Shipping_Order_Meta::booking_outcome_meta_keys() as $meta_key ) {
 				$excluded_keys[] = "'" . esc_sql( $meta_key ) . "'";
 			}
 

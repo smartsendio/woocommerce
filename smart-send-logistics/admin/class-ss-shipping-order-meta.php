@@ -47,21 +47,52 @@ if ( ! class_exists( 'SS_Shipping_Order_Meta' ) ) :
 		const META_PARCELS = 'ss_shipping_order_parcels';
 
 		/**
-		 * Every order meta key Smart Send writes.
+		 * Meta keys recording a booked-label outcome (shipment ids).
 		 *
-		 * The Subscriptions renewal-meta exclusion is built from this list, so
-		 * a new META_* constant must be added here too (the integration test
-		 * pinning the exclusion list enforces this via reflection).
+		 * These are per-order booking results and must NOT copy to
+		 * subscription renewal orders - a renewal gets its own label.
+		 *
+		 * @return string[]
+		 */
+		public static function booking_outcome_meta_keys() {
+			return array(
+				self::META_LABEL_ID,
+				self::META_RETURN_LABEL_ID,
+			);
+		}
+
+		/**
+		 * Meta keys describing the delivery configuration (pickup point and
+		 * parcel structure).
+		 *
+		 * These SHOULD copy to subscription renewal orders - a renewal ships
+		 * the same way as its parent (same pickup point, same parcel setup);
+		 * it just has not been booked yet.
+		 *
+		 * @return string[]
+		 */
+		public static function delivery_configuration_meta_keys() {
+			return array(
+				self::META_AGENT,
+				self::META_AGENT_NO,
+				self::META_PARCELS,
+			);
+		}
+
+		/**
+		 * Every order meta key Smart Send writes: the union of the booking
+		 * outcome and delivery configuration lists.
+		 *
+		 * A new META_* constant must be classified into exactly one of those
+		 * two lists (the integration test pinning the Subscriptions renewal
+		 * exclusion enforces this via reflection).
 		 *
 		 * @return string[]
 		 */
 		public static function all_meta_keys() {
-			return array(
-				self::META_LABEL_ID,
-				self::META_RETURN_LABEL_ID,
-				self::META_AGENT,
-				self::META_AGENT_NO,
-				self::META_PARCELS,
+			return array_merge(
+				self::booking_outcome_meta_keys(),
+				self::delivery_configuration_meta_keys()
 			);
 		}
 
