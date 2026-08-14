@@ -21,8 +21,8 @@ function capture_shipment_payload(WC_Order $order, bool $return = false): array
 {
     $capture = mock_smart_send_api();
 
-    $booking_service = new SS_Shipping_Booking_Service($order, SS_SHIPPING_WC()->get_ss_shipping_wc_order());
-    $booking         = $return ? $booking_service->book_return() : $booking_service->book_outbound();
+    $booking_service = new SS_Shipping_Booking_Service(SS_SHIPPING_WC()->get_ss_shipping_wc_order());
+    $booking         = $return ? $booking_service->book_return($order) : $booking_service->book_outbound($order);
     expect($booking->is_successful())->toBeTrue();
 
     $request = end($capture->requests);

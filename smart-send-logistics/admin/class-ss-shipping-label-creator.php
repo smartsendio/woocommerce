@@ -137,8 +137,8 @@ if ( ! class_exists( 'SS_Shipping_Label_Creator' ) ) :
 				);
 			}
 
-			$booking_service = new SS_Shipping_Booking_Service( $order, $this->order_integration );
-			$booking         = $return ? $booking_service->book_return() : $booking_service->book_outbound();
+			$booking_service = new SS_Shipping_Booking_Service( $this->order_integration );
+			$booking         = $return ? $booking_service->book_return( $order ) : $booking_service->book_outbound( $order );
 
 			if ( $booking->is_successful() ) {
 

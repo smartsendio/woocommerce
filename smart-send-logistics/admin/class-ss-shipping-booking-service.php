@@ -33,22 +33,15 @@ if ( ! class_exists( 'SS_Shipping_Booking_Service' ) ) :
 	 * SS_Shipping_Shipment_Builder as a SS_Shipping_Booking_Exception) or
 	 * an API-level error are both reported the same way, as a failed
 	 * SS_Shipping_Booking - callers only need to check is_successful().
+	 *
+	 * The service is stateless and long-lived: it is constructed once
+	 * (without an order) and takes the WC_Order per call, so one instance
+	 * can safely book many orders sequentially. The short-lived per-order
+	 * collaborators (SS_Shipping_Order_Reader, SS_Shipping_Shipment_Builder)
+	 * are constructed fresh per call and keep their constructor-injected
+	 * WC_Order.
 	 */
 	class SS_Shipping_Booking_Service {
-
-		/**
-		 * The WooCommerce order.
-		 *
-		 * @var WC_Order
-		 */
-		protected WC_Order $order;
-
-		/**
-		 * Order data access utility.
-		 *
-		 * @var SS_Shipping_Order_Reader
-		 */
-		protected SS_Shipping_Order_Reader $order_reader;
 
 		/**
 		 * The admin order integration.
@@ -60,22 +53,21 @@ if ( ! class_exists( 'SS_Shipping_Booking_Service' ) ) :
 		/**
 		 * Constructor.
 		 *
-		 * @param WC_Order             $order          The WooCommerce order to book a shipment for.
 		 * @param SS_Shipping_WC_Order $shipping_order The admin order integration.
 		 */
-		public function __construct( WC_Order $order, SS_Shipping_WC_Order $shipping_order ) {
-			$this->order          = $order;
-			$this->order_reader   = new SS_Shipping_Order_Reader( $order );
+		public function __construct( SS_Shipping_WC_Order $shipping_order ) {
 			$this->shipping_order = $shipping_order;
 		}
 
 		/**
 		 * Book an outbound (normal) shipping label.
 		 *
+		 * @param WC_Order $order The WooCommerce order to book a shipment for.
+		 *
 		 * @return SS_Shipping_Booking
 		 */
-		public function book_outbound(): SS_Shipping_Booking {
-			$builder = new SS_Shipping_Shipment_Builder( $this->order, $this->order_reader, $this->shipping_order );
+		public function book_outbound( WC_Order $order ): SS_Shipping_Booking {
+			$builder = new SS_Shipping_Shipment_Builder( $order, new SS_Shipping_Order_Reader( $order ), $this->shipping_order );
 
 			try {
 				$shipment = $builder->build_outbound();
@@ -89,10 +81,12 @@ if ( ! class_exists( 'SS_Shipping_Booking_Service' ) ) :
 		/**
 		 * Book a return shipping label.
 		 *
+		 * @param WC_Order $order The WooCommerce order to book a shipment for.
+		 *
 		 * @return SS_Shipping_Booking
 		 */
-		public function book_return(): SS_Shipping_Booking {
-			$builder = new SS_Shipping_Shipment_Builder( $this->order, $this->order_reader, $this->shipping_order );
+		public function book_return( WC_Order $order ): SS_Shipping_Booking {
+			$builder = new SS_Shipping_Shipment_Builder( $order, new SS_Shipping_Order_Reader( $order ), $this->shipping_order );
 
 			try {
 				$shipment = $builder->build_return();
