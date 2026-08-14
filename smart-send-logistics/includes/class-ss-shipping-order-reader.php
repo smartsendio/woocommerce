@@ -2,7 +2,7 @@
 /**
  * WooCommerce Smart Send order data access.
  *
- * @package  SS_Shipping_Order_Data
+ * @package  SS_Shipping_Order_Reader
  * @category Shipping
  * @author   Smart Send
  */
@@ -12,7 +12,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 // A second copy of the plugin may already have defined the class.
-if ( ! class_exists( 'SS_Shipping_Order_Data' ) ) :
+if ( ! class_exists( 'SS_Shipping_Order_Reader' ) ) :
 
 	/**
 	 * Answers every order-data question needed to build the booking request
@@ -20,10 +20,11 @@ if ( ! class_exists( 'SS_Shipping_Order_Data' ) ) :
 	 *
 	 * This is the single place that knows how to read receiver address data,
 	 * item lines with weight/price/customs data and order totals. The class
-	 * returns plain arrays; assembling the Smart Send API models from them is
-	 * the job of SS_Shipping_Shipment.
+	 * returns plain arrays; assembling the internal shipment representation
+	 * (SS_Shipping_Shipment) from them is the job of
+	 * SS_Shipping_Shipment_Builder.
 	 */
-	class SS_Shipping_Order_Data {
+	class SS_Shipping_Order_Reader {
 
 		/**
 		 * The WooCommerce order.
