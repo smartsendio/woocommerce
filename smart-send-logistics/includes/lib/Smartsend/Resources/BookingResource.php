@@ -17,13 +17,23 @@ use Smartsend\Models\Shipment\Services;
  * Books a shipment (and its labels) with the Smart Send API.
  *
  * This is the single point where the internal shipment representation
- * assembled by SS_Shipping_Shipment_Builder (#113) is translated into the
- * v1 wire request (Smartsend\Models\Shipment and its sub-models) - the
- * excl/incl price pairs the v1 API expects are (re)computed here, once,
- * from the representation's single net/tax amounts. A future v2 client
- * would replace fromRepresentation() with a v2-shaped translation; nothing
- * above this resource (SS_Shipping_Shipment, SS_Shipping_Shipment_Builder,
- * SS_Shipping_Order_Data) would need to change (#111).
+ * assembled by SS_Shipping_Shipment_Builder (#113) - a typed WP-side value
+ * object, \SS_Shipping_Shipment, not to be confused with this namespace's
+ * own Shipment (the v1 wire model, see the use statement below) - is
+ * translated into the v1 wire request (Smartsend\Models\Shipment and its
+ * sub-models). The excl/incl price pairs the v1 API expects are
+ * (re)computed here, once, from the representation's single net/tax
+ * amounts. A future v2 client would replace fromShipment() with a
+ * v2-shaped translation; nothing above this resource (\SS_Shipping_Shipment,
+ * SS_Shipping_Shipment_Builder, SS_Shipping_Order_Reader) would need to
+ * change (#111).
+ *
+ * This class deliberately stays WordPress-light: it only depends on
+ * \SS_Shipping_Shipment by its fully-qualified global name as a type hint,
+ * and that class itself makes no WordPress calls - the dependency points
+ * from WP-side code down into this PSR-style lib, never the other way
+ * around. It must never construct or return a WP-side type such as
+ * SS_Shipping_Booking; that wrapping is SS_Shipping_Booking_Service's job.
  */
 class BookingResource
 {
@@ -38,7 +48,7 @@ class BookingResource
     /**
      * Book a shipment and create its labels in a single call.
      *
-     * @param   Shipment $shipment The v1 wire shipment, see self::fromRepresentation().
+     * @param   Shipment $shipment The v1 wire shipment, see self::fromShipment().
      * @return  object|true|false
      */
     public function create(Shipment $shipment)
@@ -70,22 +80,22 @@ class BookingResource
      * Translate the internal shipment representation into the v1 wire
      * shipment model.
      *
-     * @param   array $representation The internal shipment representation from SS_Shipping_Shipment_Builder::build().
+     * @param   \SS_Shipping_Shipment $shipment The internal shipment representation from SS_Shipping_Shipment_Builder.
      * @return  Shipment
      */
-    public function fromRepresentation(array $representation): Shipment
+    public function fromShipment(\SS_Shipping_Shipment $shipment): Shipment
     {
-        $receiver = $this->buildReceiver($representation);
+        $receiver = $this->buildReceiver($shipment);
 
-        $shipment = new Shipment();
-        $shipment->setReceiver($receiver);
+        $wire_shipment = new Shipment();
+        $wire_shipment->setReceiver($receiver);
 
-        if (!empty($representation['pickup_point'])) {
-            $shipment->setAgent($this->buildAgent($representation['pickup_point']));
+        if (!empty($shipment->get_pickup_point())) {
+            $wire_shipment->setAgent($this->buildAgent($shipment->get_pickup_point()));
         }
 
         $parcels = array();
-        foreach ($representation['parcels'] as $parcel_row) {
+        foreach ($shipment->get_parcels() as $parcel_row) {
             $parcels[] = $this->buildParcel($parcel_row);
         }
 
@@ -94,38 +104,38 @@ class BookingResource
         $services->setSmsNotification($receiver->getSms()) // Always enable SMS notification.
             ->setEmailNotification($receiver->getEmail()); // Always enable Email notification.
 
-        $shipment->setInternalId($representation['internal_id'])
-            ->setInternalReference($this->valueOrNull($representation['internal_reference']))
-            ->setShippingCarrier($this->valueOrNull($representation['shipping_carrier']))
-            ->setShippingMethod($this->valueOrNull($representation['shipping_method']))
-            ->setShippingDate($representation['shipping_date'])
+        $wire_shipment->setInternalId($shipment->get_internal_id())
+            ->setInternalReference($this->valueOrNull($shipment->get_internal_reference()))
+            ->setShippingCarrier($this->valueOrNull($shipment->get_shipping_carrier()))
+            ->setShippingMethod($this->valueOrNull($shipment->get_shipping_method()))
+            ->setShippingDate($shipment->get_shipping_date())
             ->setParcels($parcels) // Alternatively add each parcel using $shipment->addParcel(Parcel $parcel).
             ->setServices($services)
-            ->setSubtotalPriceExcludingTax($this->valueOrNull($representation['subtotal_net_amount']))
-            ->setSubtotalPriceIncludingTax($this->valueOrNull($this->netPlusTax($representation['subtotal_net_amount'], $representation['subtotal_tax_amount'])))
-            ->setTotalPriceExcludingTax($this->valueOrNull($representation['total_net_amount']))
-            ->setTotalPriceIncludingTax($this->valueOrNull($this->netPlusTax($representation['total_net_amount'], $representation['total_tax_amount'])))
-            ->setShippingPriceExcludingTax($this->valueOrNull($representation['shipping_net_amount']))
-            ->setShippingPriceIncludingTax($this->valueOrNull($this->netPlusTax($representation['shipping_net_amount'], $representation['shipping_tax_amount'])))
-            ->setTotalTaxAmount($this->valueOrNull($representation['total_tax_amount']))
-            ->setCurrency($this->valueOrNull($representation['currency']));
+            ->setSubtotalPriceExcludingTax($this->valueOrNull($shipment->get_subtotal_net_amount()))
+            ->setSubtotalPriceIncludingTax($this->valueOrNull($this->netPlusTax($shipment->get_subtotal_net_amount(), $shipment->get_subtotal_tax_amount())))
+            ->setTotalPriceExcludingTax($this->valueOrNull($shipment->get_total_net_amount()))
+            ->setTotalPriceIncludingTax($this->valueOrNull($this->netPlusTax($shipment->get_total_net_amount(), $shipment->get_total_tax_amount())))
+            ->setShippingPriceExcludingTax($this->valueOrNull($shipment->get_shipping_net_amount()))
+            ->setShippingPriceIncludingTax($this->valueOrNull($this->netPlusTax($shipment->get_shipping_net_amount(), $shipment->get_shipping_tax_amount())))
+            ->setTotalTaxAmount($this->valueOrNull($shipment->get_total_tax_amount()))
+            ->setCurrency($this->valueOrNull($shipment->get_currency()));
 
-        return $shipment;
+        return $wire_shipment;
     }
 
     /**
      * Build the receiver model from the representation's receiver section.
      *
-     * @param   array $representation The internal shipment representation.
+     * @param   \SS_Shipping_Shipment $shipment The internal shipment representation.
      * @return  Receiver
      */
-    protected function buildReceiver(array $representation): Receiver
+    protected function buildReceiver(\SS_Shipping_Shipment $shipment): Receiver
     {
-        $receiver_data = $representation['receiver'];
+        $receiver_data = $shipment->get_receiver();
 
         $receiver = new Receiver();
-        $receiver->setInternalId($representation['internal_id'])
-            ->setInternalReference($this->valueOrNull($representation['internal_reference']))
+        $receiver->setInternalId($shipment->get_internal_id())
+            ->setInternalReference($this->valueOrNull($shipment->get_internal_reference()))
             ->setCompany($this->valueOrNull($receiver_data['company']))
             ->setNameLine1($this->valueOrNull($receiver_data['name_line1']))
             ->setNameLine2($this->valueOrNull($receiver_data['name_line2']))
@@ -144,7 +154,7 @@ class BookingResource
      * Build the agent (pickup point) model from the representation's
      * pickup-point section.
      *
-     * @param   array $pickup_point Pickup point data, see SS_Shipping_Shipment_Builder::build_pickup_point().
+     * @param   array $pickup_point Pickup point data, sourced from \SS_Shipping_Shipment::get_pickup_point(), see SS_Shipping_Shipment_Builder::build_pickup_point().
      * @return  ShipmentAgent
      */
     protected function buildAgent(array $pickup_point): ShipmentAgent
@@ -166,7 +176,7 @@ class BookingResource
     /**
      * Build an item model from an item row of the representation.
      *
-     * @param   array $item_row Item row, see SS_Shipping_Order_Data::get_items_data().
+     * @param   array $item_row Item row, sourced from one of \SS_Shipping_Shipment::get_parcels()'s 'items' arrays, see SS_Shipping_Order_Reader::get_items_data().
      * @return  Item
      */
     protected function buildItem(array $item_row): Item
@@ -201,7 +211,7 @@ class BookingResource
     /**
      * Build a parcel model from a parcel row of the representation.
      *
-     * @param   array $parcel_row Parcel row, see SS_Shipping_Shipment_Builder::build().
+     * @param   array $parcel_row Parcel row, sourced from \SS_Shipping_Shipment::get_parcels().
      * @return  Parcel
      */
     protected function buildParcel(array $parcel_row): Parcel

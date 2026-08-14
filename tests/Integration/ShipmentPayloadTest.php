@@ -2,10 +2,10 @@
 
 /*
  * Characterization ("golden") tests for the booking payload that
- * SS_Shipping_Shipment sends to the Smart Send API. Each test builds a
- * representative order, captures the JSON body posted to the (mocked) API,
- * and compares it to the complete expected payload. If any field of the
- * booking request changes, these tests fail.
+ * SS_Shipping_Booking_Service sends to the Smart Send API. Each test builds
+ * a representative order, captures the JSON body posted to the (mocked)
+ * API, and compares it to the complete expected payload. If any field of
+ * the booking request changes, these tests fail.
  *
  * IMPORTANT: these tests assert CURRENT v8 behaviour, including known
  * oddities (marked "v8 oddity"). Do not "fix" an expectation here without a
@@ -13,15 +13,17 @@
  */
 
 /**
- * Send the order through SS_Shipping_Shipment against a mocked API and
- * return the decoded JSON payload of the createShipmentAndLabels request.
+ * Send the order through SS_Shipping_Booking_Service against a mocked API
+ * and return the decoded JSON payload of the createShipmentAndLabels
+ * request.
  */
 function capture_shipment_payload(WC_Order $order, bool $return = false): array
 {
     $capture = mock_smart_send_api();
 
-    $shipment = new SS_Shipping_Shipment($order, SS_SHIPPING_WC()->get_ss_shipping_wc_order());
-    expect($shipment->make_single_shipment_api_call($return))->toBeTrue();
+    $booking_service = new SS_Shipping_Booking_Service($order, SS_SHIPPING_WC()->get_ss_shipping_wc_order());
+    $booking         = $return ? $booking_service->book_return() : $booking_service->book_outbound();
+    expect($booking->is_successful())->toBeTrue();
 
     $request = end($capture->requests);
     expect($request['url'])->toContain('shipments/labels');
