@@ -1,6 +1,6 @@
 <?php
 /**
- * WooCommerce Smart Send Shipping Order Payload.
+ * WooCommerce Smart Send internal shipment representation.
  *
  * @package  SS_Shipping_Shipment
  * @category Shipping
@@ -15,160 +15,468 @@ if ( ! defined( 'ABSPATH' ) ) {
 if ( ! class_exists( 'SS_Shipping_Shipment' ) ) :
 
 	/**
-	 * Sends a WooCommerce order to the Smart Send API as a shipment.
+	 * The internal shipment representation (#113) assembled by
+	 * SS_Shipping_Shipment_Builder from SS_Shipping_Order_Reader's output
+	 * plus the agent/pick-up-point selection and parcel split.
 	 *
-	 * SS_Shipping_Shipment_Builder assembles the new internal shipment
-	 * representation (#113); \Smartsend\Resources\BookingResource (#112)
-	 * translates that representation into the v1 wire request
-	 * (Smartsend\Models\Shipment and its sub-models) and sends it. This
-	 * class is now only the order-level orchestrator: build the
-	 * representation, hand it to the booking resource, and expose the
-	 * result to callers (SS_Shipping_Label_Creator).
+	 * A typed, WP-side value object shaped close to the Smart Send v2 API
+	 * schema: a single net amount + tax amount per level (shipment/parcel/
+	 * item), no excl/incl redundancy, and a pickup-point section named
+	 * after v2's PickupParty.service_point_code rather than v1's
+	 * agent_no/agent.
+	 *
+	 * Nested sections (receiver, pickup_point, parcels and each parcel's
+	 * items) are kept as plain arrays rather than their own value-object
+	 * classes - promoting every nesting level would add ceremony without
+	 * adding safety here, since the only other reader is
+	 * \Smartsend\Resources\BookingResource::fromShipment(), which already
+	 * needs array access to build its own sub-models.
+	 *
+	 * This class does not talk to the API and does not know about the v1
+	 * wire format - translating it into the v1 request body is
+	 * \Smartsend\Resources\BookingResource::fromShipment()'s job. It also
+	 * makes zero WordPress function calls, despite living in the WP-side
+	 * global namespace: it is a pure data holder, referenced by the
+	 * "WordPress-light" PSR API client (includes/lib/Smartsend/) purely by
+	 * its fully-qualified global name (\SS_Shipping_Shipment).
 	 */
 	class SS_Shipping_Shipment {
 
 		/**
-		 * The WooCommerce order.
+		 * Order id.
 		 *
-		 * Deliberately untyped: wc_get_order() can return false (or a
-		 * WC_Order_Refund), and the constructor relies on that falsy value.
-		 *
-		 * @var WC_Order|false|null
+		 * @var string|null
 		 */
-		protected $order = null;
+		protected ?string $internal_id = null;
 
 		/**
-		 * Order data access utility.
+		 * Order number.
 		 *
-		 * @var SS_Shipping_Order_Data|null
+		 * @var string|null
 		 */
-		protected ?SS_Shipping_Order_Data $order_data = null;
+		protected ?string $internal_reference = null;
 
 		/**
-		 * The admin order integration.
+		 * Smart Send carrier code.
 		 *
-		 * @var SS_Shipping_WC_Order|null
+		 * @var string|null
 		 */
-		protected ?SS_Shipping_WC_Order $shipping_order = null;
+		protected ?string $shipping_carrier = null;
 
 		/**
-		 * The internal shipment representation assembled by
-		 * SS_Shipping_Shipment_Builder, or an error array.
+		 * Smart Send shipping method code.
+		 *
+		 * @var string|null
+		 */
+		protected ?string $shipping_method = null;
+
+		/**
+		 * Shipping date (Y-m-d).
+		 *
+		 * @var string|null
+		 */
+		protected ?string $shipping_date = null;
+
+		/**
+		 * Receiver data, see SS_Shipping_Order_Reader::get_receiver_data().
 		 *
 		 * @var array|null
 		 */
-		protected ?array $representation = null;
+		protected ?array $receiver = null;
 
 		/**
-		 * The v1 wire shipment model translated from the representation.
+		 * Pickup point data (service_point_code, address, ...), or null.
 		 *
-		 * @var \Smartsend\Models\Shipment|null
+		 * @var array|null
 		 */
-		protected ?\Smartsend\Models\Shipment $shipment = null;
+		protected ?array $pickup_point = null;
 
 		/**
-		 * Init and hook in the integration.
+		 * One row per parcel: internal_id, internal_reference, weight,
+		 * height, width, length, freetext, items (item rows),
+		 * total_net_amount, total_tax_amount.
 		 *
-		 * @param WC_Order|integer     $order          The order (object or id) to build a shipment for.
-		 * @param SS_Shipping_WC_Order $shipping_order The admin order integration.
+		 * @var array[]
 		 */
-		public function __construct( $order, $shipping_order ) {
-			if ( is_numeric( $order ) && $order > 0 ) {
-				$this->order = wc_get_order( $order );
+		protected array $parcels = array();
 
-				if ( ! $this->order ) {
-					return;
-				}
-			} elseif ( $order instanceof WC_Order ) {
-				$this->order = $order;
-			} else {
-				return;
-			}
+		/**
+		 * Order total excl. shipping, excl. tax.
+		 *
+		 * @var float|null
+		 */
+		protected ?float $subtotal_net_amount = null;
 
-			$this->order_data     = new SS_Shipping_Order_Data( $this->order );
-			$this->shipping_order = $shipping_order;
+		/**
+		 * Tax on the order total excl. shipping.
+		 *
+		 * @var float|null
+		 */
+		protected ?float $subtotal_tax_amount = null;
 
-			// Wire shipment model, empty until the representation is
-			// translated. Kept even on a build error so a caller that
-			// still sends the (empty) request behaves as it always has.
-			$this->shipment = new \Smartsend\Models\Shipment();
+		/**
+		 * Shipping cost excl. tax.
+		 *
+		 * @var float|null
+		 */
+		protected ?float $shipping_net_amount = null;
+
+		/**
+		 * Tax on the shipping cost.
+		 *
+		 * @var float|null
+		 */
+		protected ?float $shipping_tax_amount = null;
+
+		/**
+		 * Order total excl. tax.
+		 *
+		 * @var float|null
+		 */
+		protected ?float $total_net_amount = null;
+
+		/**
+		 * Total tax on the order.
+		 *
+		 * @var float|null
+		 */
+		protected ?float $total_tax_amount = null;
+
+		/**
+		 * Order currency code.
+		 *
+		 * @var string|null
+		 */
+		protected ?string $currency = null;
+
+		/**
+		 * Get the order id.
+		 *
+		 * @return string|null
+		 */
+		public function get_internal_id() {
+			return $this->internal_id;
 		}
 
 		/**
-		 * Create single order.
+		 * Set the order id.
 		 *
-		 * @param boolean $is_return Whether the label is a return label.
+		 * @param mixed $internal_id Order id.
 		 *
-		 * @return boolean
+		 * @return self
 		 */
-		public function make_single_shipment_api_call( $is_return ) {
-			$this->make_single_shipment_api_payload( $is_return );
-			$this->make_single_shipment_api_request();
+		public function set_internal_id( $internal_id ): self {
+			$this->internal_id = null === $internal_id ? null : (string) $internal_id;
 
-			if ( SS_SHIPPING_WC()->get_api_handle()->isSuccessful() ) {
-				return true;
-			} else {
-				return false;
-			}
+			return $this;
 		}
 
 		/**
-		 * Get API call data.
+		 * Get the order number.
 		 *
-		 * @return object
+		 * @return string|null
 		 */
-		public function get_shipping_data() {
-			return SS_SHIPPING_WC()->get_api_handle()->getData();
+		public function get_internal_reference() {
+			return $this->internal_reference;
 		}
 
 		/**
-		 * Get error message.
+		 * Set the order number.
 		 *
-		 * @return string
+		 * @param mixed $internal_reference Order number.
+		 *
+		 * @return self
 		 */
-		public function get_error_msg() {
-			return SS_SHIPPING_WC()->get_api_handle()->getErrorString();
+		public function set_internal_reference( $internal_reference ): self {
+			$this->internal_reference = null === $internal_reference ? null : (string) $internal_reference;
+
+			return $this;
 		}
 
 		/**
-		 * Get shipment object.
+		 * Get the Smart Send carrier code.
 		 *
-		 * @return \Smartsend\Models\Shipment
+		 * @return string|null
 		 */
-		public function get_shipment() {
-			return $this->shipment;
+		public function get_shipping_carrier() {
+			return $this->shipping_carrier;
 		}
 
 		/**
-		 * Build the internal shipment representation and translate it into
-		 * the v1 wire shipment model. The translation itself is
-		 * \Smartsend\Resources\BookingResource::fromRepresentation() (#112)
-		 * - the single point where the v1 wire payload is built.
+		 * Set the Smart Send carrier code.
 		 *
-		 * @param boolean $is_return Whether the label is a return label.
+		 * @param mixed $shipping_carrier Smart Send carrier code.
 		 *
-		 * @return array|void The representation, only when it is an error.
+		 * @return self
 		 */
-		protected function make_single_shipment_api_payload( $is_return ) {
-			$builder              = new SS_Shipping_Shipment_Builder( $this->order, $this->order_data, $this->shipping_order );
-			$this->representation = $builder->build( $is_return );
+		public function set_shipping_carrier( $shipping_carrier ): self {
+			$this->shipping_carrier = null === $shipping_carrier ? null : (string) $shipping_carrier;
 
-			if ( isset( $this->representation['error'] ) ) {
-				return $this->representation;
-			}
-
-			$this->shipment = SS_SHIPPING_WC()->get_api_handle()->bookings()->fromRepresentation( $this->representation );
+			return $this;
 		}
 
 		/**
-		 * Call Smart Send Shipment API, log response.
+		 * Get the Smart Send shipping method code.
 		 *
-		 * @return void
+		 * @return string|null
 		 */
-		protected function make_single_shipment_api_request() {
-			// Make API Request. The request and response (incl. HTTP status
-			// code and endpoint) are logged by the client's request logger.
-			SS_SHIPPING_WC()->get_api_handle()->bookings()->create( $this->shipment );
+		public function get_shipping_method() {
+			return $this->shipping_method;
+		}
+
+		/**
+		 * Set the Smart Send shipping method code.
+		 *
+		 * @param mixed $shipping_method Smart Send shipping method code.
+		 *
+		 * @return self
+		 */
+		public function set_shipping_method( $shipping_method ): self {
+			$this->shipping_method = null === $shipping_method ? null : (string) $shipping_method;
+
+			return $this;
+		}
+
+		/**
+		 * Get the shipping date (Y-m-d).
+		 *
+		 * @return string|null
+		 */
+		public function get_shipping_date() {
+			return $this->shipping_date;
+		}
+
+		/**
+		 * Set the shipping date (Y-m-d).
+		 *
+		 * @param string|null $shipping_date Shipping date (Y-m-d).
+		 *
+		 * @return self
+		 */
+		public function set_shipping_date( $shipping_date ): self {
+			$this->shipping_date = $shipping_date;
+
+			return $this;
+		}
+
+		/**
+		 * Get the receiver data.
+		 *
+		 * @return array|null
+		 */
+		public function get_receiver() {
+			return $this->receiver;
+		}
+
+		/**
+		 * Set the receiver data.
+		 *
+		 * @param array|null $receiver Receiver data.
+		 *
+		 * @return self
+		 */
+		public function set_receiver( $receiver ): self {
+			$this->receiver = $receiver;
+
+			return $this;
+		}
+
+		/**
+		 * Get the pickup point data, or null.
+		 *
+		 * @return array|null
+		 */
+		public function get_pickup_point() {
+			return $this->pickup_point;
+		}
+
+		/**
+		 * Set the pickup point data.
+		 *
+		 * @param array|null $pickup_point Pickup point data, or null.
+		 *
+		 * @return self
+		 */
+		public function set_pickup_point( $pickup_point ): self {
+			$this->pickup_point = $pickup_point;
+
+			return $this;
+		}
+
+		/**
+		 * Get the parcel rows.
+		 *
+		 * @return array[]
+		 */
+		public function get_parcels(): array {
+			return $this->parcels;
+		}
+
+		/**
+		 * Set the parcel rows.
+		 *
+		 * @param array[] $parcels Parcel rows.
+		 *
+		 * @return self
+		 */
+		public function set_parcels( array $parcels ): self {
+			$this->parcels = $parcels;
+
+			return $this;
+		}
+
+		/**
+		 * Get the order total excl. shipping, excl. tax.
+		 *
+		 * @return float|null
+		 */
+		public function get_subtotal_net_amount() {
+			return $this->subtotal_net_amount;
+		}
+
+		/**
+		 * Set the order total excl. shipping, excl. tax.
+		 *
+		 * @param mixed $subtotal_net_amount Order total excl. shipping, excl. tax.
+		 *
+		 * @return self
+		 */
+		public function set_subtotal_net_amount( $subtotal_net_amount ): self {
+			$this->subtotal_net_amount = null === $subtotal_net_amount ? null : (float) $subtotal_net_amount;
+
+			return $this;
+		}
+
+		/**
+		 * Get the tax on the order total excl. shipping.
+		 *
+		 * @return float|null
+		 */
+		public function get_subtotal_tax_amount() {
+			return $this->subtotal_tax_amount;
+		}
+
+		/**
+		 * Set the tax on the order total excl. shipping.
+		 *
+		 * @param mixed $subtotal_tax_amount Tax on the order total excl. shipping.
+		 *
+		 * @return self
+		 */
+		public function set_subtotal_tax_amount( $subtotal_tax_amount ): self {
+			$this->subtotal_tax_amount = null === $subtotal_tax_amount ? null : (float) $subtotal_tax_amount;
+
+			return $this;
+		}
+
+		/**
+		 * Get the shipping cost excl. tax.
+		 *
+		 * @return float|null
+		 */
+		public function get_shipping_net_amount() {
+			return $this->shipping_net_amount;
+		}
+
+		/**
+		 * Set the shipping cost excl. tax.
+		 *
+		 * @param mixed $shipping_net_amount Shipping cost excl. tax.
+		 *
+		 * @return self
+		 */
+		public function set_shipping_net_amount( $shipping_net_amount ): self {
+			$this->shipping_net_amount = null === $shipping_net_amount ? null : (float) $shipping_net_amount;
+
+			return $this;
+		}
+
+		/**
+		 * Get the tax on the shipping cost.
+		 *
+		 * @return float|null
+		 */
+		public function get_shipping_tax_amount() {
+			return $this->shipping_tax_amount;
+		}
+
+		/**
+		 * Set the tax on the shipping cost.
+		 *
+		 * @param mixed $shipping_tax_amount Tax on the shipping cost.
+		 *
+		 * @return self
+		 */
+		public function set_shipping_tax_amount( $shipping_tax_amount ): self {
+			$this->shipping_tax_amount = null === $shipping_tax_amount ? null : (float) $shipping_tax_amount;
+
+			return $this;
+		}
+
+		/**
+		 * Get the order total excl. tax.
+		 *
+		 * @return float|null
+		 */
+		public function get_total_net_amount() {
+			return $this->total_net_amount;
+		}
+
+		/**
+		 * Set the order total excl. tax.
+		 *
+		 * @param mixed $total_net_amount Order total excl. tax.
+		 *
+		 * @return self
+		 */
+		public function set_total_net_amount( $total_net_amount ): self {
+			$this->total_net_amount = null === $total_net_amount ? null : (float) $total_net_amount;
+
+			return $this;
+		}
+
+		/**
+		 * Get the total tax on the order.
+		 *
+		 * @return float|null
+		 */
+		public function get_total_tax_amount() {
+			return $this->total_tax_amount;
+		}
+
+		/**
+		 * Set the total tax on the order.
+		 *
+		 * @param mixed $total_tax_amount Total tax on the order.
+		 *
+		 * @return self
+		 */
+		public function set_total_tax_amount( $total_tax_amount ): self {
+			$this->total_tax_amount = null === $total_tax_amount ? null : (float) $total_tax_amount;
+
+			return $this;
+		}
+
+		/**
+		 * Get the order currency code.
+		 *
+		 * @return string|null
+		 */
+		public function get_currency() {
+			return $this->currency;
+		}
+
+		/**
+		 * Set the order currency code.
+		 *
+		 * @param string|null $currency Order currency code.
+		 *
+		 * @return self
+		 */
+		public function set_currency( $currency ): self {
+			$this->currency = $currency;
+
+			return $this;
 		}
 	}
 

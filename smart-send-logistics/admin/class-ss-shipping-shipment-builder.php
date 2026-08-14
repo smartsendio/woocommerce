@@ -15,19 +15,33 @@ if ( ! defined( 'ABSPATH' ) ) {
 if ( ! class_exists( 'SS_Shipping_Shipment_Builder' ) ) :
 
 	/**
-	 * Assembles the new internal shipment representation (#113) from
-	 * SS_Shipping_Order_Data's output plus the agent/pick-up-point
-	 * selection and parcel split. The representation is a plain array
-	 * shaped close to the Smart Send v2 API schema: a single net amount +
-	 * tax amount per level (shipment/parcel/item), no excl/incl
-	 * redundancy, and a pickup-point section named after v2's
+	 * Assembles the internal shipment representation (#113), a typed
+	 * SS_Shipping_Shipment value object, from SS_Shipping_Order_Reader's
+	 * output plus the agent/pick-up-point selection and parcel split. The
+	 * representation is shaped close to the Smart Send v2 API schema: a
+	 * single net amount + tax amount per level (shipment/parcel/item), no
+	 * excl/incl redundancy, and a pickup-point section named after v2's
 	 * PickupParty.service_point_code rather than v1's agent_no/agent.
 	 *
 	 * This class does not talk to the API and does not know about the v1
 	 * wire format - translating the representation into the v1 request
-	 * body is SS_Shipping_Shipment's job (a thin adapter, kept only
-	 * because #112's resource layer, which will own that translation
-	 * permanently, is not part of this change).
+	 * body is \Smartsend\Resources\BookingResource::fromShipment()'s job
+	 * (#112).
+	 *
+	 * Outbound and return bookings are two separate entry points -
+	 * build_outbound() and build_return() - rather than a single build()
+	 * taking an is_return boolean: they are expected to grow different
+	 * do_action() calls and different business logic over time, and a
+	 * boolean flag silently branching inside one method would hide that.
+	 * Both share assemble_shipment() for the parts that don't differ
+	 * (item/parcel/totals assembly) - only the shipping-method/agent
+	 * selection differs between the two.
+	 *
+	 * build_return() throws SS_Shipping_Booking_Exception when it cannot
+	 * produce a valid shipment (no return method configured) - it is
+	 * SS_Shipping_Booking_Service's job to catch that and convert it into
+	 * a failed SS_Shipping_Booking; this class never returns an error
+	 * array/value.
 	 *
 	 * Gift card exclusion (#128) is NOT implemented here: WooCommerce
 	 * Gift Cards redemptions are not order items (confirmed against the
@@ -39,7 +53,7 @@ if ( ! class_exists( 'SS_Shipping_Shipment_Builder' ) ) :
 	 * lower an item price. But the exact order-level representation
 	 * (fee line, meta, or something else) could not be confirmed with
 	 * confidence without the plugin installed, so the shipment/parcel
-	 * subtotal calculated in SS_Shipping_Order_Data::get_totals() is not
+	 * subtotal calculated in SS_Shipping_Order_Reader::get_totals() is not
 	 * yet corrected to add the redemption back - a gift-card-funded order
 	 * still under-reports its shipment value today, same as before this
 	 * change. This is a documented follow-up, to be implemented against
@@ -58,9 +72,9 @@ if ( ! class_exists( 'SS_Shipping_Shipment_Builder' ) ) :
 		/**
 		 * Order data access utility.
 		 *
-		 * @var SS_Shipping_Order_Data
+		 * @var SS_Shipping_Order_Reader
 		 */
-		protected SS_Shipping_Order_Data $order_data;
+		protected SS_Shipping_Order_Reader $order_reader;
 
 		/**
 		 * The admin order integration.
@@ -72,64 +86,93 @@ if ( ! class_exists( 'SS_Shipping_Shipment_Builder' ) ) :
 		/**
 		 * Constructor.
 		 *
-		 * @param WC_Order               $order          The WooCommerce order.
-		 * @param SS_Shipping_Order_Data $order_data     Order data access utility for the same order.
-		 * @param SS_Shipping_WC_Order   $shipping_order The admin order integration.
+		 * @param WC_Order                 $order          The WooCommerce order.
+		 * @param SS_Shipping_Order_Reader $order_reader   Order data access utility for the same order.
+		 * @param SS_Shipping_WC_Order     $shipping_order The admin order integration.
 		 */
-		public function __construct( WC_Order $order, SS_Shipping_Order_Data $order_data, SS_Shipping_WC_Order $shipping_order ) {
+		public function __construct( WC_Order $order, SS_Shipping_Order_Reader $order_reader, SS_Shipping_WC_Order $shipping_order ) {
 			$this->order          = $order;
-			$this->order_data     = $order_data;
+			$this->order_reader   = $order_reader;
 			$this->shipping_order = $shipping_order;
 		}
 
 		/**
-		 * Build the internal shipment representation.
+		 * Build the internal shipment representation for an outbound
+		 * (normal) shipping label: the shipping method/carrier comes from
+		 * the order's Smart Send shipping method, and a pick-up point
+		 * (agent) is selected when one is stored on the order.
 		 *
-		 * @param boolean $is_return Whether the label is a return label.
-		 *
-		 * @return array {
-		 *     The internal shipment representation, or an error.
-		 *
-		 *     @type string     $error               Set instead of every other key when no return method is configured.
-		 *     @type string     $internal_id         Order id.
-		 *     @type string     $internal_reference  Order number.
-		 *     @type string|null $shipping_carrier   Smart Send carrier code.
-		 *     @type string|null $shipping_method    Smart Send shipping method code.
-		 *     @type string     $shipping_date       Shipping date (Y-m-d).
-		 *     @type array      $receiver            Receiver data, see SS_Shipping_Order_Data::get_receiver_data().
-		 *     @type array|null $pickup_point        Pickup point data (service_point_code, address, ...), or null.
-		 *     @type array[]    $parcels             One row per parcel: internal_id, internal_reference, weight,
-		 *                                            height, width, length, freetext, items (item rows),
-		 *                                            total_net_amount, total_tax_amount.
-		 *     @type float|null $subtotal_net_amount Order total excl. shipping, excl. tax.
-		 *     @type float|null $subtotal_tax_amount Tax on the order total excl. shipping.
-		 *     @type float|null $shipping_net_amount Shipping cost excl. tax.
-		 *     @type float|null $shipping_tax_amount Tax on the shipping cost.
-		 *     @type float|null $total_net_amount    Order total excl. tax.
-		 *     @type float|null $total_tax_amount    Total tax on the order.
-		 *     @type string|null $currency           Order currency code.
-		 * }
+		 * @return SS_Shipping_Shipment
 		 */
-		public function build( $is_return ) {
-			$order_id = $this->order_data->get_order_id();
+		public function build_outbound(): SS_Shipping_Shipment {
+			$order_id = $this->order_reader->get_order_id();
 
-			$ss_args = array();
+			$ss_shipping_method_id = $this->shipping_order->get_smart_send_method_id( $order_id, false );
 
-			// Get shipping method.
-			$ss_shipping_method_id = $this->shipping_order->get_smart_send_method_id( $order_id, $is_return );
+			$ss_args = array(
+				'ss_agent' => $this->shipping_order->get_ss_shipping_order_agent( $order_id ),
+			);
 
-			if ( $is_return && isset( $ss_shipping_method_id['smart_send_return_method'] ) ) {
-				// If no return method set return error.
+			return $this->assemble_shipment( $ss_shipping_method_id, $ss_args, false );
+		}
+
+		/**
+		 * Build the internal shipment representation for a return label:
+		 * the shipping method/carrier comes from the order's configured
+		 * return method, and no pick-up point is selected - unless the
+		 * return method could not be resolved to the dedicated
+		 * smart_send_return_method meta (free-shipping/vConnect orders,
+		 * see the v8-oddity note on the else branch below), in which case
+		 * this falls back to the same agent selection as an outbound
+		 * label.
+		 *
+		 * @throws SS_Shipping_Booking_Exception When no return method is configured.
+		 *
+		 * @return SS_Shipping_Shipment
+		 */
+		public function build_return(): SS_Shipping_Shipment {
+			$order_id = $this->order_reader->get_order_id();
+			$ss_args  = array();
+
+			$ss_shipping_method_id = $this->shipping_order->get_smart_send_method_id( $order_id, true );
+
+			if ( isset( $ss_shipping_method_id['smart_send_return_method'] ) ) {
 				if ( empty( $ss_shipping_method_id['smart_send_return_method'] ) ) {
-					return array( 'error' => __( 'No return method set', 'smart-send-logistics' ) );
-				} else {
-					$ss_shipping_method_id = $ss_shipping_method_id['smart_send_return_method'];
+					// phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- the exception message is caught by SS_Shipping_Booking_Service and surfaced via SS_Shipping_Booking::get_error_message(), never echoed directly; escaping is not applicable here.
+					throw new SS_Shipping_Booking_Exception( __( 'No return method set', 'smart-send-logistics' ) );
 				}
+
+				$ss_shipping_method_id = $ss_shipping_method_id['smart_send_return_method'];
 			} else {
+				// v8 oddity: free-shipping/vConnect orders never resolve to
+				// the smart_send_return_method array (get_smart_send_method_id()
+				// already returns the concrete method id string for them), so
+				// this branch - identical to build_outbound()'s agent
+				// selection - still runs for a return label in that case.
 				$ss_args['ss_agent'] = $this->shipping_order->get_ss_shipping_order_agent( $order_id );
 			}
 
-			// Determine shipping method and carrier from return settings.
+			return $this->assemble_shipment( $ss_shipping_method_id, $ss_args, true );
+		}
+
+		/**
+		 * Assemble the shipment representation shared by build_outbound()
+		 * and build_return(): carrier/type resolution, parcel split,
+		 * receiver, pick-up point, item lines and totals. Only the
+		 * shipping-method/agent selection (the caller-supplied
+		 * $ss_shipping_method_id and $ss_args['ss_agent']) differs between
+		 * outbound and return bookings.
+		 *
+		 * @param string  $ss_shipping_method_id Smart Send shipping method id.
+		 * @param array   $ss_args               Args built so far by the caller (e.g. 'ss_agent').
+		 * @param boolean $is_return             Whether this is a return label.
+		 *
+		 * @return SS_Shipping_Shipment
+		 */
+		protected function assemble_shipment( $ss_shipping_method_id, array $ss_args, $is_return ): SS_Shipping_Shipment {
+			$order_id = $this->order_reader->get_order_id();
+
+			// Determine shipping method and carrier.
 			$ss_args['ss_carrier'] = SS_SHIPPING_WC()->get_shipping_method_carrier( $ss_shipping_method_id );
 			$ss_args['ss_type']    = SS_SHIPPING_WC()->get_shipping_method_type( $ss_shipping_method_id );
 
@@ -167,7 +210,7 @@ if ( ! class_exists( 'SS_Shipping_Shipment_Builder' ) ) :
 			 */
 			$ss_args = apply_filters( 'smart_send_shipping_label_args', $ss_args, $order_id, $is_return );
 
-			$receiver = $this->order_data->get_receiver_data();
+			$receiver = $this->order_reader->get_receiver_data();
 
 			// Add the pickup point to the shipment, if any.
 			$ss_agent = apply_filters(
@@ -179,7 +222,7 @@ if ( ! class_exists( 'SS_Shipping_Shipment_Builder' ) ) :
 			$pickup_point = empty( $ss_agent ) ? null : $this->build_pickup_point( $ss_agent );
 
 			// Item lines and totals.
-			$items_data = $this->order_data->get_items_data();
+			$items_data = $this->order_reader->get_items_data();
 
 			$parcels = array();
 			$totals  = array(
@@ -193,8 +236,8 @@ if ( ! class_exists( 'SS_Shipping_Shipment_Builder' ) ) :
 			);
 
 			if ( ! empty( $items_data ) ) {
-				$totals     = $this->order_data->get_totals();
-				$order_note = $this->order_data->get_order_note();
+				$totals     = $this->order_reader->get_totals();
+				$order_note = $this->order_reader->get_order_note();
 
 				// Item rows, keyed by product/variation id so a parcel
 				// split can reference them.
@@ -215,7 +258,7 @@ if ( ! class_exists( 'SS_Shipping_Shipment_Builder' ) ) :
 					// A single parcel containing all the items just defined.
 					$parcels[] = array(
 						'internal_id'        => $this->value_or_null( $order_id ),
-						'internal_reference' => $this->value_or_null( $this->order_data->get_order_number() ),
+						'internal_reference' => $this->value_or_null( $this->order_reader->get_order_number() ),
 						'weight'             => $this->value_or_null( $weight_total ),
 						'height'             => null,
 						'width'              => null,
@@ -238,28 +281,29 @@ if ( ! class_exists( 'SS_Shipping_Shipment_Builder' ) ) :
 			 *
 			 * @since 9.0.0
 			 *
-			 * @param array[]  $parcels The assembled parcel rows (see the return doc of self::build()).
+			 * @param array[]  $parcels The assembled parcel rows.
 			 * @param WC_Order $order   The WooCommerce order.
 			 */
 			$parcels = apply_filters( 'smart_send_payload_parcels', $parcels, $this->order );
 
-			return array(
-				'internal_id'         => $this->value_or_null( $order_id ),
-				'internal_reference'  => $this->value_or_null( $this->order_data->get_order_number() ),
-				'shipping_carrier'    => $this->value_or_null( $ss_args['ss_carrier'] ),
-				'shipping_method'     => $this->value_or_null( $ss_args['ss_type'] ),
-				'shipping_date'       => gmdate( 'Y-m-d' ),
-				'receiver'            => $receiver,
-				'pickup_point'        => $pickup_point,
-				'parcels'             => $parcels,
-				'subtotal_net_amount' => $totals['subtotal_net_amount'],
-				'subtotal_tax_amount' => $totals['subtotal_tax_amount'],
-				'shipping_net_amount' => $totals['shipping_net_amount'],
-				'shipping_tax_amount' => $totals['shipping_tax_amount'],
-				'total_net_amount'    => $totals['total_net_amount'],
-				'total_tax_amount'    => $totals['total_tax_amount'],
-				'currency'            => $totals['currency'],
-			);
+			$shipment = new SS_Shipping_Shipment();
+			$shipment->set_internal_id( $this->value_or_null( $order_id ) )
+				->set_internal_reference( $this->value_or_null( $this->order_reader->get_order_number() ) )
+				->set_shipping_carrier( $this->value_or_null( $ss_args['ss_carrier'] ) )
+				->set_shipping_method( $this->value_or_null( $ss_args['ss_type'] ) )
+				->set_shipping_date( gmdate( 'Y-m-d' ) )
+				->set_receiver( $receiver )
+				->set_pickup_point( $pickup_point )
+				->set_parcels( $parcels )
+				->set_subtotal_net_amount( $totals['subtotal_net_amount'] )
+				->set_subtotal_tax_amount( $totals['subtotal_tax_amount'] )
+				->set_shipping_net_amount( $totals['shipping_net_amount'] )
+				->set_shipping_tax_amount( $totals['shipping_tax_amount'] )
+				->set_total_net_amount( $totals['total_net_amount'] )
+				->set_total_tax_amount( $totals['total_tax_amount'] )
+				->set_currency( $totals['currency'] );
+
+			return $shipment;
 		}
 
 		/**
@@ -338,12 +382,12 @@ if ( ! class_exists( 'SS_Shipping_Shipment_Builder' ) ) :
 				$parcel_total_weight = apply_filters(
 					'smart_send_parcel_weight',
 					$this->value_or_null( $item_weight_total ),
-					$this->order_data->get_order_id()
+					$this->order_reader->get_order_id()
 				);
 
 				$parcels[] = array(
-					'internal_id'        => $this->value_or_null( $this->order_data->get_order_id() ),
-					'internal_reference' => $this->value_or_null( $this->order_data->get_order_number() ),
+					'internal_id'        => $this->value_or_null( $this->order_reader->get_order_id() ),
+					'internal_reference' => $this->value_or_null( $this->order_reader->get_order_number() ),
 					'weight'             => $parcel_total_weight,
 					'height'             => null,
 					'width'              => null,
