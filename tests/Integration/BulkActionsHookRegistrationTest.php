@@ -1,7 +1,7 @@
 <?php
 
 /*
- * Characterization tests for SS_Shipping_Order_Bulk_Actions::register_bulk_order_actions().
+ * Characterization tests for SS_Shipping_Order_Bulk_Actions::register_hooks().
  *
  * The bulk "Generate Labels" / "Generate Return Labels" actions are wired
  * onto one of two screens depending on whether HPOS (the custom orders
@@ -13,32 +13,26 @@
 
 /**
  * Re-register the bulk actions against the live SS_Shipping_Order_Bulk_Actions
- * component (fetched via reflection, since it has no public getter) while a
- * given HPOS option value is in effect, mirroring what happens once at
- * plugin bootstrap.
+ * component while a given HPOS option value is in effect, mirroring what
+ * happens once at plugin bootstrap.
  */
 function register_bulk_actions_with_hpos(bool $hpos): void
 {
     with_option('woocommerce_custom_orders_table_enabled', $hpos ? 'yes' : 'no');
 
-    $order_integration = SS_SHIPPING_WC()->get_ss_shipping_wc_order();
-
-    $reflection = new ReflectionProperty(SS_Shipping_WC_Order::class, 'bulk_actions');
-    $bulk_actions = $reflection->getValue($order_integration);
-
-    $bulk_actions->register_bulk_order_actions($order_integration);
+    SS_SHIPPING_WC()->bulk_actions()->register_hooks();
 }
 
 it('registers the HPOS orders-screen bulk action hooks when HPOS is enabled', function () {
     register_bulk_actions_with_hpos(true);
 
-    expect(has_filter('bulk_actions-woocommerce_page_wc-orders', [SS_SHIPPING_WC()->get_ss_shipping_wc_order(), 'add_bulk_order_actions']))->not->toBeFalse()
-        ->and(has_filter('handle_bulk_actions-woocommerce_page_wc-orders', [SS_SHIPPING_WC()->get_ss_shipping_wc_order(), 'handle_bulk_order_actions']))->not->toBeFalse();
+    expect(has_filter('bulk_actions-woocommerce_page_wc-orders', [SS_SHIPPING_WC()->bulk_actions(), 'add_bulk_order_actions']))->not->toBeFalse()
+        ->and(has_filter('handle_bulk_actions-woocommerce_page_wc-orders', [SS_SHIPPING_WC()->bulk_actions(), 'handle_bulk_order_actions']))->not->toBeFalse();
 });
 
 it('registers the legacy orders-screen bulk action hooks when HPOS is disabled', function () {
     register_bulk_actions_with_hpos(false);
 
-    expect(has_filter('bulk_actions-edit-shop_order', [SS_SHIPPING_WC()->get_ss_shipping_wc_order(), 'add_bulk_order_actions']))->not->toBeFalse()
-        ->and(has_filter('handle_bulk_actions-edit-shop_order', [SS_SHIPPING_WC()->get_ss_shipping_wc_order(), 'handle_bulk_order_actions']))->not->toBeFalse();
+    expect(has_filter('bulk_actions-edit-shop_order', [SS_SHIPPING_WC()->bulk_actions(), 'add_bulk_order_actions']))->not->toBeFalse()
+        ->and(has_filter('handle_bulk_actions-edit-shop_order', [SS_SHIPPING_WC()->bulk_actions(), 'handle_bulk_order_actions']))->not->toBeFalse();
 });

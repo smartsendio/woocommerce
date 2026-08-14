@@ -47,17 +47,54 @@ if ( ! class_exists( 'SS_Shipping_WC' ) ) :
 		protected static ?SS_Shipping_WC $_instance = null; // phpcs:ignore PSR2.Classes.PropertyDeclaration.Underscore -- pre-existing name, renaming is out of scope here.
 
 		/**
-		 * Smart Send Shipping Order for label and tracking.
+		 * Order meta access component.
 		 *
-		 * Public: reachable via SS_SHIPPING_WC() from merchant code snippets.
-		 * It is only ever assigned the real SS_Shipping_WC_Order instance in
-		 * the constructor below, so typing it is a deliberate v9 breaking
-		 * change - a snippet that replaces it with something else now fatals
-		 * instead of silently corrupting state.
-		 *
-		 * @var SS_Shipping_WC_Order|null
+		 * @var SS_Shipping_Order_Meta|null
 		 */
-		public ?SS_Shipping_WC_Order $ss_shipping_wc_order = null;
+		protected ?SS_Shipping_Order_Meta $order_meta = null;
+
+		/**
+		 * Order screen meta box component.
+		 *
+		 * @var SS_Shipping_Order_Meta_Box|null
+		 */
+		protected ?SS_Shipping_Order_Meta_Box $meta_box = null;
+
+		/**
+		 * The fulfillment service running the label workflow.
+		 *
+		 * @var SS_Shipping_Fulfillment_Service|null
+		 */
+		protected ?SS_Shipping_Fulfillment_Service $fulfillment_service = null;
+
+		/**
+		 * AJAX label-generation controller.
+		 *
+		 * @var SS_Shipping_Label_Creator|null
+		 */
+		protected ?SS_Shipping_Label_Creator $label_creator = null;
+
+		/**
+		 * Bulk actions component.
+		 *
+		 * @var SS_Shipping_Order_Bulk_Actions|null
+		 */
+		protected ?SS_Shipping_Order_Bulk_Actions $bulk_actions = null;
+
+		/**
+		 * Admin notices component used to flash one-time notices after
+		 * label-generation actions.
+		 *
+		 * @var SS_Shipping_Admin_Notices|null
+		 */
+		protected ?SS_Shipping_Admin_Notices $admin_notices = null;
+
+		/**
+		 * WooCommerce Subscriptions compatibility component.
+		 *
+		 * @var SS_Shipping_Subscriptions_Compat|null
+		 */
+		protected ?SS_Shipping_Subscriptions_Compat $subscriptions_compat = null;
 
 		/**
 		 * Smart Send Shipping Product
@@ -175,6 +212,7 @@ if ( ! class_exists( 'SS_Shipping_WC' ) ) :
 			require_once SS_SHIPPING_PLUGIN_DIR_PATH . '/includes/class-ss-shipping-order-reader.php';
 			require_once SS_SHIPPING_PLUGIN_DIR_PATH . '/includes/class-ss-shipping-fulfillment-result.php';
 			require_once SS_SHIPPING_PLUGIN_DIR_PATH . '/includes/class-ss-shipping-fulfillment-service.php';
+			require_once SS_SHIPPING_PLUGIN_DIR_PATH . '/includes/class-ss-shipping-subscriptions-compat.php';
 
 			// Admin components.
 			require_once SS_SHIPPING_PLUGIN_DIR_PATH . '/admin/class-ss-plugins-screen-updates.php';
@@ -185,7 +223,6 @@ if ( ! class_exists( 'SS_Shipping_WC' ) ) :
 			require_once SS_SHIPPING_PLUGIN_DIR_PATH . '/admin/class-ss-shipping-booking-service.php';
 			require_once SS_SHIPPING_PLUGIN_DIR_PATH . '/admin/class-ss-shipping-order-meta.php';
 			require_once SS_SHIPPING_PLUGIN_DIR_PATH . '/admin/class-ss-shipping-order-meta-box.php';
-			require_once SS_SHIPPING_PLUGIN_DIR_PATH . '/admin/class-ss-shipping-wc-order.php';
 			require_once SS_SHIPPING_PLUGIN_DIR_PATH . '/admin/class-ss-shipping-label-creator.php';
 			require_once SS_SHIPPING_PLUGIN_DIR_PATH . '/admin/class-ss-shipping-order-bulk-actions.php';
 			require_once SS_SHIPPING_PLUGIN_DIR_PATH . '/admin/class-ss-shipping-wc-product.php';
@@ -240,15 +277,48 @@ if ( ! class_exists( 'SS_Shipping_WC' ) ) :
 				$this->include_shipping_method_class();
 
 				$this->ss_shipping_frontend     = new SS_Shipping_Frontend();
-				$this->ss_shipping_wc_order     = new SS_Shipping_WC_Order();
 				$this->ss_shipping_wc_product   = new SS_Shipping_WC_Product();
 				$this->ss_plugin_screen_updates = new SS_Plugins_Screen_Updates();
+
+				$this->admin_notices        = new SS_Shipping_Admin_Notices();
+				$this->order_meta           = new SS_Shipping_Order_Meta();
+				$this->meta_box             = new SS_Shipping_Order_Meta_Box( $this->order_meta );
+				$this->fulfillment_service  = new SS_Shipping_Fulfillment_Service(
+					$this->order_meta,
+					new SS_Shipping_Booking_Service( $this->order_meta )
+				);
+				$this->label_creator        = new SS_Shipping_Label_Creator( $this->order_meta, $this->fulfillment_service );
+				$this->bulk_actions         = new SS_Shipping_Order_Bulk_Actions( $this->order_meta, $this->fulfillment_service, $this->admin_notices );
+				$this->subscriptions_compat = new SS_Shipping_Subscriptions_Compat();
+
+				$this->register_component_hooks();
 			} else {
 				// Throw an admin error informing the user this plugin needs WooCommerce to function.
 				add_action( 'admin_notices', array( $this, 'notice_wc_required' ) );
 			}
 
         }
+
+		/**
+		 * Register the hooks of every feature component constructed in
+		 * init(). Hook registration convention: constructing a component has
+		 * zero side effects, this composition root calls register_hooks()
+		 * explicitly on each one, in one clear pass.
+		 *
+		 * @return void
+		 */
+		protected function register_component_hooks() {
+			$this->ss_shipping_frontend->register_hooks();
+			$this->ss_shipping_wc_product->register_hooks();
+			$this->ss_plugin_screen_updates->register_hooks();
+
+			$this->admin_notices->register_hooks();
+			$this->order_meta->register_hooks();
+			$this->meta_box->register_hooks();
+			$this->label_creator->register_hooks();
+			$this->bulk_actions->register_hooks();
+			$this->subscriptions_compat->register_hooks();
+		}
 
         /**
          * Localisation
@@ -387,13 +457,54 @@ if ( ! class_exists( 'SS_Shipping_WC' ) ) :
             return $this->agents_address_format;
         }
 
-        /**
-         * Get Smart Shipping Order Object
-         */
-        public function get_ss_shipping_wc_order()
-        {
-            return $this->ss_shipping_wc_order;
-        }
+		/**
+		 * Get the order meta access component.
+		 *
+		 * @return SS_Shipping_Order_Meta
+		 */
+		public function order_meta(): SS_Shipping_Order_Meta {
+			return $this->order_meta;
+		}
+
+		/**
+		 * Get the fulfillment service running the label workflow.
+		 *
+		 * @return SS_Shipping_Fulfillment_Service
+		 */
+		public function fulfillment(): SS_Shipping_Fulfillment_Service {
+			return $this->fulfillment_service;
+		}
+
+		/**
+		 * Get the admin notices component.
+		 *
+		 * @return SS_Shipping_Admin_Notices
+		 */
+		public function admin_notices(): SS_Shipping_Admin_Notices {
+			return $this->admin_notices;
+		}
+
+		/**
+		 * Get the order screen meta box component.
+		 *
+		 * @return SS_Shipping_Order_Meta_Box
+		 */
+		public function meta_box(): SS_Shipping_Order_Meta_Box {
+			return $this->meta_box;
+		}
+
+		/**
+		 * Get the bulk actions component.
+		 *
+		 * Reachable directly (not just via hooks) because the Integration
+		 * test suite calls add_bulk_order_actions()/handle_bulk_order_actions()
+		 * on it outside a real bulk-action request.
+		 *
+		 * @return SS_Shipping_Order_Bulk_Actions
+		 */
+		public function bulk_actions(): SS_Shipping_Order_Bulk_Actions {
+			return $this->bulk_actions;
+		}
 
         /**
 		 * Get the human readable name of the Smart Send shipping method

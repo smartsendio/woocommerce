@@ -47,9 +47,11 @@ class SS_Shipping_Admin_Notices {
 	const EXPIRATION = HOUR_IN_SECONDS;
 
 	/**
-	 * Hook the renderer into the admin.
+	 * Register this component's hooks.
+	 *
+	 * @return void
 	 */
-	public function init_hooks() {
+	public function register_hooks() {
 		add_action( 'admin_notices', array( $this, 'maybe_render' ) );
 	}
 

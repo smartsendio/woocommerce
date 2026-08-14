@@ -19,9 +19,11 @@ if ( ! class_exists( 'SS_Shipping_WC_Product' ) ) :
 
 
 		/**
-		 * Init and hook in the integration.
+		 * Register this component's hooks.
+		 *
+		 * @return void
 		 */
-		public function __construct() {
+		public function register_hooks() {
 			// priority is '8' because WC Subscriptions hides fields in the shipping tabs which hide the fields here
 			add_action( 'woocommerce_product_options_shipping', array( $this, 'additional_product_shipping_options' ), 8 );
 			add_action( 'woocommerce_process_product_meta', array( $this, 'save_additional_product_shipping_options' ) );

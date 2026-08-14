@@ -97,7 +97,7 @@ it('names the pickup-point section after v2\'s service_point_code, not v1\'s age
         'products'        => [$product],
         'shipping_method' => 'postnord_agent',
     ]);
-    SS_SHIPPING_WC()->get_ss_shipping_wc_order()->save_ss_shipping_order_agent($order->get_id(), sample_agent());
+    SS_SHIPPING_WC()->order_meta()->save_ss_shipping_order_agent($order->get_id(), sample_agent());
 
     $representation = build_shipment_representation($order);
 
@@ -175,7 +175,7 @@ it('diverges shipping-method/agent selection between build_outbound() and build_
         'shipping_method' => 'postnord_agent',
         'return_method'   => 'postnord_returndropoff',
     ]);
-    SS_SHIPPING_WC()->get_ss_shipping_wc_order()->save_ss_shipping_order_agent($order->get_id(), sample_agent());
+    SS_SHIPPING_WC()->order_meta()->save_ss_shipping_order_agent($order->get_id(), sample_agent());
 
     $outbound = build_shipment_representation($order, false);
     $return   = build_shipment_representation($order, true);

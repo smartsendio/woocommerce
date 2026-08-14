@@ -49,6 +49,15 @@ if ( ! class_exists( 'SS_Shipping_Label_Creator' ) ) :
 		}
 
 		/**
+		 * Register this component's hooks.
+		 *
+		 * @return void
+		 */
+		public function register_hooks() {
+			add_action( 'wp_ajax_ss_shipping_generate_label', array( $this, 'generate_label' ) );
+		}
+
+		/**
 		 * Save Agent No. and Generate Label
 		 */
 		public function generate_label() {

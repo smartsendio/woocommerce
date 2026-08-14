@@ -19,13 +19,11 @@ if ( ! class_exists( 'SS_Shipping_Frontend' ) ) :
 
 
 		/**
-		 * Init and hook in the integration.
+		 * Register this component's hooks.
+		 *
+		 * @return void
 		 */
-		public function __construct() {
-			$this->init_hooks();
-		}
-
-		protected function init_hooks() {
+		public function register_hooks() {
 			add_action( 'woocommerce_after_shipping_rate', array( $this, 'display_ss_pickup_points' ), 10, 2 );
 			add_action( 'woocommerce_checkout_process', array( $this, 'validate_agent_selected' ) );
 			add_action( 'woocommerce_checkout_order_processed', array( $this, 'process_ss_pickup_points' ), 10, 2 );
@@ -442,11 +440,11 @@ if ( ! class_exists( 'SS_Shipping_Frontend' ) ) :
 
 			// Saving posted pickup point information.
 			if ( ! empty( $selected_pickup_point_no ) ) {
-				SS_SHIPPING_WC()->get_ss_shipping_wc_order()->save_ss_shipping_order_agent_no(
+				SS_SHIPPING_WC()->order_meta()->save_ss_shipping_order_agent_no(
 					$order_id,
 					$selected_pickup_point_no
 				);
-				SS_SHIPPING_WC()->get_ss_shipping_wc_order()->save_ss_shipping_order_agent( $order_id, $selected_pickup_point );
+				SS_SHIPPING_WC()->order_meta()->save_ss_shipping_order_agent( $order_id, $selected_pickup_point );
 
 				SS_Shipping_Logger::info(
 					'Pickup point selected at checkout',
@@ -464,11 +462,11 @@ if ( ! class_exists( 'SS_Shipping_Frontend' ) ) :
 		public function display_ss_shipping_agent( $order ) {
 
 			$order_id                = $this->get_order_id( $order );
-			$ordered_pickup_point_no = SS_SHIPPING_WC()->get_ss_shipping_wc_order()->get_ss_shipping_order_agent_no( $order_id );
+			$ordered_pickup_point_no = SS_SHIPPING_WC()->order_meta()->get_ss_shipping_order_agent_no( $order_id );
 
 			if ( $ordered_pickup_point_no ) {
 
-				$ordered_pickup_point = SS_SHIPPING_WC()->get_ss_shipping_wc_order()->get_ss_shipping_order_agent( $order_id );
+				$ordered_pickup_point = SS_SHIPPING_WC()->order_meta()->get_ss_shipping_order_agent( $order_id );
 
 				$formatted_address = $this->get_formatted_address( $ordered_pickup_point, -1 );
 				// Display in block instead of one line

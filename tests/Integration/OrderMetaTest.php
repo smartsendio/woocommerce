@@ -1,7 +1,7 @@
 <?php
 
 /*
- * Characterization tests for the SS_Shipping_WC_Order meta accessors (agent
+ * Characterization tests for the SS_Shipping_Order_Meta accessors (agent
  * no, agent object, parcels, label/shipment ids) and for the Smart Send
  * method detection on an order. The same accessor assertions run against
  * both order storage backends: legacy post meta and HPOS (the custom orders
@@ -14,7 +14,8 @@
  */
 function assert_order_meta_accessors_roundtrip(bool $hpos): void
 {
-    $handler = SS_SHIPPING_WC()->get_ss_shipping_wc_order();
+    $handler     = SS_SHIPPING_WC()->order_meta();
+    $fulfillment = SS_SHIPPING_WC()->fulfillment();
     $product = create_simple_product(['price' => 100, 'weight' => 1]);
     $order   = create_order(['products' => [$product], 'shipping_method' => 'postnord_agent']);
     $order_id = $order->get_id();
@@ -60,9 +61,9 @@ function assert_order_meta_accessors_roundtrip(bool $hpos): void
         ->and($fresh->get_meta('_ss_shipping_return_label_id', true))->toBe('return-456');
 
     // Label URLs are derived from the shipment id and the uploads dir.
-    expect($handler->get_label_url_from_order_id($order_id, false))
+    expect($fulfillment->get_label_url_from_order_id($order_id, false))
         ->toContain('smart-send-label-shipment-123.pdf')
-        ->and($handler->get_label_url_from_order_id($order_id, true))
+        ->and($fulfillment->get_label_url_from_order_id($order_id, true))
         ->toContain('smart-send-label-return-456.pdf');
 }
 
@@ -97,7 +98,7 @@ it('falls back to the vConnect meta for agent no and agent object', function () 
     ]);
     $order->save();
 
-    $handler = SS_SHIPPING_WC()->get_ss_shipping_wc_order();
+    $handler = SS_SHIPPING_WC()->order_meta();
 
     expect($handler->get_ss_shipping_order_agent_no($order->get_id()))->toBe('9876');
 
@@ -114,14 +115,15 @@ it('handles a missing order in every meta accessor without fatals', function () 
     // Regression for #60: wc_get_order() returns false for order IDs that do
     // not exist (e.g. WooCommerce's email preview placeholder); every
     // accessor must guard instead of calling methods on false.
-    $handler = SS_SHIPPING_WC()->get_ss_shipping_wc_order();
+    $handler     = SS_SHIPPING_WC()->order_meta();
+    $fulfillment = SS_SHIPPING_WC()->fulfillment();
     $missing = 999999999;
 
     expect($handler->get_ss_shipping_order_agent_no($missing))->toBeNull()
         ->and($handler->get_ss_shipping_order_agent($missing))->toBeNull()
         ->and($handler->get_ss_shipping_order_parcels($missing))->toBeFalse()
-        ->and($handler->get_label_url_from_order_id($missing, false))->toBe('')
-        ->and($handler->get_label_url_from_order_id($missing, true))->toBe('');
+        ->and($fulfillment->get_label_url_from_order_id($missing, false))->toBe('')
+        ->and($fulfillment->get_label_url_from_order_id($missing, true))->toBe('');
 
     // The savers no-op instead of fataling.
     $handler->save_ss_shipping_order_agent_no($missing, '1234');
@@ -133,7 +135,7 @@ it('handles a missing order in every meta accessor without fatals', function () 
 });
 
 it('detects the Smart Send shipping method on an order', function () {
-    $handler = SS_SHIPPING_WC()->get_ss_shipping_wc_order();
+    $handler = SS_SHIPPING_WC()->order_meta();
     $product = create_simple_product(['price' => 100, 'weight' => 1]);
 
     $ss_order = create_order([
@@ -168,6 +170,6 @@ it('maps WooCommerce free shipping to the configured Smart Send method', functio
     $order->add_item($shipping_item);
     $order->save();
 
-    expect(SS_SHIPPING_WC()->get_ss_shipping_wc_order()->get_smart_send_method_id($order->get_id()))
+    expect(SS_SHIPPING_WC()->order_meta()->get_smart_send_method_id($order->get_id()))
         ->toBe('gls_agent');
 });

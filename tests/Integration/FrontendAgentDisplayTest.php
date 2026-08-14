@@ -7,9 +7,9 @@
  */
 
 /**
- * Fresh frontend instance to call the hook callbacks directly. (The plugin
- * singleton keeps its own instance private; constructing another one only
- * re-adds idempotent hooks.)
+ * Fresh frontend instance to call the hook callbacks directly. Construction
+ * has no side effects (hooks are wired separately via register_hooks()), so
+ * this does not disturb the plugin singleton's own registered instance.
  */
 function frontend(): SS_Shipping_Frontend
 {
@@ -40,7 +40,7 @@ it('renders the pickup point block for an order with a selected agent', function
     $product = create_simple_product(['price' => 100, 'weight' => 1]);
     $order   = create_order(['products' => [$product], 'shipping_method' => 'postnord_agent']);
 
-    $handler = SS_SHIPPING_WC()->get_ss_shipping_wc_order();
+    $handler = SS_SHIPPING_WC()->order_meta();
     $handler->save_ss_shipping_order_agent_no($order->get_id(), '1234');
     $handler->save_ss_shipping_order_agent($order->get_id(), sample_agent());
 
@@ -80,7 +80,7 @@ it('renders nothing for an order that does not exist in the database', function 
 it('survives deleting the agent meta of an order that no longer exists', function () {
     // Invalid-order guard (#60): the deleted_post_meta hook can fire for
     // orders that were already removed; the handler must not fatal.
-    $handler = SS_SHIPPING_WC()->get_ss_shipping_wc_order();
+    $handler = SS_SHIPPING_WC()->order_meta();
 
     $handler->delete_ss_shipping_order_agent(999999999);
     $handler->action_deleted_agent_meta([1], 999999999, 'ss_shipping_order_agent_no', '1234');
@@ -145,7 +145,7 @@ it('saves the selected agent from the session onto the order at checkout', funct
 
     frontend()->process_ss_pickup_points($order->get_id(), []);
 
-    $handler = SS_SHIPPING_WC()->get_ss_shipping_wc_order();
+    $handler = SS_SHIPPING_WC()->order_meta();
     expect($handler->get_ss_shipping_order_agent_no($order->get_id()))->toBe('1234')
         ->and($handler->get_ss_shipping_order_agent($order->get_id())->company)->toBe('Corner Shop');
 });
@@ -167,6 +167,6 @@ it('saves nothing when the posted agent is not in the session list', function ()
 
     frontend()->process_ss_pickup_points($order->get_id(), []);
 
-    expect(SS_SHIPPING_WC()->get_ss_shipping_wc_order()->get_ss_shipping_order_agent_no($order->get_id()))
+    expect(SS_SHIPPING_WC()->order_meta()->get_ss_shipping_order_agent_no($order->get_id()))
         ->toBeNull();
 });

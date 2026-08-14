@@ -1,23 +1,27 @@
 <?php
 
 /*
- * Characterization tests for label generation in SS_Shipping_WC_Order with
+ * Characterization tests for label generation via SS_Shipping_Fulfillment_Service with
  * the Smart Send API mocked through pre_http_request: the success path
  * (order meta, order note, status change), the API error path, auto return
  * labels, and the bulk order actions with the admin notices they produce.
  */
 
 /**
- * Invoke the protected create_label_for_single_order_maybe_return().
- * The only public entry points (the AJAX handler and the bulk handler) wrap
- * this method; the AJAX handler cannot run in-process because it ends with
- * wp_send_json() + wp_die().
+ * Fulfill an order and return the legacy AJAX response shape. The only
+ * public entry points (the AJAX handler and the bulk handler) wrap the
+ * fulfillment service the same way; the AJAX handler cannot run in-process
+ * because it ends with wp_send_json() + wp_die().
  */
 function create_labels_for(int $order_id, bool $return = false, bool $save_order_note = true): array
 {
-    $method = new ReflectionMethod(SS_Shipping_WC_Order::class, 'create_label_for_single_order_maybe_return');
+    $fulfillment = SS_SHIPPING_WC()->fulfillment();
 
-    return $method->invoke(SS_SHIPPING_WC()->get_ss_shipping_wc_order(), $order_id, $return, $save_order_note);
+    $result = $return
+        ? $fulfillment->fulfill_return($order_id, $save_order_note)
+        : $fulfillment->fulfill_outbound($order_id, $save_order_note);
+
+    return $result->to_legacy_response_array();
 }
 
 /**
@@ -26,7 +30,7 @@ function create_labels_for(int $order_id, bool $return = false, bool $save_order
  */
 function with_empty_flash_messages(): SS_Shipping_Admin_Notices
 {
-    $notices = SS_SHIPPING_WC()->get_ss_shipping_wc_order()->get_admin_notices();
+    $notices = SS_SHIPPING_WC()->admin_notices();
 
     $notices->clear();
 
@@ -176,7 +180,7 @@ it('generates a label for a single order via the bulk action and flashes a succe
     $order = create_labelable_order();
     mock_smart_send_api();
 
-    $handler  = SS_SHIPPING_WC()->get_ss_shipping_wc_order();
+    $handler  = SS_SHIPPING_WC()->bulk_actions();
     $sendback = $handler->handle_bulk_order_actions('/wp-admin/edit.php', 'ss_shipping_label_bulk', [
         $order->get_id(),
     ]);
@@ -215,7 +219,7 @@ it('flashes an error for bulk label generation on an order without a Smart Send 
 
     mock_smart_send_api();
 
-    SS_SHIPPING_WC()->get_ss_shipping_wc_order()
+    SS_SHIPPING_WC()->bulk_actions()
         ->handle_bulk_order_actions('/wp-admin/edit.php', 'ss_shipping_label_bulk', [$order->get_id()]);
 
     $messages = $notices->get_pending();
@@ -233,7 +237,7 @@ it('flashes the API error per order when bulk label generation fails', function 
         return ss_api_response(422, ss_api_error_body('The given data was invalid.'));
     });
 
-    SS_SHIPPING_WC()->get_ss_shipping_wc_order()
+    SS_SHIPPING_WC()->bulk_actions()
         ->handle_bulk_order_actions('/wp-admin/edit.php', 'ss_shipping_label_bulk', [$order->get_id()]);
 
     $messages = $notices->get_pending();
@@ -250,7 +254,7 @@ it('rejects bulk label generation for more than one order and books nothing', fu
     $order_b = create_labelable_order();
     $capture = mock_smart_send_api();
 
-    SS_SHIPPING_WC()->get_ss_shipping_wc_order()
+    SS_SHIPPING_WC()->bulk_actions()
         ->handle_bulk_order_actions('/wp-admin/edit.php', 'ss_shipping_label_bulk', [
             $order_a->get_id(),
             $order_b->get_id(),
@@ -269,7 +273,7 @@ it('rejects bulk label generation for more than one order and books nothing', fu
 it('ignores bulk actions that are not Smart Send actions', function () {
     $notices = with_empty_flash_messages();
 
-    $result = SS_SHIPPING_WC()->get_ss_shipping_wc_order()
+    $result = SS_SHIPPING_WC()->bulk_actions()
         ->handle_bulk_order_actions('/wp-admin/edit.php', 'mark_processing', [1]);
 
     // v8 oddity: for foreign actions the handler returns null instead of
