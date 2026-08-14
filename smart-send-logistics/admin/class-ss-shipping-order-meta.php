@@ -22,6 +22,17 @@ if ( ! class_exists( 'SS_Shipping_Order_Meta' ) ) :
 	class SS_Shipping_Order_Meta {
 
 		/**
+		 * Register this component's hooks.
+		 *
+		 * @return void
+		 */
+		public function register_hooks() {
+			// Meta field for storing the selected agent_no
+			add_filter( 'update_post_metadata_by_mid', array( $this, 'filter_update_agent_meta' ), 10, 4 );//For WordPress 5.0.0+
+			add_action( 'deleted_post_meta', array( $this, 'action_deleted_agent_meta' ), 10, 4 );
+		}
+
+		/**
 		 * Return ordered Smart Send shipping method, OR Free Shipping linked to Smart Send shipping method, otherwise empty string
 		 *
 		 * @param integer $order_id     Post object or post ID of the order.

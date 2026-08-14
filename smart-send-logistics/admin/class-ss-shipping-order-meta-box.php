@@ -37,6 +37,39 @@ if ( ! class_exists( 'SS_Shipping_Order_Meta_Box' ) ) :
 		}
 
 		/**
+		 * Register this component's hooks.
+		 *
+		 * @return void
+		 */
+		public function register_hooks() {
+			$this->define_button_labels();
+
+			add_action( 'add_meta_boxes', array( $this, 'add_smart_send_order_meta_box' ), 20 );
+		}
+
+		/**
+		 * Define the label-generation button label constants.
+		 *
+		 * Kept as global constants (rather than class properties) because
+		 * the meta box's own HTML-building code below reads them directly,
+		 * matching the surrounding markup's style.
+		 */
+		protected function define_button_labels() {
+			SS_SHIPPING_WC()->define(
+				'SS_SHIPPING_BUTTON_LABEL_GEN',
+				SS_SHIPPING_WC()->get_demo_mode_setting()
+					? __( 'DEMO MODE: Generate label', 'smart-send-logistics' )
+					: __( 'Generate label', 'smart-send-logistics' )
+			);
+			SS_SHIPPING_WC()->define(
+				'SS_SHIPPING_BUTTON_RETURN_LABEL_GEN',
+				SS_SHIPPING_WC()->get_demo_mode_setting()
+					? __( 'DEMO MODE: Generate return label', 'smart-send-logistics' )
+					: __( 'Generate return label', 'smart-send-logistics' )
+			);
+		}
+
+		/**
 		 * Add the meta box for shipment info on the order page
 		 */
 		public function add_smart_send_order_meta_box() {
@@ -49,7 +82,7 @@ if ( ! class_exists( 'SS_Shipping_Order_Meta_Box' ) ) :
 			add_meta_box(
 				'woocommerce-ss-shipping-label',
 				__( 'Smart Send Shipping', 'smart-send-logistics' ),
-				array( SS_SHIPPING_WC()->get_ss_shipping_wc_order(), 'render_smart_send_order_meta_box' ),
+				array( $this, 'render_smart_send_order_meta_box' ),
 				$screen,
 				'side',
 				'default'

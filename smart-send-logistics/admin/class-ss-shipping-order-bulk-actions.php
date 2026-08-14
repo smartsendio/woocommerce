@@ -61,29 +61,25 @@ if ( ! class_exists( 'SS_Shipping_Order_Bulk_Actions' ) ) :
 		}
 
 		/**
-		 * Register bulk order actions.
-		 *
-		 * The hook callbacks are registered on the SS_Shipping_WC_Order facade
-		 * (not this component) so that the callable seen by third-party code
-		 * removing or inspecting the filters is unchanged.
+		 * Register this component's hooks.
 		 *
 		 * @see https://make.wordpress.org/core/2016/10/04/custom-bulk-actions/
 		 * @since WordPress 4.7.0
 		 * @return void
 		 */
-		public function register_bulk_order_actions( SS_Shipping_WC_Order $order_integration ) {
+		public function register_hooks() {
 			// The HPOS CustomOrdersTableController exists since WC 6.4; the plugin's WC floor is 4.7.
 			$hpos_enabled = class_exists( '\Automattic\WooCommerce\Internal\DataStores\Orders\CustomOrdersTableController' )
 				&& wc_get_container()->get( CustomOrdersTableController::class )->custom_orders_table_usage_is_enabled();
 
 			if ( $hpos_enabled ) {
 				// function not available wc_get_page_screen_id( 'shop-order' )
-				add_filter( 'bulk_actions-woocommerce_page_wc-orders', array( $order_integration, 'add_bulk_order_actions' ) );
-				add_filter( 'handle_bulk_actions-woocommerce_page_wc-orders', array( $order_integration, 'handle_bulk_order_actions' ), 10, 3 );
+				add_filter( 'bulk_actions-woocommerce_page_wc-orders', array( $this, 'add_bulk_order_actions' ) );
+				add_filter( 'handle_bulk_actions-woocommerce_page_wc-orders', array( $this, 'handle_bulk_order_actions' ), 10, 3 );
 			} else {
 				// Index page is called 'edit-shop_order' and not just 'shop_order' as stated in the url
-				add_filter( 'bulk_actions-edit-shop_order', array( $order_integration, 'add_bulk_order_actions' ) );
-				add_filter( 'handle_bulk_actions-edit-shop_order', array( $order_integration, 'handle_bulk_order_actions' ), 10, 3 );
+				add_filter( 'bulk_actions-edit-shop_order', array( $this, 'add_bulk_order_actions' ) );
+				add_filter( 'handle_bulk_actions-edit-shop_order', array( $this, 'handle_bulk_order_actions' ), 10, 3 );
 			}
 		}
 

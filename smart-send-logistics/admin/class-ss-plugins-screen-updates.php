@@ -15,9 +15,11 @@ if ( ! defined( 'ABSPATH' ) ) {
 class SS_Plugins_Screen_Updates {
 
 	/**
-	 * Constructor.
+	 * Register this component's hooks.
+	 *
+	 * @return void
 	 */
-	public function __construct() {
+	public function register_hooks() {
 		add_action( 'in_plugin_update_message-smart-send-logistics/smart-send-logistics.php', array( $this, 'in_plugin_update_message' ), 10, 2 );
 	}
 
