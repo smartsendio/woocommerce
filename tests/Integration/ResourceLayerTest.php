@@ -18,11 +18,12 @@ use Smartsend\Resources\BookingResource;
 use Smartsend\Resources\PickupPointResource;
 
 /**
- * A minimal but fully-shaped internal shipment representation, the shape
- * SS_Shipping_Shipment_Builder::build() returns. See ShipmentPayloadTest for
- * the exhaustive, order-driven coverage of every field.
+ * A minimal but fully-shaped internal shipment representation (the plain
+ * array shape used to fill a SS_Shipping_Shipment value object below). See
+ * ShipmentPayloadTest for the exhaustive, order-driven coverage of every
+ * field.
  */
-function sample_representation(array $overrides = []): array
+function sample_representation_data(array $overrides = []): array
 {
     return array_replace_recursive([
         'internal_id'         => '123',
@@ -80,6 +81,36 @@ function sample_representation(array $overrides = []): array
     ], $overrides);
 }
 
+/**
+ * A minimal but fully-shaped SS_Shipping_Shipment, the internal
+ * representation SS_Shipping_Shipment_Builder returns. See
+ * ShipmentPayloadTest for the exhaustive, order-driven coverage of every
+ * field.
+ */
+function sample_representation(array $overrides = []): SS_Shipping_Shipment
+{
+    $data = sample_representation_data($overrides);
+
+    $shipment = new SS_Shipping_Shipment();
+    $shipment->set_internal_id($data['internal_id'])
+        ->set_internal_reference($data['internal_reference'])
+        ->set_shipping_carrier($data['shipping_carrier'])
+        ->set_shipping_method($data['shipping_method'])
+        ->set_shipping_date($data['shipping_date'])
+        ->set_receiver($data['receiver'])
+        ->set_pickup_point($data['pickup_point'])
+        ->set_parcels($data['parcels'])
+        ->set_subtotal_net_amount($data['subtotal_net_amount'])
+        ->set_subtotal_tax_amount($data['subtotal_tax_amount'])
+        ->set_shipping_net_amount($data['shipping_net_amount'])
+        ->set_shipping_tax_amount($data['shipping_tax_amount'])
+        ->set_total_net_amount($data['total_net_amount'])
+        ->set_total_tax_amount($data['total_tax_amount'])
+        ->set_currency($data['currency']);
+
+    return $shipment;
+}
+
 function pickup_point_api_data(): array
 {
     return [
@@ -108,7 +139,7 @@ it('accepts a Shipment through the client without needing a resource accessor fo
         // The accessor is memoized: the same instance is returned every call.
         ->and($api->bookings())->toBe($resource);
 
-    $shipment = $resource->fromRepresentation(sample_representation());
+    $shipment = $resource->fromShipment(sample_representation());
     expect($resource->create($shipment))->toBeTrue();
     expect($api->isSuccessful())->toBeTrue();
 
@@ -123,7 +154,7 @@ it('surfaces the existing error taxonomy through BookingResource::create()', fun
         return ss_api_response(422, ss_api_error_body('The receiver postal code is invalid.'));
     });
 
-    $shipment = $api->bookings()->fromRepresentation(sample_representation());
+    $shipment = $api->bookings()->fromShipment(sample_representation());
     $result   = $api->bookings()->create($shipment);
 
     expect($result)->toBeFalse();
@@ -135,10 +166,10 @@ it('surfaces the existing error taxonomy through BookingResource::create()', fun
     expect($error->message)->toBe('The receiver postal code is invalid.');
 });
 
-it('builds the v1 wire Shipment model from the internal representation (BookingResource::fromRepresentation)', function () {
+it('builds the v1 wire Shipment model from the internal representation (BookingResource::fromShipment)', function () {
     $api = new Api('secret-token-123', 'example.test', true);
 
-    $shipment = $api->bookings()->fromRepresentation(sample_representation());
+    $shipment = $api->bookings()->fromShipment(sample_representation());
 
     expect($shipment)->toBeInstanceOf(Shipment::class);
 
