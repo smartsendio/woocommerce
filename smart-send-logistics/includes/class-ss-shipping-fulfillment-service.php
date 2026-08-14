@@ -92,8 +92,12 @@ if ( ! class_exists( 'SS_Shipping_Fulfillment_Service' ) ) :
 
 			$return_booking = null;
 
-			// We're only creating the return label if the normal label creation is successful.
-			if ( isset( $entries[0]['success'] ) && $this->is_auto_return_enabled( $order ) ) {
+			// We're only creating the return label if the outbound BOOKING succeeded.
+			// Deliberate behaviour change from the historic flow, which gated on the
+			// whole outbound entry: a successful API booking whose local PDF save
+			// failed used to silently skip the configured auto-return label; now the
+			// return label is still attempted and both outcomes are reported.
+			if ( $outbound_booking->is_successful() && $this->is_auto_return_enabled( $order ) ) {
 				$return_booking = $this->booking_service->book_return( $order );
 				$entries[]      = $this->complete_fulfillment( $order, $return_booking, true, $save_order_note );
 			}
