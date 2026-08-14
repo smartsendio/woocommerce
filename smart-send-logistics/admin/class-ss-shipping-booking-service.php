@@ -23,7 +23,7 @@ if ( ! class_exists( 'SS_Shipping_Booking_Service' ) ) :
 	 * (Smartsend\Models\Shipment and its sub-models) and sends it. This
 	 * class is the order-level orchestrator: build the representation, hand
 	 * it to the booking resource, and expose the result to callers
-	 * (SS_Shipping_Label_Creator) as a SS_Shipping_Booking.
+	 * (SS_Shipping_Fulfillment_Service) as a SS_Shipping_Booking.
 	 *
 	 * Outbound and return bookings are two separate entry points -
 	 * book_outbound() and book_return() - rather than a single method
@@ -44,19 +44,19 @@ if ( ! class_exists( 'SS_Shipping_Booking_Service' ) ) :
 	class SS_Shipping_Booking_Service {
 
 		/**
-		 * The admin order integration.
+		 * Order meta access component.
 		 *
-		 * @var SS_Shipping_WC_Order
+		 * @var SS_Shipping_Order_Meta
 		 */
-		protected SS_Shipping_WC_Order $shipping_order;
+		protected SS_Shipping_Order_Meta $order_meta;
 
 		/**
 		 * Constructor.
 		 *
-		 * @param SS_Shipping_WC_Order $shipping_order The admin order integration.
+		 * @param SS_Shipping_Order_Meta $order_meta Order meta access component.
 		 */
-		public function __construct( SS_Shipping_WC_Order $shipping_order ) {
-			$this->shipping_order = $shipping_order;
+		public function __construct( SS_Shipping_Order_Meta $order_meta ) {
+			$this->order_meta = $order_meta;
 		}
 
 		/**
@@ -67,7 +67,7 @@ if ( ! class_exists( 'SS_Shipping_Booking_Service' ) ) :
 		 * @return SS_Shipping_Booking
 		 */
 		public function book_outbound( WC_Order $order ): SS_Shipping_Booking {
-			$builder = new SS_Shipping_Shipment_Builder( $order, new SS_Shipping_Order_Reader( $order ), $this->shipping_order );
+			$builder = new SS_Shipping_Shipment_Builder( $order, new SS_Shipping_Order_Reader( $order ), $this->order_meta );
 
 			try {
 				$shipment = $builder->build_outbound();
@@ -86,7 +86,7 @@ if ( ! class_exists( 'SS_Shipping_Booking_Service' ) ) :
 		 * @return SS_Shipping_Booking
 		 */
 		public function book_return( WC_Order $order ): SS_Shipping_Booking {
-			$builder = new SS_Shipping_Shipment_Builder( $order, new SS_Shipping_Order_Reader( $order ), $this->shipping_order );
+			$builder = new SS_Shipping_Shipment_Builder( $order, new SS_Shipping_Order_Reader( $order ), $this->order_meta );
 
 			try {
 				$shipment = $builder->build_return();

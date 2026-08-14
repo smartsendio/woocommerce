@@ -82,7 +82,7 @@ if ( ! class_exists( 'SS_Shipping_WC_Order' ) ) :
 			$this->meta_box            = new SS_Shipping_Order_Meta_Box( $this->order_meta );
 			$this->fulfillment_service = new SS_Shipping_Fulfillment_Service(
 				$this->order_meta,
-				new SS_Shipping_Booking_Service( $this )
+				new SS_Shipping_Booking_Service( $this->order_meta )
 			);
 			$this->label_creator       = new SS_Shipping_Label_Creator( $this->order_meta, $this->fulfillment_service );
 			$this->bulk_actions        = new SS_Shipping_Order_Bulk_Actions( $this->order_meta, $this->fulfillment_service, $this->admin_notices );

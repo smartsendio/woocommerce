@@ -94,6 +94,45 @@ it('also fulfills the return label when auto-generate-return-label is enabled', 
         ->and($capture->requests)->toHaveCount(2);
 });
 
+it('still attempts the auto-return label when the outbound PDF save fails after a successful booking', function () {
+    // Deliberate behaviour change (PR #135): the historic flow gated the
+    // auto-return label on the whole outbound entry, so a successful API
+    // booking whose local PDF save failed silently skipped the configured
+    // auto-return label. The gate is now the outbound BOOKING outcome; the
+    // PDF-save failure and the return-label success are reported side by side.
+    with_ss_settings(['save_shipping_labels_in_uploads' => 'yes']);
+
+    $order = create_fulfillable_order(['auto_return' => 'yes']);
+
+    $requests = 0;
+    mock_smart_send_api(function () use (&$requests) {
+        $requests++;
+
+        // First (outbound) booking succeeds at the API but delivers no label
+        // data, which makes the local PDF save throw "Label data empty".
+        if ($requests === 1) {
+            return ss_api_response(200, ['data' => ss_api_shipment_data(['pdf' => ['link' => '', 'base_64_encoded' => '']])]);
+        }
+
+        return ss_api_response(200, ['data' => ss_api_shipment_data()]);
+    });
+
+    $result = fulfillment_service()->fulfill_outbound($order->get_id());
+
+    expect($result->get_outbound_booking()->is_successful())->toBeTrue()
+        ->and($result->get_return_booking())->not->toBeNull()
+        ->and($result->get_return_booking()->is_successful())->toBeTrue()
+        ->and($result->is_successful())->toBeFalse()
+        ->and($result->get_first_error_message())->toContain('Label data empty')
+        ->and($result->to_legacy_response_array())->toHaveCount(2)
+        ->and($result->to_legacy_response_array()[0])->toHaveKey('error')
+        ->and($result->to_legacy_response_array()[1])->toHaveKey('success');
+
+    $fresh = wc_get_order($order->get_id());
+    expect($fresh->get_meta('_ss_shipping_label_id', true))->toBe('')
+        ->and($fresh->get_meta('_ss_shipping_return_label_id', true))->not->toBe('');
+});
+
 it('writes nothing when the booking fails', function () {
     with_ss_settings(['order_status' => 'wc-completed']);
 
@@ -139,7 +178,7 @@ it('books two different orders through one stateless booking service without sta
 
     $capture = mock_smart_send_api();
 
-    $booking_service = new SS_Shipping_Booking_Service(SS_SHIPPING_WC()->get_ss_shipping_wc_order());
+    $booking_service = new SS_Shipping_Booking_Service(new SS_Shipping_Order_Meta());
 
     $booking_a = $booking_service->book_outbound($order_a);
     $booking_b = $booking_service->book_outbound($order_b);
