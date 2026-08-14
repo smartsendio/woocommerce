@@ -252,7 +252,7 @@ it('includes the request body of POST requests in the context', function () {
     $spy = spy_on_logger();
     mock_smart_send_api();
 
-    create_logging_api_client()->combineLabelsForShipments(['shipment-1', 'shipment-2']);
+    create_logging_api_client()->bookings()->combine(['shipment-1', 'shipment-2']);
 
     expect($spy->entries)->toHaveCount(1);
     expect($spy->entries[0]['message'])->toStartWith('POST ');

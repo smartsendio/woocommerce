@@ -204,7 +204,7 @@ if ( ! class_exists( 'SS_Shipping_Frontend' ) ) :
 
 			// The request and response (incl. HTTP status code and endpoint)
 			// are logged by the client's request logger.
-			if ( SS_SHIPPING_WC()->get_api_handle()->findClosestAgentByAddress( $carrier, $search_params['country'], $search_params['postal_code'], $search_params['city'], $search_params['street'] ) ) {
+			if ( SS_SHIPPING_WC()->get_api_handle()->pickupPoints()->findClosestByAddress( $carrier, $search_params['country'], $search_params['postal_code'], $search_params['city'], $search_params['street'] ) ) {
 
 				$ss_pickup_points = SS_SHIPPING_WC()->get_api_handle()->getData();
 
