@@ -145,9 +145,20 @@ if ( ! class_exists( 'SS_Shipping_Order_Data' ) ) :
 		 * Get the item lines for the order: one row per order line with
 		 * weight, price and customs data.
 		 *
-		 * Prices are based on the pre-discount line subtotal, matching how
-		 * the plugin has always priced item lines (order-level discounts are
-		 * reflected in the order totals, not the individual lines).
+		 * Prices are based on the item's post-discount line total
+		 * (WC_Order_Item_Product::get_total()/get_total_tax()), not the
+		 * pre-discount line subtotal. WooCommerce itself prorates
+		 * order-level (percentage/fixed-cart) coupons across line items and
+		 * applies line-level (fixed-product) coupons directly, both landing
+		 * in get_total()/get_total_tax() - so sum(item totals) reconciles
+		 * with the order subtotal from get_totals() without needing any
+		 * discount-allocation math of our own (#128). Gift card redemptions
+		 * are order fees, never order items, so they never reach this
+		 * method - see the class docblock on SS_Shipping_Shipment_Builder
+		 * for the gift-card exclusion status.
+		 *
+		 * A single net amount + tax amount is returned per item line (no
+		 * excl/incl pair) - see #113.
 		 *
 		 * @return array[] List of item rows.
 		 */
@@ -170,39 +181,31 @@ if ( ! class_exists( 'SS_Shipping_Order_Data' ) ) :
 
 				$quantity = $item->get_quantity();
 
-				// Total w/o tax and individual w/o tax. Clamped at >= 0 so a
+				// Post-discount line total and its tax. Clamped at >= 0 so a
 				// negative line never produces a negative item value (#54).
-				$total_price_excluding_tax = max( 0.0, (float) $item->get_subtotal() );
-				$unit_price_excluding_tax  = $total_price_excluding_tax / $quantity;
-
-				// Total tax.
-				$total_tax_amount = max( 0.0, (float) $item->get_subtotal_tax() );
-
-				// Total w/ tax and individual w/ tax.
-				$total_price_including_tax = $total_price_excluding_tax + $total_tax_amount;
-				$unit_price_including_tax  = $total_price_including_tax / $quantity;
+				$total_net_amount = max( 0.0, (float) $item->get_total() );
+				$total_tax_amount = max( 0.0, (float) $item->get_total_tax() );
 
 				$unit_weight = round( wc_get_weight( $product_variation->get_weight(), 'kg' ), 2 );
 
 				$items[] = array(
-					'id'                        => $product_id,
-					'sku'                       => $product_sku,
-					'name'                      => $product->get_title(),
-					'description'               => $this->get_product_meta( $product, $product_variation, '_ss_customs_desc' ),
-					'hs_code'                   => $this->get_product_meta( $product, $product_variation, '_ss_hs_code' ),
-					'country_of_origin'         => $this->get_product_meta( $product, $product_variation, '_ss_country_of_origin' ),
-					'quantity'                  => $quantity,
-					'unit_weight'               => $unit_weight,
-					'unit_price_excluding_tax'  => $unit_price_excluding_tax,
-					'unit_price_including_tax'  => $unit_price_including_tax,
-					'total_price_excluding_tax' => $total_price_excluding_tax,
-					'total_price_including_tax' => $total_price_including_tax,
-					'total_tax_amount'          => $total_tax_amount,
+					'id'                => $product_id,
+					'sku'               => $product_sku,
+					'name'              => $product->get_title(),
+					'description'       => $this->get_product_meta( $product, $product_variation, '_ss_customs_desc' ),
+					'hs_code'           => $this->get_product_meta( $product, $product_variation, '_ss_hs_code' ),
+					'country_of_origin' => $this->get_product_meta( $product, $product_variation, '_ss_country_of_origin' ),
+					'quantity'          => $quantity,
+					'unit_weight'       => $unit_weight,
+					'total_net_amount'  => $total_net_amount,
+					'total_tax_amount'  => $total_tax_amount,
 				);
 			}
 
 			/*
 			 * Filter the item lines of the booking request.
+			 *
+			 * @since 9.0.0
 			 *
 			 * @param array[]  $items One row per order line (see the return doc above).
 			 * @param WC_Order $order The WooCommerce order.
@@ -215,26 +218,36 @@ if ( ! class_exists( 'SS_Shipping_Order_Data' ) ) :
 		 *
 		 * The rule (see issue #72): totals are derived from what WooCommerce
 		 * itself reports via CRUD getters and reconcile with
-		 * WC_Order::get_total(): subtotal + shipping = total, on both the
-		 * including-tax and excluding-tax basis. Every value is clamped at
-		 * >= 0, so a discount or gift card larger than the item value (which
-		 * can push the non-shipping subtotal negative) never produces a
-		 * negative amount in the booking request (#54). When a clamp kicks
-		 * in, the clamped value wins over strict reconciliation.
+		 * WC_Order::get_total(): subtotal + shipping = total. Every net/tax
+		 * pair is clamped at >= 0, so a discount or gift card larger than
+		 * the item value (which can push the non-shipping subtotal
+		 * negative) never produces a negative amount in the booking request
+		 * (#54). When a clamp kicks in, the clamped value wins over strict
+		 * reconciliation.
+		 *
+		 * A single net amount + tax amount is returned per level (no
+		 * excl/incl pair) - the including-tax figure, where the wire
+		 * payload needs one, is net + tax computed once at the translation
+		 * boundary (#113). This is a minor, deliberate simplification of
+		 * the previous three-way independent clamp (excl/incl/tax each
+		 * clamped separately): net and tax are now clamped individually and
+		 * incl is always their sum, so it can no longer disagree with
+		 * net + tax the way independently-clamped values occasionally could.
+		 *
+		 * Gift card redemptions are not yet excluded from this calculation
+		 * - see the class docblock on SS_Shipping_Shipment_Builder for the
+		 * gift-card exclusion status (#128).
 		 *
 		 * @return array {
 		 *     Order totals.
 		 *
-		 *     @type float  $subtotal_price_excluding_tax Order total excl. shipping, excl. tax.
-		 *     @type float  $subtotal_price_including_tax Order total excl. shipping, incl. tax.
-		 *     @type float  $subtotal_tax_amount          Tax on the order total excl. shipping.
-		 *     @type float  $shipping_price_excluding_tax Shipping cost excl. tax.
-		 *     @type float  $shipping_price_including_tax Shipping cost incl. tax.
-		 *     @type float  $shipping_tax_amount          Tax on the shipping cost.
-		 *     @type float  $total_price_excluding_tax    Order total excl. tax.
-		 *     @type float  $total_price_including_tax    Order total incl. tax.
-		 *     @type float  $total_tax_amount             Total tax on the order.
-		 *     @type string $currency                     Order currency code.
+		 *     @type float  $subtotal_net_amount Order total excl. shipping, excl. tax.
+		 *     @type float  $subtotal_tax_amount Tax on the order total excl. shipping.
+		 *     @type float  $shipping_net_amount Shipping cost excl. tax.
+		 *     @type float  $shipping_tax_amount Tax on the shipping cost.
+		 *     @type float  $total_net_amount    Order total excl. tax.
+		 *     @type float  $total_tax_amount    Total tax on the order.
+		 *     @type string $currency            Order currency code.
 		 * }
 		 */
 		public function get_totals() {
@@ -254,22 +267,21 @@ if ( ! class_exists( 'SS_Shipping_Order_Data' ) ) :
 			$subtotal_excluding_tax = $subtotal_including_tax - $subtotal_tax;
 
 			$totals = array(
-				'subtotal_price_excluding_tax' => max( 0.0, $subtotal_excluding_tax ),
-				'subtotal_price_including_tax' => max( 0.0, $subtotal_including_tax ),
-				'subtotal_tax_amount'          => max( 0.0, $subtotal_tax ),
-				'shipping_price_excluding_tax' => max( 0.0, $shipping_excluding_tax ),
-				'shipping_price_including_tax' => max( 0.0, $shipping_including_tax ),
-				'shipping_tax_amount'          => max( 0.0, $shipping_tax ),
-				'total_price_excluding_tax'    => max( 0.0, $total_excluding_tax ),
-				'total_price_including_tax'    => max( 0.0, $total_including_tax ),
-				'total_tax_amount'             => max( 0.0, $total_tax ),
-				'currency'                     => $this->order->get_currency(),
+				'subtotal_net_amount' => max( 0.0, $subtotal_excluding_tax ),
+				'subtotal_tax_amount' => max( 0.0, $subtotal_tax ),
+				'shipping_net_amount' => max( 0.0, $shipping_excluding_tax ),
+				'shipping_tax_amount' => max( 0.0, $shipping_tax ),
+				'total_net_amount'    => max( 0.0, $total_excluding_tax ),
+				'total_tax_amount'    => max( 0.0, $total_tax ),
+				'currency'            => $this->order->get_currency(),
 			);
 
 			/*
 			 * Filter the totals section of the booking request. The filter
 			 * runs after the clamping rule, so returned values are used
 			 * as-is.
+			 *
+			 * @since 9.0.0
 			 *
 			 * @param array    $totals The order totals (see the return doc above).
 			 * @param WC_Order $order  The WooCommerce order.

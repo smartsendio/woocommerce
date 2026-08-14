@@ -168,7 +168,15 @@ it('books a simple domestic agent order with the full expected payload', functio
     ]));
 });
 
-it('prices item lines pre-discount when a percentage coupon is applied', function () {
+it('allocates an order-level percentage coupon discount down to the item lines (#128)', function () {
+    // Deliberate behaviour change from the v8 oddity this test used to
+    // assert: item lines used to be priced from the pre-discount line
+    // subtotal, so an order-level coupon discount only showed up in the
+    // parcel/order totals and sum(item totals) > order subtotal. #128 fixes
+    // this by pricing item lines from the post-discount line total instead
+    // (WC_Order_Item_Product::get_total(), which WooCommerce itself prorates
+    // order-level coupons into) so item lines and totals now reconcile
+    // exactly, without relying on the #54 clamp to hide the mismatch.
     $product = create_simple_product(['name' => 'Couponed Product', 'price' => 100, 'weight' => 1]);
     $coupon  = create_coupon(['type' => 'percent', 'amount' => 10]);
     $order   = create_order([
@@ -193,15 +201,14 @@ it('prices item lines pre-discount when a percentage coupon is applied', functio
                 'length'             => null,
                 'freetext'           => null,
                 'items'              => [
-                    // v8 oddity: item lines use the pre-discount subtotal, so
-                    // the coupon discount never shows up on the item lines.
                     expected_item($product, [
+                        'unit_price_excluding_tax'  => 90,
+                        'unit_price_including_tax'  => 90,
                         'quantity'                  => 2,
-                        'total_price_excluding_tax' => 200,
-                        'total_price_including_tax' => 200,
+                        'total_price_excluding_tax' => 180,
+                        'total_price_including_tax' => 180,
                     ]),
                 ],
-                // The coupon discount is reflected in the parcel totals.
                 'total_price_excluding_tax' => 180,
                 'total_price_including_tax' => 180,
                 'total_tax_amount'          => null,
@@ -641,15 +648,20 @@ it('lets the per-section payload filters adjust receiver, items, parcels and tot
         return $items;
     };
     $totals_filter = function (array $totals, WC_Order $filtered_order) {
-        $totals['total_price_including_tax'] = 999;
+        $totals['total_net_amount'] = 999;
 
         return $totals;
     };
+    // As of #113/#111 this filter operates on the internal representation's
+    // plain parcel arrays (each with an 'items' array of item rows), not on
+    // assembled Smartsend\Models\Shipment\Parcel objects - a deliberate
+    // signature change, safe because the filter is still unreleased (#73).
     $parcels_filter = function (array $parcels, WC_Order $filtered_order) {
-        foreach ($parcels as $parcel) {
-            expect($parcel)->toBeInstanceOf(\Smartsend\Models\Shipment\Parcel::class);
-            $parcel->setWeight(42);
+        foreach ($parcels as &$parcel) {
+            expect($parcel)->toBeArray();
+            $parcel['weight'] = 42;
         }
+        unset($parcel);
 
         return $parcels;
     };
