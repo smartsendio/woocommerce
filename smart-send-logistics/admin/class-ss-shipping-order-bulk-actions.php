@@ -31,11 +31,11 @@ if ( ! class_exists( 'SS_Shipping_Order_Bulk_Actions' ) ) :
 		protected SS_Shipping_Order_Meta $order_meta;
 
 		/**
-		 * Label creation component.
+		 * The fulfillment service running the label workflow.
 		 *
-		 * @var SS_Shipping_Label_Creator
+		 * @var SS_Shipping_Fulfillment_Service
 		 */
-		protected SS_Shipping_Label_Creator $label_creator;
+		protected SS_Shipping_Fulfillment_Service $fulfillment_service;
 
 		/**
 		 * Admin notices component used to flash one-time notices after
@@ -46,14 +46,14 @@ if ( ! class_exists( 'SS_Shipping_Order_Bulk_Actions' ) ) :
 		protected SS_Shipping_Admin_Notices $admin_notices;
 
 		/**
-		 * @param SS_Shipping_Order_Meta    $order_meta    Order meta access component.
-		 * @param SS_Shipping_Label_Creator $label_creator Label creation component.
-		 * @param SS_Shipping_Admin_Notices $admin_notices Admin notices component.
+		 * @param SS_Shipping_Order_Meta          $order_meta          Order meta access component.
+		 * @param SS_Shipping_Fulfillment_Service $fulfillment_service The fulfillment service.
+		 * @param SS_Shipping_Admin_Notices      $admin_notices       Admin notices component.
 		 */
-		public function __construct( SS_Shipping_Order_Meta $order_meta, SS_Shipping_Label_Creator $label_creator, SS_Shipping_Admin_Notices $admin_notices ) {
-			$this->order_meta    = $order_meta;
-			$this->label_creator = $label_creator;
-			$this->admin_notices = $admin_notices;
+		public function __construct( SS_Shipping_Order_Meta $order_meta, SS_Shipping_Fulfillment_Service $fulfillment_service, SS_Shipping_Admin_Notices $admin_notices ) {
+			$this->order_meta          = $order_meta;
+			$this->fulfillment_service = $fulfillment_service;
+			$this->admin_notices       = $admin_notices;
 		}
 
 		/**
@@ -163,13 +163,16 @@ if ( ! class_exists( 'SS_Shipping_Order_Bulk_Actions' ) ) :
 
 						if ( ! empty( $ss_shipping_method_id ) ) {
 
-							$response = $this->label_creator->create_label_for_single_order_maybe_return( $order_id, $return, true );
+							$result   = $return
+								? $this->fulfillment_service->fulfill_return( $order_id, true )
+								: $this->fulfillment_service->fulfill_outbound( $order_id, true );
+							$response = $result->to_legacy_response_array();
 
 							foreach ( $response as $key => $value ) {
 
 								if ( isset( $value['success'] ) ) {
 									$is_return_label = ! empty( $value['success']->woocommerce['return'] );
-									$label_link      = $this->label_creator->get_ss_shipping_label_link( $value['success']->woocommerce['label_url'], $is_return_label );
+									$label_link      = $this->fulfillment_service->get_ss_shipping_label_link( $value['success']->woocommerce['label_url'], $is_return_label );
 
 									if ( $is_return_label ) {
 										$message = sprintf(
@@ -275,11 +278,11 @@ if ( ! class_exists( 'SS_Shipping_Order_Bulk_Actions' ) ) :
 
 			$array_messages = array();
 			$combo_name     = $this->get_combo_label_file_name( $array_shipment_ids );
-			$combo_path     = $this->label_creator->get_label_path_from_shipment_id( $combo_name );
+			$combo_path     = $this->fulfillment_service->get_label_path_from_shipment_id( $combo_name );
 			$combo_url      = '';
 
 			if ( file_exists( $combo_path ) ) {
-				$combo_url = $this->label_creator->get_label_url_from_shipment_id( $combo_name );
+				$combo_url = $this->fulfillment_service->get_label_url_from_shipment_id( $combo_name );
 			} elseif ( count( $array_shipment_ids ) > 1 ) {
 				// If more than one smart send shipment label created, then create combo labels.
 				// Create combined label with successful shipments
@@ -296,7 +299,7 @@ if ( ! class_exists( 'SS_Shipping_Order_Bulk_Actions' ) ) :
 					if ( SS_SHIPPING_WC()->get_setting_save_shipping_labels_in_uploads() ) {
 						try {
 							// Save the PDF file and save order meta data
-							$combo_url = $this->label_creator->save_label_file( $combo_name, $response->pdf->base_64_encoded, null );
+							$combo_url = $this->fulfillment_service->save_label_file( $combo_name, $response->pdf->base_64_encoded, null );
 						} catch ( Exception $e ) {
 							array_push(
 								$array_messages,
