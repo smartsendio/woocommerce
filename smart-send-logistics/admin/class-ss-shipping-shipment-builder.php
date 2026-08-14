@@ -77,23 +77,23 @@ if ( ! class_exists( 'SS_Shipping_Shipment_Builder' ) ) :
 		protected SS_Shipping_Order_Reader $order_reader;
 
 		/**
-		 * The admin order integration.
+		 * Order meta access component.
 		 *
-		 * @var SS_Shipping_WC_Order
+		 * @var SS_Shipping_Order_Meta
 		 */
-		protected SS_Shipping_WC_Order $shipping_order;
+		protected SS_Shipping_Order_Meta $order_meta;
 
 		/**
 		 * Constructor.
 		 *
-		 * @param WC_Order                 $order          The WooCommerce order.
-		 * @param SS_Shipping_Order_Reader $order_reader   Order data access utility for the same order.
-		 * @param SS_Shipping_WC_Order     $shipping_order The admin order integration.
+		 * @param WC_Order                 $order        The WooCommerce order.
+		 * @param SS_Shipping_Order_Reader $order_reader Order data access utility for the same order.
+		 * @param SS_Shipping_Order_Meta   $order_meta   Order meta access component.
 		 */
-		public function __construct( WC_Order $order, SS_Shipping_Order_Reader $order_reader, SS_Shipping_WC_Order $shipping_order ) {
-			$this->order          = $order;
-			$this->order_reader   = $order_reader;
-			$this->shipping_order = $shipping_order;
+		public function __construct( WC_Order $order, SS_Shipping_Order_Reader $order_reader, SS_Shipping_Order_Meta $order_meta ) {
+			$this->order        = $order;
+			$this->order_reader = $order_reader;
+			$this->order_meta   = $order_meta;
 		}
 
 		/**
@@ -107,10 +107,10 @@ if ( ! class_exists( 'SS_Shipping_Shipment_Builder' ) ) :
 		public function build_outbound(): SS_Shipping_Shipment {
 			$order_id = $this->order_reader->get_order_id();
 
-			$ss_shipping_method_id = $this->shipping_order->get_smart_send_method_id( $order_id, false );
+			$ss_shipping_method_id = $this->order_meta->get_smart_send_method_id( $order_id, false );
 
 			$ss_args = array(
-				'ss_agent' => $this->shipping_order->get_ss_shipping_order_agent( $order_id ),
+				'ss_agent' => $this->order_meta->get_ss_shipping_order_agent( $order_id ),
 			);
 
 			return $this->assemble_shipment( $ss_shipping_method_id, $ss_args, false );
@@ -134,7 +134,7 @@ if ( ! class_exists( 'SS_Shipping_Shipment_Builder' ) ) :
 			$order_id = $this->order_reader->get_order_id();
 			$ss_args  = array();
 
-			$ss_shipping_method_id = $this->shipping_order->get_smart_send_method_id( $order_id, true );
+			$ss_shipping_method_id = $this->order_meta->get_smart_send_method_id( $order_id, true );
 
 			if ( isset( $ss_shipping_method_id['smart_send_return_method'] ) ) {
 				if ( empty( $ss_shipping_method_id['smart_send_return_method'] ) ) {
@@ -149,7 +149,7 @@ if ( ! class_exists( 'SS_Shipping_Shipment_Builder' ) ) :
 				// already returns the concrete method id string for them), so
 				// this branch - identical to build_outbound()'s agent
 				// selection - still runs for a return label in that case.
-				$ss_args['ss_agent'] = $this->shipping_order->get_ss_shipping_order_agent( $order_id );
+				$ss_args['ss_agent'] = $this->order_meta->get_ss_shipping_order_agent( $order_id );
 			}
 
 			return $this->assemble_shipment( $ss_shipping_method_id, $ss_args, true );
@@ -196,7 +196,7 @@ if ( ! class_exists( 'SS_Shipping_Shipment_Builder' ) ) :
 			 */
 			$ss_args['ss_parcels'] = apply_filters(
 				'smart_send_order_parcels',
-				$this->shipping_order->get_ss_shipping_order_parcels( $order_id ),
+				$this->order_meta->get_ss_shipping_order_parcels( $order_id ),
 				$order_id,
 				$is_return
 			);

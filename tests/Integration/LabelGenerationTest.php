@@ -170,26 +170,15 @@ it('creates only a return label when explicitly requested', function () {
     expect(implode("\n", wp_list_pluck($notes, 'content')))->toContain('Return shipping label');
 });
 
-it('generates labels for two orders via the bulk action and flashes a combined-pdf notice', function () {
+it('generates a label for a single order via the bulk action and flashes a success notice', function () {
     $notices = with_empty_flash_messages();
 
-    $order_a = create_labelable_order();
-    $order_b = create_labelable_order();
-
-    mock_smart_send_api(function ($url) {
-        if (strpos($url, 'shipments/labels/combine') !== false) {
-            return ss_api_response(200, ['data' => [
-                'pdf' => ['link' => 'https://api.example.test/labels/combined.pdf', 'base_64_encoded' => base64_encode('%PDF-combo')],
-            ]]);
-        }
-
-        return ss_api_response(200, ['data' => ss_api_shipment_data()]);
-    });
+    $order = create_labelable_order();
+    mock_smart_send_api();
 
     $handler  = SS_SHIPPING_WC()->get_ss_shipping_wc_order();
     $sendback = $handler->handle_bulk_order_actions('/wp-admin/edit.php', 'ss_shipping_label_bulk', [
-        $order_a->get_id(),
-        $order_b->get_id(),
+        $order->get_id(),
     ]);
 
     // The redirect URL is marked so the next request looks up the notices.
@@ -199,9 +188,11 @@ it('generates labels for two orders via the bulk action and flashes a combined-p
     $messages = $notices->get_pending();
     expect($messages)->toHaveCount(1)
         ->and($messages[0]['type'])->toBe('success')
-        ->and($messages[0]['message'])->toContain('Shipping labels created by Smart Send for 2 orders')
-        ->toContain('https://api.example.test/labels/combined.pdf')
-        ->toContain('Download combined pdf');
+        ->and($messages[0]['message'])->toContain('Order #' . $order->get_order_number())
+        ->toContain('Shipping label created by Smart Send')
+        ->toContain('https://api.example.test/labels/label.pdf');
+
+    expect(wc_get_order($order->get_id())->get_meta('_ss_shipping_label_id', true))->not->toBe('');
 
     // maybe_render() prints the notices and clears the transient when the
     // marker query parameter is present.
@@ -211,7 +202,7 @@ it('generates labels for two orders via the bulk action and flashes a combined-p
     $output = ob_get_clean();
 
     expect($output)->toContain('notice-success')
-        ->toContain('Download combined pdf');
+        ->toContain('Shipping label created by Smart Send');
     expect($notices->get_pending())->toBe([])
         ->and(get_transient(SS_Shipping_Admin_Notices::TRANSIENT_PREFIX . get_current_user_id()))->toBeFalse();
 });
@@ -252,19 +243,27 @@ it('flashes the API error per order when bulk label generation fails', function 
         ->toContain('The given data was invalid.');
 });
 
-it('rejects bulk label generation for more than five orders', function () {
+it('rejects bulk label generation for more than one order and books nothing', function () {
     $notices = with_empty_flash_messages();
 
+    $order_a = create_labelable_order();
+    $order_b = create_labelable_order();
     $capture = mock_smart_send_api();
 
     SS_SHIPPING_WC()->get_ss_shipping_wc_order()
-        ->handle_bulk_order_actions('/wp-admin/edit.php', 'ss_shipping_label_bulk', [1, 2, 3, 4, 5, 6]);
+        ->handle_bulk_order_actions('/wp-admin/edit.php', 'ss_shipping_label_bulk', [
+            $order_a->get_id(),
+            $order_b->get_id(),
+        ]);
 
     $messages = $notices->get_pending();
     expect($messages)->toHaveCount(1)
         ->and($messages[0]['type'])->toBe('error')
-        ->and($messages[0]['message'])->toContain('not possible to create labels for more than 5 orders')
+        ->and($messages[0]['message'])->toContain('only a single order can be processed at a time')
         ->and($capture->requests)->toBe([]);
+
+    expect(wc_get_order($order_a->get_id())->get_meta('_ss_shipping_label_id', true))->toBe('')
+        ->and(wc_get_order($order_b->get_id())->get_meta('_ss_shipping_label_id', true))->toBe('');
 });
 
 it('ignores bulk actions that are not Smart Send actions', function () {

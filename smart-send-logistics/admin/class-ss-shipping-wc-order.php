@@ -10,10 +10,11 @@ if ( ! defined( 'ABSPATH' ) ) {
  * The admin order integration facade. Wires the hooks and delegates the
  * actual work to single-responsibility components:
  *
- * - SS_Shipping_Order_Meta         order meta access (method id, agent, parcels, shipment ids)
- * - SS_Shipping_Order_Meta_Box     the order screen meta box
- * - SS_Shipping_Label_Creator      AJAX endpoint and label creation flow
- * - SS_Shipping_Order_Bulk_Actions bulk label generation on the Orders screen
+ * - SS_Shipping_Order_Meta          order meta access (method id, agent, parcels, shipment ids)
+ * - SS_Shipping_Order_Meta_Box      the order screen meta box
+ * - SS_Shipping_Fulfillment_Service the label fulfillment workflow (book + post-booking steps)
+ * - SS_Shipping_Label_Creator       AJAX label-generation controller
+ * - SS_Shipping_Order_Bulk_Actions  bulk label generation on the Orders screen
  *
  * The public surface of this class is kept stable: merchant code snippets
  * and the test suite reach everything through
@@ -52,7 +53,14 @@ if ( ! class_exists( 'SS_Shipping_WC_Order' ) ) :
 		protected SS_Shipping_Order_Meta_Box $meta_box;
 
 		/**
-		 * Label creation component.
+		 * The fulfillment service running the label workflow.
+		 *
+		 * @var SS_Shipping_Fulfillment_Service
+		 */
+		protected SS_Shipping_Fulfillment_Service $fulfillment_service;
+
+		/**
+		 * AJAX label-generation controller.
 		 *
 		 * @var SS_Shipping_Label_Creator
 		 */
@@ -69,11 +77,15 @@ if ( ! class_exists( 'SS_Shipping_WC_Order' ) ) :
 		 * Init and hook in the integration.
 		 */
 		public function __construct() {
-			$this->admin_notices = new SS_Shipping_Admin_Notices();
-			$this->order_meta    = new SS_Shipping_Order_Meta();
-			$this->meta_box      = new SS_Shipping_Order_Meta_Box( $this->order_meta );
-			$this->label_creator = new SS_Shipping_Label_Creator( $this, $this->order_meta );
-			$this->bulk_actions  = new SS_Shipping_Order_Bulk_Actions( $this->order_meta, $this->label_creator, $this->admin_notices );
+			$this->admin_notices       = new SS_Shipping_Admin_Notices();
+			$this->order_meta          = new SS_Shipping_Order_Meta();
+			$this->meta_box            = new SS_Shipping_Order_Meta_Box( $this->order_meta );
+			$this->fulfillment_service = new SS_Shipping_Fulfillment_Service(
+				$this->order_meta,
+				new SS_Shipping_Booking_Service( $this->order_meta )
+			);
+			$this->label_creator       = new SS_Shipping_Label_Creator( $this->order_meta, $this->fulfillment_service );
+			$this->bulk_actions        = new SS_Shipping_Order_Bulk_Actions( $this->order_meta, $this->fulfillment_service, $this->admin_notices );
 
 			$this->define_constants();
 			$this->init_hooks();
@@ -86,6 +98,18 @@ if ( ! class_exists( 'SS_Shipping_WC_Order' ) ) :
 		 */
 		public function get_admin_notices() {
 			return $this->admin_notices;
+		}
+
+		/**
+		 * Get the fulfillment service.
+		 *
+		 * Programmatic callers reach the label fulfillment workflow through
+		 * SS_SHIPPING_WC()->get_ss_shipping_wc_order()->fulfillment().
+		 *
+		 * @return SS_Shipping_Fulfillment_Service
+		 */
+		public function fulfillment(): SS_Shipping_Fulfillment_Service {
+			return $this->fulfillment_service;
 		}
 
 		/**
@@ -228,10 +252,11 @@ if ( ! class_exists( 'SS_Shipping_WC_Order' ) ) :
 		/**
 		 * Create label for a single WooCommerce order and maybe auto generate return label.
 		 *
-		 * Kept protected with its historic signature; delegates to the label
-		 * creation component.
+		 * Kept protected with its historic signature and legacy response
+		 * shape; delegates to the fulfillment service.
 		 *
-		 * @see SS_Shipping_Label_Creator::create_label_for_single_order_maybe_return()
+		 * @see SS_Shipping_Fulfillment_Service::fulfill_outbound()
+		 * @see SS_Shipping_Fulfillment_Service::fulfill_return()
 		 *
 		 * @return array
 		 */
@@ -240,7 +265,11 @@ if ( ! class_exists( 'SS_Shipping_WC_Order' ) ) :
 			$return = false, // phpcs:ignore Universal.NamingConventions.NoReservedKeywordParameterNames.returnFound -- pre-existing method signature, kept for backwards compatibility.
 			$setting_save_order_note = true
 		) {
-			return $this->label_creator->create_label_for_single_order_maybe_return( $order_id, $return, $setting_save_order_note );
+			$result = $return
+				? $this->fulfillment_service->fulfill_return( $order_id, $setting_save_order_note )
+				: $this->fulfillment_service->fulfill_outbound( $order_id, $setting_save_order_note );
+
+			return $result->to_legacy_response_array();
 		}
 
 		/**
@@ -319,27 +348,27 @@ if ( ! class_exists( 'SS_Shipping_WC_Order' ) ) :
 		/**
 		 * Gets label URL from the order meta.
 		 *
-		 * @see SS_Shipping_Label_Creator::get_label_url_from_order_id()
+		 * @see SS_Shipping_Fulfillment_Service::get_label_url_from_order_id()
 		 */
 		// phpcs:ignore Universal.NamingConventions.NoReservedKeywordParameterNames.returnFound -- pre-existing public method signature, kept for backwards compatibility.
 		public function get_label_url_from_order_id( $order_id, $return ): string {
-			return $this->label_creator->get_label_url_from_order_id( $order_id, $return );
+			return $this->fulfillment_service->get_label_url_from_order_id( $order_id, $return );
 		}
 
 		/**
 		 * Get formatted label link.
 		 *
-		 * @see SS_Shipping_Label_Creator::get_ss_shipping_label_link()
+		 * @see SS_Shipping_Fulfillment_Service::get_ss_shipping_label_link()
 		 */
 		// phpcs:ignore Universal.NamingConventions.NoReservedKeywordParameterNames.returnFound -- pre-existing public method signature, kept for backwards compatibility.
 		public function get_ss_shipping_label_link( $url, $return ) {
-			return $this->label_creator->get_ss_shipping_label_link( $url, $return );
+			return $this->fulfillment_service->get_ss_shipping_label_link( $url, $return );
 		}
 
 		/**
 		 * Save tracking number in Shipment Tracking.
 		 *
-		 * @see SS_Shipping_Label_Creator::save_tracking_in_shipment_tracking()
+		 * @see SS_Shipping_Fulfillment_Service::save_tracking_in_shipment_tracking()
 		 */
 		public function save_tracking_in_shipment_tracking(
 			$order_id,
@@ -348,7 +377,7 @@ if ( ! class_exists( 'SS_Shipping_WC_Order' ) ) :
 			$provider = 'Smart Send',
 			$date_shipped = null
 		) {
-			$this->label_creator->save_tracking_in_shipment_tracking( $order_id, $tracking_number, $tracking_url, $provider, $date_shipped );
+			$this->fulfillment_service->save_tracking_in_shipment_tracking( $order_id, $tracking_number, $tracking_url, $provider, $date_shipped );
 		}
 
 		/**

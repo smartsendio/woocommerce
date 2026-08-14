@@ -10,8 +10,12 @@ use Automattic\WooCommerce\Internal\DataStores\Orders\CustomOrdersTableControlle
  * Smart Send bulk order actions.
  *
  * Owns the "Generate Labels" / "Generate Return Labels" bulk actions on
- * the Orders screen, including the combined-PDF creation and the admin
- * notices summarising the outcome.
+ * the Orders screen and the admin notices summarising the outcome.
+ *
+ * Temporarily restricted to a single selected order: selecting more than
+ * one order surfaces an error notice and processes nothing. Multi-order
+ * bulk processing (and the combined-PDF download it produced) returns
+ * with the Phase 7 async processing rebuild (#116).
  *
  * @package  SS_Shipping_Order_Bulk_Actions
  * @category Shipping
@@ -31,11 +35,11 @@ if ( ! class_exists( 'SS_Shipping_Order_Bulk_Actions' ) ) :
 		protected SS_Shipping_Order_Meta $order_meta;
 
 		/**
-		 * Label creation component.
+		 * The fulfillment service running the label workflow.
 		 *
-		 * @var SS_Shipping_Label_Creator
+		 * @var SS_Shipping_Fulfillment_Service
 		 */
-		protected SS_Shipping_Label_Creator $label_creator;
+		protected SS_Shipping_Fulfillment_Service $fulfillment_service;
 
 		/**
 		 * Admin notices component used to flash one-time notices after
@@ -46,14 +50,14 @@ if ( ! class_exists( 'SS_Shipping_Order_Bulk_Actions' ) ) :
 		protected SS_Shipping_Admin_Notices $admin_notices;
 
 		/**
-		 * @param SS_Shipping_Order_Meta    $order_meta    Order meta access component.
-		 * @param SS_Shipping_Label_Creator $label_creator Label creation component.
-		 * @param SS_Shipping_Admin_Notices $admin_notices Admin notices component.
+		 * @param SS_Shipping_Order_Meta          $order_meta          Order meta access component.
+		 * @param SS_Shipping_Fulfillment_Service $fulfillment_service The fulfillment service.
+		 * @param SS_Shipping_Admin_Notices      $admin_notices       Admin notices component.
 		 */
-		public function __construct( SS_Shipping_Order_Meta $order_meta, SS_Shipping_Label_Creator $label_creator, SS_Shipping_Admin_Notices $admin_notices ) {
-			$this->order_meta    = $order_meta;
-			$this->label_creator = $label_creator;
-			$this->admin_notices = $admin_notices;
+		public function __construct( SS_Shipping_Order_Meta $order_meta, SS_Shipping_Fulfillment_Service $fulfillment_service, SS_Shipping_Admin_Notices $admin_notices ) {
+			$this->order_meta          = $order_meta;
+			$this->fulfillment_service = $fulfillment_service;
+			$this->admin_notices       = $admin_notices;
 		}
 
 		/**
@@ -105,15 +109,12 @@ if ( ! class_exists( 'SS_Shipping_Order_Bulk_Actions' ) ) :
 			$array_messages         = array();
 			$array_messages_success = array();
 			$array_messages_error   = array();
-			$array_shipment_ids     = array();
 
 			if ( 'ss_shipping_label_bulk' === $doaction || 'ss_shipping_return_bulk' === $doaction ) {
 
 				// Determine if the request is for a return label
 				$return = ( 'ss_shipping_return_bulk' === $doaction );
 
-				// Trigger an admin notice to have the user manually open a print window
-				$is_error     = false;
 				$orders_count = count( $items );
 
 				if ( $orders_count < 1 ) {
@@ -127,12 +128,14 @@ if ( ! class_exists( 'SS_Shipping_Order_Bulk_Actions' ) ) :
 							'type'    => 'error',
 						)
 					);
-				} elseif ( $orders_count > 5 ) {
+				} elseif ( $orders_count > 1 ) {
+					// Temporary restriction: multi-order bulk processing (and the
+					// combined-PDF download) returns with the Phase 7 rebuild (#116).
 					array_push(
 						$array_messages,
 						array(
 							'message' => __(
-								'For now it is not possible to create labels for more than 5 orders at a time.',
+								'For now only a single order can be processed at a time. Please select one order - bulk label processing will be back in an upcoming release.',
 								'smart-send-logistics'
 							),
 							'type'    => 'error',
@@ -163,13 +166,16 @@ if ( ! class_exists( 'SS_Shipping_Order_Bulk_Actions' ) ) :
 
 						if ( ! empty( $ss_shipping_method_id ) ) {
 
-							$response = $this->label_creator->create_label_for_single_order_maybe_return( $order_id, $return, true );
+							$result   = $return
+								? $this->fulfillment_service->fulfill_return( $order_id, true )
+								: $this->fulfillment_service->fulfill_outbound( $order_id, true );
+							$response = $result->to_legacy_response_array();
 
 							foreach ( $response as $key => $value ) {
 
 								if ( isset( $value['success'] ) ) {
 									$is_return_label = ! empty( $value['success']->woocommerce['return'] );
-									$label_link      = $this->label_creator->get_ss_shipping_label_link( $value['success']->woocommerce['label_url'], $is_return_label );
+									$label_link      = $this->fulfillment_service->get_ss_shipping_label_link( $value['success']->woocommerce['label_url'], $is_return_label );
 
 									if ( $is_return_label ) {
 										$message = sprintf(
@@ -192,14 +198,6 @@ if ( ! class_exists( 'SS_Shipping_Order_Bulk_Actions' ) ) :
 										array(
 											'message' => $message,
 											'type'    => 'success',
-										)
-									);
-
-									array_push(
-										$array_shipment_ids,
-										array(
-											'shipment_id' => $value['success']->shipment_id,
-											'order_id'    => $order->get_order_number(),
 										)
 									);
 								} else {
@@ -232,13 +230,7 @@ if ( ! class_exists( 'SS_Shipping_Order_Bulk_Actions' ) ) :
 						}
 					}
 
-					$array_combo_messages = $this->create_combo_file(
-						$array_messages_success,
-						$array_messages_error,
-						$array_shipment_ids
-					);
-
-					$array_messages = array_merge( $array_messages, $array_combo_messages );
+					$array_messages = array_merge( $array_messages, $array_messages_success, $array_messages_error );
 
 				}
 
@@ -266,109 +258,6 @@ if ( ! class_exists( 'SS_Shipping_Order_Bulk_Actions' ) ) :
 				'ss_shipping_label_bulk'  => __( 'Smart Send - Generate Labels', 'smart-send-logistics' ),
 				'ss_shipping_return_bulk' => __( 'Smart Send - Generate Return Labels', 'smart-send-logistics' ),
 			);
-		}
-
-		/**
-		 * Create Combo File
-		 */
-		protected function create_combo_file( $array_messages_success, $array_messages_error, $array_shipment_ids ) {
-
-			$array_messages = array();
-			$combo_name     = $this->get_combo_label_file_name( $array_shipment_ids );
-			$combo_path     = $this->label_creator->get_label_path_from_shipment_id( $combo_name );
-			$combo_url      = '';
-
-			if ( file_exists( $combo_path ) ) {
-				$combo_url = $this->label_creator->get_label_url_from_shipment_id( $combo_name );
-			} elseif ( count( $array_shipment_ids ) > 1 ) {
-				// If more than one smart send shipment label created, then create combo labels.
-				// Create combined label with successful shipments
-				$combined_shipments = SS_SHIPPING_WC()->get_api_handle()->bookings()->combine(
-					wp_list_pluck(
-						$array_shipment_ids,
-						'shipment_id'
-					)
-				);
-
-				if ( SS_SHIPPING_WC()->get_api_handle()->isSuccessful() ) {
-
-					$response = SS_SHIPPING_WC()->get_api_handle()->getData();
-					if ( SS_SHIPPING_WC()->get_setting_save_shipping_labels_in_uploads() ) {
-						try {
-							// Save the PDF file and save order meta data
-							$combo_url = $this->label_creator->save_label_file( $combo_name, $response->pdf->base_64_encoded, null );
-						} catch ( Exception $e ) {
-							array_push(
-								$array_messages,
-								array(
-									'message' => $e->getMessage(),
-									'type'    => 'error',
-								)
-							);
-						}
-					}
-
-					// Get the combined label link
-					$combo_url = $response->pdf->link;
-
-				} else {
-					array_push(
-						$array_messages,
-						array(
-							'message' => sprintf(
-								/* translators: %s: error message from the Smart Send API. */
-								__( 'Error combining shipping labels: %s', 'smart-send-logistics' ),
-								SS_SHIPPING_WC()->get_api_handle()->getErrorString()
-							),
-							'type'    => 'error',
-						)
-					);
-				}
-			}
-
-			if ( ! empty( $combo_url ) ) {
-				$order_id_list = wp_list_pluck( $array_shipment_ids, 'order_id' );
-				$order_id_list = array_unique( $order_id_list );
-				$label_count   = count( $order_id_list );
-				$order_ids_str = sprintf(
-					/* translators: %s: list of order numbers, each prefixed with #. */
-					__( 'Orders: #%s', 'smart-send-logistics' ),
-					implode( ', #', $order_id_list )
-				);
-
-				array_push(
-					$array_messages,
-					array(
-						'message' => sprintf(
-							/* translators: 1: number of orders, 2: URL of the combined PDF file. */
-							_n(
-								'Shipping labels created by Smart Send for %1$s order: <a href="%2$s" target="_blank">Download combined pdf</a>',
-								'Shipping labels created by Smart Send for %1$s orders: <a href="%2$s" target="_blank">Download combined pdf</a>',
-								$label_count,
-								'smart-send-logistics'
-							),
-							$label_count,
-							$combo_url
-						) . '<br/>' . $order_ids_str,
-						'type'    => 'success',
-					)
-				);
-
-				$array_messages = array_merge( $array_messages, $array_messages_error );
-			} else {
-				$array_messages = array_merge( $array_messages, $array_messages_success, $array_messages_error );
-			}
-
-			return $array_messages;
-		}
-
-		/**
-		 * Create file name from shipment ids, separated by "-" and hash it
-		 */
-		protected function get_combo_label_file_name( $shipment_ids ) {
-			$shipment_id_list = wp_list_pluck( $shipment_ids, 'shipment_id' );
-			$shipment_ids_str = implode( '-', $shipment_id_list );
-			return hash( 'sha256', $shipment_ids_str );
 		}
 	}
 
