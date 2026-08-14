@@ -259,7 +259,6 @@ if ( ! class_exists( 'SS_Shipping_Order_Bulk_Actions' ) ) :
 				'ss_shipping_return_bulk' => __( 'Smart Send - Generate Return Labels', 'smart-send-logistics' ),
 			);
 		}
-
 	}
 
 endif;
