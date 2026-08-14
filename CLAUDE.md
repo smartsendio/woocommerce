@@ -57,6 +57,8 @@ Single-entry WordPress plugin. `smart-send-logistics/smart-send-logistics.php` d
 
 4. **PSR-style API client** in `includes/lib/Smartsend/` — namespace `Smartsend`, classes `Api` (endpoint methods, extends `Client`) and `Client` (HTTP via `wp_remote_*` against `https://app.smartsend.io/api/v1/`), plus `Models/` value objects (`Shipment`, `Agent`, and their sub-models). This layer is deliberately WordPress-light; keep API concerns here rather than in the `SS_Shipping_*` classes.
 
+Naming convention follows this same split: `SS_Shipping_*` (WordPress-style) code uses snake_case methods; the `Smartsend\` PSR-style lib uses camelCase — a call chain crossing the boundary (e.g. `SS_SHIPPING_WC()->get_api_handle()->bookings()->findByAgentNo()`) is expected to mix both, not a bug to fix.
+
 ## Logging policy
 
 Two decoupled surfaces with distinct audiences — place every log/notice call deliberately on one of them (see issue #92):

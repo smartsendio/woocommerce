@@ -124,7 +124,7 @@ if ( ! class_exists( 'SS_Shipping_Order_Meta_Box' ) ) :
 			echo '<p>' . sprintf(
 				/* translators: %0.2f: total order weight in kg. */
 				esc_html__( 'Weight: %0.2f kg', 'smart-send-logistics' ),
-				floatval( $this->getOrderWeight( $order ) )
+				floatval( $this->get_order_weight( $order ) )
 			) . '</p>';
 
 			// Display Agent No. field if pickup-point shipping method selected.
@@ -250,8 +250,7 @@ if ( ! class_exists( 'SS_Shipping_Order_Meta_Box' ) ) :
 		 * @param WC_Order $order The order.
 		 * @return float weight in kg
 		 */
-		// phpcs:ignore WordPress.NamingConventions.ValidFunctionName.MethodNameInvalid -- pre-existing method name, kept for backwards compatibility.
-		protected function getOrderWeight( $order ) {
+		protected function get_order_weight( $order ) {
 			$weight_total = 0;
 
 			// Get order item specific data.
