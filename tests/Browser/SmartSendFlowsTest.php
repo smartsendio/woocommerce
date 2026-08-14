@@ -404,7 +404,10 @@ it('generates a shipping label from the admin order screen', function () {
         ->assertSeeIn('#ss-label-created', 'Download shipping label');
 });
 
-it('generates labels for two orders through the bulk action', function () {
+it('rejects the bulk label action for more than one order', function () {
+    // Multi-order bulk processing (and the combined PDF) is temporarily
+    // removed pending the Phase 7 async bulk rebuild - selecting more
+    // than one order must error without booking anything.
     $state = ss_browser_state();
 
     $page = login_as_admin()->navigate(base_url($state['orders_list_path']));
@@ -417,6 +420,20 @@ it('generates labels for two orders through the bulk action', function () {
         // text-based lookups cannot find.
         ->click('#doaction');
 
-    $page->assertSee('Shipping labels created by Smart Send for 2 orders')
-        ->assertSee('Download combined pdf');
+    $page->assertSee('only a single order can be processed at a time');
+});
+
+it('generates a label for a single order through the bulk action', function () {
+    $state = ss_browser_state();
+
+    $page = login_as_admin()->navigate(base_url($state['orders_list_path']));
+
+    $checkbox_name = $state['hpos'] ? 'id[]' : 'post[]';
+    $page->check($checkbox_name, (string) $state['order_b'])
+        ->select('action', 'ss_shipping_label_bulk')
+        // Explicit selector: the Apply button is an input[type=submit], which
+        // text-based lookups cannot find.
+        ->click('#doaction');
+
+    $page->assertSee('Shipping label created by Smart Send');
 });
