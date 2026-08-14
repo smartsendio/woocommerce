@@ -10,7 +10,7 @@
 
 function fulfillment_service(): SS_Shipping_Fulfillment_Service
 {
-    return SS_SHIPPING_WC()->get_ss_shipping_wc_order()->fulfillment();
+    return SS_SHIPPING_WC()->fulfillment();
 }
 
 /**

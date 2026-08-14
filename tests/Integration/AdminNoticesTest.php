@@ -14,7 +14,7 @@
  */
 function clean_admin_notices(): SS_Shipping_Admin_Notices
 {
-    $notices = SS_SHIPPING_WC()->get_ss_shipping_wc_order()->get_admin_notices();
+    $notices = SS_SHIPPING_WC()->admin_notices();
 
     $notices->clear();
 
@@ -27,7 +27,7 @@ function clean_admin_notices(): SS_Shipping_Admin_Notices
 }
 
 it('registers the renderer on the admin_notices hook', function () {
-    $notices = SS_SHIPPING_WC()->get_ss_shipping_wc_order()->get_admin_notices();
+    $notices = SS_SHIPPING_WC()->admin_notices();
 
     expect(has_action('admin_notices', [$notices, 'maybe_render']))->not->toBeFalse();
 });
@@ -55,7 +55,7 @@ it('does not create a transient when pushing an empty message list', function ()
 });
 
 it('adds the marker query parameter to redirect URLs', function () {
-    $notices = SS_SHIPPING_WC()->get_ss_shipping_wc_order()->get_admin_notices();
+    $notices = SS_SHIPPING_WC()->admin_notices();
 
     expect($notices->add_notices_query_arg('/wp-admin/edit.php'))
         ->toBe('/wp-admin/edit.php?ss_shipping_notices=1');

@@ -118,7 +118,7 @@ it('books a simple domestic agent order with the full expected payload', functio
         'shipping_method' => 'postnord_agent',
         'shipping_total'  => '39',
     ]);
-    SS_SHIPPING_WC()->get_ss_shipping_wc_order()->save_ss_shipping_order_agent($order->get_id(), sample_agent());
+    SS_SHIPPING_WC()->order_meta()->save_ss_shipping_order_agent($order->get_id(), sample_agent());
 
     $payload  = capture_shipment_payload($order);
     $order_id = (string) $order->get_id();
@@ -512,7 +512,7 @@ it('splits the shipment into one parcel per box when parcels meta is set', funct
         'shipping_method' => 'postnord_agent',
         'shipping_total'  => '39',
     ]);
-    SS_SHIPPING_WC()->get_ss_shipping_wc_order()->save_ss_shipping_order_parcels($order->get_id(), [
+    SS_SHIPPING_WC()->order_meta()->save_ss_shipping_order_parcels($order->get_id(), [
         ['id' => $product_a->get_id(), 'name' => 'Box One Product', 'value' => '1'],
         ['id' => $product_b->get_id(), 'name' => 'Box Two Product', 'value' => '2'],
     ]);
@@ -749,7 +749,7 @@ it('lets the smart_send_order_pickup_point filter replace the pickup point', fun
         'products'        => [$product],
         'shipping_method' => 'postnord_agent',
     ]);
-    SS_SHIPPING_WC()->get_ss_shipping_wc_order()->save_ss_shipping_order_agent($order->get_id(), sample_agent());
+    SS_SHIPPING_WC()->order_meta()->save_ss_shipping_order_agent($order->get_id(), sample_agent());
 
     $filter = function ($ss_agent, $order_id) use ($order) {
         expect($ss_agent->agent_no)->toBe('1234')
@@ -824,7 +824,7 @@ it('lets the smart_send_parcel_weight filter override split parcel weights', fun
         'products'        => [$product_a, $product_b],
         'shipping_method' => 'postnord_homedelivery',
     ]);
-    SS_SHIPPING_WC()->get_ss_shipping_wc_order()->save_ss_shipping_order_parcels($order->get_id(), [
+    SS_SHIPPING_WC()->order_meta()->save_ss_shipping_order_parcels($order->get_id(), [
         ['id' => $product_a->get_id(), 'name' => 'Weight Box One', 'value' => '1'],
         ['id' => $product_b->get_id(), 'name' => 'Weight Box Two', 'value' => '2'],
     ]);

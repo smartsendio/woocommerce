@@ -175,7 +175,7 @@ it('logs an info event when the shopper selects a pickup point at checkout', fun
         ->and($selected['context']['order_id'])->toBe($order->get_id())
         ->and($selected['context']['agent_no'])->toBe('1234');
 
-    expect(SS_SHIPPING_WC()->get_ss_shipping_wc_order()->get_ss_shipping_order_agent_no($order->get_id()))->toBe('1234');
+    expect(SS_SHIPPING_WC()->order_meta()->get_ss_shipping_order_agent_no($order->get_id()))->toBe('1234');
 });
 
 it('logs an info event when the pickup point is changed on an order', function () {
@@ -186,8 +186,7 @@ it('logs an info event when the pickup point is changed on an order', function (
     $product = create_simple_product(['price' => 100, 'weight' => 1]);
     $order   = create_order(['products' => [$product], 'shipping_method' => 'postnord_agent']);
 
-    $method = new ReflectionMethod(SS_Shipping_WC_Order::class, 'save_shipping_agent');
-    $result = $method->invoke(SS_SHIPPING_WC()->get_ss_shipping_wc_order(), $order->get_id(), true, '5678');
+    $result = SS_SHIPPING_WC()->order_meta()->save_shipping_agent($order->get_id(), true, '5678');
 
     expect($result)->toBeTrue();
 
@@ -208,8 +207,7 @@ it('logs a warning when the agent number is rejected, even with the debug settin
     $product = create_simple_product(['price' => 100, 'weight' => 1]);
     $order   = create_order(['products' => [$product], 'shipping_method' => 'postnord_agent']);
 
-    $method = new ReflectionMethod(SS_Shipping_WC_Order::class, 'save_shipping_agent');
-    $result = $method->invoke(SS_SHIPPING_WC()->get_ss_shipping_wc_order(), $order->get_id(), true, '9999');
+    $result = SS_SHIPPING_WC()->order_meta()->save_shipping_agent($order->get_id(), true, '9999');
 
     expect($result)->toBeString();
 
@@ -225,7 +223,7 @@ it('logs a debug trace when the meta box is rendered for a non Smart Send order'
     $order   = create_order(['products' => [$product]]); // No Smart Send shipping item.
 
     ob_start();
-    SS_SHIPPING_WC()->get_ss_shipping_wc_order()->render_smart_send_order_meta_box($order);
+    SS_SHIPPING_WC()->meta_box()->render_smart_send_order_meta_box($order);
     $output = ob_get_clean();
 
     expect($output)->toContain('Order placed with a shipping method that is not from the Smart Send plugin')
@@ -350,7 +348,7 @@ it('logs an error when the order cannot be loaded while deleting pickup point me
     with_ss_settings(['ss_debug' => 'no']);
     $spy = spy_on_logger();
 
-    SS_SHIPPING_WC()->get_ss_shipping_wc_order()->delete_ss_shipping_order_agent(999999999);
+    SS_SHIPPING_WC()->order_meta()->delete_ss_shipping_order_agent(999999999);
 
     $failed = ss_policy_entry($spy, 'Failed to load WooCommerce order when deleting pickup point meta - skipping');
     expect($failed)->not->toBeNull()

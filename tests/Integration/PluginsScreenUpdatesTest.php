@@ -95,6 +95,7 @@ it('makes no HTTP request to compute the notice', function () {
 
 it('registers the notice on the plugin-specific update message hook', function () {
     $updates = new SS_Plugins_Screen_Updates();
+    $updates->register_hooks();
 
     expect(has_action('in_plugin_update_message-smart-send-logistics/smart-send-logistics.php', [$updates, 'in_plugin_update_message']))->not->toBeFalse();
 });
