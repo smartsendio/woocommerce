@@ -463,7 +463,7 @@ if ( ! class_exists( 'SS_Shipping_Frontend' ) ) :
 		 */
 		public function display_ss_shipping_agent( $order ) {
 
-			$order_id                = $this->getOrderId( $order );
+			$order_id                = $this->get_order_id( $order );
 			$ordered_pickup_point_no = SS_SHIPPING_WC()->get_ss_shipping_wc_order()->get_ss_shipping_order_agent_no( $order_id );
 
 			if ( $ordered_pickup_point_no ) {
@@ -481,8 +481,7 @@ if ( ! class_exists( 'SS_Shipping_Frontend' ) ) :
 			}
 		}
 
-		// phpcs:ignore WordPress.NamingConventions.ValidFunctionName.MethodNameInvalid -- pre-existing method name, kept for backwards compatibility.
-		protected function getOrderId( $order ) {
+		protected function get_order_id( $order ) {
 			// WC 3.0 code!
 			if ( defined( 'WOOCOMMERCE_VERSION' ) && version_compare( WOOCOMMERCE_VERSION, '3.0', '>=' ) ) {
 				return $order->get_id();
