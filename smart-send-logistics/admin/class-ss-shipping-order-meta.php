@@ -22,6 +22,50 @@ if ( ! class_exists( 'SS_Shipping_Order_Meta' ) ) :
 	class SS_Shipping_Order_Meta {
 
 		/**
+		 * Meta key holding the outbound shipment id after a label is booked.
+		 */
+		const META_LABEL_ID = '_ss_shipping_label_id';
+
+		/**
+		 * Meta key holding the return shipment id after a return label is booked.
+		 */
+		const META_RETURN_LABEL_ID = '_ss_shipping_return_label_id';
+
+		/**
+		 * Meta key holding the selected pickup point (agent) object.
+		 */
+		const META_AGENT = '_ss_shipping_order_agent';
+
+		/**
+		 * Meta key holding the selected pickup point agent number.
+		 */
+		const META_AGENT_NO = 'ss_shipping_order_agent_no';
+
+		/**
+		 * Meta key holding the parcel split entered in the order meta box.
+		 */
+		const META_PARCELS = 'ss_shipping_order_parcels';
+
+		/**
+		 * Every order meta key Smart Send writes.
+		 *
+		 * The Subscriptions renewal-meta exclusion is built from this list, so
+		 * a new META_* constant must be added here too (the integration test
+		 * pinning the exclusion list enforces this via reflection).
+		 *
+		 * @return string[]
+		 */
+		public static function all_meta_keys() {
+			return array(
+				self::META_LABEL_ID,
+				self::META_RETURN_LABEL_ID,
+				self::META_AGENT,
+				self::META_AGENT_NO,
+				self::META_PARCELS,
+			);
+		}
+
+		/**
 		 * Register this component's hooks.
 		 *
 		 * @return void
@@ -142,7 +186,7 @@ if ( ! class_exists( 'SS_Shipping_Order_Meta' ) ) :
 		 */
 		public function filter_update_agent_meta( $check, $meta_id, $meta_value, $meta_key ) {
 
-			if ( 'ss_shipping_order_agent_no' == $meta_key ) { // phpcs:ignore Universal.Operators.StrictComparisons.LooseEqual -- pre-existing loose comparison; tightening is a behaviour change out of scope for the #43 move.
+			if ( self::META_AGENT_NO == $meta_key ) { // phpcs:ignore Universal.Operators.StrictComparisons.LooseEqual -- pre-existing loose comparison; tightening is a behaviour change out of scope for the #43 move.
 				$meta      = get_metadata_by_mid( 'post', $meta_id );
 				$object_id = $meta->post_id;
 				if ( $this->save_shipping_agent( $object_id, true, $meta_value ) !== true ) {
@@ -168,7 +212,7 @@ if ( ! class_exists( 'SS_Shipping_Order_Meta' ) ) :
 		// phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed -- $_meta_value is part of the deleted_post_meta hook signature.
 		public function action_deleted_agent_meta( $meta_ids, $object_id, $meta_key, $_meta_value ) {
 
-			if ( 'ss_shipping_order_agent_no' == $meta_key ) { // phpcs:ignore Universal.Operators.StrictComparisons.LooseEqual -- pre-existing loose comparison; tightening is a behaviour change out of scope for the #43 move.
+			if ( self::META_AGENT_NO == $meta_key ) { // phpcs:ignore Universal.Operators.StrictComparisons.LooseEqual -- pre-existing loose comparison; tightening is a behaviour change out of scope for the #43 move.
 				$this->delete_ss_shipping_order_agent( $object_id );
 			}
 		}
@@ -257,7 +301,7 @@ if ( ! class_exists( 'SS_Shipping_Order_Meta' ) ) :
 			if ( ! $order instanceof WC_Order ) {
 				return;
 			}
-			$order->update_meta_data( 'ss_shipping_order_parcels', $parcels );
+			$order->update_meta_data( self::META_PARCELS, $parcels );
 			$order->save();
 		}
 
@@ -273,7 +317,7 @@ if ( ! class_exists( 'SS_Shipping_Order_Meta' ) ) :
 			if ( ! $order instanceof WC_Order ) {
 				return false;
 			}
-			return $order->get_meta( 'ss_shipping_order_parcels', true );
+			return $order->get_meta( self::META_PARCELS, true );
 		}
 
 		/**
@@ -289,7 +333,7 @@ if ( ! class_exists( 'SS_Shipping_Order_Meta' ) ) :
 			if ( ! $order instanceof WC_Order ) {
 				return;
 			}
-			$order->update_meta_data( 'ss_shipping_order_agent_no', $agent_no );
+			$order->update_meta_data( self::META_AGENT_NO, $agent_no );
 			$order->save();
 		}
 
@@ -311,7 +355,7 @@ if ( ! class_exists( 'SS_Shipping_Order_Meta' ) ) :
 				return null;
 			}
 
-			$ss_agent_number = $order->get_meta( 'ss_shipping_order_agent_no', true );
+			$ss_agent_number = $order->get_meta( self::META_AGENT_NO, true );
 			if ( $ss_agent_number ) {
 				// Return the agent_no found
 				return $ss_agent_number;
@@ -339,7 +383,7 @@ if ( ! class_exists( 'SS_Shipping_Order_Meta' ) ) :
 			if ( ! $order instanceof WC_Order ) {
 				return;
 			}
-			$order->update_meta_data( '_ss_shipping_order_agent', $agent );
+			$order->update_meta_data( self::META_AGENT, $agent );
 			$order->save();
 		}
 
@@ -359,7 +403,7 @@ if ( ! class_exists( 'SS_Shipping_Order_Meta' ) ) :
 				return;
 			}
 
-			$order->delete_meta_data( '_ss_shipping_order_agent' );
+			$order->delete_meta_data( self::META_AGENT );
 		}
 
 		/*
@@ -377,7 +421,7 @@ if ( ! class_exists( 'SS_Shipping_Order_Meta' ) ) :
 				return null;
 			}
 
-			$ss_agent_info = $order->get_meta( '_ss_shipping_order_agent', true );
+			$ss_agent_info = $order->get_meta( self::META_AGENT, true );
 			if ( $ss_agent_info ) {
 				// Return the agent_no found
 				return $ss_agent_info;
@@ -416,9 +460,9 @@ if ( ! class_exists( 'SS_Shipping_Order_Meta' ) ) :
 				return;
 			}
 			if ( $return ) {
-				$order->update_meta_data( '_ss_shipping_return_label_id', $shipment_id );
+				$order->update_meta_data( self::META_RETURN_LABEL_ID, $shipment_id );
 			} else {
-				$order->update_meta_data( '_ss_shipping_label_id', $shipment_id );
+				$order->update_meta_data( self::META_LABEL_ID, $shipment_id );
 			}
 			$order->save();
 		}

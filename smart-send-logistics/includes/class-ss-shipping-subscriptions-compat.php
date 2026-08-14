@@ -44,10 +44,25 @@ if ( ! class_exists( 'SS_Shipping_Subscriptions_Compat' ) ) :
 		}
 
 		/**
-		 * Prevents data being copied to subscription renewals
+		 * Prevents data being copied to subscription renewals.
+		 *
+		 * Excludes every order meta key Smart Send writes (shipment ids,
+		 * pickup point agent object and number, parcel split) - a renewal
+		 * must get its own label and pickup point selection, not inherit
+		 * the parent order's. The list is built from the meta-key constants
+		 * on SS_Shipping_Order_Meta so it cannot drift from the vocabulary.
+		 *
+		 * @param string $order_meta_query SQL fragment selecting the meta rows to copy.
+		 *
+		 * @return string
 		 */
 		public function woocommerce_subscriptions_renewal_order_meta_query( $order_meta_query ) {
-			$order_meta_query .= " AND `meta_key` NOT IN ( '_ss_shipping_label' )";
+			$excluded_keys = array();
+			foreach ( SS_Shipping_Order_Meta::all_meta_keys() as $meta_key ) {
+				$excluded_keys[] = "'" . esc_sql( $meta_key ) . "'";
+			}
+
+			$order_meta_query .= ' AND `meta_key` NOT IN ( ' . implode( ', ', $excluded_keys ) . ' )';
 
 			return $order_meta_query;
 		}
