@@ -8,9 +8,9 @@ if ( ! defined( 'ABSPATH' ) ) {
  * Smart Send label creation.
  *
  * Owns the AJAX label-generation endpoint and the full create-label flow
- * for a single order: calling the API via SS_Shipping_Shipment, storing
- * the shipment id, writing the order note, pushing tracking info and
- * saving the PDF file.
+ * for a single order: calling the API via SS_Shipping_Booking_Service,
+ * storing the shipment id, writing the order note, pushing tracking info
+ * and saving the PDF file.
  *
  * @package  SS_Shipping_Label_Creator
  * @category Shipping
@@ -25,7 +25,7 @@ if ( ! class_exists( 'SS_Shipping_Label_Creator' ) ) :
 		protected string $label_prefix = 'smart-send-label-';
 
 		/**
-		 * The order integration facade (passed on to SS_Shipping_Shipment).
+		 * The order integration facade (passed on to SS_Shipping_Booking_Service).
 		 *
 		 * @var SS_Shipping_WC_Order
 		 */
@@ -137,12 +137,13 @@ if ( ! class_exists( 'SS_Shipping_Label_Creator' ) ) :
 				);
 			}
 
-			$ss_order_api = new SS_Shipping_Shipment( $order, $this->order_integration );
+			$booking_service = new SS_Shipping_Booking_Service( $order, $this->order_integration );
+			$booking         = $return ? $booking_service->book_return() : $booking_service->book_outbound();
 
-			if ( $ss_order_api->make_single_shipment_api_call( $return ) ) {
+			if ( $booking->is_successful() ) {
 
 				//The request was successful, lets update WooCommerce
-				$response = $ss_order_api->get_shipping_data();
+				$response = $booking->get_data();
 
 				if ( SS_SHIPPING_WC()->get_setting_save_shipping_labels_in_uploads() ) {
 					try {
@@ -236,11 +237,11 @@ if ( ! class_exists( 'SS_Shipping_Label_Creator' ) ) :
 				// return the success data
 				return array(
 					'success'  => $response,
-					'shipment' => $ss_order_api->get_shipment(),
+					'shipment' => $booking->get_wire_shipment(),
 				);
 			} else {
 				// Something failed. Let's return them, so the error can be shown to the user
-				return array( 'error' => $ss_order_api->get_error_msg() );
+				return array( 'error' => $booking->get_error_message() );
 			}
 		}
 

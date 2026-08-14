@@ -172,12 +172,15 @@ if ( ! class_exists( 'SS_Shipping_WC' ) ) :
 			require_once SS_SHIPPING_PLUGIN_DIR_PATH . '/includes/class-ss-shipping-logger.php';
 			require_once SS_SHIPPING_PLUGIN_DIR_PATH . '/includes/class-ss-shipping-checkout-debug.php';
 			require_once SS_SHIPPING_PLUGIN_DIR_PATH . '/includes/class-ss-shipping-admin-notices.php';
-			require_once SS_SHIPPING_PLUGIN_DIR_PATH . '/includes/class-ss-shipping-order-data.php';
+			require_once SS_SHIPPING_PLUGIN_DIR_PATH . '/includes/class-ss-shipping-order-reader.php';
 
 			// Admin components.
 			require_once SS_SHIPPING_PLUGIN_DIR_PATH . '/admin/class-ss-plugins-screen-updates.php';
-			require_once SS_SHIPPING_PLUGIN_DIR_PATH . '/admin/class-ss-shipping-shipment-builder.php';
 			require_once SS_SHIPPING_PLUGIN_DIR_PATH . '/admin/class-ss-shipping-shipment.php';
+			require_once SS_SHIPPING_PLUGIN_DIR_PATH . '/admin/class-ss-shipping-shipment-builder.php';
+			require_once SS_SHIPPING_PLUGIN_DIR_PATH . '/admin/class-ss-shipping-booking.php';
+			require_once SS_SHIPPING_PLUGIN_DIR_PATH . '/admin/class-ss-shipping-booking-exception.php';
+			require_once SS_SHIPPING_PLUGIN_DIR_PATH . '/admin/class-ss-shipping-booking-service.php';
 			require_once SS_SHIPPING_PLUGIN_DIR_PATH . '/admin/class-ss-shipping-order-meta.php';
 			require_once SS_SHIPPING_PLUGIN_DIR_PATH . '/admin/class-ss-shipping-order-meta-box.php';
 			require_once SS_SHIPPING_PLUGIN_DIR_PATH . '/admin/class-ss-shipping-wc-order.php';

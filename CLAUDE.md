@@ -46,14 +46,18 @@ Single-entry WordPress plugin. `smart-send-logistics/smart-send-logistics.php` d
 1. **Admin classes** in `admin/`:
    - `SS_Shipping_WC_Method` — the shipping method, extends `WC_Shipping_Flat_Rate`; rate calculation (`calculate_shipping`, `is_available`, `is_free_shipping`) and the two protected rate reporters (log + checkout debug bar). WooCommerce's settings framework dispatches `validate_*_field`/`generate_*_html` on this instance, so it keeps thin wrappers that delegate to its components: `SS_Shipping_Method_Settings` (form field definitions + validation), `SS_Shipping_Method_Form_Renderer` (custom field type rendering), `SS_Shipping_Method_Catalog` (per-carrier method lists and code→name lookup).
    - `SS_Shipping_WC_Order` — the admin order integration facade; its public surface is the stable API reached via `SS_SHIPPING_WC()->get_ss_shipping_wc_order()`. It wires hooks and delegates to: `SS_Shipping_Order_Meta` (order meta access: method id, pick-up point agent, parcel split, shipment ids), `SS_Shipping_Order_Meta_Box` (order screen meta box), `SS_Shipping_Label_Creator` (AJAX `wp_ajax_ss_shipping_generate_label` + label creation flow), `SS_Shipping_Order_Bulk_Actions` (bulk label generation incl. combined PDF). Supports both legacy post-based orders and HPOS (the plugin declares HPOS compatibility). WooCommerce Subscriptions integration stays on the facade.
-   - `SS_Shipping_Shipment` — builds the shipment payload from a WC order and sends it to the API.
+   - `SS_Shipping_Booking_Service` — the order-level booking orchestrator: `book_outbound()`/`book_return()` build a shipment representation via `SS_Shipping_Shipment_Builder`, hand it to `Smartsend\Resources\BookingResource`, and wrap the outcome in a `SS_Shipping_Booking`.
+   - `SS_Shipping_Shipment_Builder` — assembles the internal shipment representation (a typed `SS_Shipping_Shipment` value object) from `SS_Shipping_Order_Reader`'s output plus the agent/pick-up-point selection and parcel split; `build_outbound()`/`build_return()`.
+   - `SS_Shipping_Shipment` — the internal shipment representation itself: a typed, WP-side value object (order/receiver/pickup-point/parcels/totals), zero WordPress dependencies.
+   - `SS_Shipping_Booking` — wraps the outcome of a booking attempt (success flag, error message, raw API response data, translated v1 wire shipment).
+   - `SS_Shipping_Booking_Exception` — thrown internally by `SS_Shipping_Shipment_Builder::build_return()` when no return method is configured; caught by `SS_Shipping_Booking_Service` and converted into a failed `SS_Shipping_Booking`.
    - `SS_Shipping_WC_Product` — per-product shipping meta.
    - `SS_Plugins_Screen_Updates` — upgrade notices on the plugins screen.
 
 2. **Frontend classes** in `public/`:
    - `SS_Shipping_Frontend` — checkout-side pick-up point selection display.
 
-3. **Shared classes** in `includes/`: `SS_Shipping_Logger` (WC log; `debug` level gated on the "Debug Log" setting), `SS_Shipping_Checkout_Debug` (checkout shipping debug bar), `SS_Shipping_Admin_Notices` (flash notices store), `SS_Shipping_Order_Data` (order → payload data extraction).
+3. **Shared classes** in `includes/`: `SS_Shipping_Logger` (WC log; `debug` level gated on the "Debug Log" setting), `SS_Shipping_Checkout_Debug` (checkout shipping debug bar), `SS_Shipping_Admin_Notices` (flash notices store), `SS_Shipping_Order_Reader` (order → payload data extraction).
 
 4. **PSR-style API client** in `includes/lib/Smartsend/` — namespace `Smartsend`, classes `Api` (endpoint methods, extends `Client`) and `Client` (HTTP via `wp_remote_*` against `https://app.smartsend.io/api/v1/`), plus `Models/` value objects (`Shipment`, `Agent`, and their sub-models). This layer is deliberately WordPress-light; keep API concerns here rather than in the `SS_Shipping_*` classes.
 
