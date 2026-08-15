@@ -44,14 +44,23 @@ if ( ! class_exists( 'SS_Shipping_Order_Meta_Box' ) ) :
 		protected SS_Shipping_Pickup_Point_Formatter $pickup_point_formatter;
 
 		/**
+		 * Typed plugin settings reader.
+		 *
+		 * @var SS_Shipping_Settings
+		 */
+		protected SS_Shipping_Settings $settings;
+
+		/**
 		 * @param SS_Shipping_Order_Meta             $order_meta             Order meta repository.
 		 * @param SS_Shipping_Method_Resolver        $method_resolver        Shipping method resolver.
 		 * @param SS_Shipping_Pickup_Point_Formatter $pickup_point_formatter Pickup point display formatter.
+		 * @param SS_Shipping_Settings|null          $settings               Typed plugin settings reader (stateless; a fresh default is safe).
 		 */
-		public function __construct( SS_Shipping_Order_Meta $order_meta, SS_Shipping_Method_Resolver $method_resolver, SS_Shipping_Pickup_Point_Formatter $pickup_point_formatter ) {
+		public function __construct( SS_Shipping_Order_Meta $order_meta, SS_Shipping_Method_Resolver $method_resolver, SS_Shipping_Pickup_Point_Formatter $pickup_point_formatter, ?SS_Shipping_Settings $settings = null ) {
 			$this->order_meta             = $order_meta;
 			$this->method_resolver        = $method_resolver;
 			$this->pickup_point_formatter = $pickup_point_formatter;
+			$this->settings               = null === $settings ? new SS_Shipping_Settings() : $settings;
 		}
 
 		/**
@@ -75,13 +84,13 @@ if ( ! class_exists( 'SS_Shipping_Order_Meta_Box' ) ) :
 		protected function define_button_labels() {
 			SS_SHIPPING_WC()->define(
 				'SS_SHIPPING_BUTTON_LABEL_GEN',
-				SS_SHIPPING_WC()->get_demo_mode_setting()
+				$this->settings->demo_mode()
 					? __( 'DEMO MODE: Generate label', 'smart-send-logistics' )
 					: __( 'Generate label', 'smart-send-logistics' )
 			);
 			SS_SHIPPING_WC()->define(
 				'SS_SHIPPING_BUTTON_RETURN_LABEL_GEN',
-				SS_SHIPPING_WC()->get_demo_mode_setting()
+				$this->settings->demo_mode()
 					? __( 'DEMO MODE: Generate return label', 'smart-send-logistics' )
 					: __( 'Generate return label', 'smart-send-logistics' )
 			);
@@ -125,8 +134,6 @@ if ( ! class_exists( 'SS_Shipping_Order_Meta_Box' ) ) :
 
 			$order_id = $order->get_id();
 
-			$shipping_ss_settings = SS_SHIPPING_WC()->get_ss_shipping_settings();
-
 			$ss_shipping_method_id = $this->method_resolver->resolve_outbound( $order );
 
 			// Only display Smart Shipping (SS) meta box is SS selected as shipping method OR free shipping is set to SS method.
@@ -163,7 +170,7 @@ if ( ! class_exists( 'SS_Shipping_Order_Meta_Box' ) ) :
 			echo '<p>' . $ss_shipping_method_name . '</p>';
 
 			// If debug is enabled then show the shipping method id and instance id.
-			if ( isset( $shipping_ss_settings['ss_debug'] ) && 'yes' === $shipping_ss_settings['ss_debug'] ) {
+			if ( $this->settings->debug_log() ) {
 				foreach ( $order->get_shipping_methods() as $method ) {
 					echo '<pre>' . sprintf(
 						/* translators: %s: shipping method id and instance id. */

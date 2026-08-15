@@ -47,6 +47,13 @@ if ( ! class_exists( 'SS_Shipping_WC' ) ) :
 		protected static ?SS_Shipping_WC $_instance = null; // phpcs:ignore PSR2.Classes.PropertyDeclaration.Underscore -- pre-existing name, renaming is out of scope here.
 
 		/**
+		 * Typed plugin settings reader.
+		 *
+		 * @var SS_Shipping_Settings|null
+		 */
+		protected ?SS_Shipping_Settings $settings = null;
+
+		/**
 		 * Order meta repository.
 		 *
 		 * @var SS_Shipping_Order_Meta|null
@@ -174,6 +181,9 @@ if ( ! class_exists( 'SS_Shipping_WC' ) ) :
 
             $this->define_constants();
             $this->includes();
+
+			$this->settings = new SS_Shipping_Settings();
+
 			$this->init_hooks();
 		}
 
@@ -234,6 +244,7 @@ if ( ! class_exists( 'SS_Shipping_WC' ) ) :
 			require_once SS_SHIPPING_PLUGIN_DIR_PATH . '/includes/lib/Smartsend/Api.php';
 
 			// Shared components used in admin and on the frontend.
+			require_once SS_SHIPPING_PLUGIN_DIR_PATH . '/includes/class-ss-shipping-settings.php';
 			require_once SS_SHIPPING_PLUGIN_DIR_PATH . '/includes/class-ss-shipping-logger.php';
 			require_once SS_SHIPPING_PLUGIN_DIR_PATH . '/includes/class-ss-shipping-checkout-debug.php';
 			require_once SS_SHIPPING_PLUGIN_DIR_PATH . '/includes/class-ss-shipping-admin-notices.php';
@@ -315,27 +326,28 @@ if ( ! class_exists( 'SS_Shipping_WC' ) ) :
 			if ( defined( 'WOOCOMMERCE_VERSION' ) && version_compare( WOOCOMMERCE_VERSION, '2.6', '>=' ) ) {
 				$this->include_shipping_method_class();
 
-				$this->pickup_point_formatter = new SS_Shipping_Pickup_Point_Formatter();
+				$this->pickup_point_formatter = new SS_Shipping_Pickup_Point_Formatter( $this->settings );
 				$this->pickup_point_lookup    = new SS_Shipping_Pickup_Point_Lookup();
 
-				$this->ss_shipping_frontend     = new SS_Shipping_Frontend( $this->pickup_point_lookup, $this->pickup_point_formatter );
+				$this->ss_shipping_frontend     = new SS_Shipping_Frontend( $this->pickup_point_lookup, $this->pickup_point_formatter, $this->settings );
 				$this->ss_shipping_wc_product   = new SS_Shipping_WC_Product();
 				$this->ss_plugin_screen_updates = new SS_Plugins_Screen_Updates();
 
 				$this->admin_notices          = new SS_Shipping_Admin_Notices();
 				$this->order_meta             = new SS_Shipping_Order_Meta();
-				$this->method_resolver        = new SS_Shipping_Method_Resolver();
+				$this->method_resolver        = new SS_Shipping_Method_Resolver( $this->settings );
 				$this->shipment_ids           = new SS_Shipping_Shipment_Ids();
 				$this->pickup_point_validator = new SS_Shipping_Pickup_Point_Validator( $this->order_meta, $this->method_resolver );
-				$this->meta_box               = new SS_Shipping_Order_Meta_Box( $this->order_meta, $this->method_resolver, $this->pickup_point_formatter );
+				$this->meta_box               = new SS_Shipping_Order_Meta_Box( $this->order_meta, $this->method_resolver, $this->pickup_point_formatter, $this->settings );
 				$this->fulfillment_service    = new SS_Shipping_Fulfillment_Service(
 					$this->order_meta,
 					$this->method_resolver,
 					$this->shipment_ids,
-					new SS_Shipping_Booking_Service( $this->order_meta, $this->method_resolver )
+					new SS_Shipping_Booking_Service( $this->order_meta, $this->method_resolver ),
+					$this->settings
 				);
 				$this->label_creator          = new SS_Shipping_Label_Creator( $this->fulfillment_service );
-				$this->bulk_actions           = new SS_Shipping_Order_Bulk_Actions( $this->method_resolver, $this->fulfillment_service, $this->admin_notices );
+				$this->bulk_actions           = new SS_Shipping_Order_Bulk_Actions( $this->method_resolver, $this->fulfillment_service, $this->admin_notices, $this->settings );
 				$this->subscriptions_compat   = new SS_Shipping_Subscriptions_Compat();
 
 				$this->register_component_hooks();
@@ -472,13 +484,14 @@ if ( ! class_exists( 'SS_Shipping_WC' ) ) :
             <?php
         }
 
-        /**
-         * Get Smart Send Shipping settings
-         */
-        public function get_ss_shipping_settings()
-        {
-            return get_option('woocommerce_' . SS_SHIPPING_METHOD_ID . '_settings');
-        }
+		/**
+		 * Get the typed plugin settings reader.
+		 *
+		 * @return SS_Shipping_Settings
+		 */
+		public function settings(): SS_Shipping_Settings {
+			return $this->settings;
+		}
 
 		/**
 		 * Get the pickup point display formatter.
@@ -658,10 +671,10 @@ if ( ! class_exists( 'SS_Shipping_WC' ) ) :
             if (!$this->api_handle) {
                 $api_token = $this->get_api_token_setting();
 
-                // Initiate an API handle with the login credentials.
-                $demo_mode = $this->get_demo_mode_setting();
-                $website_url = $this->get_website_url();
-                $this->api_handle = new \Smartsend\Api($api_token, $website_url, $demo_mode);
+				// Initiate an API handle with the login credentials.
+				$demo_mode        = $this->settings->demo_mode();
+				$website_url      = $this->get_website_url();
+				$this->api_handle = new \Smartsend\Api( $api_token, $website_url, $demo_mode );
 
 				// Log every API request/response (incl. HTTP status code and
 				// endpoint) through the plugin's logger.
@@ -686,39 +699,15 @@ if ( ! class_exists( 'SS_Shipping_WC' ) ) :
         }
 
         /**
-         * Get the setting 'demo-mode'
-         *
-         * @return boolean
-         */
-        public function get_demo_mode_setting()
-        {
-            $ss_shipping_settings = $this->get_ss_shipping_settings();
-            return empty($ss_shipping_settings['demo']) ? true : ($ss_shipping_settings['demo'] == 'yes' ? true : false);
-        }
-
-        /**
-         * Get the setting 'save_shipping_labels_in_uploads'
-         *
-         * @return boolean
-         */
-        public function get_setting_save_shipping_labels_in_uploads()
-        {
-            $ss_shipping_settings = $this->get_ss_shipping_settings();
-            return empty($ss_shipping_settings['save_shipping_labels_in_uploads']) ? false : ($ss_shipping_settings['save_shipping_labels_in_uploads'] == 'yes' ? true : false);
-        }
-
-        /**
          * Get the url of the current site
          *
          * @param string|null $api_token
          * @return string
-         */
-        public function get_api_token_setting($api_token=null)
-        {
-	        if (!$api_token) {
-		        $ss_shipping_settings = $this->get_ss_shipping_settings();
-		        $api_token = empty($ss_shipping_settings['api_token']) ? null : $ss_shipping_settings['api_token'];
-	        }
+		 */
+		public function get_api_token_setting( $api_token = null ) {
+			if ( ! $api_token ) {
+				$api_token = $this->settings->api_token();
+			}
 
 			if ( is_string( $api_token ) && strpos( $api_token, ',' ) && strpos( $api_token, ':' ) ) {
 				//The API Token field contains multiple tokens in the format:
@@ -832,10 +821,9 @@ if ( ! class_exists( 'SS_Shipping_WC' ) ) :
                 return $available_shipping_methods;
             }
 
-            // Get setting
-            $ss_shipping_settings = $this->get_ss_shipping_settings();
-            if (!empty($ss_shipping_settings['sort_methods_by_cost']) && $ss_shipping_settings['sort_methods_by_cost'] == 'yes') {
-                // get an array of prices
+			// Get setting
+			if ( $this->settings->sort_methods_by_cost() ) {
+				// get an array of prices
                 $prices = array();
                 foreach ($available_shipping_methods as $shipping_method) {
                     // the price is the cost + taxes

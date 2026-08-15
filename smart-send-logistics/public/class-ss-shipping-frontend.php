@@ -32,15 +32,24 @@ if ( ! class_exists( 'SS_Shipping_Frontend' ) ) :
 		protected SS_Shipping_Pickup_Point_Formatter $pickup_point_formatter;
 
 		/**
-		 * Both collaborators are stateless, so fresh defaults are safe for
+		 * Typed plugin settings reader.
+		 *
+		 * @var SS_Shipping_Settings
+		 */
+		protected SS_Shipping_Settings $settings;
+
+		/**
+		 * All collaborators are stateless, so fresh defaults are safe for
 		 * ad-hoc construction (tests construct the frontend directly).
 		 *
 		 * @param SS_Shipping_Pickup_Point_Lookup|null    $pickup_point_lookup    Headless pickup point lookup.
 		 * @param SS_Shipping_Pickup_Point_Formatter|null $pickup_point_formatter Pickup point display formatter.
+		 * @param SS_Shipping_Settings|null               $settings               Typed plugin settings reader.
 		 */
-		public function __construct( ?SS_Shipping_Pickup_Point_Lookup $pickup_point_lookup = null, ?SS_Shipping_Pickup_Point_Formatter $pickup_point_formatter = null ) {
+		public function __construct( ?SS_Shipping_Pickup_Point_Lookup $pickup_point_lookup = null, ?SS_Shipping_Pickup_Point_Formatter $pickup_point_formatter = null, ?SS_Shipping_Settings $settings = null ) {
 			$this->pickup_point_lookup    = null === $pickup_point_lookup ? new SS_Shipping_Pickup_Point_Lookup() : $pickup_point_lookup;
 			$this->pickup_point_formatter = null === $pickup_point_formatter ? new SS_Shipping_Pickup_Point_Formatter() : $pickup_point_formatter;
+			$this->settings               = null === $settings ? new SS_Shipping_Settings() : $settings;
 		}
 
 		/**
@@ -106,10 +115,8 @@ if ( ! class_exists( 'SS_Shipping_Frontend' ) ) :
 
 					if ( ! empty( $ss_pickup_points ) ) {
 
-						$ss_setting = SS_SHIPPING_WC()->get_ss_shipping_settings();
-
 						$pickup_point_options = array();
-						if ( ! isset( $ss_setting['default_select_agent'] ) || 'no' == $ss_setting['default_select_agent'] ) { // phpcs:ignore Universal.Operators.StrictComparisons.LooseEqual -- pre-existing loose comparison; tightening is a behaviour change out of scope for the #43 move.
+						if ( ! $this->settings->default_select_agent() ) {
 							$pickup_point_options[0] = __(
 								'- Select Pickup Point -',
 								'smart-send-logistics'

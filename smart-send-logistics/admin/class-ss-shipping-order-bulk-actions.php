@@ -50,14 +50,23 @@ if ( ! class_exists( 'SS_Shipping_Order_Bulk_Actions' ) ) :
 		protected SS_Shipping_Admin_Notices $admin_notices;
 
 		/**
+		 * Typed plugin settings reader.
+		 *
+		 * @var SS_Shipping_Settings
+		 */
+		protected SS_Shipping_Settings $settings;
+
+		/**
 		 * @param SS_Shipping_Method_Resolver     $method_resolver     Shipping method resolver.
 		 * @param SS_Shipping_Fulfillment_Service $fulfillment_service The fulfillment service.
 		 * @param SS_Shipping_Admin_Notices      $admin_notices       Admin notices component.
+		 * @param SS_Shipping_Settings|null       $settings            Typed plugin settings reader (stateless; a fresh default is safe).
 		 */
-		public function __construct( SS_Shipping_Method_Resolver $method_resolver, SS_Shipping_Fulfillment_Service $fulfillment_service, SS_Shipping_Admin_Notices $admin_notices ) {
+		public function __construct( SS_Shipping_Method_Resolver $method_resolver, SS_Shipping_Fulfillment_Service $fulfillment_service, SS_Shipping_Admin_Notices $admin_notices, ?SS_Shipping_Settings $settings = null ) {
 			$this->method_resolver     = $method_resolver;
 			$this->fulfillment_service = $fulfillment_service;
 			$this->admin_notices       = $admin_notices;
+			$this->settings            = null === $settings ? new SS_Shipping_Settings() : $settings;
 		}
 
 		/**
@@ -243,7 +252,7 @@ if ( ! class_exists( 'SS_Shipping_Order_Bulk_Actions' ) ) :
 		 * Return Smart Send bulk actions
 		 */
 		protected function get_bulk_actions() {
-			if ( SS_SHIPPING_WC()->get_demo_mode_setting() ) {
+			if ( $this->settings->demo_mode() ) {
 				return array(
 					'ss_shipping_label_bulk'  => __( 'DEMO MODE: Smart Send - Generate Labels', 'smart-send-logistics' ),
 					'ss_shipping_return_bulk' => __( 'DEMO MODE: Smart Send - Generate Return Labels', 'smart-send-logistics' ),

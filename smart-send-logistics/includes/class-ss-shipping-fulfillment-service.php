@@ -71,18 +71,27 @@ if ( ! class_exists( 'SS_Shipping_Fulfillment_Service' ) ) :
 		protected SS_Shipping_Booking_Service $booking_service;
 
 		/**
+		 * Typed plugin settings reader.
+		 *
+		 * @var SS_Shipping_Settings
+		 */
+		protected SS_Shipping_Settings $settings;
+
+		/**
 		 * Constructor.
 		 *
 		 * @param SS_Shipping_Order_Meta      $order_meta      Order meta repository.
 		 * @param SS_Shipping_Method_Resolver $method_resolver Shipping method resolver.
 		 * @param SS_Shipping_Shipment_Ids    $shipment_ids    Booked shipment id accessor.
 		 * @param SS_Shipping_Booking_Service $booking_service The booking service.
+		 * @param SS_Shipping_Settings|null   $settings        Typed plugin settings reader (stateless; a fresh default is safe).
 		 */
-		public function __construct( SS_Shipping_Order_Meta $order_meta, SS_Shipping_Method_Resolver $method_resolver, SS_Shipping_Shipment_Ids $shipment_ids, SS_Shipping_Booking_Service $booking_service ) {
+		public function __construct( SS_Shipping_Order_Meta $order_meta, SS_Shipping_Method_Resolver $method_resolver, SS_Shipping_Shipment_Ids $shipment_ids, SS_Shipping_Booking_Service $booking_service, ?SS_Shipping_Settings $settings = null ) {
 			$this->order_meta      = $order_meta;
 			$this->method_resolver = $method_resolver;
 			$this->shipment_ids    = $shipment_ids;
 			$this->booking_service = $booking_service;
+			$this->settings        = null === $settings ? new SS_Shipping_Settings() : $settings;
 		}
 
 		/**
@@ -237,7 +246,7 @@ if ( ! class_exists( 'SS_Shipping_Fulfillment_Service' ) ) :
 			//The request was successful, lets update WooCommerce
 			$response = $booking->get_data();
 
-			if ( SS_SHIPPING_WC()->get_setting_save_shipping_labels_in_uploads() ) {
+			if ( $this->settings->save_labels_in_uploads() ) {
 				try {
 					// Save the PDF file and link to the local copy. Deliberate
 					// v9 fix (#139): the computed uploads URL used to be
@@ -368,11 +377,10 @@ if ( ! class_exists( 'SS_Shipping_Fulfillment_Service' ) ) :
 		 * @param WC_Order $order The WooCommerce order.
 		 */
 		protected function set_order_status_after_label_generated( $order ) {
+			$order_status = $this->settings->order_status_after_label();
 
-			$ss_settings = SS_SHIPPING_WC()->get_ss_shipping_settings();
-
-			if ( ! empty( $ss_settings['order_status'] ) ) {
-				$order->update_status( $ss_settings['order_status'] );
+			if ( null !== $order_status ) {
+				$order->update_status( $order_status );
 			}
 		}
 
