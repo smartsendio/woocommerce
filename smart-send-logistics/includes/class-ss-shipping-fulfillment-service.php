@@ -408,9 +408,9 @@ if ( ! class_exists( 'SS_Shipping_Fulfillment_Service' ) ) :
 				return '';
 			}
 			if ( $return ) {
-				$shipment_id = $order->get_meta( '_ss_shipping_return_label_id', true );
+				$shipment_id = $order->get_meta( SS_Shipping_Order_Meta::META_RETURN_LABEL_ID, true );
 			} else {
-				$shipment_id = $order->get_meta( '_ss_shipping_label_id', true );
+				$shipment_id = $order->get_meta( SS_Shipping_Order_Meta::META_LABEL_ID, true );
 			}
 			return $this->get_label_url_from_shipment_id( $shipment_id );
 		}
