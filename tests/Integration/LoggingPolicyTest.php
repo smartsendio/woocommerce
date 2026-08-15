@@ -237,7 +237,7 @@ it('surfaces which Smart Send rates ended up offered for the package', function 
     $ss_rate = new WC_Shipping_Rate('smart_send_shipping:7', 'SS Policy Rate', '49', [], 'smart_send_shipping', 7);
     $other   = new WC_Shipping_Rate('flat_rate:3', 'Flat rate', '10', [], 'flat_rate', 3);
 
-    SS_SHIPPING_WC()->ss_sort_shipping_methods([
+    SS_SHIPPING_WC()->rate_sorter()->sort_shipping_methods([
         'smart_send_shipping:7' => $ss_rate,
         'flat_rate:3'           => $other,
     ]);
@@ -256,7 +256,7 @@ it('reports when no Smart Send rates were offered for the package', function () 
 
     $other = new WC_Shipping_Rate('flat_rate:3', 'Flat rate', '10', [], 'flat_rate', 3);
 
-    SS_SHIPPING_WC()->ss_sort_shipping_methods(['flat_rate:3' => $other]);
+    SS_SHIPPING_WC()->rate_sorter()->sort_shipping_methods(['flat_rate:3' => $other]);
 
     expect(implode("\n", ss_policy_notices()))->toContain('Smart Send: no Smart Send rates offered for this package.');
 });
@@ -442,7 +442,7 @@ it('no longer logs the removed noise entries', function () {
     $weighted->calculate_shipping($package);
 
     // Sorting path.
-    SS_SHIPPING_WC()->ss_sort_shipping_methods([
+    SS_SHIPPING_WC()->rate_sorter()->sort_shipping_methods([
         'smart_send_shipping:7' => new WC_Shipping_Rate('smart_send_shipping:7', 'SS Policy Rate', '49', [], 'smart_send_shipping', 7),
         'flat_rate:3'           => new WC_Shipping_Rate('flat_rate:3', 'Flat rate', '10', [], 'flat_rate', 3),
     ]);

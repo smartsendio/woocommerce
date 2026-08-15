@@ -117,6 +117,13 @@ if ( ! class_exists( 'SS_Shipping_WC' ) ) :
 		protected ?SS_Shipping_Test_Connection $test_connection = null;
 
 		/**
+		 * Checkout rate sorter.
+		 *
+		 * @var SS_Shipping_Rate_Sorter|null
+		 */
+		protected ?SS_Shipping_Rate_Sorter $rate_sorter = null;
+
+		/**
 		 * Admin notices component used to flash one-time notices after
 		 * label-generation actions.
 		 *
@@ -279,6 +286,7 @@ if ( ! class_exists( 'SS_Shipping_WC' ) ) :
 			require_once SS_SHIPPING_PLUGIN_DIR_PATH . '/admin/class-ss-shipping-test-connection.php';
 			require_once SS_SHIPPING_PLUGIN_DIR_PATH . '/admin/class-ss-shipping-weight-table.php';
 			require_once SS_SHIPPING_PLUGIN_DIR_PATH . '/admin/class-ss-shipping-availability-reporter.php';
+			require_once SS_SHIPPING_PLUGIN_DIR_PATH . '/admin/class-ss-shipping-rate-sorter.php';
 
 			// Admin components.
 			require_once SS_SHIPPING_PLUGIN_DIR_PATH . '/admin/class-ss-plugins-screen-updates.php';
@@ -328,7 +336,6 @@ if ( ! class_exists( 'SS_Shipping_WC' ) ) :
             add_action('wp_enqueue_scripts', array($this, 'ss_shipping_theme_enqueue_frontend_styles'));
 
             add_filter('woocommerce_shipping_methods', array($this, 'add_shipping_method'));
-            add_filter('woocommerce_package_rates', array($this, 'ss_sort_shipping_methods'));
         }
 
 
@@ -364,6 +371,7 @@ if ( ! class_exists( 'SS_Shipping_WC' ) ) :
 				);
 				$this->label_creator          = new SS_Shipping_Label_Creator( $this->fulfillment_service );
 				$this->test_connection        = new SS_Shipping_Test_Connection( new SS_Shipping_Api_Factory( $this->settings ) );
+				$this->rate_sorter            = new SS_Shipping_Rate_Sorter( $this->settings );
 				$this->bulk_actions           = new SS_Shipping_Order_Bulk_Actions( $this->method_resolver, $this->fulfillment_service, $this->admin_notices, $this->settings );
 				$this->subscriptions_compat   = new SS_Shipping_Subscriptions_Compat();
 
@@ -393,6 +401,7 @@ if ( ! class_exists( 'SS_Shipping_WC' ) ) :
 			$this->meta_box->register_hooks();
 			$this->label_creator->register_hooks();
 			$this->test_connection->register_hooks();
+			$this->rate_sorter->register_hooks();
 			$this->bulk_actions->register_hooks();
 			$this->subscriptions_compat->register_hooks();
 		}
@@ -619,6 +628,15 @@ if ( ! class_exists( 'SS_Shipping_WC' ) ) :
 			return $this->test_connection;
 		}
 
+		/**
+		 * Get the checkout rate sorter.
+		 *
+		 * @return SS_Shipping_Rate_Sorter
+		 */
+		public function rate_sorter(): SS_Shipping_Rate_Sorter {
+			return $this->rate_sorter;
+		}
+
 	    /**
 	     * Find the closest agents by address - Convenience wrapper
 	     *
@@ -634,73 +652,6 @@ if ( ! class_exists( 'SS_Shipping_WC' ) ) :
 	        return $this->ss_shipping_frontend
                 ->find_closest_agents_by_address($carrier, $country, $postal_code, $city, $street);
         }
-
-        /**
-         * Sort the shipping methods according to setting
-         *
-         * @param array $available_shipping_methods
-         *
-         * @return array
-         */
-        public function ss_sort_shipping_methods($available_shipping_methods)
-        {
-            //  if there are no rates don't do anything
-            if (!$available_shipping_methods) {
-                return $available_shipping_methods;
-            }
-
-			// Get setting
-			if ( $this->settings->sort_methods_by_cost() ) {
-				// get an array of prices
-                $prices = array();
-                foreach ($available_shipping_methods as $shipping_method) {
-                    // the price is the cost + taxes
-                    // Note that WC_Shipping_Rate::get_cost() can be a string, so we need to cast it to float. @see https://wordpress.org/support/topic/add-to-cart-not-working-after-update-from-9-8-5-9-9-3/
-                    $prices[] = floatval($shipping_method->cost) + array_sum($shipping_method->taxes);
-                }
-
-				// Use the prices to sort the rates.
-				array_multisort( $prices, $available_shipping_methods );
-			}
-
-			$this->report_smart_send_rates_for_package( $available_shipping_methods );
-
-			// Return the rates.
-			return $available_shipping_methods;
-		}
-
-		/**
-		 * Surface which Smart Send rates ended up offered for the package.
-		 *
-		 * Runs on woocommerce_package_rates after every shipping method has
-		 * calculated its rates, so this is the final set the shopper is
-		 * offered. The summary goes to the checkout shipping debug bar and
-		 * to the log as a developer trace.
-		 *
-		 * @param array $available_shipping_methods WC_Shipping_Rate objects keyed by rate id.
-		 */
-		protected function report_smart_send_rates_for_package( $available_shipping_methods ) {
-			$offered = array();
-
-			foreach ( $available_shipping_methods as $shipping_rate ) {
-				if ( $shipping_rate instanceof WC_Shipping_Rate && SS_SHIPPING_METHOD_ID === $shipping_rate->get_method_id() ) {
-					$offered[] = sprintf( '"%1$s" (%2$s, cost %3$s)', $shipping_rate->get_label(), $shipping_rate->get_id(), $shipping_rate->get_cost() );
-				}
-			}
-
-			if ( empty( $offered ) ) {
-				$log_message    = 'Smart Send: no Smart Send rates offered for this package.';
-				$notice_message = __( 'Smart Send: no Smart Send rates offered for this package.', 'smart-send-logistics' );
-			} else {
-				$rate_list   = implode( ', ', $offered );
-				$log_message = sprintf( 'Smart Send: rates offered for this package: %s.', $rate_list );
-				/* translators: %s: list of offered rates, each as "label" (rate id, cost). */
-				$notice_message = sprintf( __( 'Smart Send: rates offered for this package: %s.', 'smart-send-logistics' ), $rate_list );
-			}
-
-			SS_Shipping_Logger::debug( $log_message, array( 'offered_rates' => $offered ) );
-			SS_Shipping_Checkout_Debug::add_notice( $notice_message );
-		}
     }
 
 endif;

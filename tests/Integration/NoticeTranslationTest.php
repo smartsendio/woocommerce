@@ -46,7 +46,7 @@ it('renders the checkout debug notice through the translation functions while th
     });
 
     $other = new WC_Shipping_Rate('flat_rate:3', 'Flat rate', '10', [], 'flat_rate', 3);
-    SS_SHIPPING_WC()->ss_sort_shipping_methods(['flat_rate:3' => $other]);
+    SS_SHIPPING_WC()->rate_sorter()->sort_shipping_methods(['flat_rate:3' => $other]);
 
     // The merchant-facing debug bar notice is translated ...
     expect(ss_policy_notices())->toContain($translated)
