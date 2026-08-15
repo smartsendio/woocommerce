@@ -384,7 +384,7 @@ function ss_policy_run_connection_test(): void
 
     ob_start();
     try {
-        SS_SHIPPING_WC()->ss_test_connection_callback();
+        SS_SHIPPING_WC()->test_connection()->handle_ajax();
     } catch (RuntimeException $e) {
         // Expected: wp_send_json() ends with wp_die().
     }

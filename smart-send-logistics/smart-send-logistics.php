@@ -110,6 +110,13 @@ if ( ! class_exists( 'SS_Shipping_WC' ) ) :
 		protected ?SS_Shipping_Order_Bulk_Actions $bulk_actions = null;
 
 		/**
+		 * API test-connection feature.
+		 *
+		 * @var SS_Shipping_Test_Connection|null
+		 */
+		protected ?SS_Shipping_Test_Connection $test_connection = null;
+
+		/**
 		 * Admin notices component used to flash one-time notices after
 		 * label-generation actions.
 		 *
@@ -269,6 +276,7 @@ if ( ! class_exists( 'SS_Shipping_WC' ) ) :
 			require_once SS_SHIPPING_PLUGIN_DIR_PATH . '/admin/class-ss-shipping-method-catalog.php';
 			require_once SS_SHIPPING_PLUGIN_DIR_PATH . '/admin/class-ss-shipping-method-settings.php';
 			require_once SS_SHIPPING_PLUGIN_DIR_PATH . '/admin/class-ss-shipping-method-form-renderer.php';
+			require_once SS_SHIPPING_PLUGIN_DIR_PATH . '/admin/class-ss-shipping-test-connection.php';
 
 			// Admin components.
 			require_once SS_SHIPPING_PLUGIN_DIR_PATH . '/admin/class-ss-plugins-screen-updates.php';
@@ -319,9 +327,6 @@ if ( ! class_exists( 'SS_Shipping_WC' ) ) :
 
             add_filter('woocommerce_shipping_methods', array($this, 'add_shipping_method'));
             add_filter('woocommerce_package_rates', array($this, 'ss_sort_shipping_methods'));
-
-            // Test connection
-            add_action('wp_ajax_ss_test_connection', array($this, 'ss_test_connection_callback'));
         }
 
 
@@ -356,6 +361,7 @@ if ( ! class_exists( 'SS_Shipping_WC' ) ) :
 					$this->settings
 				);
 				$this->label_creator          = new SS_Shipping_Label_Creator( $this->fulfillment_service );
+				$this->test_connection        = new SS_Shipping_Test_Connection( new SS_Shipping_Api_Factory( $this->settings ) );
 				$this->bulk_actions           = new SS_Shipping_Order_Bulk_Actions( $this->method_resolver, $this->fulfillment_service, $this->admin_notices, $this->settings );
 				$this->subscriptions_compat   = new SS_Shipping_Subscriptions_Compat();
 
@@ -384,6 +390,7 @@ if ( ! class_exists( 'SS_Shipping_WC' ) ) :
 			$this->pickup_point_validator->register_hooks();
 			$this->meta_box->register_hooks();
 			$this->label_creator->register_hooks();
+			$this->test_connection->register_hooks();
 			$this->bulk_actions->register_hooks();
 			$this->subscriptions_compat->register_hooks();
 		}
@@ -601,54 +608,14 @@ if ( ! class_exists( 'SS_Shipping_WC' ) ) :
 			return $this->api_handle;
 		}
 
-        /**
-         * Test connection AJAX call
-         */
-        public function ss_test_connection_callback()
-        {
-            check_ajax_referer('ss-test-connection', 'test_connection_nonce');
-
-			if ( $this->get_api_handle() ) {
-				$response = $this->get_api_handle()->account()->getAuthenticatedUser();
-
-				if ( $response->isSuccessful() ) {
-					$connection_msg = sprintf(
-						/* translators: 1: email address of the connected Smart Send account, 2: website of the connected Smart Send account. */
-						__( 'API Token verified: Connected to Smart Send as %1$s from %2$s', 'smart-send-logistics' ),
-						$response->data()->email,
-						$response->data()->website
-					);
-					$error = 0;
-				} else {
-					$connection_msg = sprintf(
-						/* translators: %s: error message returned by the Smart Send API. */
-						__( 'API Token validation failed: %s. Make sure to save the settings before validating.', 'smart-send-logistics' ),
-						$response->error()->message
-					);
-					$error = 1;
-				}
-			} else {
-                $connection_msg = __('API Token validation failed: Please enter an API Token and save the settings before validating.',
-                    'smart-send-logistics');
-                $error = 1;
-            }
-
-			if ( $error ) {
-				SS_Shipping_Logger::error( 'API token connection test failed', array( 'message' => $connection_msg ) );
-			} else {
-				SS_Shipping_Logger::info( 'API token connection test succeeded', array( 'message' => $connection_msg ) );
-			}
-
-			wp_send_json(
-				array(
-					'message'    => $connection_msg,
-					'error'      => $error,
-					'button_txt' => __( 'Validate API Token', 'smart-send-logistics' ),
-				)
-			);
-
-            wp_die();
-        }
+		/**
+		 * Get the API test-connection feature.
+		 *
+		 * @return SS_Shipping_Test_Connection
+		 */
+		public function test_connection(): SS_Shipping_Test_Connection {
+			return $this->test_connection;
+		}
 
 	    /**
 	     * Find the closest agents by address - Convenience wrapper

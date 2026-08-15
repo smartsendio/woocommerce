@@ -158,7 +158,7 @@ if ( ! class_exists( 'SS_Shipping_Method_Settings' ) ) :
 					'title'             => __( 'Validate API Token', 'smart-send-logistics' ),
 					'type'              => 'button',
 					'custom_attributes' => array(
-						'onclick' => "ssTestConnection('#woocommerce_smart_send_shipping_api_token_validate');",
+						'onclick' => SS_Shipping_Test_Connection::button_onclick( 'woocommerce_smart_send_shipping_api_token_validate' ),
 					),
 					'description'       => __(
 						'Save the settings before clicking the button to validate API Token.',
