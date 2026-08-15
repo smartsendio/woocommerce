@@ -316,11 +316,12 @@ if ( ! class_exists( 'SS_Shipping_WC' ) ) :
 				$this->pickup_point_validator = new SS_Shipping_Pickup_Point_Validator( $this->order_meta, $this->method_resolver );
 				$this->meta_box               = new SS_Shipping_Order_Meta_Box( $this->order_meta, $this->method_resolver );
 				$this->fulfillment_service    = new SS_Shipping_Fulfillment_Service(
+					$this->order_meta,
 					$this->method_resolver,
 					$this->shipment_ids,
 					new SS_Shipping_Booking_Service( $this->order_meta, $this->method_resolver )
 				);
-				$this->label_creator          = new SS_Shipping_Label_Creator( $this->order_meta, $this->fulfillment_service );
+				$this->label_creator          = new SS_Shipping_Label_Creator( $this->fulfillment_service );
 				$this->bulk_actions           = new SS_Shipping_Order_Bulk_Actions( $this->method_resolver, $this->fulfillment_service, $this->admin_notices );
 				$this->subscriptions_compat   = new SS_Shipping_Subscriptions_Compat();
 

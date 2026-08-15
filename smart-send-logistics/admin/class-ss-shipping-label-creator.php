@@ -26,13 +26,6 @@ if ( ! class_exists( 'SS_Shipping_Label_Creator' ) ) :
 	class SS_Shipping_Label_Creator {
 
 		/**
-		 * Order meta access component.
-		 *
-		 * @var SS_Shipping_Order_Meta
-		 */
-		protected SS_Shipping_Order_Meta $order_meta;
-
-		/**
 		 * The fulfillment service running the label workflow.
 		 *
 		 * @var SS_Shipping_Fulfillment_Service
@@ -40,11 +33,9 @@ if ( ! class_exists( 'SS_Shipping_Label_Creator' ) ) :
 		protected SS_Shipping_Fulfillment_Service $fulfillment_service;
 
 		/**
-		 * @param SS_Shipping_Order_Meta          $order_meta          Order meta access component.
 		 * @param SS_Shipping_Fulfillment_Service $fulfillment_service The fulfillment service.
 		 */
-		public function __construct( SS_Shipping_Order_Meta $order_meta, SS_Shipping_Fulfillment_Service $fulfillment_service ) {
-			$this->order_meta          = $order_meta;
+		public function __construct( SS_Shipping_Fulfillment_Service $fulfillment_service ) {
 			$this->fulfillment_service = $fulfillment_service;
 		}
 
@@ -70,15 +61,22 @@ if ( ! class_exists( 'SS_Shipping_Label_Creator' ) ) :
 			$return       = boolval( $_POST['return_label'] );
 			$split_parcel = boolval( $_POST['ss_shipping_split_parcel'] );
 
-			// Save parcels input if set:
-			$parcels = ( $split_parcel ) ? $_POST['ss_shipping_parcels'] : array();
+			// Parcels input, in the frozen id/name/value row shape the meta box JS posts.
+			$parcels = ( $split_parcel && isset( $_POST['ss_shipping_parcels'] ) && is_array( $_POST['ss_shipping_parcels'] ) ) ? $_POST['ss_shipping_parcels'] : array();
 			// phpcs:enable WordPress.Security.ValidatedSanitizedInput
-			// Pre-booking parcel-meta save: kept save-before-book as-is, the request/response redesign (#116) fixes it later.
-			$this->order_meta->save_ss_shipping_order_parcels( $order_id, $parcels );
+
+			// Translate the posted parcel input into the typed parcel plan and
+			// hand it into the flow as partial delivery details (#139); the
+			// fulfillment service persists it before booking (save-before-book
+			// preserved, the request/response redesign is #116). An unchecked
+			// "Split into parcels" box submits an empty plan, clearing a
+			// stored split like before.
+			$delivery_overrides = new SS_Shipping_Delivery_Details();
+			$delivery_overrides->set_parcel_plan( SS_Shipping_Parcel_Plan::from_box_rows( $parcels ) );
 
 			$result = $return
-				? $this->fulfillment_service->fulfill_return( $order_id, false )
-				: $this->fulfillment_service->fulfill_outbound( $order_id, false );
+				? $this->fulfillment_service->fulfill_return( $order_id, false, $delivery_overrides )
+				: $this->fulfillment_service->fulfill_outbound( $order_id, false, $delivery_overrides );
 
 			wp_send_json( $result->to_legacy_response_array() );
 			wp_die();

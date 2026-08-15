@@ -17,16 +17,21 @@ if ( ! class_exists( 'SS_Shipping_Shipment_Builder' ) ) :
 	/**
 	 * Assembles the internal shipment representation (#113), a typed
 	 * SS_Shipping_Shipment value object, from SS_Shipping_Order_Reader's
-	 * output plus the agent/pick-up-point selection and parcel split. The
-	 * representation is shaped close to the Smart Send v2 API schema: a
-	 * single net amount + tax amount per level (shipment/parcel/item), no
-	 * excl/incl redundancy, and a pickup-point section named after v2's
-	 * PickupParty.service_point_code rather than v1's agent_no/agent.
+	 * output (the WC-native data) plus the order's delivery details (#139):
+	 * the merged SS_Shipping_Delivery_Details from the repository and the
+	 * method resolver, passed through the smart_send_delivery_details
+	 * filter, with its parcel plan resolved into typed SS_Shipping_Parcel
+	 * rows. The representation is shaped close to the Smart Send v2 API
+	 * schema: a single net amount + tax amount per level (shipment/parcel/
+	 * item), no excl/incl redundancy, and a pickup-point section named
+	 * after v2's PickupParty.service_point_code rather than v1's
+	 * agent_no/agent.
 	 *
 	 * This class does not talk to the API and does not know about the v1
 	 * wire format - translating the representation into the v1 request
 	 * body is \Smartsend\Resources\BookingResource::fromShipment()'s job
-	 * (#112).
+	 * (#112). Nothing below the smart_send_delivery_details filter touches
+	 * raw meta or $_POST.
 	 *
 	 * Outbound and return bookings are two separate entry points -
 	 * build_outbound() and build_return() - rather than a single build()
@@ -34,11 +39,12 @@ if ( ! class_exists( 'SS_Shipping_Shipment_Builder' ) ) :
 	 * do_action() calls and different business logic over time, and a
 	 * boolean flag silently branching inside one method would hide that.
 	 * Both share assemble_shipment() for the parts that don't differ
-	 * (item/parcel/totals assembly) - only the shipping-method/agent
+	 * (item/parcel/totals assembly) - only the shipping-method/pickup-point
 	 * selection differs between the two.
 	 *
 	 * build_return() throws SS_Shipping_Booking_Exception when it cannot
-	 * produce a valid shipment (no return method configured) - it is
+	 * produce a valid shipment (no return method configured, raised by
+	 * SS_Shipping_Method_Resolver::resolve_return()) - it is
 	 * SS_Shipping_Booking_Service's job to catch that and convert it into
 	 * a failed SS_Shipping_Booking; this class never returns an error
 	 * array/value.
@@ -107,126 +113,98 @@ if ( ! class_exists( 'SS_Shipping_Shipment_Builder' ) ) :
 
 		/**
 		 * Build the internal shipment representation for an outbound
-		 * (normal) shipping label: the shipping method/carrier comes from
-		 * the order's Smart Send shipping method, and a pick-up point
-		 * (agent) is selected when one is stored on the order.
+		 * (normal) shipping label: the shipping method comes from the
+		 * order's Smart Send shipping method, and the stored pickup point
+		 * is selected when one is stored on the order.
 		 *
 		 * @return SS_Shipping_Shipment
 		 */
 		public function build_outbound(): SS_Shipping_Shipment {
-			$order_id = $this->order_reader->get_order_id();
+			$details = $this->order_meta->read( $this->order_reader->get_order_id() );
+			$details->set_shipping_method( $this->method_resolver->resolve_outbound( $this->order ) );
 
-			$ss_shipping_method_id = $this->method_resolver->resolve_outbound( $this->order );
-
-			$ss_args = array(
-				'ss_agent' => $this->order_meta->get_ss_shipping_order_agent( $order_id ),
-			);
-
-			return $this->assemble_shipment( $ss_shipping_method_id, $ss_args, false );
+			return $this->assemble_shipment( $details, false );
 		}
 
 		/**
 		 * Build the internal shipment representation for a return label:
-		 * the shipping method/carrier comes from the order's configured
-		 * return method, and no pick-up point is selected - unless the
-		 * return method could not be resolved to the dedicated
+		 * the shipping method comes from the order's configured return
+		 * method, and no pickup point is selected - unless the return
+		 * method could not be resolved to the dedicated
 		 * smart_send_return_method meta (free-shipping/vConnect orders,
-		 * see the v8-oddity note on the else branch below), in which case
-		 * this falls back to the same agent selection as an outbound
-		 * label.
+		 * see SS_Shipping_Method_Resolver::return_uses_stored_pickup_point()),
+		 * in which case the stored pickup point selection applies like on
+		 * an outbound label.
 		 *
 		 * @throws SS_Shipping_Booking_Exception When no return method is configured.
 		 *
 		 * @return SS_Shipping_Shipment
 		 */
 		public function build_return(): SS_Shipping_Shipment {
-			$order_id = $this->order_reader->get_order_id();
-			$ss_args  = array();
+			$return_method = $this->method_resolver->resolve_return( $this->order );
 
-			$ss_shipping_method_id = $this->method_resolver->resolve_return( $this->order );
+			$details = $this->order_meta->read( $this->order_reader->get_order_id() );
+			$details->set_shipping_method( $return_method );
 
-			if ( $this->method_resolver->return_uses_stored_pickup_point( $this->order ) ) {
-				// v8 oddity: free-shipping/vConnect orders never resolve to
-				// the dedicated smart_send_return_method item meta, so this
-				// branch - identical to build_outbound()'s agent selection -
-				// still runs for a return label in that case.
-				$ss_args['ss_agent'] = $this->order_meta->get_ss_shipping_order_agent( $order_id );
+			if ( ! $this->method_resolver->return_uses_stored_pickup_point( $this->order ) ) {
+				$details->set_pickup_point( null );
 			}
 
-			return $this->assemble_shipment( $ss_shipping_method_id, $ss_args, true );
+			return $this->assemble_shipment( $details, true );
 		}
 
 		/**
 		 * Assemble the shipment representation shared by build_outbound()
-		 * and build_return(): carrier/type resolution, parcel split,
-		 * receiver, pick-up point, item lines and totals. Only the
-		 * shipping-method/agent selection (the caller-supplied
-		 * $ss_shipping_method_id and $ss_args['ss_agent']) differs between
-		 * outbound and return bookings.
+		 * and build_return(): run the smart_send_delivery_details filter,
+		 * derive carrier/type, resolve the parcel plan into typed parcels,
+		 * and combine with the receiver, item lines and totals from the
+		 * order reader.
 		 *
-		 * @param string  $ss_shipping_method_id Smart Send shipping method id.
-		 * @param array   $ss_args               Args built so far by the caller (e.g. 'ss_agent').
-		 * @param boolean $is_return             Whether this is a return label.
+		 * @param SS_Shipping_Delivery_Details $details   The merged delivery details (method resolved, stored pickup point/plan applied).
+		 * @param boolean                      $is_return Whether this is a return label.
 		 *
 		 * @return SS_Shipping_Shipment
 		 */
-		protected function assemble_shipment( $ss_shipping_method_id, array $ss_args, $is_return ): SS_Shipping_Shipment {
+		protected function assemble_shipment( SS_Shipping_Delivery_Details $details, $is_return ): SS_Shipping_Shipment {
 			$order_id = $this->order_reader->get_order_id();
 
-			// Determine shipping method and carrier.
-			$ss_args['ss_carrier'] = SS_SHIPPING_WC()->get_shipping_method_carrier( $ss_shipping_method_id );
-			$ss_args['ss_type']    = SS_SHIPPING_WC()->get_shipping_method_type( $ss_shipping_method_id );
-
 			/*
-			 * Filter the parcel split used for the order before the shipment
-			 * representation is assembled. The split is the value stored by the
-			 * "Split into parcels" admin option: an array of rows, each with
-			 * keys 'id' (product/variation id), 'name' (product name) and
-			 * 'value' (box number, 1-9). An empty value means a single parcel
-			 * containing all items. Runs before smart_send_shipping_label_args,
-			 * which receives the filtered split as $ss_args['ss_parcels'] and
-			 * keeps the final say.
+			 * Filter the delivery details used to book a shipping label,
+			 * after the stored configuration and derived method have been
+			 * merged and before the shipment representation is assembled.
+			 * One typed extension point for everything Smart Send knows
+			 * about how the order ships: override the shipping method,
+			 * clear or replace the pickup point (SS_Shipping_Pickup_Point),
+			 * or declare a parcel plan (SS_Shipping_Parcel_Plan of
+			 * SS_Shipping_Parcel_Spec rows - specs may carry dimensions and
+			 * an explicit weight with no item allocations at all).
+			 *
+			 * Replaces the removed smart_send_shipping_label_args,
+			 * smart_send_order_parcels, smart_send_order_pickup_point and
+			 * smart_send_parcel_weight filters (v9).
 			 *
 			 * @since 9.0.0
 			 *
-			 * @param array|string|false $parcels   The stored parcel split rows, or an empty value when the order is not split.
-			 * @param int                $order_id  Order ID.
-			 * @param boolean            $is_return Whether the label is a return label.
+			 * @param SS_Shipping_Delivery_Details $details   The merged delivery details.
+			 * @param WC_Order                     $order     The WooCommerce order.
+			 * @param boolean                      $is_return Whether the label is a return label.
 			 *
-			 * @return array|string|false The parcel split rows to use.
+			 * @return SS_Shipping_Delivery_Details The delivery details to book with.
 			 */
-			$ss_args['ss_parcels'] = apply_filters(
-				'smart_send_order_parcels',
-				$this->order_meta->get_ss_shipping_order_parcels( $order_id ),
-				$order_id,
-				$is_return
-			);
+			$details = apply_filters( 'smart_send_delivery_details', $details, $this->order, $is_return );
 
-			/*
-			 * Filter the arguments used when creating a shipping label
-			 *
-			 * @param array   $ss_args  contains info about shipping carrier, shipping method, agent and parcels
-			 * @param int     $order_id Order ID
-			 * @param boolean $is_return Whether or not the label is return (true) or normal (false)
-			 */
-			$ss_args = apply_filters( 'smart_send_shipping_label_args', $ss_args, $order_id, $is_return );
+			// Determine shipping method and carrier.
+			$ss_carrier = SS_SHIPPING_WC()->get_shipping_method_carrier( $details->get_shipping_method() );
+			$ss_type    = SS_SHIPPING_WC()->get_shipping_method_type( $details->get_shipping_method() );
 
-			$receiver = $this->order_reader->get_receiver_data();
-
-			// Add the pickup point to the shipment, if any.
-			$ss_agent = apply_filters(
-				'smart_send_order_pickup_point',
-				empty( $ss_args['ss_agent'] ) ? null : $ss_args['ss_agent'],
-				$order_id
-			);
-
-			$pickup_point = empty( $ss_agent ) ? null : $this->build_pickup_point( $ss_agent );
+			$pickup_point = null === $details->get_pickup_point()
+				? null
+				: $this->build_pickup_point( $details->get_pickup_point() );
 
 			// Item lines and totals.
 			$items_data = $this->order_reader->get_items_data();
 
-			$parcels = array();
-			$totals  = array(
+			$totals = array(
 				'subtotal_net_amount' => null,
 				'subtotal_tax_amount' => null,
 				'shipping_net_amount' => null,
@@ -236,64 +214,21 @@ if ( ! class_exists( 'SS_Shipping_Shipment_Builder' ) ) :
 				'currency'            => null,
 			);
 
+			$order_note = null;
 			if ( ! empty( $items_data ) ) {
 				$totals     = $this->order_reader->get_totals();
 				$order_note = $this->order_reader->get_order_note();
-
-				// Item rows, keyed by product/variation id so a parcel
-				// split can reference them.
-				$item_lookup  = array();
-				$weight_total = 0;
-
-				foreach ( $items_data as $item_row ) {
-					$item_lookup[ $item_row['id'] ] = $item_row;
-
-					if ( $item_row['unit_weight'] ) {
-						$weight_total += ( $item_row['quantity'] * $item_row['unit_weight'] );
-					}
-				}
-
-				if ( ! empty( $ss_args['ss_parcels'] ) && is_array( $ss_args['ss_parcels'] ) ) {
-					$parcels = $this->build_split_parcels( $ss_args['ss_parcels'], $item_lookup, $order_note );
-				} else {
-					// A single parcel containing all the items just defined.
-					$parcels[] = array(
-						'internal_id'        => $this->value_or_null( $order_id ),
-						'internal_reference' => $this->value_or_null( $this->order_reader->get_order_number() ),
-						'weight'             => $this->value_or_null( $weight_total ),
-						'height'             => null,
-						'width'              => null,
-						'length'             => null,
-						'freetext'           => $this->value_or_null( $order_note ),
-						'items'              => array_values( $items_data ),
-						'total_net_amount'   => $totals['subtotal_net_amount'],
-						'total_tax_amount'   => $totals['subtotal_tax_amount'],
-					);
-				}
 			}
 
-			/*
-			 * Filter the parcels section of the booking request. Unlike
-			 * before #113, this now operates on the internal representation
-			 * (plain parcel arrays, each with an 'items' array of item
-			 * rows) rather than assembled Smartsend\Models\Shipment\Parcel
-			 * objects - the smart_send_payload_* filters are unreleased
-			 * (#73/#111) so this signature change is not a breaking change.
-			 *
-			 * @since 9.0.0
-			 *
-			 * @param array[]  $parcels The assembled parcel rows.
-			 * @param WC_Order $order   The WooCommerce order.
-			 */
-			$parcels = apply_filters( 'smart_send_payload_parcels', $parcels, $this->order );
+			$parcels = $this->resolve_parcels( $details->get_parcel_plan(), $items_data, $totals, $order_note );
 
 			$shipment = new SS_Shipping_Shipment();
 			$shipment->set_internal_id( $this->value_or_null( $order_id ) )
 				->set_internal_reference( $this->value_or_null( $this->order_reader->get_order_number() ) )
-				->set_shipping_carrier( $this->value_or_null( $ss_args['ss_carrier'] ) )
-				->set_shipping_method( $this->value_or_null( $ss_args['ss_type'] ) )
+				->set_shipping_carrier( $this->value_or_null( $ss_carrier ) )
+				->set_shipping_method( $this->value_or_null( $ss_type ) )
 				->set_shipping_date( gmdate( 'Y-m-d' ) )
-				->set_receiver( $receiver )
+				->set_receiver( $this->order_reader->get_receiver_data() )
 				->set_pickup_point( $pickup_point )
 				->set_parcels( $parcels )
 				->set_subtotal_net_amount( $totals['subtotal_net_amount'] )
@@ -308,99 +243,153 @@ if ( ! class_exists( 'SS_Shipping_Shipment_Builder' ) ) :
 		}
 
 		/**
-		 * Build the pickup-point section from the stored agent object.
+		 * Resolve the parcel plan into typed SS_Shipping_Parcel rows.
+		 *
+		 * An empty (or unspecified) plan resolves to a single parcel
+		 * containing every item line, carrying the order-level subtotal
+		 * amounts. A non-empty plan resolves one parcel per spec.
+		 *
+		 * @param SS_Shipping_Parcel_Plan|null $plan       The parcel plan, or null.
+		 * @param array[]                      $items_data Item rows from the order reader.
+		 * @param array                        $totals     Order totals from the order reader (null amounts when the order has no items).
+		 * @param string|null                  $order_note Freetext for the parcels.
+		 *
+		 * @return SS_Shipping_Parcel[]
+		 */
+		protected function resolve_parcels( $plan, array $items_data, array $totals, $order_note ) {
+			if ( null !== $plan && ! $plan->is_empty() ) {
+				// Item rows, keyed by product/variation id so the specs'
+				// item allocations can reference them.
+				$item_lookup = array();
+				foreach ( $items_data as $item_row ) {
+					$item_lookup[ $item_row['id'] ] = $item_row;
+				}
+
+				$parcels = array();
+				foreach ( $plan->get_specs() as $spec ) {
+					$parcels[] = $this->resolve_spec( $spec, $item_lookup, $order_note );
+				}
+
+				return $parcels;
+			}
+
+			if ( empty( $items_data ) ) {
+				return array();
+			}
+
+			// A single parcel containing all the items.
+			$weight_total = 0;
+			foreach ( $items_data as $item_row ) {
+				if ( $item_row['unit_weight'] ) {
+					$weight_total += ( $item_row['quantity'] * $item_row['unit_weight'] );
+				}
+			}
+
+			$parcel = new SS_Shipping_Parcel();
+			$parcel->set_internal_id( $this->value_or_null( $this->order_reader->get_order_id() ) )
+				->set_internal_reference( $this->value_or_null( $this->order_reader->get_order_number() ) )
+				->set_weight( $this->value_or_null( $weight_total ) )
+				->set_freetext( $this->value_or_null( $order_note ) )
+				->set_items( array_values( $items_data ) )
+				->set_total_net_amount( $totals['subtotal_net_amount'] )
+				->set_total_tax_amount( $totals['subtotal_tax_amount'] );
+
+			return array( $parcel );
+		}
+
+		/**
+		 * Resolve one parcel spec into a typed parcel.
+		 *
+		 * Item allocations pull their rows from the order's item lines,
+		 * accumulating a per-unit share of each (possibly multi-unit)
+		 * line, one row per unit like the stored split meta - matching the
+		 * pre-#113 split behaviour bug-for-bug (each unit embeds the full
+		 * order-line item row, not a per-unit slice of it). An explicit
+		 * spec weight always wins over the item-sum (packaging weight is
+		 * real); a spec without item allocations produces a parcel without
+		 * item rows and without amounts - declared amounts then live at
+		 * shipment level only.
+		 *
+		 * @param SS_Shipping_Parcel_Spec $spec        The planned parcel.
+		 * @param array                   $item_lookup Item rows keyed by product/variation id.
+		 * @param string|null             $order_note  Freetext for the parcels.
+		 *
+		 * @return SS_Shipping_Parcel
+		 */
+		protected function resolve_spec( SS_Shipping_Parcel_Spec $spec, array $item_lookup, $order_note ) {
+			$parcel = new SS_Shipping_Parcel();
+			$parcel->set_internal_id( $this->value_or_null( $this->order_reader->get_order_id() ) )
+				->set_internal_reference( $this->value_or_null( $this->order_reader->get_order_number() ) )
+				->set_height( $spec->get_height() )
+				->set_width( $spec->get_width() )
+				->set_length( $spec->get_length() )
+				->set_freetext( $this->value_or_null( $order_note ) );
+
+			if ( ! $spec->has_items() ) {
+				// No item allocations: dimensions/weight come from the spec
+				// alone, amounts live at shipment level only.
+				$parcel->set_weight( $spec->get_weight() );
+
+				return $parcel;
+			}
+
+			$item_net_total    = 0;
+			$item_tax_total    = 0;
+			$item_weight_total = 0;
+			$item_rows         = array();
+
+			foreach ( $spec->get_items() as $allocation ) {
+				if ( ! isset( $item_lookup[ $allocation['id'] ] ) ) {
+					continue; // The allocation references an item the order does not have.
+				}
+
+				$item_row = $item_lookup[ $allocation['id'] ];
+				$quantity = $item_row['quantity'] ? $item_row['quantity'] : 1;
+
+				for ( $unit = 0; $unit < $allocation['quantity']; $unit++ ) {
+					$item_net_total    += ( $item_row['total_net_amount'] / $quantity );
+					$item_tax_total    += ( $item_row['total_tax_amount'] / $quantity );
+					$item_weight_total += floatval( $item_row['unit_weight'] );
+
+					$item_rows[] = $item_row;
+				}
+			}
+
+			$parcel->set_weight( null !== $spec->get_weight() ? $spec->get_weight() : $this->value_or_null( $item_weight_total ) )
+				->set_items( $item_rows )
+				->set_total_net_amount( $this->value_or_null( $item_net_total ) )
+				->set_total_tax_amount( $this->value_or_null( $item_tax_total ) );
+
+			return $parcel;
+		}
+
+		/**
+		 * Build the pickup-point section from the selected pickup point.
 		 *
 		 * Named after v2's PickupParty.service_point_code rather than v1's
 		 * agent_no/agent (#111) - the v1 wire adapter still calls it
 		 * agent_no on the wire.
 		 *
-		 * @param object $ss_agent The agent object stored on the order.
+		 * @param SS_Shipping_Pickup_Point $pickup_point The selected pickup point.
 		 *
 		 * @return array
 		 */
-		protected function build_pickup_point( $ss_agent ) {
+		protected function build_pickup_point( SS_Shipping_Pickup_Point $pickup_point ) {
+			$internal_id = null !== $pickup_point->get_internal_id()
+				? $pickup_point->get_internal_id()
+				: $pickup_point->get_agent_no();
+
 			return array(
-				'internal_id'        => isset( $ss_agent->id ) ? $ss_agent->id : $ss_agent->agent_no,
-				'internal_reference' => isset( $ss_agent->id ) ? $ss_agent->id : $ss_agent->agent_no,
-				'service_point_code' => $this->value_or_null( $ss_agent->agent_no ),
-				'company'            => $this->value_or_null( $ss_agent->company ),
-				'address_line1'      => $this->value_or_null( $ss_agent->address_line1 ),
-				'address_line2'      => $this->value_or_null( $ss_agent->address_line2 ),
-				'postal_code'        => $this->value_or_null( $ss_agent->postal_code ),
-				'city'               => $this->value_or_null( $ss_agent->city ),
-				'country'            => $this->value_or_null( $ss_agent->country ),
+				'internal_id'        => $internal_id,
+				'internal_reference' => $internal_id,
+				'service_point_code' => $this->value_or_null( $pickup_point->get_agent_no() ),
+				'company'            => $this->value_or_null( $pickup_point->get_company() ),
+				'address_line1'      => $this->value_or_null( $pickup_point->get_address_line1() ),
+				'address_line2'      => $this->value_or_null( $pickup_point->get_address_line2() ),
+				'postal_code'        => $this->value_or_null( $pickup_point->get_postal_code() ),
+				'city'               => $this->value_or_null( $pickup_point->get_city() ),
+				'country'            => $this->value_or_null( $pickup_point->get_country() ),
 			);
-		}
-
-		/**
-		 * Build one parcel per box from the parcel-split meta stored on the
-		 * order.
-		 *
-		 * @param array       $ss_parcels  Parcel split meta rows (id, name, value).
-		 * @param array       $item_lookup Item rows keyed by product/variation id.
-		 * @param string|null $order_note  Freetext for the parcels.
-		 *
-		 * @return array[]
-		 */
-		protected function build_split_parcels( $ss_parcels, $item_lookup, $order_note ) {
-			$parcels = array();
-
-			$boxes = array();
-			foreach ( $ss_parcels as $parcel_meta ) {
-				$boxes[ $parcel_meta['value'] ][] = array(
-					'id'   => $parcel_meta['id'],
-					'name' => $parcel_meta['name'],
-				);
-			}
-
-			foreach ( $boxes as $box_items ) {
-				$item_net_total    = 0;
-				$item_tax_total    = 0;
-				$item_weight_total = 0;
-				$box_item_rows     = array();
-
-				foreach ( $box_items as $box_item ) {
-					$item_row = $item_lookup[ $box_item['id'] ];
-					$quantity = $item_row['quantity'] ? $item_row['quantity'] : 1;
-
-					// Per-unit share of the (possibly multi-unit) line, one
-					// row per unit like the stored split meta - matches the
-					// pre-#113 behaviour bug-for-bug (each box embeds the
-					// full order-line item row, not a per-unit slice of it).
-					$item_net_total    += ( $item_row['total_net_amount'] / $quantity );
-					$item_tax_total    += ( $item_row['total_tax_amount'] / $quantity );
-					$item_weight_total += floatval( $item_row['unit_weight'] );
-
-					$box_item_rows[] = $item_row;
-				}
-
-				/*
-				 * Filter the weight of a parcel.
-				 *
-				 * @param float|null $parcel_weight Total weight of the items in the parcel.
-				 * @param int        $order_id      Order ID.
-				 */
-				$parcel_total_weight = apply_filters(
-					'smart_send_parcel_weight',
-					$this->value_or_null( $item_weight_total ),
-					$this->order_reader->get_order_id()
-				);
-
-				$parcels[] = array(
-					'internal_id'        => $this->value_or_null( $this->order_reader->get_order_id() ),
-					'internal_reference' => $this->value_or_null( $this->order_reader->get_order_number() ),
-					'weight'             => $parcel_total_weight,
-					'height'             => null,
-					'width'              => null,
-					'length'             => null,
-					'freetext'           => $this->value_or_null( $order_note ),
-					'items'              => $box_item_rows,
-					'total_net_amount'   => $this->value_or_null( $item_net_total ),
-					'total_tax_amount'   => $this->value_or_null( $item_tax_total ),
-				);
-			}
-
-			return $parcels;
 		}
 
 		/**

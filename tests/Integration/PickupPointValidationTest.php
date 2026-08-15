@@ -38,9 +38,7 @@ function prepare_hpos_agent_edit(string $new_agent_no): WC_Order
     $product = create_simple_product(['price' => 100, 'weight' => 1]);
     $order   = create_order(['products' => [$product], 'shipping_method' => 'postnord_agent']);
 
-    $handler = SS_SHIPPING_WC()->order_meta();
-    $handler->save_ss_shipping_order_agent_no($order->get_id(), '1234');
-    $handler->save_ss_shipping_order_agent($order->get_id(), sample_agent());
+    save_order_pickup_point($order->get_id(), sample_agent());
 
     $order   = wc_get_order($order->get_id());
     $meta_id = agent_no_meta_id($order);

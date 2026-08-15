@@ -43,6 +43,13 @@ if ( ! class_exists( 'SS_Shipping_Fulfillment_Service' ) ) :
 		protected string $label_prefix = 'smart-send-label-';
 
 		/**
+		 * Order meta repository.
+		 *
+		 * @var SS_Shipping_Order_Meta
+		 */
+		protected SS_Shipping_Order_Meta $order_meta;
+
+		/**
 		 * Shipping method resolver.
 		 *
 		 * @var SS_Shipping_Method_Resolver
@@ -66,11 +73,13 @@ if ( ! class_exists( 'SS_Shipping_Fulfillment_Service' ) ) :
 		/**
 		 * Constructor.
 		 *
+		 * @param SS_Shipping_Order_Meta      $order_meta      Order meta repository.
 		 * @param SS_Shipping_Method_Resolver $method_resolver Shipping method resolver.
 		 * @param SS_Shipping_Shipment_Ids    $shipment_ids    Booked shipment id accessor.
 		 * @param SS_Shipping_Booking_Service $booking_service The booking service.
 		 */
-		public function __construct( SS_Shipping_Method_Resolver $method_resolver, SS_Shipping_Shipment_Ids $shipment_ids, SS_Shipping_Booking_Service $booking_service ) {
+		public function __construct( SS_Shipping_Order_Meta $order_meta, SS_Shipping_Method_Resolver $method_resolver, SS_Shipping_Shipment_Ids $shipment_ids, SS_Shipping_Booking_Service $booking_service ) {
+			$this->order_meta      = $order_meta;
 			$this->method_resolver = $method_resolver;
 			$this->shipment_ids    = $shipment_ids;
 			$this->booking_service = $booking_service;
@@ -82,17 +91,20 @@ if ( ! class_exists( 'SS_Shipping_Fulfillment_Service' ) ) :
 		 * setting enabled and the outbound fulfillment succeeded - the return
 		 * label too.
 		 *
-		 * @param int|WC_Order $order           Order id or order object.
-		 * @param boolean      $save_order_note Whether to save an order note with information about the label.
+		 * @param int|WC_Order                      $order             Order id or order object.
+		 * @param boolean                           $save_order_note   Whether to save an order note with information about the label.
+		 * @param SS_Shipping_Delivery_Details|null $delivery_overrides Partial delivery details submitted with the request (e.g. the meta box parcel split), persisted through the repository before booking.
 		 *
 		 * @return SS_Shipping_Fulfillment_Result
 		 */
-		public function fulfill_outbound( $order, $save_order_note = true ): SS_Shipping_Fulfillment_Result {
+		public function fulfill_outbound( $order, $save_order_note = true, ?SS_Shipping_Delivery_Details $delivery_overrides = null ): SS_Shipping_Fulfillment_Result {
 			$order = $this->resolve_order( $order );
 
 			if ( ! $order instanceof WC_Order ) {
 				return new SS_Shipping_Fulfillment_Result( null, null, array( $order ) );
 			}
+
+			$this->apply_delivery_overrides( $order, $delivery_overrides );
 
 			$outbound_booking = $this->booking_service->book_outbound( $order );
 
@@ -117,23 +129,43 @@ if ( ! class_exists( 'SS_Shipping_Fulfillment_Service' ) ) :
 		/**
 		 * Fulfill a return shipping label for the order.
 		 *
-		 * @param int|WC_Order $order           Order id or order object.
-		 * @param boolean      $save_order_note Whether to save an order note with information about the label.
+		 * @param int|WC_Order                      $order             Order id or order object.
+		 * @param boolean                           $save_order_note   Whether to save an order note with information about the label.
+		 * @param SS_Shipping_Delivery_Details|null $delivery_overrides Partial delivery details submitted with the request, persisted through the repository before booking.
 		 *
 		 * @return SS_Shipping_Fulfillment_Result
 		 */
-		public function fulfill_return( $order, $save_order_note = true ): SS_Shipping_Fulfillment_Result {
+		public function fulfill_return( $order, $save_order_note = true, ?SS_Shipping_Delivery_Details $delivery_overrides = null ): SS_Shipping_Fulfillment_Result {
 			$order = $this->resolve_order( $order );
 
 			if ( ! $order instanceof WC_Order ) {
 				return new SS_Shipping_Fulfillment_Result( null, null, array( $order ) );
 			}
 
+			$this->apply_delivery_overrides( $order, $delivery_overrides );
+
 			$return_booking = $this->booking_service->book_return( $order );
 
 			$entries = array( $this->complete_fulfillment( $order, $return_booking, true, $save_order_note ) );
 
 			return new SS_Shipping_Fulfillment_Result( null, $return_booking, $entries );
+		}
+
+		/**
+		 * Persist the delivery details submitted with a fulfillment request
+		 * (e.g. the parcel split from the order meta box) before booking,
+		 * deliberately keeping the historic save-before-book behaviour: the
+		 * submitted configuration sticks even when the booking then fails.
+		 *
+		 * @param WC_Order                          $order              The WooCommerce order.
+		 * @param SS_Shipping_Delivery_Details|null $delivery_overrides Partial delivery details, or null when the request carried none.
+		 *
+		 * @return void
+		 */
+		protected function apply_delivery_overrides( WC_Order $order, ?SS_Shipping_Delivery_Details $delivery_overrides ) {
+			if ( null !== $delivery_overrides ) {
+				$this->order_meta->write( $order, $delivery_overrides );
+			}
 		}
 
 		/**

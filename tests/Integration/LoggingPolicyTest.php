@@ -175,7 +175,7 @@ it('logs an info event when the shopper selects a pickup point at checkout', fun
         ->and($selected['context']['order_id'])->toBe($order->get_id())
         ->and($selected['context']['agent_no'])->toBe('1234');
 
-    expect(SS_SHIPPING_WC()->order_meta()->get_ss_shipping_order_agent_no($order->get_id()))->toBe('1234');
+    expect(SS_SHIPPING_WC()->order_meta()->read($order->get_id())->get_pickup_point()->get_agent_no())->toBe('1234');
 });
 
 it('logs an info event when the pickup point is changed on an order', function () {

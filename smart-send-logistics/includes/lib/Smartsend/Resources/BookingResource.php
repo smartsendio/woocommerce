@@ -209,30 +209,41 @@ class BookingResource
     }
 
     /**
-     * Build a parcel model from a parcel row of the representation.
+     * Build a parcel model from a resolved parcel of the representation.
      *
-     * @param   array $parcel_row Parcel row, sourced from \SS_Shipping_Shipment::get_parcels().
+     * An item-less parcel (resolved from a parcel spec without item
+     * allocations, #139) serializes its items as null - the v1 wire
+     * convention for "not set" - and carries no amounts of its own.
+     *
+     * @param   \SS_Shipping_Parcel $resolved_parcel Resolved parcel, sourced from \SS_Shipping_Shipment::get_parcels().
      * @return  Parcel
      */
-    protected function buildParcel(array $parcel_row): Parcel
+    protected function buildParcel(\SS_Shipping_Parcel $resolved_parcel): Parcel
     {
         $items = array();
-        foreach ($parcel_row['items'] as $item_row) {
+        foreach ($resolved_parcel->get_items() as $item_row) {
             $items[] = $this->buildItem($item_row);
         }
 
+        // The total_price_including_tax figure stays null (not 0.0) when
+        // the parcel carries no amounts at all.
+        $has_amounts = $resolved_parcel->get_total_net_amount() !== null || $resolved_parcel->get_total_tax_amount() !== null;
+
         $parcel = new Parcel();
-        $parcel->setInternalId($this->valueOrNull($parcel_row['internal_id']))
-            ->setInternalReference($this->valueOrNull($parcel_row['internal_reference']))
-            ->setWeight($this->valueOrNull($parcel_row['weight']))
-            ->setHeight($parcel_row['height'])
-            ->setWidth($parcel_row['width'])
-            ->setLength($parcel_row['length'])
-            ->setFreetext($this->valueOrNull($parcel_row['freetext']))
-            ->setItems($items) // Alternatively add each item using $parcel->addItem(Item $item).
-            ->setTotalPriceExcludingTax($this->valueOrNull($parcel_row['total_net_amount']))
-            ->setTotalPriceIncludingTax($this->valueOrNull($this->netPlusTax($parcel_row['total_net_amount'], $parcel_row['total_tax_amount'])))
-            ->setTotalTaxAmount($this->valueOrNull($parcel_row['total_tax_amount']));
+        $parcel->setInternalId($this->valueOrNull($resolved_parcel->get_internal_id()))
+            ->setInternalReference($this->valueOrNull($resolved_parcel->get_internal_reference()))
+            ->setWeight($this->valueOrNull($resolved_parcel->get_weight()))
+            ->setHeight($resolved_parcel->get_height())
+            ->setWidth($resolved_parcel->get_width())
+            ->setLength($resolved_parcel->get_length())
+            ->setFreetext($this->valueOrNull($resolved_parcel->get_freetext()))
+            ->setTotalPriceExcludingTax($this->valueOrNull($resolved_parcel->get_total_net_amount()))
+            ->setTotalPriceIncludingTax($has_amounts ? $this->valueOrNull($this->netPlusTax($resolved_parcel->get_total_net_amount(), $resolved_parcel->get_total_tax_amount())) : null)
+            ->setTotalTaxAmount($this->valueOrNull($resolved_parcel->get_total_tax_amount()));
+
+        if ($items !== array()) {
+            $parcel->setItems($items); // Alternatively add each item using $parcel->addItem(Item $item).
+        }
 
         return $parcel;
     }

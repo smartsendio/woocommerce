@@ -440,11 +440,9 @@ if ( ! class_exists( 'SS_Shipping_Frontend' ) ) :
 
 			// Saving posted pickup point information.
 			if ( ! empty( $selected_pickup_point_no ) ) {
-				SS_SHIPPING_WC()->order_meta()->save_ss_shipping_order_agent_no(
-					$order_id,
-					$selected_pickup_point_no
-				);
-				SS_SHIPPING_WC()->order_meta()->save_ss_shipping_order_agent( $order_id, $selected_pickup_point );
+				$details = new SS_Shipping_Delivery_Details();
+				$details->set_pickup_point( SS_Shipping_Pickup_Point::from_object( $selected_pickup_point ) );
+				SS_SHIPPING_WC()->order_meta()->write( $order_id, $details );
 
 				SS_Shipping_Logger::info(
 					'Pickup point selected at checkout',
@@ -461,14 +459,12 @@ if ( ! class_exists( 'SS_Shipping_Frontend' ) ) :
 		 */
 		public function display_ss_shipping_agent( $order ) {
 
-			$order_id                = $this->get_order_id( $order );
-			$ordered_pickup_point_no = SS_SHIPPING_WC()->order_meta()->get_ss_shipping_order_agent_no( $order_id );
+			$order_id             = $this->get_order_id( $order );
+			$ordered_pickup_point = SS_SHIPPING_WC()->order_meta()->read( $order_id )->get_pickup_point();
 
-			if ( $ordered_pickup_point_no ) {
+			if ( null !== $ordered_pickup_point && $ordered_pickup_point->get_agent_no() ) {
 
-				$ordered_pickup_point = SS_SHIPPING_WC()->order_meta()->get_ss_shipping_order_agent( $order_id );
-
-				$formatted_address = $this->get_formatted_address( $ordered_pickup_point, -1 );
+				$formatted_address = $this->get_formatted_address( $ordered_pickup_point->to_object(), -1 );
 				// Display in block instead of one line
 				$formatted_address = str_replace( ',', '<br/>', $formatted_address );
 

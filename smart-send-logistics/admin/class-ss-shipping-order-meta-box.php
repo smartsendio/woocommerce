@@ -133,9 +133,10 @@ if ( ! class_exists( 'SS_Shipping_Order_Meta_Box' ) ) :
 
 			$ss_shipping_method_name = SS_SHIPPING_WC()->get_shipping_method_name_from_all_shipping_method_instances( $ss_shipping_method_id );
 
-			// Get order agent object
-			$ss_shipping_order_agent    = $this->order_meta->get_ss_shipping_order_agent( $order_id );
-			$ss_shipping_order_agent_no = $this->order_meta->get_ss_shipping_order_agent_no( $order_id );
+			// The stored delivery configuration (pickup point + parcel plan).
+			$delivery_details           = $this->order_meta->read( $order );
+			$ss_shipping_order_agent    = null === $delivery_details->get_pickup_point() ? null : $delivery_details->get_pickup_point()->to_object();
+			$ss_shipping_order_agent_no = null === $delivery_details->get_pickup_point() ? null : $delivery_details->get_pickup_point()->get_agent_no();
 
 			echo '<div id="ss-shipping-label-form">';
 
@@ -182,7 +183,7 @@ if ( ! class_exists( 'SS_Shipping_Order_Meta_Box' ) ) :
 
 			echo '<hr>';
 
-			$parcels        = $this->order_meta->get_ss_shipping_order_parcels( $order_id );
+			$parcels        = null === $delivery_details->get_parcel_plan() ? array() : $delivery_details->get_parcel_plan()->to_box_rows();
 			$checked_attrib = '';
 			$items_class    = 'hidden';
 			$items          = '';

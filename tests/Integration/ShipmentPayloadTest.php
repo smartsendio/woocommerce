@@ -118,7 +118,7 @@ it('books a simple domestic agent order with the full expected payload', functio
         'shipping_method' => 'postnord_agent',
         'shipping_total'  => '39',
     ]);
-    SS_SHIPPING_WC()->order_meta()->save_ss_shipping_order_agent($order->get_id(), sample_agent());
+    save_order_pickup_point($order->get_id(), sample_agent());
 
     $payload  = capture_shipment_payload($order);
     $order_id = (string) $order->get_id();
@@ -512,7 +512,7 @@ it('splits the shipment into one parcel per box when parcels meta is set', funct
         'shipping_method' => 'postnord_agent',
         'shipping_total'  => '39',
     ]);
-    SS_SHIPPING_WC()->order_meta()->save_ss_shipping_order_parcels($order->get_id(), [
+    save_order_parcels($order->get_id(), [
         ['id' => $product_a->get_id(), 'name' => 'Box One Product', 'value' => '1'],
         ['id' => $product_b->get_id(), 'name' => 'Box Two Product', 'value' => '2'],
     ]);
@@ -631,7 +631,11 @@ it('lets the smart_send_receiver_phone filter adjust the receiver phone', functi
         ->and($payload['services']['sms_notification'])->toBe('+4587654321');
 });
 
-it('lets the per-section payload filters adjust receiver, items, parcels and totals', function () {
+it('lets the per-section payload filters adjust receiver, items and totals', function () {
+    // The kept WC-derived-data filters (smart_send_payload_receiver/_items/
+    // _totals). The unreleased smart_send_payload_parcels filter is removed
+    // in v9 (#139), superseded by the typed parcel plan on the
+    // smart_send_delivery_details filter.
     $product = create_simple_product(['name' => 'Filtered Product', 'price' => 100, 'weight' => 1]);
     $order   = create_order([
         'products'        => [$product],
@@ -654,55 +658,39 @@ it('lets the per-section payload filters adjust receiver, items, parcels and tot
 
         return $totals;
     };
-    // As of #113/#111 this filter operates on the internal representation's
-    // plain parcel arrays (each with an 'items' array of item rows), not on
-    // assembled Smartsend\Models\Shipment\Parcel objects - a deliberate
-    // signature change, safe because the filter is still unreleased (#73).
-    $parcels_filter = function (array $parcels, WC_Order $filtered_order) {
-        foreach ($parcels as &$parcel) {
-            expect($parcel)->toBeArray();
-            $parcel['weight'] = 42;
-        }
-        unset($parcel);
-
-        return $parcels;
-    };
-
     add_filter('smart_send_payload_receiver', $receiver_filter, 10, 2);
     add_filter('smart_send_payload_items', $items_filter, 10, 2);
     add_filter('smart_send_payload_totals', $totals_filter, 10, 2);
-    add_filter('smart_send_payload_parcels', $parcels_filter, 10, 2);
-    remember_cleanup_callback(function () use ($receiver_filter, $items_filter, $totals_filter, $parcels_filter): void {
+    remember_cleanup_callback(function () use ($receiver_filter, $items_filter, $totals_filter): void {
         remove_filter('smart_send_payload_receiver', $receiver_filter, 10);
         remove_filter('smart_send_payload_items', $items_filter, 10);
         remove_filter('smart_send_payload_totals', $totals_filter, 10);
-        remove_filter('smart_send_payload_parcels', $parcels_filter, 10);
     });
 
     $payload = capture_shipment_payload($order);
 
     expect($payload['receiver']['company'])->toBe('Filtered Company')
         ->and($payload['parcels'][0]['items'][0]['name'])->toBe('Filtered Item Name')
-        ->and($payload['parcels'][0]['weight'])->toEqual(42)
         ->and($payload['total_price_including_tax'])->toEqual(999);
 });
 
-it('lets the smart_send_shipping_label_args filter override carrier and method', function () {
+it('lets the smart_send_delivery_details filter override the shipping method', function () {
     $product = create_simple_product(['price' => 100, 'weight' => 1]);
     $order   = create_order([
         'products'        => [$product],
         'shipping_method' => 'postnord_homedelivery',
     ]);
 
-    $filter = function (array $ss_args) {
-        $ss_args['ss_carrier'] = 'gls';
-        $ss_args['ss_type']    = 'homedelivery';
+    $filter = function (SS_Shipping_Delivery_Details $details, WC_Order $filtered_order, bool $is_return) use ($order) {
+        expect($details->get_shipping_method())->toBe('postnord_homedelivery')
+            ->and($filtered_order->get_id())->toBe($order->get_id())
+            ->and($is_return)->toBeFalse();
 
-        return $ss_args;
+        return $details->set_shipping_method('gls_homedelivery');
     };
-    add_filter('smart_send_shipping_label_args', $filter);
+    add_filter('smart_send_delivery_details', $filter, 10, 3);
     remember_cleanup_callback(function () use ($filter): void {
-        remove_filter('smart_send_shipping_label_args', $filter);
+        remove_filter('smart_send_delivery_details', $filter, 10);
     });
 
     $payload = capture_shipment_payload($order);
@@ -711,7 +699,7 @@ it('lets the smart_send_shipping_label_args filter override carrier and method',
         ->and($payload['shipping_method'])->toBe('homedelivery');
 });
 
-it('lets the smart_send_order_parcels filter inject a parcel split (#73)', function () {
+it('lets the smart_send_delivery_details filter declare a parcel plan with item allocations', function () {
     $product_a = create_simple_product(['name' => 'Filter Box One', 'price' => 100, 'weight' => 1]);
     $product_b = create_simple_product(['name' => 'Filter Box Two', 'price' => 50, 'weight' => 2]);
     $order     = create_order([
@@ -720,52 +708,73 @@ it('lets the smart_send_order_parcels filter inject a parcel split (#73)', funct
         'shipping_total'  => '39',
     ]);
 
-    $filter = function ($parcels, $order_id, $is_return) use ($order, $product_a, $product_b) {
-        // No split is stored on the order, so the filter receives an empty value.
-        expect(empty($parcels))->toBeTrue()
-            ->and($order_id)->toBe($order->get_id())
-            ->and($is_return)->toBeFalse();
+    $filter = function (SS_Shipping_Delivery_Details $details) use ($product_a, $product_b) {
+        // No split is stored on the order, so the filter receives no plan.
+        expect($details->get_parcel_plan())->toBeNull();
 
-        return [
-            ['id' => $product_a->get_id(), 'name' => 'Filter Box One', 'value' => '1'],
-            ['id' => $product_b->get_id(), 'name' => 'Filter Box Two', 'value' => '2'],
-        ];
+        $plan = new SS_Shipping_Parcel_Plan();
+        $plan->add_spec((new SS_Shipping_Parcel_Spec())->add_item($product_a->get_id()))
+            ->add_spec((new SS_Shipping_Parcel_Spec())->add_item($product_b->get_id()));
+
+        return $details->set_parcel_plan($plan);
     };
-    add_filter('smart_send_order_parcels', $filter, 10, 3);
+    add_filter('smart_send_delivery_details', $filter);
     remember_cleanup_callback(function () use ($filter): void {
-        remove_filter('smart_send_order_parcels', $filter, 10);
+        remove_filter('smart_send_delivery_details', $filter);
     });
 
     $payload = capture_shipment_payload($order);
 
     expect($payload['parcels'])->toHaveCount(2)
         ->and($payload['parcels'][0]['items'][0]['name'])->toBe('Filter Box One')
-        ->and($payload['parcels'][1]['items'][0]['name'])->toBe('Filter Box Two');
+        ->and($payload['parcels'][0]['weight'])->toEqual(1)
+        ->and($payload['parcels'][1]['items'][0]['name'])->toBe('Filter Box Two')
+        ->and($payload['parcels'][1]['weight'])->toEqual(2);
 });
 
-it('lets the smart_send_order_pickup_point filter replace the pickup point', function () {
+it('lets the smart_send_delivery_details filter replace or clear the pickup point', function () {
     $product = create_simple_product(['price' => 100, 'weight' => 1]);
     $order   = create_order([
         'products'        => [$product],
         'shipping_method' => 'postnord_agent',
     ]);
-    SS_SHIPPING_WC()->order_meta()->save_ss_shipping_order_agent($order->get_id(), sample_agent());
+    save_order_pickup_point($order->get_id(), sample_agent());
 
-    $filter = function ($ss_agent, $order_id) use ($order) {
-        expect($ss_agent->agent_no)->toBe('1234')
-            ->and($order_id)->toBe($order->get_id());
+    // Replace the stored pickup point.
+    $replace = function (SS_Shipping_Delivery_Details $details) {
+        expect($details->get_pickup_point())->not->toBeNull()
+            ->and($details->get_pickup_point()->get_agent_no())->toBe('1234');
 
-        return sample_agent(['agent_no' => '9999', 'company' => 'Override Shop']);
+        $pickup_point = new SS_Shipping_Pickup_Point();
+        $pickup_point->set_agent_no('9999')->set_company('Override Shop');
+
+        return $details->set_pickup_point($pickup_point);
     };
-    add_filter('smart_send_order_pickup_point', $filter, 10, 2);
-    remember_cleanup_callback(function () use ($filter): void {
-        remove_filter('smart_send_order_pickup_point', $filter, 10);
+    add_filter('smart_send_delivery_details', $replace);
+
+    $payload = capture_shipment_payload($order);
+
+    remove_filter('smart_send_delivery_details', $replace);
+
+    expect($payload['agent']['agent_no'])->toBe('9999')
+        ->and($payload['agent']['company'])->toBe('Override Shop')
+        // Without a Smart Send internal id, the agent number doubles as the
+        // internal reference (matching the historic behaviour for filter-built
+        // pickup points).
+        ->and($payload['agent']['internal_id'])->toBe('9999');
+
+    // Clear the pickup point entirely.
+    $clear = function (SS_Shipping_Delivery_Details $details) {
+        return $details->set_pickup_point(null);
+    };
+    add_filter('smart_send_delivery_details', $clear);
+    remember_cleanup_callback(function () use ($clear): void {
+        remove_filter('smart_send_delivery_details', $clear);
     });
 
     $payload = capture_shipment_payload($order);
 
-    expect($payload['agent']['agent_no'])->toBe('9999')
-        ->and($payload['agent']['company'])->toBe('Override Shop');
+    expect($payload['agent'])->toBeNull();
 });
 
 it('lets the smart_send_order_receiver filter adjust the shipping address', function () {
@@ -817,30 +826,99 @@ it('lets the smart_send_order_note filter rewrite the parcel freetext', function
     expect($payload['parcels'][0]['freetext'])->toBe('Filtered note');
 });
 
-it('lets the smart_send_parcel_weight filter override split parcel weights', function () {
+it('lets an explicit spec weight win over the item-sum when a plan declares one', function () {
+    // Replaces the removed smart_send_parcel_weight filter: packaging
+    // weight is declared on the SS_Shipping_Parcel_Spec itself.
     $product_a = create_simple_product(['name' => 'Weight Box One', 'price' => 100, 'weight' => 1]);
     $product_b = create_simple_product(['name' => 'Weight Box Two', 'price' => 50, 'weight' => 2]);
     $order     = create_order([
         'products'        => [$product_a, $product_b],
         'shipping_method' => 'postnord_homedelivery',
     ]);
-    SS_SHIPPING_WC()->order_meta()->save_ss_shipping_order_parcels($order->get_id(), [
-        ['id' => $product_a->get_id(), 'name' => 'Weight Box One', 'value' => '1'],
-        ['id' => $product_b->get_id(), 'name' => 'Weight Box Two', 'value' => '2'],
-    ]);
 
-    $filter = function ($parcel_weight, $order_id) use ($order) {
-        expect($order_id)->toBe($order->get_id());
+    $filter = function (SS_Shipping_Delivery_Details $details) use ($product_a, $product_b) {
+        $plan = new SS_Shipping_Parcel_Plan();
+        $plan->add_spec((new SS_Shipping_Parcel_Spec())->set_weight(9.5)->add_item($product_a->get_id()))
+            ->add_spec((new SS_Shipping_Parcel_Spec())->add_item($product_b->get_id()));
 
-        return 9.5;
+        return $details->set_parcel_plan($plan);
     };
-    add_filter('smart_send_parcel_weight', $filter, 10, 2);
+    add_filter('smart_send_delivery_details', $filter);
     remember_cleanup_callback(function () use ($filter): void {
-        remove_filter('smart_send_parcel_weight', $filter, 10);
+        remove_filter('smart_send_delivery_details', $filter);
     });
 
     $payload = capture_shipment_payload($order);
 
+    // The explicit weight wins on the first parcel; the second keeps its item-sum.
     expect($payload['parcels'][0]['weight'])->toEqual(9.5)
-        ->and($payload['parcels'][1]['weight'])->toEqual(9.5);
+        ->and($payload['parcels'][1]['weight'])->toEqual(2);
+});
+
+it('books an item-less two-parcel plan declared via smart_send_delivery_details with the full expected payload', function () {
+    // The "declare 2 parcels of size X/Y/Z and weight W with no item info
+    // at all" capability (#139), pinned as a full golden payload: item-less
+    // parcels carry dimensions and weight but no item rows (serialized as
+    // null, the v1 wire convention for "not set") and no amounts of their
+    // own - the declared amounts live at shipment level only.
+    $product = create_simple_product(['name' => 'Simple Product', 'price' => 100, 'weight' => 1.5, 'sku' => 'SIMPLE-' . uniqid()]);
+    $order   = create_order([
+        'products'        => [[$product, 2]],
+        'shipping_method' => 'postnord_homedelivery',
+        'shipping_total'  => '39',
+    ]);
+    $order_id = (string) $order->get_id();
+
+    $filter = function (SS_Shipping_Delivery_Details $details) {
+        $plan = new SS_Shipping_Parcel_Plan();
+        $plan->add_spec((new SS_Shipping_Parcel_Spec())->set_weight(4)->set_length(30)->set_width(20)->set_height(10))
+            ->add_spec((new SS_Shipping_Parcel_Spec())->set_weight(2.5)->set_length(15)->set_width(15)->set_height(15));
+
+        return $details->set_parcel_plan($plan);
+    };
+    add_filter('smart_send_delivery_details', $filter);
+    remember_cleanup_callback(function () use ($filter): void {
+        remove_filter('smart_send_delivery_details', $filter);
+    });
+
+    $payload = capture_shipment_payload($order);
+
+    expect($payload)->toEqual(expected_payload($order, [
+        'shipping_method' => 'homedelivery',
+        'parcels'         => [
+            [
+                'internal_id'        => $order_id,
+                'internal_reference' => $order_id,
+                'weight'             => 4,
+                'height'             => 10,
+                'width'              => 20,
+                'length'             => 30,
+                'freetext'           => null,
+                'items'              => null,
+                'total_price_excluding_tax' => null,
+                'total_price_including_tax' => null,
+                'total_tax_amount'          => null,
+            ],
+            [
+                'internal_id'        => $order_id,
+                'internal_reference' => $order_id,
+                'weight'             => 2.5,
+                'height'             => 15,
+                'width'              => 15,
+                'length'             => 15,
+                'freetext'           => null,
+                'items'              => null,
+                'total_price_excluding_tax' => null,
+                'total_price_including_tax' => null,
+                'total_tax_amount'          => null,
+            ],
+        ],
+        // The declared amounts live at shipment level only.
+        'subtotal_price_excluding_tax' => 200,
+        'subtotal_price_including_tax' => 200,
+        'shipping_price_excluding_tax' => 39,
+        'shipping_price_including_tax' => 39,
+        'total_price_excluding_tax'    => 239,
+        'total_price_including_tax'    => 239,
+    ]));
 });
