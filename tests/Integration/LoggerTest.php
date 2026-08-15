@@ -71,7 +71,7 @@ it('writes a debug entry with the plugin version and source in the context when 
     with_ss_settings(['ss_debug' => 'yes']);
     $spy = spy_on_logger();
 
-    SS_Shipping_Logger::log('Hello from the test');
+    SS_Shipping_Logger::debug('Hello from the test');
 
     expect($spy->entries)->toHaveCount(1);
     expect($spy->entries[0]['level'])->toBe('debug');
@@ -95,7 +95,6 @@ it('gates only debug on the debug setting; info, warning, error and critical alw
     with_ss_settings(['ss_debug' => 'no']);
     $spy = spy_on_logger();
 
-    SS_Shipping_Logger::log('gated');
     SS_Shipping_Logger::debug('gated');
     SS_Shipping_Logger::info('an info line');
     SS_Shipping_Logger::warning('a warning');
@@ -120,7 +119,7 @@ it('can be suppressed by returning false from the smart_send_logging filter', fu
     $spy = spy_on_logger();
     with_smart_send_logging_filter('__return_false', 1);
 
-    SS_Shipping_Logger::log('Suppressed');
+    SS_Shipping_Logger::debug('Suppressed');
     SS_Shipping_Logger::error('Suppressed error');
     SS_Shipping_Logger::critical('Suppressed critical');
 
@@ -132,7 +131,7 @@ it('can be suppressed by returning null from the smart_send_logging filter', fun
     $spy = spy_on_logger();
     with_smart_send_logging_filter('__return_null', 1);
 
-    SS_Shipping_Logger::log('Suppressed');
+    SS_Shipping_Logger::debug('Suppressed');
     SS_Shipping_Logger::error('Suppressed error');
 
     expect($spy->entries)->toBeEmpty();
@@ -145,7 +144,7 @@ it('can rewrite the message through the smart_send_logging filter', function () 
         return '[rewritten] ' . $message;
     }, 1);
 
-    SS_Shipping_Logger::log('A trace');
+    SS_Shipping_Logger::debug('A trace');
 
     expect($spy->entries)->toHaveCount(1);
     expect($spy->entries[0]['message'])->toBe('[rewritten] A trace');
@@ -155,7 +154,7 @@ it('does not suppress the message "0"', function () {
     with_ss_settings(['ss_debug' => 'yes']);
     $spy = spy_on_logger();
 
-    SS_Shipping_Logger::log('0');
+    SS_Shipping_Logger::debug('0');
 
     expect($spy->entries)->toHaveCount(1);
     expect($spy->entries[0]['message'])->toBe('0');
@@ -171,7 +170,7 @@ it('passes the message, level and context to the smart_send_logging filter', fun
         return $message;
     });
 
-    SS_Shipping_Logger::log('A trace', ['order_id' => 7]);
+    SS_Shipping_Logger::debug('A trace', ['order_id' => 7]);
     SS_Shipping_Logger::error('A failure');
 
     expect($seen)->toHaveCount(2);
@@ -201,7 +200,7 @@ it('logs successful API calls as one concise line with method, path, HTTP status
         return ss_api_response(200, ['data' => ss_api_shipment_data(['shipment_id' => 'log-test-shipment'])]);
     });
 
-    create_logging_api_client()->getAuthenticatedUser();
+    create_logging_api_client()->account()->getAuthenticatedUser();
 
     expect($spy->entries)->toHaveCount(1);
     expect($spy->entries[0]['level'])->toBe('debug');
@@ -220,7 +219,7 @@ it('redacts the API token in both the message and the context', function () {
     $spy = spy_on_logger();
     mock_smart_send_api();
 
-    create_logging_api_client('secret-token-123')->getAuthenticatedUser();
+    create_logging_api_client('secret-token-123')->account()->getAuthenticatedUser();
 
     expect($spy->entries)->toHaveCount(1);
     expect($spy->entries[0]['message'])->not->toContain('secret-token-123');
@@ -235,7 +234,7 @@ it('logs failed API calls at the error level with the error detail in context ev
         return ss_api_response(422, ss_api_error_body('The given data was invalid.'));
     });
 
-    create_logging_api_client()->getAuthenticatedUser();
+    create_logging_api_client()->account()->getAuthenticatedUser();
 
     expect($spy->entries)->toHaveCount(1);
     expect($spy->entries[0]['level'])->toBe('error');

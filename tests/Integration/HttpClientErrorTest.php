@@ -4,8 +4,8 @@
  * Tests for the Smartsend\Client HTTP error handling (issue #38): every
  * failure path — API validation errors, transport WP_Errors (connection,
  * timeout, SSL), empty and malformed bodies — must produce a well-formed
- * Smartsend\Models\Error with a distinguishable code, keep getErrorString()
- * working, and land in the log at the error level.
+ * Smartsend\Models\Error with a distinguishable code, keep the returned
+ * Response's errorString() working, and land in the log at the error level.
  */
 
 use Smartsend\Api;
@@ -79,12 +79,11 @@ it('returns data and no error on a successful response', function () {
         return ss_api_response(200, ['data' => ss_api_shipment_data(['shipment_id' => 'success-shipment'])]);
     });
 
-    $result = $api->getAuthenticatedUser();
+    $response = $api->account()->getAuthenticatedUser();
 
-    expect($result)->toBeTrue();
-    expect($api->isSuccessful())->toBeTrue();
-    expect($api->getError())->toBeNull();
-    expect($api->getData()->shipment_id)->toBe('success-shipment');
+    expect($response->isSuccessful())->toBeTrue();
+    expect($response->error())->toBeNull();
+    expect($response->data()->shipment_id)->toBe('success-shipment');
     expect($spy->entries)->toHaveCount(1);
     expect($spy->entries[0]['level'])->toBe('debug');
 });
@@ -96,12 +95,11 @@ it('normalises a 422 validation error body into a well-formed Error', function (
         return ss_api_response(422, ss_api_error_body('The given data was invalid.'));
     });
 
-    $result = $api->getAuthenticatedUser();
+    $response = $api->account()->getAuthenticatedUser();
 
-    expect($result)->toBeFalse();
-    expect($api->isSuccessful())->toBeFalse();
+    expect($response->isSuccessful())->toBeFalse();
 
-    $error = $api->getError();
+    $error = $response->error();
     expect($error)->toBeInstanceOf(Error::class);
     expect($error->code)->toBe('ValidationException');
     expect($error->message)->toBe('The given data was invalid.');
@@ -109,7 +107,7 @@ it('normalises a 422 validation error body into a well-formed Error', function (
     expect((array) $error->errors)->toHaveKey('receiver.postal_code');
 
     // getErrorString keeps rendering message, about-link, id and field errors
-    $error_string = $api->getErrorString();
+    $error_string = $response->errorString();
     expect($error_string)->toContain('The given data was invalid.');
     expect($error_string)->toContain('ValidationException');
     expect($error_string)->toContain('test-error-id');
@@ -127,19 +125,18 @@ it('maps a connection failure WP_Error to a transport-connection Error', functio
     [$api, $spy] = create_client_with_log_spy();
     mock_smart_send_transport_error('http_request_failed', 'cURL error 7: Failed to connect to app.smartsend.io port 443: Connection refused');
 
-    $result = $api->getAuthenticatedUser();
+    $response = $api->account()->getAuthenticatedUser();
 
-    expect($result)->toBeFalse();
-    expect($api->isSuccessful())->toBeFalse();
+    expect($response->isSuccessful())->toBeFalse();
 
-    $error = $api->getError();
+    $error = $response->error();
     expect($error)->toBeInstanceOf(Error::class);
     expect($error->code)->toBe('transport-connection');
     expect($error->message)->toContain('Could not connect to the Smart Send API');
     expect($error->errors['transport'][0])->toBe('http_request_failed: cURL error 7: Failed to connect to app.smartsend.io port 443: Connection refused');
 
     // The raw transport detail is available to support via getErrorString
-    expect($api->getErrorString())->toContain('Connection refused');
+    expect($response->errorString())->toContain('Connection refused');
 
     expect($spy->entries)->toHaveCount(1);
     expect($spy->entries[0]['level'])->toBe('error');
@@ -152,10 +149,10 @@ it('maps a timeout WP_Error to a transport-timeout Error', function () {
     [$api, $spy] = create_client_with_log_spy();
     mock_smart_send_transport_error('http_request_failed', 'cURL error 28: Operation timed out after 30001 milliseconds with 0 bytes received');
 
-    $result = $api->getAuthenticatedUser();
+    $response = $api->account()->getAuthenticatedUser();
 
-    expect($result)->toBeFalse();
-    $error = $api->getError();
+    expect($response->isSuccessful())->toBeFalse();
+    $error = $response->error();
     expect($error)->toBeInstanceOf(Error::class);
     expect($error->code)->toBe('transport-timeout');
     expect($error->message)->toContain('timed out');
@@ -172,9 +169,9 @@ it('maps a stream timeout message from WP_Http_Streams to transport-timeout too'
     [$api] = create_client_with_log_spy();
     mock_smart_send_transport_error('http_request_failed', 'stream_socket_client(): unable to connect (Connection timed out)');
 
-    $api->getAuthenticatedUser();
+    $response = $api->account()->getAuthenticatedUser();
 
-    expect($api->getError()->code)->toBe('transport-timeout');
+    expect($response->error()->code)->toBe('transport-timeout');
 });
 
 it('maps an SSL failure WP_Error to a transport-ssl Error instead of the old curl-35 mapping', function () {
@@ -182,10 +179,10 @@ it('maps an SSL failure WP_Error to a transport-ssl Error instead of the old cur
     [$api, $spy] = create_client_with_log_spy();
     mock_smart_send_transport_error('http_request_failed', 'cURL error 35: SSL connect error');
 
-    $result = $api->getAuthenticatedUser();
+    $response = $api->account()->getAuthenticatedUser();
 
-    expect($result)->toBeFalse();
-    $error = $api->getError();
+    expect($response->isSuccessful())->toBeFalse();
+    $error = $response->error();
     expect($error)->toBeInstanceOf(Error::class);
     expect($error->code)->toBe('transport-ssl');
     expect($error->code)->not->toBe('curl-35');
@@ -203,9 +200,9 @@ it('maps a certificate verification failure to transport-ssl', function () {
     [$api] = create_client_with_log_spy();
     mock_smart_send_transport_error('http_request_failed', 'cURL error 60: SSL certificate problem: unable to get local issuer certificate');
 
-    $api->getAuthenticatedUser();
+    $response = $api->account()->getAuthenticatedUser();
 
-    expect($api->getError()->code)->toBe('transport-ssl');
+    expect($response->error()->code)->toBe('transport-ssl');
 });
 
 it('keeps the WP_Error code recognisable for unclassified transport failures', function () {
@@ -213,9 +210,9 @@ it('keeps the WP_Error code recognisable for unclassified transport failures', f
     [$api] = create_client_with_log_spy();
     mock_smart_send_transport_error('http_request_not_executed', 'User has blocked requests through HTTP.');
 
-    $api->getAuthenticatedUser();
+    $response = $api->account()->getAuthenticatedUser();
 
-    $error = $api->getError();
+    $error = $response->error();
     expect($error)->toBeInstanceOf(Error::class);
     expect($error->code)->toBe('transport-http_request_not_executed');
     expect($error->message)->toContain('User has blocked requests through HTTP.');
@@ -234,14 +231,14 @@ it('produces a well-formed Error for a non-2xx response with an empty body', fun
         ];
     });
 
-    $result = $api->getAuthenticatedUser();
+    $response = $api->account()->getAuthenticatedUser();
 
-    expect($result)->toBeFalse();
-    $error = $api->getError();
+    expect($response->isSuccessful())->toBeFalse();
+    $error = $response->error();
     expect($error)->toBeInstanceOf(Error::class);
     expect($error->code)->toBe('api-empty-response');
     expect($error->message)->toContain('HTTP 503');
-    expect($api->getErrorString())->toBeString();
+    expect($response->errorString())->toBeString();
 
     expect($spy->entries)->toHaveCount(1);
     expect($spy->entries[0]['level'])->toBe('error');
@@ -262,10 +259,10 @@ it('produces a well-formed Error for a non-2xx response with a non-JSON body', f
         ];
     });
 
-    $result = $api->getAuthenticatedUser();
+    $response = $api->account()->getAuthenticatedUser();
 
-    expect($result)->toBeFalse();
-    $error = $api->getError();
+    expect($response->isSuccessful())->toBeFalse();
+    $error = $response->error();
     expect($error)->toBeInstanceOf(Error::class);
     expect($error->code)->toBe('api-malformed-response');
     expect($error->message)->toContain('HTTP 502');
@@ -291,10 +288,10 @@ it('produces a well-formed Error for a non-2xx response with malformed JSON', fu
         ];
     });
 
-    $result = $api->getAuthenticatedUser();
+    $response = $api->account()->getAuthenticatedUser();
 
-    expect($result)->toBeFalse();
-    $error = $api->getError();
+    expect($response->isSuccessful())->toBeFalse();
+    $error = $response->error();
     expect($error)->toBeInstanceOf(Error::class);
     expect($error->code)->toBe('api-malformed-response');
     expect($error->message)->toContain('HTTP 500');
@@ -313,10 +310,10 @@ it('produces a well-formed Error for a 2xx response with malformed JSON', functi
         ];
     });
 
-    $result = $api->getAuthenticatedUser();
+    $response = $api->account()->getAuthenticatedUser();
 
-    expect($result)->toBeFalse();
-    $error = $api->getError();
+    expect($response->isSuccessful())->toBeFalse();
+    $error = $response->error();
     expect($error)->toBeInstanceOf(Error::class);
     expect($error->code)->toBe('api-malformed-response');
     expect($error->message)->toContain('HTTP 200');
@@ -338,10 +335,10 @@ it('produces a well-formed Error for a 2xx response with an empty body', functio
         ];
     });
 
-    $result = $api->getAuthenticatedUser();
+    $response = $api->account()->getAuthenticatedUser();
 
-    expect($result)->toBeFalse();
-    $error = $api->getError();
+    expect($response->isSuccessful())->toBeFalse();
+    $error = $response->error();
     expect($error)->toBeInstanceOf(Error::class);
     expect($error->code)->toBe('api-empty-response');
 });
@@ -353,10 +350,10 @@ it('keeps the NoResults error for a 2xx response with an empty data set', functi
         return ss_api_response(200, ['data' => []]);
     });
 
-    $result = $api->getAuthenticatedUser();
+    $response = $api->account()->getAuthenticatedUser();
 
-    expect($result)->toBeFalse();
-    $error = $api->getError();
+    expect($response->isSuccessful())->toBeFalse();
+    $error = $response->error();
     expect($error)->toBeInstanceOf(Error::class);
     expect($error->code)->toBe('NoResults');
     expect($error->message)->toBe('No results found');
@@ -375,9 +372,9 @@ it('truncates huge non-JSON bodies embedded in the error details', function () {
         ];
     });
 
-    $api->getAuthenticatedUser();
+    $response = $api->account()->getAuthenticatedUser();
 
-    $details = $api->getError()->errors['response'][0];
+    $details = $response->error()->errors['response'][0];
     expect(strlen($details))->toBeLessThanOrEqual(503);
     expect($details)->toEndWith('...');
 });
@@ -404,7 +401,7 @@ it('still honours the smart_send_sslverify filter', function () {
         remove_filter('smart_send_sslverify', '__return_false');
     });
 
-    $api->getAuthenticatedUser();
+    $response = $api->account()->getAuthenticatedUser();
 
     expect($seen_sslverify)->toBeFalse();
 });

@@ -2,17 +2,15 @@
 
 namespace Smartsend\Models;
 
-use Smartsend\Models\Shipment\Sender;
 use Smartsend\Models\Shipment\Receiver;
 use Smartsend\Models\Shipment\Agent as ShipmentAgent;
 use Smartsend\Models\Shipment\Parcel;
-use  Smartsend\Models\Shipment\Services;
+use Smartsend\Models\Shipment\Services;
 
-require_once 'Shipment/Sender.php';
-require_once 'Shipment/Receiver.php';
-require_once 'Shipment/Agent.php';
-require_once 'Shipment/Parcel.php';
-require_once 'Shipment/Services.php';
+require_once __DIR__ . '/Shipment/Receiver.php';
+require_once __DIR__ . '/Shipment/Agent.php';
+require_once __DIR__ . '/Shipment/Parcel.php';
+require_once __DIR__ . '/Shipment/Services.php';
 
 class Shipment implements \JsonSerializable
 {
@@ -24,7 +22,11 @@ class Shipment implements \JsonSerializable
     private ?string $shipping_carrier = null;
     private ?string $shipping_method = null;
     private ?string $shipping_date = null;
-    private ?Sender $sender = null;
+    // $sender: always null - the plugin never sets a sender (the Smart Send
+    // account's own address is used server-side) and the Sender model was
+    // deleted as dead code (#141), but the null "sender" key stays part of
+    // the frozen v1 wire payload (see the ShipmentPayloadTest goldens).
+    private $sender = null;
     private ?Receiver $receiver = null;
     private ?ShipmentAgent $agent = null;
     private ?array $parcels = null;
@@ -37,82 +39,6 @@ class Shipment implements \JsonSerializable
     private ?float $total_price_including_tax = null;
     private ?float $total_tax_amount = null;
     private ?string $currency = null;
-
-    public function __construct(Array $shipment=null)
-    {
-        if (isset($shipment['internal_id'])) {
-            $this->setInternalId($shipment['internal_id']);
-        }
-
-        if (isset($shipment['internal_reference'])) {
-            $this->setInternalReference($shipment['internal_reference']);
-        }
-
-        if (isset($shipment['shipping_carrier'])) {
-            $this->setShippingCarrier($shipment['shipping_carrier']);
-        }
-
-        if (isset($shipment['shipping_method'])) {
-            $this->setShippingMethod($shipment['shipping_method']);
-        }
-
-        if (isset($shipment['shipping_date'])) {
-            $this->setShippingDate($shipment['shipping_date']);
-        }
-
-        if (isset($shipment['sender'])) {
-            $this->setSender($shipment['sender']);
-        }
-
-        if (isset($shipment['receiver'])) {
-            $this->setReceiver($shipment['receiver']);
-        }
-
-        if (isset($shipment['agent'])) {
-            $this->setAgent($shipment['agent']);
-        }
-
-        if (isset($shipment['parcels'])) {
-            $this->setParcels($shipment['parcels']);
-        }
-
-        if (isset($shipment['services'])) {
-            $this->setServices($shipment['services']);
-        }
-
-        if (isset($shipment['subtotal_price_excluding_tax'])) {
-            $this->setSubtotalPriceExcludingTax($shipment['subtotal_price_excluding_tax']);
-        }
-
-        if (isset($shipment['subtotal_price_including_tax'])) {
-            $this->setSubtotalPriceIncludingTax($shipment['subtotal_price_including_tax']);
-        }
-
-        if (isset($shipment['shipping_price_excluding_tax'])) {
-            $this->setShippingPriceExcludingTax($shipment['shipping_price_excluding_tax']);
-        }
-
-        if (isset($shipment['shipping_price_including_tax'])) {
-            $this->setShippingPriceIncludingTax($shipment['shipping_price_including_tax']);
-        }
-
-        if (isset($shipment['total_price_excluding_tax'])) {
-            $this->setTotalPriceExcludingTax($shipment['total_price_excluding_tax']);
-        }
-
-        if (isset($shipment['total_price_including_tax'])) {
-            $this->setTotalPriceIncludingTax($shipment['total_price_including_tax']);
-        }
-
-        if (isset($shipment['total_tax_amount'])) {
-            $this->setTotalTaxAmount($shipment['total_tax_amount']);
-        }
-
-        if (isset($shipment['currency'])) {
-            $this->setCurrency($shipment['currency']);
-        }
-
-    }
 
     /**
      * @return string|null
@@ -201,24 +127,6 @@ class Shipment implements \JsonSerializable
     public function setShippingDate(?string $shipping_date): self
     {
         $this->shipping_date = $shipping_date;
-        return $this;
-    }
-
-    /**
-     * @return Sender|null
-     */
-    public function getSender(): ?Sender
-    {
-        return $this->sender;
-    }
-
-    /**
-     * @param Sender $sender
-     * @return self
-     */
-    public function setSender(Sender $sender): self
-    {
-        $this->sender = $sender;
         return $this;
     }
 

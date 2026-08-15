@@ -49,7 +49,7 @@ class BookingResource
      * Book a shipment and create its labels in a single call.
      *
      * @param   Shipment $shipment The v1 wire shipment, see self::fromShipment().
-     * @return  object|true|false
+     * @return  \Smartsend\Response
      */
     public function create(Shipment $shipment)
     {
@@ -61,7 +61,7 @@ class BookingResource
      * single PDF.
      *
      * @param   string[] $shipment_ids
-     * @return  object|true|false
+     * @return  \Smartsend\Response
      */
     public function combine(array $shipment_ids)
     {

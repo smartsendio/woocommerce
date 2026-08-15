@@ -17,7 +17,7 @@ if ( ! class_exists( 'SS_Shipping_Booking' ) ) :
 	/**
 	 * Wraps the outcome of a SS_Shipping_Booking_Service::book_outbound()/
 	 * book_return() attempt: either the raw API response data (unchanged
-	 * pass-through of Smartsend\Client::getData()'s dynamic stdClass shape -
+	 * pass-through of Smartsend\Response::data()'s dynamic stdClass shape -
 	 * remodelling that shape is out of scope here, see #112) and the
 	 * translated v1 wire shipment model, or an error message when the
 	 * booking failed (config error or API error).
@@ -90,7 +90,7 @@ if ( ! class_exists( 'SS_Shipping_Booking' ) ) :
 		/**
 		 * Get the raw API response data, if the booking succeeded.
 		 *
-		 * Same dynamic stdClass shape Smartsend\Client::getData() returns
+		 * Same dynamic stdClass shape Smartsend\Response::data() returns
 		 * today: shipment_id, pdf->base_64_encoded, pdf->link, carrier_name,
 		 * parcels[]->tracking_code/tracking_link, woocommerce, etc.
 		 *

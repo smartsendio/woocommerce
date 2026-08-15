@@ -744,20 +744,14 @@ if ( ! class_exists( 'SS_Shipping_WC' ) ) :
 	     * Validate the API token
 	     *
 	     * @return boolean
-	     */
-        public function validate_api_token()
-        {
+		 */
+		public function validate_api_token() {
+			if ( $this->get_api_handle() ) {
+				return $this->api_handle->account()->getAuthenticatedUser()->isSuccessful();
+			}
 
-            if ($this->get_api_handle()) {
-                if ($this->api_handle->getAuthenticatedUser()) {
-                    return true;
-                } else {
-                    return false;
-                }
-            } else {
-                return false;
-            }
-        }
+			return false;
+		}
 
         /**
          * Test connection AJAX call
@@ -766,22 +760,26 @@ if ( ! class_exists( 'SS_Shipping_WC' ) ) :
         {
             check_ajax_referer('ss-test-connection', 'test_connection_nonce');
 
-			if ( $this->validate_api_token() ) {
-				$connection_msg = sprintf(
-					/* translators: 1: email address of the connected Smart Send account, 2: website of the connected Smart Send account. */
-					__( 'API Token verified: Connected to Smart Send as %1$s from %2$s', 'smart-send-logistics' ),
-					$this->get_api_handle()->getData()->email,
-					$this->get_api_handle()->getData()->website
-				);
-				$error = 0;
-			} elseif ( $this->get_api_handle() ) {
-				$connection_msg = sprintf(
-					/* translators: %s: error message returned by the Smart Send API. */
-					__( 'API Token validation failed: %s. Make sure to save the settings before validating.', 'smart-send-logistics' ),
-					$this->get_api_handle()->getError()->message
-				);
-				$error = 1;
-            } else {
+			if ( $this->get_api_handle() ) {
+				$response = $this->get_api_handle()->account()->getAuthenticatedUser();
+
+				if ( $response->isSuccessful() ) {
+					$connection_msg = sprintf(
+						/* translators: 1: email address of the connected Smart Send account, 2: website of the connected Smart Send account. */
+						__( 'API Token verified: Connected to Smart Send as %1$s from %2$s', 'smart-send-logistics' ),
+						$response->data()->email,
+						$response->data()->website
+					);
+					$error = 0;
+				} else {
+					$connection_msg = sprintf(
+						/* translators: %s: error message returned by the Smart Send API. */
+						__( 'API Token validation failed: %s. Make sure to save the settings before validating.', 'smart-send-logistics' ),
+						$response->error()->message
+					);
+					$error = 1;
+				}
+			} else {
                 $connection_msg = __('API Token validation failed: Please enter an API Token and save the settings before validating.',
                     'smart-send-logistics');
                 $error = 1;
