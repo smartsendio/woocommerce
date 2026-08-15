@@ -348,13 +348,13 @@ if ( ! class_exists( 'SS_Shipping_WC' ) ) :
 
 				$this->pickup_point_formatter = new SS_Shipping_Pickup_Point_Formatter( $this->settings );
 				$this->pickup_point_lookup    = new SS_Shipping_Pickup_Point_Lookup();
+				$this->order_meta             = new SS_Shipping_Order_Meta();
 
-				$this->ss_shipping_frontend     = new SS_Shipping_Frontend( $this->pickup_point_lookup, $this->pickup_point_formatter, $this->settings );
+				$this->ss_shipping_frontend     = new SS_Shipping_Frontend( $this->pickup_point_lookup, $this->pickup_point_formatter, $this->settings, $this->order_meta );
 				$this->ss_shipping_wc_product   = new SS_Shipping_WC_Product();
 				$this->ss_plugin_screen_updates = new SS_Plugins_Screen_Updates();
 
 				$this->admin_notices          = new SS_Shipping_Admin_Notices();
-				$this->order_meta             = new SS_Shipping_Order_Meta();
 				$this->method_resolver        = new SS_Shipping_Method_Resolver( $this->settings );
 				$this->shipment_ids           = new SS_Shipping_Shipment_Ids();
 				$this->pickup_point_validator = new SS_Shipping_Pickup_Point_Validator( $this->order_meta, $this->method_resolver );

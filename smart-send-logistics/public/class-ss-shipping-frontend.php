@@ -39,17 +39,26 @@ if ( ! class_exists( 'SS_Shipping_Frontend' ) ) :
 		protected SS_Shipping_Settings $settings;
 
 		/**
+		 * Order meta repository (delivery details).
+		 *
+		 * @var SS_Shipping_Order_Meta
+		 */
+		protected SS_Shipping_Order_Meta $order_meta;
+
+		/**
 		 * All collaborators are stateless, so fresh defaults are safe for
 		 * ad-hoc construction (tests construct the frontend directly).
 		 *
 		 * @param SS_Shipping_Pickup_Point_Lookup|null    $pickup_point_lookup    Headless pickup point lookup.
 		 * @param SS_Shipping_Pickup_Point_Formatter|null $pickup_point_formatter Pickup point display formatter.
 		 * @param SS_Shipping_Settings|null               $settings               Typed plugin settings reader.
+		 * @param SS_Shipping_Order_Meta|null             $order_meta             Order meta repository.
 		 */
-		public function __construct( ?SS_Shipping_Pickup_Point_Lookup $pickup_point_lookup = null, ?SS_Shipping_Pickup_Point_Formatter $pickup_point_formatter = null, ?SS_Shipping_Settings $settings = null ) {
+		public function __construct( ?SS_Shipping_Pickup_Point_Lookup $pickup_point_lookup = null, ?SS_Shipping_Pickup_Point_Formatter $pickup_point_formatter = null, ?SS_Shipping_Settings $settings = null, ?SS_Shipping_Order_Meta $order_meta = null ) {
 			$this->pickup_point_lookup    = null === $pickup_point_lookup ? new SS_Shipping_Pickup_Point_Lookup() : $pickup_point_lookup;
 			$this->pickup_point_formatter = null === $pickup_point_formatter ? new SS_Shipping_Pickup_Point_Formatter() : $pickup_point_formatter;
 			$this->settings               = null === $settings ? new SS_Shipping_Settings() : $settings;
+			$this->order_meta             = null === $order_meta ? new SS_Shipping_Order_Meta() : $order_meta;
 		}
 
 		/**
@@ -263,7 +272,7 @@ if ( ! class_exists( 'SS_Shipping_Frontend' ) ) :
 			if ( ! empty( $selected_pickup_point_no ) ) {
 				$details = new SS_Shipping_Delivery_Details();
 				$details->set_pickup_point( SS_Shipping_Pickup_Point::from_object( $selected_pickup_point ) );
-				SS_SHIPPING_WC()->order_meta()->write( $order_id, $details );
+				$this->order_meta->write( $order_id, $details );
 
 				SS_Shipping_Logger::info(
 					'Pickup point selected at checkout',
@@ -281,7 +290,7 @@ if ( ! class_exists( 'SS_Shipping_Frontend' ) ) :
 		public function display_ss_shipping_agent( $order ) {
 
 			$order_id             = $this->get_order_id( $order );
-			$ordered_pickup_point = SS_SHIPPING_WC()->order_meta()->read( $order_id )->get_pickup_point();
+			$ordered_pickup_point = $this->order_meta->read( $order_id )->get_pickup_point();
 
 			if ( null !== $ordered_pickup_point && $ordered_pickup_point->get_agent_no() ) {
 
