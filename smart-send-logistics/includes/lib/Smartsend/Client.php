@@ -3,10 +3,19 @@
 
 namespace Smartsend;
 
-require_once 'Models/Error.php';
+require_once __DIR__ . '/Models/Error.php';
+require_once __DIR__ . '/Response.php';
 
 use Smartsend\Models\Error;
 
+/**
+ * The HTTP transport against the Smart Send API (wp_remote_* based).
+ *
+ * Stateless between requests (#141): every http* call returns an
+ * immutable Response value object carrying that call's outcome - no
+ * response state persists on this instance, so interleaved calls on a
+ * shared client can never corrupt each other's pending result.
+ */
 class Client
 {
     const TIMEOUT = 30;
@@ -20,32 +29,8 @@ class Client
     private ?string $website = null;
     private ?string $api_token = null;
     private bool $demo = false;
-    protected ?string $request_endpoint = null;
-    protected ?array $request_headers = null;
-    /** @var string|null Untyped: json_encode() can return false on encoding failure. */
-    protected $request_body;
-    /** @var array|\WpOrg\Requests\Utility\CaseInsensitiveDictionary|null Untyped: wp_remote_retrieve_headers() returns either shape. */
-    protected $response_headers;
-    protected ?string $response_body = null;
-    /** @var mixed Decoded JSON response body. */
-    protected $response;
-    /** @var int|string|null Untyped: wp_remote_retrieve_response_code() returns '' on transport failure. */
-    protected $http_status_code;
-    /** @var string|array|null Untyped: wp_remote_retrieve_header() returns an array for duplicate headers. */
-    protected $content_type;
-    /** @var array|\WP_Error|null Untyped: holds the raw wp_remote_request() result. */
-    protected $debug;
-    /** @var mixed Untyped: assigned only null (clearAll()); no accessor reads it, so its real API contract is unconfirmed. */
-    protected $meta;
-    protected ?bool $success = null;
-    /** @var mixed API response data. */
-    protected $data;
-    /** @var mixed API response links. */
-    protected $links;
-    protected ?Error $error = null;
     /** @var callable|null Untyped: PHP does not support callable property types (the setter parameter below is still hinted `callable`). */
     private $request_logger;
-    private ?float $request_started_at = null;
 
     public function __construct($api_token, $website, $demo=false)
     {
@@ -136,129 +121,6 @@ class Client
     }
 
     /**
-     * @return mixed
-     */
-    public function getData()
-    {
-        return $this->data;
-    }
-
-    /**
-     * @return mixed
-     */
-    public function getLinks()
-    {
-        return $this->links;
-    }
-
-    /**
-     * @return Error|null
-     */
-    public function getError(): ?Error
-    {
-        return $this->error;
-    }
-
-    /**
-     * @return string
-     */
-    public function getErrorString($delimiter='<br>')
-    {
-	    // Fetch error:
-	    $error = $this->getError();
-
-	    // Print error message
-	    $error_string = $error->message;
-	    // Print 'Read more here' link to error explenation
-	    if (isset($error->links->about)) {
-		    $error_string .= $delimiter."- <a href='".$error->links->about."' target='_blank'>Read more here</a>";
-	    }
-
-	    // Print unique error ID if one exists
-	    if (isset($error->id)) {
-		    $error_string .= $delimiter."Unique ID: ".$error->id;
-	    }
-
-	    // Print each error
-	    if (isset($error->errors)) {
-		    foreach ($error->errors as $error_field => $error_details) {
-			    if (is_array($error_details)) {
-				    if (count($error_details) > 1) {
-					    $error_string .= $delimiter . $error_field .':';
-					    foreach ($error_details as $error_description) {
-						    $error_string .= $delimiter . "- ". $error_description;
-					    }
-				    } else {
-					    foreach ($error_details as $error_description) {
-						    $error_string .= $delimiter . "- " . $error_field . ': ' . $error_description;
-					    }
-				    }
-			    } else {
-				    $error_string .= $delimiter . "- " . $error_field . ': ' . $error_details;
-			    }
-		    }
-	    }
-
-	    return $error_string;
-    }
-
-    /**
-     * @return void
-     */
-    public function printError()
-    {
-        echo $this->getErrorString('<br>');
-    }
-
-    /**
-     * @return mixed
-     */
-    public function getDebug()
-    {
-        return $this->debug;
-    }
-
-    /**
-     * @return string|null
-     */
-    public function getRequestEndpoint(): ?string
-    {
-        return $this->request_endpoint;
-    }
-
-    /**
-     * @return mixed
-     */
-    public function getRequestBody()
-    {
-        return $this->request_body;
-    }
-
-    /**
-     * @return array|null
-     */
-    public function getRequestHeaders(): ?array
-    {
-        return $this->request_headers;
-    }
-
-    /**
-     * @return string|null
-     */
-    public function getResponseBody(): ?string
-    {
-        return $this->response_body;
-    }
-
-    /**
-     * @return mixed
-     */
-    public function getResponseHeaders()
-    {
-        return $this->response_headers;
-    }
-
-    /**
      * Inject a callable that is invoked after every HTTP request with the
      * request/response data. This keeps the client free of any logging
      * concerns - the consumer decides what (if anything) to do with the data.
@@ -276,13 +138,17 @@ class Client
     }
 
     /**
-     * Invoke the injected request logger (if any) with the current
-     * request/response state.
+     * Invoke the injected request logger (if any) with the given
+     * request/response data.
      *
      * @param   string $http_verb The HTTP verb used for the request
+     * @param   string $request_endpoint Full request URL
+     * @param   string|null $request_body JSON request body, if any
+     * @param   Response $response The outcome of the request
+     * @param   string|null $response_body Raw response body
      * @return  void
      */
-    private function logRequest($http_verb)
+    private function logRequest($http_verb, $request_endpoint, $request_body, Response $response, $response_body)
     {
         if (!is_callable($this->request_logger)) {
             return;
@@ -290,47 +156,15 @@ class Client
 
         call_user_func($this->request_logger, array(
             'method'        => strtoupper($http_verb),
-            'endpoint'      => $this->request_endpoint,
-            'request_body'  => $this->request_body,
-            'status_code'   => $this->http_status_code,
-            'response_body' => $this->response_body,
-            'success'       => (bool) $this->success,
-            'error'         => $this->error,
-            'start_time'    => $this->request_started_at,
-            'end_time'      => microtime(true),
+            'endpoint'      => $request_endpoint,
+            'request_body'  => $request_body,
+            'status_code'   => $response->statusCode(),
+            'response_body' => $response_body,
+            'success'       => $response->isSuccessful(),
+            'error'         => $response->error(),
+            'start_time'    => $response->startedAt(),
+            'end_time'      => $response->completedAt(),
         ));
-    }
-
-    /**
-     * Was the API response contain link to next page of results
-     * @return  boolean
-     */
-    public function isSuccessful(): ?bool
-    {
-        return $this->success;
-    }
-
-    /**
-     * Return all request and response traces
-     * @return  void
-     */
-    private function clearAll()
-    {
-        $this->request_endpoint = null;
-        $this->request_headers = null;
-        $this->request_body = null;
-        $this->response_headers = null;
-        $this->response_body = null;
-        $this->response = null;
-        $this->meta = null;
-        $this->data = null;
-        $this->links = null;
-        $this->error = null;
-        $this->success = null;
-        $this->http_status_code = null;
-        $this->content_type = null;
-        $this->debug = null;
-        $this->request_started_at = null;
     }
 
     /**
@@ -340,7 +174,7 @@ class Client
      * @param   array $headers Assoc array of headers
      * @param   array $body Assoc array of body (will be converted to json)
      * @param   int $timeout Timeout limit for request in seconds
-     * @return  object|true|false   Assoc array of API response, decoded from JSON
+     * @return  Response
      */
     public function httpDelete($method, $args = array(), $headers = array(), $body=null, $timeout = self::TIMEOUT)
     {
@@ -353,7 +187,7 @@ class Client
      * @param   array $headers Assoc array of headers
      * @param   array $body Assoc array of body (will be converted to json)
      * @param   int $timeout Timeout limit for request in seconds
-     * @return  object|true|false   Assoc array of API response, decoded from JSON
+     * @return  Response
      */
     public function httpGet($method, $args = array(), $headers = array(), $body=null, $timeout = self::TIMEOUT)
     {
@@ -366,7 +200,7 @@ class Client
      * @param   array $headers Assoc array of headers
      * @param   array $body Assoc array of body (will be converted to json)
      * @param   int $timeout Timeout limit for request in seconds
-     * @return  object|true|false   Assoc array of API response, decoded from JSON
+     * @return  Response
      */
     public function httpPatch($method, $args = array(), $headers = array(), $body=null, $timeout = self::TIMEOUT)
     {
@@ -379,7 +213,7 @@ class Client
      * @param   array $headers Assoc array of headers
      * @param   array $body Assoc array of body (will be converted to json)
      * @param   int $timeout Timeout limit for request in seconds
-     * @return  object|true|false   Assoc array of API response, decoded from JSON
+     * @return  Response
      */
     public function httpPost($method, $args = array(), $headers = array(), $body=null, $timeout = self::TIMEOUT)
     {
@@ -392,7 +226,7 @@ class Client
      * @param   array $headers Assoc array of headers
      * @param   array $body Assoc array of body (will be converted to json)
      * @param   int $timeout Timeout limit for request in seconds
-     * @return  object|true|false   Assoc array of API response, decoded from JSON
+     * @return  Response
      */
     public function httpPut($method, $args = array(), $headers = array(), $body=null, $timeout = self::TIMEOUT)
     {
@@ -406,9 +240,7 @@ class Client
      * @param   array $headers Assoc array of headers
      * @param   array $body Assoc array of body (will be converted to json)
      * @param   int $timeout
-     * @return  object|true|false   Assoc array of API response, decoded from JSON
-     *
-     * @throws \Exception
+     * @return  Response
      */
     private function makeRequest($http_verb, $method, $args = array(), $headers=array(), $body=null, $timeout = self::TIMEOUT)
     {
@@ -423,21 +255,19 @@ class Client
         // Append API key to the headers
         $args['api_token'] = $this->getApiToken();
 
-        // Clear request and response from previous API call
-        $this->clearAll();
-
         // Set URL (inc parameters $args)
-        $this->request_endpoint = $this->getApiEndpoint().$method;
+        $request_endpoint = $this->getApiEndpoint().$method;
 
-        if (!empty($args) && strpos($this->request_endpoint, '?') !== false) {
-            $this->request_endpoint .= '&'.http_build_query($args, '', '&');
+        if (!empty($args) && strpos($request_endpoint, '?') !== false) {
+            $request_endpoint .= '&'.http_build_query($args, '', '&');
         } elseif (!empty($args)) {
-            $this->request_endpoint .= '?'.http_build_query($args, '', '&');
+            $request_endpoint .= '?'.http_build_query($args, '', '&');
         }
 
         // Set body (if $http_verb not delete)
+        $request_body = null;
         if ($http_verb != 'get' && $http_verb != 'delete') {
-            $this->request_body = ($body ? json_encode($body) : null);
+            $request_body = ($body ? json_encode($body) : null);
         }
 
         if (!isset($headers['referer'])) {
@@ -454,13 +284,12 @@ class Client
 	    }
 
 	    // Make request
-	    $this->request_started_at = microtime(true);
-	    $this->request_headers = $headers_key_value;
-	    $res = wp_remote_request($this->request_endpoint, array(
+	    $request_started_at = microtime(true);
+	    $res = wp_remote_request($request_endpoint, array(
 		    'method'     => strtoupper($http_verb),
 		    'user-agent' => $this->getUserAgent(),
 			'headers'    => $headers_key_value,
-		    'body'       => $this->request_body,
+		    'body'       => $request_body,
 		    'timeout'    => $timeout,
 		    'httpversion' => '1.1',
             'sslverify'  => apply_filters('smart_send_sslverify', true),
@@ -474,88 +303,96 @@ class Client
 	    ));
 
         // execute request
-	    $this->response_body = wp_remote_retrieve_body($res);
+	    $response_body = wp_remote_retrieve_body($res);
 
         // Save http status code and headers
-	    $this->debug = $res;
-	    $this->response_headers = wp_remote_retrieve_headers($res);
-	    $this->http_status_code = wp_remote_retrieve_response_code($res);
-	    $this->content_type = wp_remote_retrieve_header($res, 'content-type');
+	    $http_status_code = wp_remote_retrieve_response_code($res);
+	    $content_type = wp_remote_retrieve_header($res, 'content-type');
 
         // Transport-level failure: the request never produced an HTTP response
         if (is_wp_error($res)) {
-            $this->success = false;
-            $this->error = $this->createErrorFromWpError($res);
-            $this->logRequest($http_verb);
-            return $this->success;
+            $response = $this->buildResponse(false, null, null, $this->createErrorFromWpError($res), $http_status_code, $request_started_at);
+            $this->logRequest($http_verb, $request_endpoint, $request_body, $response, $response_body);
+            return $response;
         }
 
         // If response is JSON, then json_decode
-        if (strpos($this->content_type, 'application/json') !== false || strpos($this->content_type, 'text/json') !== false) {
-            $this->response = json_decode($this->response_body);
+        $decoded = null;
+        if (strpos($content_type, 'application/json') !== false || strpos($content_type, 'text/json') !== false) {
+            $decoded = json_decode($response_body);
         }
 
         //Error if response is not 2xx
-        if ($this->http_status_code < 200 || $this->http_status_code > 299 ) {
-            $this->success = false;
-
-            if (is_object($this->response) && !empty($this->response->message)) {
+        if ($http_status_code < 200 || $http_status_code > 299 ) {
+            if (is_object($decoded) && !empty($decoded->message)) {
                 // Well-formed API error body (e.g. a validation error)
-                $this->error = $this->createErrorFromApiResponse($this->response);
-            } elseif (empty($this->response_body)) {
-                $this->error = $this->createError(
+                $error = $this->createErrorFromApiResponse($decoded, $http_status_code);
+            } elseif (empty($response_body)) {
+                $error = $this->createError(
                     'api-empty-response',
-                    'The Smart Send API returned an empty response (HTTP '.$this->http_status_code.'). Please try again later.'
+                    'The Smart Send API returned an empty response (HTTP '.$http_status_code.'). Please try again later.'
                 );
             } else {
                 // Body present but not a parseable/recognisable JSON error
-                $this->error = $this->createError(
+                $error = $this->createError(
                     'api-malformed-response',
-                    'The Smart Send API returned an unexpected response (HTTP '.$this->http_status_code.'). Please try again later.',
-                    array('response' => array($this->truncateForError($this->response_body)))
+                    'The Smart Send API returned an unexpected response (HTTP '.$http_status_code.'). Please try again later.',
+                    array('response' => array($this->truncateForError($response_body)))
                 );
             }
 
-            $this->logRequest($http_verb);
-            return $this->success;
+            $response = $this->buildResponse(false, null, null, $error, $http_status_code, $request_started_at);
+            $this->logRequest($http_verb, $request_endpoint, $request_body, $response, $response_body);
+            return $response;
         }
 
         // if no response->data
-        if (empty($this->response->data)) {
+        if (empty($decoded->data)) {
             if ($http_verb == 'delete') {
-                //Return TRUE for DELETE with no BODY
-                $this->success = true;
-            } elseif (is_object($this->response) && !empty($this->response->message)) {
-                $this->error = $this->createErrorFromApiResponse($this->response);
-                $this->success = false;
-            } elseif (empty($this->response_body)) {
-                $this->error = $this->createError(
+                //Successful DELETE with no BODY
+                $response = $this->buildResponse(true, null, null, null, $http_status_code, $request_started_at);
+            } elseif (is_object($decoded) && !empty($decoded->message)) {
+                $response = $this->buildResponse(false, null, null, $this->createErrorFromApiResponse($decoded, $http_status_code), $http_status_code, $request_started_at);
+            } elseif (empty($response_body)) {
+                $error = $this->createError(
                     'api-empty-response',
-                    'The Smart Send API returned an empty response (HTTP '.$this->http_status_code.'). Please try again later.'
+                    'The Smart Send API returned an empty response (HTTP '.$http_status_code.'). Please try again later.'
                 );
-                $this->success = false;
-            } elseif (isset($this->response->data)) {
-                $this->error = $this->createError('NoResults', 'No results found');
-                $this->success = false;
+                $response = $this->buildResponse(false, null, null, $error, $http_status_code, $request_started_at);
+            } elseif (isset($decoded->data)) {
+                $response = $this->buildResponse(false, null, null, $this->createError('NoResults', 'No results found'), $http_status_code, $request_started_at);
             } else {
-                $this->error = $this->createError(
+                $error = $this->createError(
                     'api-malformed-response',
-                    'The Smart Send API returned an unexpected response (HTTP '.$this->http_status_code.'). Please try again later.',
-                    array('response' => array($this->truncateForError($this->response_body)))
+                    'The Smart Send API returned an unexpected response (HTTP '.$http_status_code.'). Please try again later.',
+                    array('response' => array($this->truncateForError($response_body)))
                 );
-                $this->success = false;
+                $response = $this->buildResponse(false, null, null, $error, $http_status_code, $request_started_at);
             }
         } else {
-            if (isset($this->response->links)) {
-                $this->links = $this->response->links;
-            }
-
-            $this->success = true;
-            $this->data = $this->response->data;
+            $links = isset($decoded->links) ? $decoded->links : null;
+            $response = $this->buildResponse(true, $decoded->data, $links, null, $http_status_code, $request_started_at);
         }
 
-        $this->logRequest($http_verb);
-        return $this->success;
+        $this->logRequest($http_verb, $request_endpoint, $request_body, $response, $response_body);
+        return $response;
+    }
+
+    /**
+     * Build the immutable Response for a finished request, stamping the
+     * completion time.
+     *
+     * @param   bool $success Whether the request succeeded
+     * @param   mixed $data Decoded response data, if any
+     * @param   mixed $links Decoded response links, if any
+     * @param   Error|null $error The error describing the failure, if any
+     * @param   int|string|null $status_code HTTP status code ('' on transport failure)
+     * @param   float|null $started_at Timestamp when the request started
+     * @return  Response
+     */
+    private function buildResponse($success, $data, $links, ?Error $error, $status_code, ?float $started_at): Response
+    {
+        return new Response($success, $data, $links, $error, $status_code, $started_at, microtime(true));
     }
 
     /**
@@ -584,14 +421,15 @@ class Client
      * message, errors).
      *
      * @param   object $response Decoded JSON error body
+     * @param   int|string|null $http_status_code HTTP status code of the response
      * @return  Error
      */
-    private function createErrorFromApiResponse($response)
+    private function createErrorFromApiResponse($response, $http_status_code)
     {
         $error = new Error();
         $error->links = isset($response->links) ? $response->links : null;
         $error->id = isset($response->id) ? $response->id : null;
-        $error->code = !empty($response->code) ? $response->code : (int) $this->http_status_code;
+        $error->code = !empty($response->code) ? $response->code : (int) $http_status_code;
         $error->message = $response->message;
         $error->errors = isset($response->errors) ? $response->errors : array();
 

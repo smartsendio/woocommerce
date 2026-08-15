@@ -46,7 +46,7 @@ class PickupPointResource
      * @param   string $carrier  Carrier code (e.g. 'postnord').
      * @param   string $country  ISO3166-A2 country code.
      * @param   string $agent_no The pick-up point's agent number.
-     * @return  object|true|false
+     * @return  \Smartsend\Response
      */
     public function findByAgentNo($carrier, $country, $agent_no)
     {
@@ -68,7 +68,7 @@ class PickupPointResource
      * @param   string      $postal_code Postal code to search near.
      * @param   string|null $city        City to search near.
      * @param   string      $street      Street address to search near.
-     * @return  object|true|false
+     * @return  \Smartsend\Response
      */
     public function findClosestByAddress($carrier, $country, $postal_code, $city, $street)
     {

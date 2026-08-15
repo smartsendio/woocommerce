@@ -81,9 +81,11 @@ if ( ! class_exists( 'SS_Shipping_Pickup_Point_Lookup' ) ) :
 
 			// The request and response (incl. HTTP status code and endpoint)
 			// are logged by the client's request logger.
-			if ( SS_SHIPPING_WC()->get_api_handle()->pickupPoints()->findClosestByAddress( $carrier, $search_params['country'], $search_params['postal_code'], $search_params['city'], $search_params['street'] ) ) {
+			$response = SS_SHIPPING_WC()->get_api_handle()->pickupPoints()->findClosestByAddress( $carrier, $search_params['country'], $search_params['postal_code'], $search_params['city'], $search_params['street'] );
 
-				$ss_pickup_points = SS_SHIPPING_WC()->get_api_handle()->getData();
+			if ( $response->isSuccessful() ) {
+
+				$ss_pickup_points = $response->data();
 
 				/*
 				 * Filter the pickup points returned by the lookup before they
@@ -126,7 +128,7 @@ if ( ! class_exists( 'SS_Shipping_Pickup_Point_Lookup' ) ) :
 
 				return $ss_pickup_points;
 			} else {
-				$this->report_lookup_failure( $carrier, SS_SHIPPING_WC()->get_api_handle()->getError() );
+				$this->report_lookup_failure( $carrier, $response->error() );
 
 				return array();
 			}

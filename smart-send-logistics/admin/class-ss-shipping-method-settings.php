@@ -316,7 +316,7 @@ if ( ! class_exists( 'SS_Shipping_Method_Settings' ) ) :
 						$website_url,
 						false
 					);
-					if ( ! $api_handle->getAuthenticatedUser() ) {
+					if ( ! $api_handle->account()->getAuthenticatedUser()->isSuccessful() ) {
 						// The API Token was not valid for live mode, so need to shown an error and re-enable demo-mode
 						WC_Admin_Settings::add_error(
 							sprintf(

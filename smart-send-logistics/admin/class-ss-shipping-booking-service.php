@@ -123,13 +123,13 @@ if ( ! class_exists( 'SS_Shipping_Booking_Service' ) ) :
 
 			// Make API Request. The request and response (incl. HTTP status
 			// code and endpoint) are logged by the client's request logger.
-			$api->bookings()->create( $wire_shipment );
+			$response = $api->bookings()->create( $wire_shipment );
 
-			if ( $api->isSuccessful() ) {
-				return new SS_Shipping_Booking( true, null, $api->getData(), $wire_shipment );
+			if ( $response->isSuccessful() ) {
+				return new SS_Shipping_Booking( true, null, $response->data(), $wire_shipment );
 			}
 
-			return new SS_Shipping_Booking( false, $api->getErrorString(), null, $wire_shipment );
+			return new SS_Shipping_Booking( false, $response->errorString(), null, $wire_shipment );
 		}
 	}
 

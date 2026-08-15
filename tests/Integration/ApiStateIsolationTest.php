@@ -4,9 +4,10 @@
  * State-isolation characterization for the Smartsend API client (#141):
  * two consecutive calls on ONE Api instance must be fully isolated - the
  * outcome read for the second call must never inherit anything (data,
- * error, success flag) from the first call. This pins the pre-rework
- * clearAll() behavior and survives the immutable-Response migration as
- * the isolation guarantee.
+ * error, success flag) from the first call. Pinned against the pre-rework
+ * clearAll() behavior; now asserts the immutable-Response guarantee: each
+ * call returns its own Response, and an earlier call's Response is
+ * untouched by later calls.
  */
 
 use Smartsend\Api;
@@ -39,18 +40,23 @@ it('does not leak the first call\'s data into a failing second call on one Api i
     ]);
 
     // First call succeeds and carries data.
-    $api->getAuthenticatedUser();
-    expect($api->isSuccessful())->toBeTrue();
-    expect($api->getData()->shipment_id)->toBe('first-call-shipment');
-    expect($api->getError())->toBeNull();
+    $first = $api->account()->getAuthenticatedUser();
+    expect($first->isSuccessful())->toBeTrue();
+    expect($first->data()->shipment_id)->toBe('first-call-shipment');
+    expect($first->error())->toBeNull();
 
     // Second call fails at the transport level: its outcome must not
     // inherit the first call's data or success flag.
-    $api->getAuthenticatedUser();
-    expect($api->isSuccessful())->toBeFalse();
-    expect($api->getData())->toBeNull();
-    expect($api->getError())->toBeInstanceOf(Error::class);
-    expect($api->getError()->code)->toBe('transport-connection');
+    $second = $api->account()->getAuthenticatedUser();
+    expect($second->isSuccessful())->toBeFalse();
+    expect($second->data())->toBeNull();
+    expect($second->error())->toBeInstanceOf(Error::class);
+    expect($second->error()->code)->toBe('transport-connection');
+
+    // And the first call's Response is untouched by the second call.
+    expect($first->isSuccessful())->toBeTrue();
+    expect($first->data()->shipment_id)->toBe('first-call-shipment');
+    expect($first->error())->toBeNull();
 });
 
 it('does not leak the first call\'s error into a succeeding second call on one Api instance', function () {
@@ -63,14 +69,18 @@ it('does not leak the first call\'s error into a succeeding second call on one A
     ]);
 
     // First call fails with a validation error.
-    $api->getAuthenticatedUser();
-    expect($api->isSuccessful())->toBeFalse();
-    expect($api->getError())->toBeInstanceOf(Error::class);
+    $first = $api->account()->getAuthenticatedUser();
+    expect($first->isSuccessful())->toBeFalse();
+    expect($first->error())->toBeInstanceOf(Error::class);
 
     // Second call succeeds: its outcome must not inherit the first
     // call's error.
-    $api->getAuthenticatedUser();
-    expect($api->isSuccessful())->toBeTrue();
-    expect($api->getError())->toBeNull();
-    expect($api->getData()->shipment_id)->toBe('second-call-shipment');
+    $second = $api->account()->getAuthenticatedUser();
+    expect($second->isSuccessful())->toBeTrue();
+    expect($second->error())->toBeNull();
+    expect($second->data()->shipment_id)->toBe('second-call-shipment');
+
+    // And the first call's Response is untouched by the second call.
+    expect($first->isSuccessful())->toBeFalse();
+    expect($first->error())->toBeInstanceOf(Error::class);
 });

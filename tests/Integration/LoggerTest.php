@@ -201,7 +201,7 @@ it('logs successful API calls as one concise line with method, path, HTTP status
         return ss_api_response(200, ['data' => ss_api_shipment_data(['shipment_id' => 'log-test-shipment'])]);
     });
 
-    create_logging_api_client()->getAuthenticatedUser();
+    create_logging_api_client()->account()->getAuthenticatedUser();
 
     expect($spy->entries)->toHaveCount(1);
     expect($spy->entries[0]['level'])->toBe('debug');
@@ -220,7 +220,7 @@ it('redacts the API token in both the message and the context', function () {
     $spy = spy_on_logger();
     mock_smart_send_api();
 
-    create_logging_api_client('secret-token-123')->getAuthenticatedUser();
+    create_logging_api_client('secret-token-123')->account()->getAuthenticatedUser();
 
     expect($spy->entries)->toHaveCount(1);
     expect($spy->entries[0]['message'])->not->toContain('secret-token-123');
@@ -235,7 +235,7 @@ it('logs failed API calls at the error level with the error detail in context ev
         return ss_api_response(422, ss_api_error_body('The given data was invalid.'));
     });
 
-    create_logging_api_client()->getAuthenticatedUser();
+    create_logging_api_client()->account()->getAuthenticatedUser();
 
     expect($spy->entries)->toHaveCount(1);
     expect($spy->entries[0]['level'])->toBe('error');

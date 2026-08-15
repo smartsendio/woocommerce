@@ -4,11 +4,12 @@
  * Tests for the #112 Client/Resource split of the Smart Send API client:
  * Smartsend\Api now exposes focused resource accessors (bookings(),
  * pickupPoints()) instead of one monolithic method-per-endpoint surface.
- * Each resource method is exercised here directly (success + the existing
- * error taxonomy from #38/#85 surfacing through the shared Client state),
- * proving the split preserved both the wire format and the error handling
- * - complementary to the wire-format golden tests in ShipmentPayloadTest
- * and the transport error-mapping tests in HttpClientErrorTest.
+ * Each resource method is exercised here directly (success + one error
+ * pass-through per resource, proving the Response object surfaces the
+ * #38/#85 error taxonomy - the taxonomy itself is covered exhaustively
+ * by HttpClientErrorTest), proving the split preserved both the wire
+ * format and the error handling - complementary to the wire-format
+ * golden tests in ShipmentPayloadTest.
  */
 
 use Smartsend\Api;
@@ -147,7 +148,7 @@ beforeEach(function (): void {
     with_ss_settings();
 });
 
-it('accepts a Shipment through the client without needing a resource accessor for the response state', function () {
+it('accepts a Shipment through the client and returns a successful Response', function () {
     $api = new Api('secret-token-123', 'example.test', true);
     $capture = mock_smart_send_api();
 
@@ -157,8 +158,7 @@ it('accepts a Shipment through the client without needing a resource accessor fo
         ->and($api->bookings())->toBe($resource);
 
     $shipment = $resource->fromShipment(sample_representation());
-    expect($resource->create($shipment))->toBeTrue();
-    expect($api->isSuccessful())->toBeTrue();
+    expect($resource->create($shipment)->isSuccessful())->toBeTrue();
 
     $request = end($capture->requests);
     expect($request['url'])->toContain('shipments/labels');
@@ -172,12 +172,11 @@ it('surfaces the existing error taxonomy through BookingResource::create()', fun
     });
 
     $shipment = $api->bookings()->fromShipment(sample_representation());
-    $result   = $api->bookings()->create($shipment);
+    $response = $api->bookings()->create($shipment);
 
-    expect($result)->toBeFalse();
-    expect($api->isSuccessful())->toBeFalse();
+    expect($response->isSuccessful())->toBeFalse();
 
-    $error = $api->getError();
+    $error = $response->error();
     expect($error)->toBeInstanceOf(Error::class);
     expect($error->code)->toBe('ValidationException');
     expect($error->message)->toBe('The receiver postal code is invalid.');
@@ -203,9 +202,9 @@ it('combines labels for multiple shipments into a single request body', function
     $api = new Api('secret-token-123', 'example.test', true);
     $capture = mock_smart_send_api();
 
-    $result = $api->bookings()->combine(['shipment-1', 'shipment-2']);
+    $response = $api->bookings()->combine(['shipment-1', 'shipment-2']);
 
-    expect($result)->toBeTrue();
+    expect($response->isSuccessful())->toBeTrue();
     $request = end($capture->requests);
     expect($request['url'])->toContain('shipments/labels/combine');
 
@@ -224,8 +223,10 @@ it('surfaces the existing error taxonomy through BookingResource::combine()', fu
         return ss_api_response(404, ss_api_error_body('One or more shipments could not be found.'));
     });
 
-    expect($api->bookings()->combine(['unknown-shipment']))->toBeFalse();
-    expect($api->getError()->message)->toBe('One or more shipments could not be found.');
+    $response = $api->bookings()->combine(['unknown-shipment']);
+
+    expect($response->isSuccessful())->toBeFalse();
+    expect($response->error()->message)->toBe('One or more shipments could not be found.');
 });
 
 it('looks up a pickup point by agent number', function () {
@@ -238,11 +239,10 @@ it('looks up a pickup point by agent number', function () {
     expect($resource)->toBeInstanceOf(PickupPointResource::class)
         ->and($api->pickupPoints())->toBe($resource);
 
-    $result = $resource->findByAgentNo('postnord', 'DK', '1234');
+    $response = $resource->findByAgentNo('postnord', 'DK', '1234');
 
-    expect($result)->toBeTrue();
-    expect($api->isSuccessful())->toBeTrue();
-    expect($api->getData()->agent_no)->toBe('1234');
+    expect($response->isSuccessful())->toBeTrue();
+    expect($response->data()->agent_no)->toBe('1234');
 
     $request = end($capture->requests);
     expect($request['url'])->toContain('agents/carrier/postnord/country/DK/agentno/1234');
@@ -254,11 +254,11 @@ it('surfaces the existing error taxonomy through PickupPointResource::findByAgen
         return ss_api_response(404, ss_api_error_body('Agent number not found.'));
     });
 
-    $result = $api->pickupPoints()->findByAgentNo('postnord', 'DK', '9999');
+    $response = $api->pickupPoints()->findByAgentNo('postnord', 'DK', '9999');
 
-    expect($result)->toBeFalse();
-    expect($api->getError())->toBeInstanceOf(Error::class);
-    expect($api->getError()->message)->toBe('Agent number not found.');
+    expect($response->isSuccessful())->toBeFalse();
+    expect($response->error())->toBeInstanceOf(Error::class);
+    expect($response->error()->message)->toBe('Agent number not found.');
 });
 
 it('finds the closest pickup points to an address, including the city segment', function () {
@@ -267,10 +267,10 @@ it('finds the closest pickup points to an address, including the city segment', 
         return ss_api_response(200, ['data' => [pickup_point_api_data()]]);
     });
 
-    $result = $api->pickupPoints()->findClosestByAddress('postnord', 'DK', '2300', 'Copenhagen', 'Islands Brygge 39');
+    $response = $api->pickupPoints()->findClosestByAddress('postnord', 'DK', '2300', 'Copenhagen', 'Islands Brygge 39');
 
-    expect($result)->toBeTrue();
-    expect($api->getData())->toHaveCount(1);
+    expect($response->isSuccessful())->toBeTrue();
+    expect($response->data())->toHaveCount(1);
 
     $request = end($capture->requests);
     expect($request['url'])->toContain('agents/closest/carrier/postnord/country/DK/postalcode/2300/city/Copenhagen/street/Islands Brygge 39');
@@ -295,10 +295,10 @@ it('surfaces the existing error taxonomy through PickupPointResource::findCloses
         return new WP_Error('http_request_failed', 'cURL error 28: Operation timed out after 4000 milliseconds');
     });
 
-    $result = $api->pickupPoints()->findClosestByAddress('postnord', 'DK', '2300', 'Copenhagen', 'Islands Brygge 39');
+    $response = $api->pickupPoints()->findClosestByAddress('postnord', 'DK', '2300', 'Copenhagen', 'Islands Brygge 39');
 
-    expect($result)->toBeFalse();
-    expect($api->getError()->code)->toBe('transport-timeout');
+    expect($response->isSuccessful())->toBeFalse();
+    expect($response->error()->code)->toBe('transport-timeout');
 });
 
 it('applies the pickup point lookup timeout to both pickup point resource calls', function () {
