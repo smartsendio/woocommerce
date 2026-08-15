@@ -147,7 +147,8 @@ if ( ! class_exists( 'SS_Shipping_Order_Meta_Box' ) ) :
 
 			// phpcs:disable WordPress.Security.EscapeOutput.OutputNotEscaped -- pre-existing behaviour: the meta box HTML is built from translated strings and internally generated markup exactly as before the #43 move; escaping it is a behaviour change out of scope here.
 
-			$ss_shipping_method_name = SS_SHIPPING_WC()->get_shipping_method_name_from_all_shipping_method_instances( $ss_shipping_method_id );
+			$method_code             = new SS_Shipping_Method_Code( $ss_shipping_method_id );
+			$ss_shipping_method_name = $method_code->name();
 
 			// The stored delivery configuration (pickup point + parcel plan).
 			$delivery_details           = $this->order_meta->read( $order );
@@ -163,8 +164,8 @@ if ( ! class_exists( 'SS_Shipping_Order_Meta_Box' ) ) :
 				)
 			);
 
-			$shipping_method_carrier = ucfirst( SS_SHIPPING_WC()->get_shipping_method_carrier( $ss_shipping_method_id ) );
-			$shipping_method_type    = ucfirst( SS_SHIPPING_WC()->get_shipping_method_type( $ss_shipping_method_id ) );
+			$shipping_method_carrier = ucfirst( $method_code->carrier() );
+			$shipping_method_type    = ucfirst( $method_code->type() );
 
 			echo '<h3>' . __( 'Shipping Method', 'smart-send-logistics' ) . '</h3>';
 			echo '<p>' . $ss_shipping_method_name . '</p>';

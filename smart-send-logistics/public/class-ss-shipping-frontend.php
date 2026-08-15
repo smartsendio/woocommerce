@@ -109,7 +109,7 @@ if ( ! class_exists( 'SS_Shipping_Frontend' ) ) :
 					$street      = wc_clean( $_POST['s_address'] );
 					// phpcs:enable WordPress.Security.ValidatedSanitizedInput
 
-					$carrier = SS_SHIPPING_WC()->get_shipping_method_carrier( $meta_data['smart_send_shipping_method'] );
+					$carrier = ( new SS_Shipping_Method_Code( $meta_data['smart_send_shipping_method'] ) )->carrier();
 
 					$ss_pickup_points = $this->find_closest_agents_by_address( $carrier, $country, $postal_code, $city, $street );
 

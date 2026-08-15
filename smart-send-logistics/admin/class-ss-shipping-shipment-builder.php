@@ -194,8 +194,9 @@ if ( ! class_exists( 'SS_Shipping_Shipment_Builder' ) ) :
 			$details = apply_filters( 'smart_send_delivery_details', $details, $this->order, $is_return );
 
 			// Determine shipping method and carrier.
-			$ss_carrier = SS_SHIPPING_WC()->get_shipping_method_carrier( $details->get_shipping_method() );
-			$ss_type    = SS_SHIPPING_WC()->get_shipping_method_type( $details->get_shipping_method() );
+			$method_code = new SS_Shipping_Method_Code( $details->get_shipping_method() );
+			$ss_carrier  = $method_code->carrier();
+			$ss_type     = $method_code->type();
 
 			$pickup_point = null === $details->get_pickup_point()
 				? null

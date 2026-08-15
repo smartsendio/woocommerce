@@ -261,6 +261,15 @@ if ( ! class_exists( 'SS_Shipping_WC' ) ) :
 			require_once SS_SHIPPING_PLUGIN_DIR_PATH . '/includes/class-ss-shipping-fulfillment-service.php';
 			require_once SS_SHIPPING_PLUGIN_DIR_PATH . '/includes/class-ss-shipping-subscriptions-compat.php';
 
+			// Shipping-method layer helpers. Loaded eagerly: unlike
+			// SS_Shipping_WC_Method they extend nothing from WooCommerce, so
+			// only the method class itself needs the lazy require (see
+			// include_shipping_method_class()).
+			require_once SS_SHIPPING_PLUGIN_DIR_PATH . '/admin/class-ss-shipping-method-code.php';
+			require_once SS_SHIPPING_PLUGIN_DIR_PATH . '/admin/class-ss-shipping-method-catalog.php';
+			require_once SS_SHIPPING_PLUGIN_DIR_PATH . '/admin/class-ss-shipping-method-settings.php';
+			require_once SS_SHIPPING_PLUGIN_DIR_PATH . '/admin/class-ss-shipping-method-form-renderer.php';
+
 			// Admin components.
 			require_once SS_SHIPPING_PLUGIN_DIR_PATH . '/admin/class-ss-plugins-screen-updates.php';
 			require_once SS_SHIPPING_PLUGIN_DIR_PATH . '/admin/class-ss-shipping-parcel.php';
@@ -290,12 +299,10 @@ if ( ! class_exists( 'SS_Shipping_WC' ) ) :
 		 * only be loaded once WooCommerce (and its autoloader) is available -
 		 * this plugin loads before WooCommerce. Loaded from init() behind the
 		 * bootstrap-level WooCommerce gate and defensively from
-		 * add_shipping_method(); require_once makes the call idempotent.
+		 * add_shipping_method(); require_once makes the call idempotent. Its
+		 * helper classes extend nothing and are loaded eagerly in includes().
 		 */
 		public function include_shipping_method_class() {
-			require_once SS_SHIPPING_PLUGIN_DIR_PATH . '/admin/class-ss-shipping-method-catalog.php';
-			require_once SS_SHIPPING_PLUGIN_DIR_PATH . '/admin/class-ss-shipping-method-settings.php';
-			require_once SS_SHIPPING_PLUGIN_DIR_PATH . '/admin/class-ss-shipping-method-form-renderer.php';
 			require_once SS_SHIPPING_PLUGIN_DIR_PATH . '/admin/class-ss-shipping-wc-method.php';
 		}
 
@@ -579,93 +586,6 @@ if ( ! class_exists( 'SS_Shipping_WC' ) ) :
 		public function bulk_actions(): SS_Shipping_Order_Bulk_Actions {
 			return $this->bulk_actions;
 		}
-
-        /**
-		 * Get the human readable name of the Smart Send shipping method
-		 * Example: 'PostNord: Closest pickup point (MyPack Collect)'
-		 *
-         * Details: This method loops over all WC_Shipping methods and finds the
-         * instance of SS_Shipping_WC_Method. It then takes the SS_Shipping_WC_Method
-         * instance and finds the human readable shipping method name using this.
-         *
-         * @param string $shipping_method_code    Id that identifies the Smart Send method. Example 'postnord_collect'
-         * @return string
-         */
-        public function get_shipping_method_name_from_all_shipping_method_instances($shipping_method_code)
-        {
-            /*
-             * Returns all registered shipping methods for usage.
-             *
-             * @access public
-             * @return array
-             */
-            $shipping_methods = WC()->shipping->get_shipping_methods();
-
-            if (is_array($shipping_methods)) {
-                foreach ($shipping_methods as $key => $shipping_method_instance) {
-                    if ($shipping_method_instance instanceof SS_Shipping_WC_Method) {
-                        return $shipping_method_instance->get_shipping_method_name($shipping_method_code);
-                    }
-                }
-            }
-            return '';
-        }
-
-        /**
-         * Get the Carrier of the shipping method
-         *
-         * @return string
-         */
-        public function get_shipping_method_carrier($ship_method)
-        {
-
-            $ship_method_parts = $this->get_shipping_method_part($ship_method);
-
-            $arr_size = sizeof($ship_method_parts);
-
-            if (isset($ship_method_parts[0])) {
-                return $ship_method_parts[0];
-            }
-
-            return $ship_method;
-        }
-
-        /**
-         * Get the Method of the shipping method
-         *
-         * @return string
-         */
-        public function get_shipping_method_type($ship_method)
-        {
-
-            $ship_method_parts = $this->get_shipping_method_part($ship_method);
-
-            $arr_size = sizeof($ship_method_parts);
-
-            if (isset($ship_method_parts[1])) {
-                return $ship_method_parts[1];
-            }
-
-            return $ship_method;
-        }
-
-        /**
-         * Shipping Method helper function
-         *
-         * @return array
-         */
-        protected function get_shipping_method_part($ship_method)
-        {
-
-            if (empty($ship_method)) {
-                return $ship_method;
-            }
-
-            // Assumes format 'carrier_type'
-            $new_ship_method = explode('_', $ship_method);
-
-            return $new_ship_method;
-        }
 
 		/**
 		 * Get the shared Smart Send API client, constructed on first use
