@@ -744,15 +744,14 @@ if ( ! class_exists( 'SS_Shipping_WC' ) ) :
 	     * Validate the API token
 	     *
 	     * @return boolean
-	     */
-        public function validate_api_token()
-        {
-            if ($this->get_api_handle()) {
-                return $this->api_handle->account()->getAuthenticatedUser()->isSuccessful();
-            }
+		 */
+		public function validate_api_token() {
+			if ( $this->get_api_handle() ) {
+				return $this->api_handle->account()->getAuthenticatedUser()->isSuccessful();
+			}
 
-            return false;
-        }
+			return false;
+		}
 
         /**
          * Test connection AJAX call
@@ -780,7 +779,7 @@ if ( ! class_exists( 'SS_Shipping_WC' ) ) :
 					);
 					$error = 1;
 				}
-            } else {
+			} else {
                 $connection_msg = __('API Token validation failed: Please enter an API Token and save the settings before validating.',
                     'smart-send-logistics');
                 $error = 1;
