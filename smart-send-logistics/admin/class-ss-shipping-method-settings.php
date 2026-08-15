@@ -134,7 +134,7 @@ if ( ! class_exists( 'SS_Shipping_Method_Settings' ) ) :
 		 */
 		public function build_form_fields() {
 			$log_path              = SS_Shipping_Logger::get_log_url();
-			$agents_address_format = SS_SHIPPING_WC()->get_agents_address_format();
+			$agents_address_format = SS_SHIPPING_WC()->pickup_point_formatter()->get_format_options();
 
 			return array(
 				'api_token'                         => array(

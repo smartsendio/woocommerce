@@ -138,11 +138,18 @@ if ( ! class_exists( 'SS_Shipping_WC' ) ) :
 		protected ?SS_Shipping_Frontend $ss_shipping_frontend = null;
 
 		/**
-		 * Smart Send agent address formats
+		 * Pickup point display formatter.
 		 *
-		 * @var array
+		 * @var SS_Shipping_Pickup_Point_Formatter|null
 		 */
-		protected array $agents_address_format = array();
+		protected ?SS_Shipping_Pickup_Point_Formatter $pickup_point_formatter = null;
+
+		/**
+		 * Headless pickup point lookup (API + session cache).
+		 *
+		 * @var SS_Shipping_Pickup_Point_Lookup|null
+		 */
+		protected ?SS_Shipping_Pickup_Point_Lookup $pickup_point_lookup = null;
 
 		/**
 		 * Smart Send api handle
@@ -235,6 +242,7 @@ if ( ! class_exists( 'SS_Shipping_WC' ) ) :
 			require_once SS_SHIPPING_PLUGIN_DIR_PATH . '/includes/class-ss-shipping-parcel-spec.php';
 			require_once SS_SHIPPING_PLUGIN_DIR_PATH . '/includes/class-ss-shipping-parcel-plan.php';
 			require_once SS_SHIPPING_PLUGIN_DIR_PATH . '/includes/class-ss-shipping-delivery-details.php';
+			require_once SS_SHIPPING_PLUGIN_DIR_PATH . '/includes/class-ss-shipping-pickup-point-formatter.php';
 			require_once SS_SHIPPING_PLUGIN_DIR_PATH . '/includes/class-ss-shipping-fulfillment-result.php';
 			require_once SS_SHIPPING_PLUGIN_DIR_PATH . '/includes/class-ss-shipping-fulfillment-service.php';
 			require_once SS_SHIPPING_PLUGIN_DIR_PATH . '/includes/class-ss-shipping-subscriptions-compat.php';
@@ -257,6 +265,7 @@ if ( ! class_exists( 'SS_Shipping_WC' ) ) :
 			require_once SS_SHIPPING_PLUGIN_DIR_PATH . '/admin/class-ss-shipping-wc-product.php';
 
 			// Frontend components.
+			require_once SS_SHIPPING_PLUGIN_DIR_PATH . '/public/class-ss-shipping-pickup-point-lookup.php';
 			require_once SS_SHIPPING_PLUGIN_DIR_PATH . '/public/class-ss-shipping-frontend.php';
 		}
 
@@ -305,7 +314,10 @@ if ( ! class_exists( 'SS_Shipping_WC' ) ) :
 			if ( defined( 'WOOCOMMERCE_VERSION' ) && version_compare( WOOCOMMERCE_VERSION, '2.6', '>=' ) ) {
 				$this->include_shipping_method_class();
 
-				$this->ss_shipping_frontend     = new SS_Shipping_Frontend();
+				$this->pickup_point_formatter = new SS_Shipping_Pickup_Point_Formatter();
+				$this->pickup_point_lookup    = new SS_Shipping_Pickup_Point_Lookup();
+
+				$this->ss_shipping_frontend     = new SS_Shipping_Frontend( $this->pickup_point_lookup, $this->pickup_point_formatter );
 				$this->ss_shipping_wc_product   = new SS_Shipping_WC_Product();
 				$this->ss_plugin_screen_updates = new SS_Plugins_Screen_Updates();
 
@@ -314,7 +326,7 @@ if ( ! class_exists( 'SS_Shipping_WC' ) ) :
 				$this->method_resolver        = new SS_Shipping_Method_Resolver();
 				$this->shipment_ids           = new SS_Shipping_Shipment_Ids();
 				$this->pickup_point_validator = new SS_Shipping_Pickup_Point_Validator( $this->order_meta, $this->method_resolver );
-				$this->meta_box               = new SS_Shipping_Order_Meta_Box( $this->order_meta, $this->method_resolver );
+				$this->meta_box               = new SS_Shipping_Order_Meta_Box( $this->order_meta, $this->method_resolver, $this->pickup_point_formatter );
 				$this->fulfillment_service    = new SS_Shipping_Fulfillment_Service(
 					$this->order_meta,
 					$this->method_resolver,
@@ -467,29 +479,14 @@ if ( ! class_exists( 'SS_Shipping_WC' ) ) :
             return get_option('woocommerce_' . SS_SHIPPING_METHOD_ID . '_settings');
         }
 
-        /**
-		 * Get Agent Address Format
+		/**
+		 * Get the pickup point display formatter.
 		 *
-		 * Built lazily on first call (not in the constructor): the plugin
-		 * bootstraps before the init action, and since WordPress 6.7 any
-		 * translation call for our text domain that runs before init triggers
-		 * a _load_textdomain_just_in_time "called incorrectly" notice.
+		 * @return SS_Shipping_Pickup_Point_Formatter
 		 */
-		public function get_agents_address_format() {
-			if ( empty( $this->agents_address_format ) ) {
-				$this->agents_address_format = array(
-					'1' => __( '#Company, #Street', 'smart-send-logistics' ),
-					'2' => __( '#Company, #Street, #Zipcode', 'smart-send-logistics' ),
-					'3' => __( '#Company, #Street, #City', 'smart-send-logistics' ),
-					'4' => __( '#Company, #Street, #Zipcode #City', 'smart-send-logistics' ),
-					'5' => __( '#Company, #Zipcode', 'smart-send-logistics' ),
-					'6' => __( '#Company, #Zipcode, #City', 'smart-send-logistics' ),
-					'7' => __( '#Company, #City', 'smart-send-logistics' ),
-				);
-			}
-
-            return $this->agents_address_format;
-        }
+		public function pickup_point_formatter(): SS_Shipping_Pickup_Point_Formatter {
+			return $this->pickup_point_formatter;
+		}
 
 		/**
 		 * Get the order meta access component.

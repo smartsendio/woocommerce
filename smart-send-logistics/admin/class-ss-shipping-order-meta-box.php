@@ -37,12 +37,21 @@ if ( ! class_exists( 'SS_Shipping_Order_Meta_Box' ) ) :
 		protected SS_Shipping_Method_Resolver $method_resolver;
 
 		/**
-		 * @param SS_Shipping_Order_Meta      $order_meta      Order meta repository.
-		 * @param SS_Shipping_Method_Resolver $method_resolver Shipping method resolver.
+		 * Pickup point display formatter.
+		 *
+		 * @var SS_Shipping_Pickup_Point_Formatter
 		 */
-		public function __construct( SS_Shipping_Order_Meta $order_meta, SS_Shipping_Method_Resolver $method_resolver ) {
-			$this->order_meta      = $order_meta;
-			$this->method_resolver = $method_resolver;
+		protected SS_Shipping_Pickup_Point_Formatter $pickup_point_formatter;
+
+		/**
+		 * @param SS_Shipping_Order_Meta             $order_meta             Order meta repository.
+		 * @param SS_Shipping_Method_Resolver        $method_resolver        Shipping method resolver.
+		 * @param SS_Shipping_Pickup_Point_Formatter $pickup_point_formatter Pickup point display formatter.
+		 */
+		public function __construct( SS_Shipping_Order_Meta $order_meta, SS_Shipping_Method_Resolver $method_resolver, SS_Shipping_Pickup_Point_Formatter $pickup_point_formatter ) {
+			$this->order_meta             = $order_meta;
+			$this->method_resolver        = $method_resolver;
+			$this->pickup_point_formatter = $pickup_point_formatter;
 		}
 
 		/**
@@ -178,7 +187,7 @@ if ( ! class_exists( 'SS_Shipping_Order_Meta_Box' ) ) :
 					esc_html__( 'Agent No.: %s', 'smart-send-logistics' ),
 					esc_html( (string) $ss_shipping_order_agent_no )
 				) . '</strong>';
-				echo wp_kses_post( $this->get_formatted_address( $ss_shipping_order_agent ) );
+				echo wp_kses_post( $this->pickup_point_formatter->format_admin_block( $ss_shipping_order_agent ) );
 			}
 
 			echo '<hr>';
@@ -270,21 +279,6 @@ if ( ! class_exists( 'SS_Shipping_Order_Meta_Box' ) ) :
 
 			echo '</div>';
 			// phpcs:enable WordPress.Security.EscapeOutput.OutputNotEscaped
-		}
-
-		/**
-		 * Return HTML formatted agent address
-		 *
-		 * @param object $ss_shipping_order_agent
-		 * @return string
-		 */
-		protected function get_formatted_address( $ss_shipping_order_agent ) {
-
-			if ( empty( $ss_shipping_order_agent ) ) {
-				return '';
-			}
-
-			return '<p class="ss_agent_address">' . $ss_shipping_order_agent->company . '</br>' . $ss_shipping_order_agent->address_line1 . '</br>' . $ss_shipping_order_agent->postal_code . ' ' . $ss_shipping_order_agent->city . '</p>';
 		}
 
 		/**
