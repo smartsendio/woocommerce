@@ -5,11 +5,27 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 /**
- * Smart Send order meta access.
+ * Smart Send order meta repository.
  *
- * Owns everything stored on (or read from) a WooCommerce order for the
- * Smart Send integration: the resolved shipping method id, the selected
- * pickup point (agent) meta, the parcel split and the shipment ids.
+ * The single reader/writer of the Smart-Send-owned order meta (#139):
+ * read() materializes the stored delivery configuration into a
+ * SS_Shipping_Delivery_Details value object, write() persists a
+ * (possibly partial) details object back - a null field means "not
+ * specified, leave the stored value alone".
+ *
+ * The meta KEYS and their stored formats are the frozen public contract
+ * (documented in readme.txt's Developers section): the pickup point is a
+ * plain agent object under _ss_shipping_order_agent plus its number
+ * under ss_shipping_order_agent_no, and the parcel plan is the
+ * "Split into parcels" rows (id/name/value, one row per unit) under
+ * ss_shipping_order_parcels. Booked shipment ids are fulfillment
+ * OUTCOMES, not delivery configuration - their accessor is the separate
+ * SS_Shipping_Shipment_Ids, but their keys stay classified here so the
+ * subscription-renewal exclusion has one vocabulary.
+ *
+ * Non-CRUD logic that historically lived here has moved out: shipping
+ * method resolution to SS_Shipping_Method_Resolver, agent-number
+ * validation and its admin hooks to SS_Shipping_Pickup_Point_Validator.
  *
  * @package  SS_Shipping_Order_Meta
  * @category Shipping
@@ -97,230 +113,131 @@ if ( ! class_exists( 'SS_Shipping_Order_Meta' ) ) :
 		}
 
 		/**
-		 * Register this component's hooks.
+		 * Read the stored delivery configuration of an order.
+		 *
+		 * The pickup point falls back to the vConnect plugin's
+		 * _vc_aio_options meta when Smart Send stored none (historic
+		 * vConnect interoperability); the parcel plan is null when the
+		 * order has no stored split.
+		 *
+		 * @param integer|WC_Order $order Order (or order id).
+		 *
+		 * @return SS_Shipping_Delivery_Details Empty details when the order cannot be loaded.
+		 */
+		public function read( $order ): SS_Shipping_Delivery_Details {
+			$details = new SS_Shipping_Delivery_Details();
+
+			// wc_get_order() returns false when the order does not exist, e.g. when
+			// WooCommerce's email preview fires the order-details hooks with a
+			// placeholder order ID. See issue #60.
+			$order = $order instanceof WC_Order ? $order : wc_get_order( $order );
+			if ( ! $order instanceof WC_Order ) {
+				return $details;
+			}
+
+			$details->set_pickup_point( $this->read_pickup_point( $order ) );
+
+			$parcel_rows = $order->get_meta( self::META_PARCELS, true );
+			if ( ! empty( $parcel_rows ) && is_array( $parcel_rows ) ) {
+				$details->set_parcel_plan( SS_Shipping_Parcel_Plan::from_box_rows( $parcel_rows ) );
+			}
+
+			return $details;
+		}
+
+		/**
+		 * Persist a (possibly partial) delivery configuration on an order.
+		 *
+		 * A null pickup point / parcel plan means "not specified" and
+		 * leaves the stored meta alone; an empty parcel plan clears the
+		 * stored split (one parcel containing everything). The resolved
+		 * shipping method and addons are derived data and are not stored.
+		 *
+		 * @param integer|WC_Order            $order   Order (or order id).
+		 * @param SS_Shipping_Delivery_Details $details The delivery configuration to persist.
 		 *
 		 * @return void
 		 */
-		public function register_hooks() {
-			// Meta field for storing the selected agent_no
-			add_filter( 'update_post_metadata_by_mid', array( $this, 'filter_update_agent_meta' ), 10, 4 );//For WordPress 5.0.0+
-			add_action( 'deleted_post_meta', array( $this, 'action_deleted_agent_meta' ), 10, 4 );
+		public function write( $order, SS_Shipping_Delivery_Details $details ) {
+			$order = $order instanceof WC_Order ? $order : wc_get_order( $order );
+			if ( ! $order instanceof WC_Order ) {
+				return;
+			}
+
+			$changed = false;
+
+			$pickup_point = $details->get_pickup_point();
+			if ( null !== $pickup_point ) {
+				$order->update_meta_data( self::META_AGENT, $pickup_point->to_object() );
+				$order->update_meta_data( self::META_AGENT_NO, $pickup_point->get_agent_no() );
+				$changed = true;
+			}
+
+			$parcel_plan = $details->get_parcel_plan();
+			if ( null !== $parcel_plan ) {
+				$order->update_meta_data( self::META_PARCELS, $parcel_plan->to_box_rows() );
+				$changed = true;
+			}
+
+			if ( $changed ) {
+				$order->save();
+			}
 		}
 
 		/**
-		 * Return ordered Smart Send shipping method, OR Free Shipping linked to Smart Send shipping method, otherwise empty string
+		 * Store the raw pickup point (agent) object delivered by the Smart
+		 * Send API on the order, exactly as received - the write path of
+		 * the agent-number validation (SS_Shipping_Pickup_Point_Validator),
+		 * which deliberately leaves the agent-number meta to the admin
+		 * meta edit that triggered it.
 		 *
-		 * @param integer $order_id     Post object or post ID of the order.
-		 * @param boolean $return       Whether or not the label is return (true) or normal (false)
-		 * @return string               Unique Smart Send name of shipping method. Example 'postnord_agent'
+		 * @param integer|WC_Order $order Order (or order id).
+		 * @param object           $agent The agent object from the API.
+		 *
+		 * @return void
 		 */
-		// phpcs:ignore Universal.NamingConventions.NoReservedKeywordParameterNames.returnFound -- pre-existing public method signature, kept for backwards compatibility.
-		public function get_smart_send_method_id( $order_id, $return = false ) {
-			$order = wc_get_order( $order_id );//Accepts Post object or post ID of the order.
+		public function store_pickup_point_object( $order, $agent ) {
+			$order = $order instanceof WC_Order ? $order : wc_get_order( $order );
+			if ( ! $order instanceof WC_Order ) {
+				return;
+			}
 
+			$order->update_meta_data( self::META_AGENT, $agent );
+			$order->save();
+		}
+
+		/**
+		 * Delete the stored pickup point (agent) object.
+		 *
+		 * v8 oddity, preserved: the deletion is applied to the order
+		 * object but not explicitly saved - whether a subsequent read
+		 * still sees the agent differs per storage backend (the HPOS
+		 * order cache shares the instance, legacy storage reloads).
+		 *
+		 * @param integer|WC_Order $order Order (or order id).
+		 *
+		 * @return void
+		 */
+		public function delete_pickup_point( $order ) {
+			$order_id = $order instanceof WC_Order ? $order->get_id() : $order;
+			$order    = $order instanceof WC_Order ? $order : wc_get_order( $order );
+
+			// There are situations where the order has been deleted and cannot be found.
+			// We should gracefully handle this situation of failing to load the order.
 			if ( ! $order ) {
-				return '';
+				SS_Shipping_Logger::error( 'Failed to load WooCommerce order when deleting pickup point meta - skipping', array( 'order_id' => $order_id ) );
+
+				return;
 			}
 
-			// Get shipping id to make sure its either Smart Send, Free Shipping or vConnect
-			$order_shipping_methods = $order->get_shipping_methods();
-			if ( ! empty( $order_shipping_methods ) ) {
-
-				foreach ( $order_shipping_methods as $item_id => $item ) {
-					// Array access on 'WC_Order_Item_Shipping' works because it implements backwards compatibility
-					$shipping_method_id = ! empty( $item['method_id'] ) ? esc_html( $item['method_id'] ) : null;
-
-					// If Smart Send found, return id
-					if ( stripos( $shipping_method_id, 'smart_send_shipping' ) !== false ) {
-						if ( $return ) {
-							return array(
-								'smart_send_return_method' => $item['smart_send_return_method'],
-								'smart_send_auto_generate_return_label' => $item['smart_send_auto_generate_return_label'],
-							);
-						} else {
-							return $item['smart_send_shipping_method'];
-						}
-					} elseif ( stripos( $shipping_method_id, 'free_shipping' ) !== false ) {
-							// If free shipping, then filter the shipping method to the correct Smart Send method
-
-							$ss_settings = SS_SHIPPING_WC()->get_ss_shipping_settings();
-
-						if ( ! empty( $ss_settings['shipping_method_for_free_shipping'] ) ) {
-							return $ss_settings['shipping_method_for_free_shipping'];
-						}
-					} elseif ( stripos( $shipping_method_id, 'vconnect_postnord' ) !== false ) {
-						// If vConnect, then filter the shipping method to the correct Smart Send method
-						if ( $return ) {
-							return 'postnord_returndropoff';
-						} elseif ( stripos( $shipping_method_id, '_pickup' ) !== false ) {
-								return 'postnord_agent';
-						} elseif ( stripos( $shipping_method_id, '_dpd' ) !== false ) {
-							return 'postnord_homedelivery';
-						} elseif ( stripos( $shipping_method_id, '_commercial' ) !== false ) {
-							return 'postnord_commercial';
-						} elseif ( stripos( $shipping_method_id, '_privatehome' ) !== false ) {
-							$order                = wc_get_order( $order_id );
-							$vc_aio_options       = $order->get_meta( '_vc_aio_options', true );
-							$flex_delivery        = false;
-							$flex_delivery_option = false;
-							$day_delivery         = false;
-							if ( is_array( $vc_aio_options ) ) {
-								foreach ( $vc_aio_options as $option ) {
-									// Check if shipping method has flexDelivery enabled (the parcel can be left somewhere)
-									// phpcs:ignore WordPress.PHP.StrictInArray.MissingTrueStrict -- pre-existing loose array_search; tightening is a behaviour change out of scope for the #43 move.
-									if ( array_search(
-										'flexDelivery',
-										array_column( $option, 'value' )
-									) !== false ) {
-										$flex_delivery = true;
-									}
-									// Check if shipping method has dayDelivery enabled (customer will receive an SMS with possibility to choose)
-									if ( array_search( 'dayDelivery', array_column( $option, 'value' ) ) !== false ) { // phpcs:ignore WordPress.PHP.StrictInArray.MissingTrueStrict -- pre-existing loose array_search; tightening is a behaviour change out of scope for the #43 move.
-										$day_delivery = true;
-									}
-									// A flexDelivery option is chosen
-									if ( ! empty( $option['typeId']['value'] ) && 'flexDelivery' == $option['typeId']['value'] // phpcs:ignore Universal.Operators.StrictComparisons.LooseEqual -- pre-existing loose comparison; tightening is a behaviour change out of scope for the #43 move.
-										&& ! empty( $option['addressText']['value'] ) ) {
-										$flex_delivery_option = true;
-									}
-								}
-							}
-							if ( ! $flex_delivery && ! $day_delivery && ! $flex_delivery_option ) {
-								return 'postnord_homedelivery';
-							} elseif ( ! $flex_delivery && ! $flex_delivery_option && $day_delivery ) {
-								return 'postnord_flexhome';
-							} elseif ( $flex_delivery && ! $flex_delivery_option && ! $day_delivery ) {
-								return 'postnord_doorstep';
-								// The chosen flexdelivy option must be used to tell PostNord where the parcel should be left
-							} elseif ( $flex_delivery && $flex_delivery_option && ! $day_delivery ) { // phpcs:ignore Generic.CodeAnalysis.EmptyStatement.DetectedElseif -- pre-existing intentionally empty branch documenting an unhandled vConnect case.
-								// The chosen flexdelivy option must be used to tell PostNord where the parcel should be left
-							}
-						}
-					}
-				}
-			}
-
-			return '';
-		}
-
-		/**
-		 * Agent meta data updated
-		 *
-		 *
-		 * @since 5.0.0
-		 *
-		 * @param null|bool   $check      Whether to allow updating metadata for the given type.
-		 * @param int         $meta_id    Meta ID.
-		 * @param mixed       $meta_value Meta value. Must be serializable if non-scalar.
-		 * @param string|bool $meta_key   Meta key, if provided.
-		 * @return bool                   Returning a non-null value will effectively short-circuit the function.
-		 */
-		public function filter_update_agent_meta( $check, $meta_id, $meta_value, $meta_key ) {
-
-			if ( self::META_AGENT_NO == $meta_key ) { // phpcs:ignore Universal.Operators.StrictComparisons.LooseEqual -- pre-existing loose comparison; tightening is a behaviour change out of scope for the #43 move.
-				$meta      = get_metadata_by_mid( 'post', $meta_id );
-				$object_id = $meta->post_id;
-				if ( $this->save_shipping_agent( $object_id, true, $meta_value ) !== true ) {
-					// the agent was not found so do NOT save the new agent_no
-					$check = false;
-				}
-			}
-
-			return $check;
-		}
-
-		/**
-		 * Agent meta deleted
-		 * Fires immediately after deleting metadata of a specific type.
-		 *
-		 * @since WP 2.9.0
-		 *
-		 * @param array  $meta_ids    An array of deleted metadata entry IDs.
-		 * @param int    $object_id   Object ID.
-		 * @param string $meta_key    Meta key.
-		 * @param mixed  $_meta_value Meta value.
-		 */
-		// phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed -- $_meta_value is part of the deleted_post_meta hook signature.
-		public function action_deleted_agent_meta( $meta_ids, $object_id, $meta_key, $_meta_value ) {
-
-			if ( self::META_AGENT_NO == $meta_key ) { // phpcs:ignore Universal.Operators.StrictComparisons.LooseEqual -- pre-existing loose comparison; tightening is a behaviour change out of scope for the #43 move.
-				$this->delete_ss_shipping_order_agent( $object_id );
-			}
-		}
-
-		/**
-		 * Call the API if needed and save the shipping agent address
-		 *
-		 * @param $post_id
-		 * @param $doing_ajax
-		 * @param $ss_shipping_agent_no
-		 *
-		 * @return bool|string         Returns true for success and false or a string when failing
-		 */
-		public function save_shipping_agent( $post_id, $doing_ajax, $ss_shipping_agent_no ) {
-
-			$ss_shipping_method_id = $this->get_smart_send_method_id( $post_id );
-
-			if ( ! empty( $ss_shipping_method_id ) ) {
-				$shipping_method_carrier = SS_SHIPPING_WC()->get_shipping_method_carrier( $ss_shipping_method_id );
-
-				$order            = wc_get_order( $post_id );
-				$shipping_address = $order->get_address( 'shipping' );
-
-				if ( ! empty( $shipping_method_carrier ) && ! empty( $shipping_address['country'] ) ) {
-
-					// API call to get agent info by agent no.
-					if ( SS_SHIPPING_WC()->get_api_handle()->pickupPoints()->findByAgentNo( $shipping_method_carrier, $shipping_address['country'], $ss_shipping_agent_no ) ) {
-
-						SS_Shipping_Logger::info(
-							'Pickup point changed on order',
-							array(
-								'order_id' => $post_id,
-								'agent_no' => $ss_shipping_agent_no,
-								'carrier'  => $shipping_method_carrier,
-							)
-						);
-
-						$this->save_ss_shipping_order_agent(
-							$post_id,
-							SS_SHIPPING_WC()->get_api_handle()->getData()
-						);
-						return true;
-					} else {
-
-						SS_Shipping_Logger::warning(
-							'Pickup point not found - agent number rejected',
-							array(
-								'order_id' => $post_id,
-								'agent_no' => $ss_shipping_agent_no,
-								'carrier'  => $shipping_method_carrier,
-							)
-						);
-
-						$error_msg = sprintf(
-							/* translators: %s: the pickup point agent number that was entered. */
-							__(
-								'The agent number entered, %s, was not found.',
-								'smart-send-logistics'
-							),
-							$ss_shipping_agent_no
-						);
-
-						if ( $doing_ajax ) {
-							return $error_msg;
-						} else {
-							WC_Admin_Meta_Boxes::add_error( $error_msg );
-							return false;
-						}
-					}
-				}
-			}
-
-			return false;
+			$order->delete_meta_data( self::META_AGENT );
 		}
 
 		/**
 		 * Saves the parcels input to post_meta
+		 *
+		 * TEMPORARY (#139): legacy accessor kept for one refactoring stage;
+		 * the builder/label-creator rework replaces it with write().
 		 *
 		 * @param int $order_id
 		 * @param array $parcels
@@ -339,6 +256,9 @@ if ( ! class_exists( 'SS_Shipping_Order_Meta' ) ) :
 		/**
 		 * Gets parcels input from post_meta
 		 *
+		 * TEMPORARY (#139): legacy accessor kept for one refactoring stage;
+		 * the builder/label-creator rework replaces it with read().
+		 *
 		 * @param int $order_id
 		 *
 		 * @return mixed Parcels if present, false otherwise
@@ -353,6 +273,9 @@ if ( ! class_exists( 'SS_Shipping_Order_Meta' ) ) :
 
 		/**
 		 * Saves the label agent no to post_meta.
+		 *
+		 * TEMPORARY (#139): legacy accessor kept for one refactoring stage;
+		 * the frontend rework replaces it with write().
 		 *
 		 * @param int $order_id Order ID
 		 * @param array $agent_no Agent No.
@@ -370,6 +293,9 @@ if ( ! class_exists( 'SS_Shipping_Order_Meta' ) ) :
 
 		/*
 		 * Gets agent no from the post meta array for an order
+		 *
+		 * TEMPORARY (#139): legacy accessor kept for one refactoring stage;
+		 * the frontend/meta-box rework replaces it with read().
 		 *
 		 * @param int  $order_id  Order ID
 		 *
@@ -404,63 +330,59 @@ if ( ! class_exists( 'SS_Shipping_Order_Meta' ) ) :
 		/**
 		 * Saves the agent object to post_meta.
 		 *
+		 * TEMPORARY (#139): legacy accessor kept for one refactoring stage;
+		 * the frontend rework replaces it with write().
+		 *
 		 * @param int $order_id Order ID
 		 * @param array $agent Agent Object
 		 *
 		 * @return void
 		 */
 		public function save_ss_shipping_order_agent( $order_id, $agent ) {
-			$order = wc_get_order( $order_id );
-			if ( ! $order instanceof WC_Order ) {
-				return;
-			}
-			$order->update_meta_data( self::META_AGENT, $agent );
-			$order->save();
-		}
-
-		/**
-		 * Delete shippng agent object
-		 *
-		 * @param $order_id
-		 */
-		public function delete_ss_shipping_order_agent( $order_id ) {
-			$order = wc_get_order( $order_id );
-
-			// There are situations where the order has been deleted and cannot be found.
-			// We should gracefully handle this situation of failing to load the order.
-			if ( ! $order ) {
-				SS_Shipping_Logger::error( 'Failed to load WooCommerce order when deleting pickup point meta - skipping', array( 'order_id' => $order_id ) );
-
-				return;
-			}
-
-			$order->delete_meta_data( self::META_AGENT );
+			$this->store_pickup_point_object( $order_id, $agent );
 		}
 
 		/*
 		 * Gets agent object from the post meta array for an order
+		 *
+		 * TEMPORARY (#139): legacy accessor kept for one refactoring stage;
+		 * the builder/meta-box rework replaces it with read().
 		 *
 		 * @param int  $order_id  Order ID
 		 *
 		 * @return Agent Object
 		 */
 		public function get_ss_shipping_order_agent( $order_id ) {
-			// Fetch agent info from meta field saved by Smart Send
 			$order = wc_get_order( $order_id );
 
 			if ( ! $order instanceof WC_Order ) {
 				return null;
 			}
 
+			$pickup_point = $this->read_pickup_point( $order );
+
+			return null === $pickup_point ? null : $pickup_point->to_object();
+		}
+
+		/**
+		 * Build the pickup point value object from the stored agent
+		 * object, falling back to the vConnect _vc_aio_options meta.
+		 *
+		 * @param WC_Order $order The order.
+		 *
+		 * @return SS_Shipping_Pickup_Point|null
+		 */
+		protected function read_pickup_point( WC_Order $order ) {
 			$ss_agent_info = $order->get_meta( self::META_AGENT, true );
 			if ( $ss_agent_info ) {
-				// Return the agent_no found
-				return $ss_agent_info;
-			} else {
-				// No Smart Send agent_no was found, check if the order has a vConnect agent_no
-				$vc_aio_meta = $order->get_meta( '_vc_aio_options', true );
-				if ( ! empty( $vc_aio_meta['addressId']['value'] ) ) {
-					return (object) array(
+				return SS_Shipping_Pickup_Point::from_object( (object) $ss_agent_info );
+			}
+
+			// No Smart Send agent was found, check if the order has a vConnect agent
+			$vc_aio_meta = $order->get_meta( '_vc_aio_options', true );
+			if ( ! empty( $vc_aio_meta['addressId']['value'] ) ) {
+				return SS_Shipping_Pickup_Point::from_object(
+					(object) array(
 						'agent_no'      => isset( $vc_aio_meta['addressId']['value'] ) ? $vc_aio_meta['addressId']['value'] : null,
 						'company'       => isset( $vc_aio_meta['name']['value'] ) ? $vc_aio_meta['name']['value'] : null,
 						'address_line1' => isset( $vc_aio_meta['addressText']['value'] ) ? $vc_aio_meta['addressText']['value'] : null,
@@ -468,34 +390,11 @@ if ( ! class_exists( 'SS_Shipping_Order_Meta' ) ) :
 						'city'          => isset( $vc_aio_meta['city']['value'] ) ? $vc_aio_meta['city']['value'] : null,
 						'postal_code'   => isset( $vc_aio_meta['postcode']['value'] ) ? $vc_aio_meta['postcode']['value'] : null,
 						'country'       => isset( $vc_aio_meta['country']['value'] ) ? $vc_aio_meta['country']['value'] : null,
-					);
-				} else {
-					return null;
-				}
+					)
+				);
 			}
-		}
 
-		/**
-		 * Saves the Shipment ID to post_meta.
-		 *
-		 * @param int $order_id Order ID
-		 * @param string $shipment_id Shipment ID
-		 * @param boolean $return Whether or not the label is return (true) or normal (false)
-		 *
-		 * @return void
-		 */
-		// phpcs:ignore Universal.NamingConventions.NoReservedKeywordParameterNames.returnFound -- pre-existing public method signature, kept for backwards compatibility.
-		public function save_ss_shipment_id_in_order_meta( $order_id, $shipment_id, $return ) {
-			$order = wc_get_order( $order_id );
-			if ( ! $order instanceof WC_Order ) {
-				return;
-			}
-			if ( $return ) {
-				$order->update_meta_data( self::META_RETURN_LABEL_ID, $shipment_id );
-			} else {
-				$order->update_meta_data( self::META_LABEL_ID, $shipment_id );
-			}
-			$order->save();
+			return null;
 		}
 	}
 

@@ -77,23 +77,32 @@ if ( ! class_exists( 'SS_Shipping_Shipment_Builder' ) ) :
 		protected SS_Shipping_Order_Reader $order_reader;
 
 		/**
-		 * Order meta access component.
+		 * Order meta repository.
 		 *
 		 * @var SS_Shipping_Order_Meta
 		 */
 		protected SS_Shipping_Order_Meta $order_meta;
 
 		/**
+		 * Shipping method resolver.
+		 *
+		 * @var SS_Shipping_Method_Resolver
+		 */
+		protected SS_Shipping_Method_Resolver $method_resolver;
+
+		/**
 		 * Constructor.
 		 *
-		 * @param WC_Order                 $order        The WooCommerce order.
-		 * @param SS_Shipping_Order_Reader $order_reader Order data access utility for the same order.
-		 * @param SS_Shipping_Order_Meta   $order_meta   Order meta access component.
+		 * @param WC_Order                    $order           The WooCommerce order.
+		 * @param SS_Shipping_Order_Reader    $order_reader    Order data access utility for the same order.
+		 * @param SS_Shipping_Order_Meta      $order_meta      Order meta repository.
+		 * @param SS_Shipping_Method_Resolver $method_resolver Shipping method resolver.
 		 */
-		public function __construct( WC_Order $order, SS_Shipping_Order_Reader $order_reader, SS_Shipping_Order_Meta $order_meta ) {
-			$this->order        = $order;
-			$this->order_reader = $order_reader;
-			$this->order_meta   = $order_meta;
+		public function __construct( WC_Order $order, SS_Shipping_Order_Reader $order_reader, SS_Shipping_Order_Meta $order_meta, SS_Shipping_Method_Resolver $method_resolver ) {
+			$this->order           = $order;
+			$this->order_reader    = $order_reader;
+			$this->order_meta      = $order_meta;
+			$this->method_resolver = $method_resolver;
 		}
 
 		/**
@@ -107,7 +116,7 @@ if ( ! class_exists( 'SS_Shipping_Shipment_Builder' ) ) :
 		public function build_outbound(): SS_Shipping_Shipment {
 			$order_id = $this->order_reader->get_order_id();
 
-			$ss_shipping_method_id = $this->order_meta->get_smart_send_method_id( $order_id, false );
+			$ss_shipping_method_id = $this->method_resolver->resolve_outbound( $this->order );
 
 			$ss_args = array(
 				'ss_agent' => $this->order_meta->get_ss_shipping_order_agent( $order_id ),
@@ -134,21 +143,13 @@ if ( ! class_exists( 'SS_Shipping_Shipment_Builder' ) ) :
 			$order_id = $this->order_reader->get_order_id();
 			$ss_args  = array();
 
-			$ss_shipping_method_id = $this->order_meta->get_smart_send_method_id( $order_id, true );
+			$ss_shipping_method_id = $this->method_resolver->resolve_return( $this->order );
 
-			if ( isset( $ss_shipping_method_id['smart_send_return_method'] ) ) {
-				if ( empty( $ss_shipping_method_id['smart_send_return_method'] ) ) {
-					// phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- the exception message is caught by SS_Shipping_Booking_Service and surfaced via SS_Shipping_Booking::get_error_message(), never echoed directly; escaping is not applicable here.
-					throw new SS_Shipping_Booking_Exception( __( 'No return method set', 'smart-send-logistics' ) );
-				}
-
-				$ss_shipping_method_id = $ss_shipping_method_id['smart_send_return_method'];
-			} else {
+			if ( $this->method_resolver->return_uses_stored_pickup_point( $this->order ) ) {
 				// v8 oddity: free-shipping/vConnect orders never resolve to
-				// the smart_send_return_method array (get_smart_send_method_id()
-				// already returns the concrete method id string for them), so
-				// this branch - identical to build_outbound()'s agent
-				// selection - still runs for a return label in that case.
+				// the dedicated smart_send_return_method item meta, so this
+				// branch - identical to build_outbound()'s agent selection -
+				// still runs for a return label in that case.
 				$ss_args['ss_agent'] = $this->order_meta->get_ss_shipping_order_agent( $order_id );
 			}
 

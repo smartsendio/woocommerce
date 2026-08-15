@@ -28,11 +28,11 @@ if ( ! class_exists( 'SS_Shipping_Order_Bulk_Actions' ) ) :
 	class SS_Shipping_Order_Bulk_Actions {
 
 		/**
-		 * Order meta access component.
+		 * Shipping method resolver.
 		 *
-		 * @var SS_Shipping_Order_Meta
+		 * @var SS_Shipping_Method_Resolver
 		 */
-		protected SS_Shipping_Order_Meta $order_meta;
+		protected SS_Shipping_Method_Resolver $method_resolver;
 
 		/**
 		 * The fulfillment service running the label workflow.
@@ -50,12 +50,12 @@ if ( ! class_exists( 'SS_Shipping_Order_Bulk_Actions' ) ) :
 		protected SS_Shipping_Admin_Notices $admin_notices;
 
 		/**
-		 * @param SS_Shipping_Order_Meta          $order_meta          Order meta access component.
+		 * @param SS_Shipping_Method_Resolver     $method_resolver     Shipping method resolver.
 		 * @param SS_Shipping_Fulfillment_Service $fulfillment_service The fulfillment service.
 		 * @param SS_Shipping_Admin_Notices      $admin_notices       Admin notices component.
 		 */
-		public function __construct( SS_Shipping_Order_Meta $order_meta, SS_Shipping_Fulfillment_Service $fulfillment_service, SS_Shipping_Admin_Notices $admin_notices ) {
-			$this->order_meta          = $order_meta;
+		public function __construct( SS_Shipping_Method_Resolver $method_resolver, SS_Shipping_Fulfillment_Service $fulfillment_service, SS_Shipping_Admin_Notices $admin_notices ) {
+			$this->method_resolver     = $method_resolver;
 			$this->fulfillment_service = $fulfillment_service;
 			$this->admin_notices       = $admin_notices;
 		}
@@ -158,7 +158,7 @@ if ( ! class_exists( 'SS_Shipping_Order_Bulk_Actions' ) ) :
 							continue;
 						}
 
-						$ss_shipping_method_id = $this->order_meta->get_smart_send_method_id( $order_id );
+						$ss_shipping_method_id = $this->method_resolver->resolve_outbound( $order );
 
 						if ( ! empty( $ss_shipping_method_id ) ) {
 

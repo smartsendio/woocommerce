@@ -80,10 +80,9 @@ it('renders nothing for an order that does not exist in the database', function 
 it('survives deleting the agent meta of an order that no longer exists', function () {
     // Invalid-order guard (#60): the deleted_post_meta hook can fire for
     // orders that were already removed; the handler must not fatal.
-    $handler = SS_SHIPPING_WC()->order_meta();
-
-    $handler->delete_ss_shipping_order_agent(999999999);
-    $handler->action_deleted_agent_meta([1], 999999999, 'ss_shipping_order_agent_no', '1234');
+    SS_SHIPPING_WC()->order_meta()->delete_pickup_point(999999999);
+    SS_SHIPPING_WC()->pickup_point_validator()
+        ->action_deleted_agent_meta([1], 999999999, 'ss_shipping_order_agent_no', '1234');
 
     expect(true)->toBeTrue();
 });

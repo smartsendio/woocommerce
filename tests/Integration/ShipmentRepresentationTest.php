@@ -20,7 +20,7 @@
 function build_shipment_representation(WC_Order $order, bool $return = false): SS_Shipping_Shipment
 {
     $order_reader = new SS_Shipping_Order_Reader($order);
-    $builder      = new SS_Shipping_Shipment_Builder($order, $order_reader, new SS_Shipping_Order_Meta());
+    $builder      = new SS_Shipping_Shipment_Builder($order, $order_reader, new SS_Shipping_Order_Meta(), new SS_Shipping_Method_Resolver());
 
     return $return ? $builder->build_return() : $builder->build_outbound();
 }

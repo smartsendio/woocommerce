@@ -178,7 +178,7 @@ it('books two different orders through one stateless booking service without sta
 
     $capture = mock_smart_send_api();
 
-    $booking_service = new SS_Shipping_Booking_Service(new SS_Shipping_Order_Meta());
+    $booking_service = new SS_Shipping_Booking_Service(new SS_Shipping_Order_Meta(), new SS_Shipping_Method_Resolver());
 
     $booking_a = $booking_service->book_outbound($order_a);
     $booking_b = $booking_service->book_outbound($order_b);

@@ -43,11 +43,18 @@ if ( ! class_exists( 'SS_Shipping_Fulfillment_Service' ) ) :
 		protected string $label_prefix = 'smart-send-label-';
 
 		/**
-		 * Order meta access component.
+		 * Shipping method resolver.
 		 *
-		 * @var SS_Shipping_Order_Meta
+		 * @var SS_Shipping_Method_Resolver
 		 */
-		protected SS_Shipping_Order_Meta $order_meta;
+		protected SS_Shipping_Method_Resolver $method_resolver;
+
+		/**
+		 * Booked shipment id accessor.
+		 *
+		 * @var SS_Shipping_Shipment_Ids
+		 */
+		protected SS_Shipping_Shipment_Ids $shipment_ids;
 
 		/**
 		 * The booking service (stateless, order passed per call).
@@ -59,11 +66,13 @@ if ( ! class_exists( 'SS_Shipping_Fulfillment_Service' ) ) :
 		/**
 		 * Constructor.
 		 *
-		 * @param SS_Shipping_Order_Meta      $order_meta      Order meta access component.
+		 * @param SS_Shipping_Method_Resolver $method_resolver Shipping method resolver.
+		 * @param SS_Shipping_Shipment_Ids    $shipment_ids    Booked shipment id accessor.
 		 * @param SS_Shipping_Booking_Service $booking_service The booking service.
 		 */
-		public function __construct( SS_Shipping_Order_Meta $order_meta, SS_Shipping_Booking_Service $booking_service ) {
-			$this->order_meta      = $order_meta;
+		public function __construct( SS_Shipping_Method_Resolver $method_resolver, SS_Shipping_Shipment_Ids $shipment_ids, SS_Shipping_Booking_Service $booking_service ) {
+			$this->method_resolver = $method_resolver;
+			$this->shipment_ids    = $shipment_ids;
 			$this->booking_service = $booking_service;
 		}
 
@@ -164,10 +173,7 @@ if ( ! class_exists( 'SS_Shipping_Fulfillment_Service' ) ) :
 		 * @return boolean
 		 */
 		protected function is_auto_return_enabled( WC_Order $order ): bool {
-			$ss_shipping_method_id = $this->order_meta->get_smart_send_method_id( $order->get_id(), true );
-
-			return isset( $ss_shipping_method_id['smart_send_auto_generate_return_label'] ) &&
-				'yes' == $ss_shipping_method_id['smart_send_auto_generate_return_label']; // phpcs:ignore Universal.Operators.StrictComparisons.LooseEqual -- pre-existing loose comparison; tightening is a behaviour change out of scope for this extraction.
+			return $this->method_resolver->is_auto_return_enabled( $order );
 		}
 
 		/**
@@ -216,7 +222,7 @@ if ( ! class_exists( 'SS_Shipping_Fulfillment_Service' ) ) :
 			$label_url = $response->pdf->link;
 
 			// save order meta data
-			$this->order_meta->save_ss_shipment_id_in_order_meta( $order_id, $response->shipment_id, $is_return );
+			$this->shipment_ids->save( $order, $response->shipment_id, $is_return );
 
 			SS_Shipping_Logger::info(
 				$is_return ? 'Return shipping label created' : 'Shipping label created',
@@ -407,12 +413,7 @@ if ( ! class_exists( 'SS_Shipping_Fulfillment_Service' ) ) :
 			if ( ! $order instanceof WC_Order ) {
 				return '';
 			}
-			if ( $return ) {
-				$shipment_id = $order->get_meta( SS_Shipping_Order_Meta::META_RETURN_LABEL_ID, true );
-			} else {
-				$shipment_id = $order->get_meta( SS_Shipping_Order_Meta::META_LABEL_ID, true );
-			}
-			return $this->get_label_url_from_shipment_id( $shipment_id );
+			return $this->get_label_url_from_shipment_id( $this->shipment_ids->get( $order, $return ) );
 		}
 
 		/**

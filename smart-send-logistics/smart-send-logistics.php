@@ -47,11 +47,32 @@ if ( ! class_exists( 'SS_Shipping_WC' ) ) :
 		protected static ?SS_Shipping_WC $_instance = null; // phpcs:ignore PSR2.Classes.PropertyDeclaration.Underscore -- pre-existing name, renaming is out of scope here.
 
 		/**
-		 * Order meta access component.
+		 * Order meta repository.
 		 *
 		 * @var SS_Shipping_Order_Meta|null
 		 */
 		protected ?SS_Shipping_Order_Meta $order_meta = null;
+
+		/**
+		 * Shipping method resolver.
+		 *
+		 * @var SS_Shipping_Method_Resolver|null
+		 */
+		protected ?SS_Shipping_Method_Resolver $method_resolver = null;
+
+		/**
+		 * Booked shipment id accessor.
+		 *
+		 * @var SS_Shipping_Shipment_Ids|null
+		 */
+		protected ?SS_Shipping_Shipment_Ids $shipment_ids = null;
+
+		/**
+		 * Pickup point (agent number) validator.
+		 *
+		 * @var SS_Shipping_Pickup_Point_Validator|null
+		 */
+		protected ?SS_Shipping_Pickup_Point_Validator $pickup_point_validator = null;
 
 		/**
 		 * Order screen meta box component.
@@ -227,6 +248,9 @@ if ( ! class_exists( 'SS_Shipping_WC' ) ) :
 			require_once SS_SHIPPING_PLUGIN_DIR_PATH . '/admin/class-ss-shipping-booking-exception.php';
 			require_once SS_SHIPPING_PLUGIN_DIR_PATH . '/admin/class-ss-shipping-booking-service.php';
 			require_once SS_SHIPPING_PLUGIN_DIR_PATH . '/admin/class-ss-shipping-order-meta.php';
+			require_once SS_SHIPPING_PLUGIN_DIR_PATH . '/admin/class-ss-shipping-method-resolver.php';
+			require_once SS_SHIPPING_PLUGIN_DIR_PATH . '/admin/class-ss-shipping-shipment-ids.php';
+			require_once SS_SHIPPING_PLUGIN_DIR_PATH . '/admin/class-ss-shipping-pickup-point-validator.php';
 			require_once SS_SHIPPING_PLUGIN_DIR_PATH . '/admin/class-ss-shipping-order-meta-box.php';
 			require_once SS_SHIPPING_PLUGIN_DIR_PATH . '/admin/class-ss-shipping-label-creator.php';
 			require_once SS_SHIPPING_PLUGIN_DIR_PATH . '/admin/class-ss-shipping-order-bulk-actions.php';
@@ -285,16 +309,20 @@ if ( ! class_exists( 'SS_Shipping_WC' ) ) :
 				$this->ss_shipping_wc_product   = new SS_Shipping_WC_Product();
 				$this->ss_plugin_screen_updates = new SS_Plugins_Screen_Updates();
 
-				$this->admin_notices        = new SS_Shipping_Admin_Notices();
-				$this->order_meta           = new SS_Shipping_Order_Meta();
-				$this->meta_box             = new SS_Shipping_Order_Meta_Box( $this->order_meta );
-				$this->fulfillment_service  = new SS_Shipping_Fulfillment_Service(
-					$this->order_meta,
-					new SS_Shipping_Booking_Service( $this->order_meta )
+				$this->admin_notices          = new SS_Shipping_Admin_Notices();
+				$this->order_meta             = new SS_Shipping_Order_Meta();
+				$this->method_resolver        = new SS_Shipping_Method_Resolver();
+				$this->shipment_ids           = new SS_Shipping_Shipment_Ids();
+				$this->pickup_point_validator = new SS_Shipping_Pickup_Point_Validator( $this->order_meta, $this->method_resolver );
+				$this->meta_box               = new SS_Shipping_Order_Meta_Box( $this->order_meta, $this->method_resolver );
+				$this->fulfillment_service    = new SS_Shipping_Fulfillment_Service(
+					$this->method_resolver,
+					$this->shipment_ids,
+					new SS_Shipping_Booking_Service( $this->order_meta, $this->method_resolver )
 				);
-				$this->label_creator        = new SS_Shipping_Label_Creator( $this->order_meta, $this->fulfillment_service );
-				$this->bulk_actions         = new SS_Shipping_Order_Bulk_Actions( $this->order_meta, $this->fulfillment_service, $this->admin_notices );
-				$this->subscriptions_compat = new SS_Shipping_Subscriptions_Compat();
+				$this->label_creator          = new SS_Shipping_Label_Creator( $this->order_meta, $this->fulfillment_service );
+				$this->bulk_actions           = new SS_Shipping_Order_Bulk_Actions( $this->method_resolver, $this->fulfillment_service, $this->admin_notices );
+				$this->subscriptions_compat   = new SS_Shipping_Subscriptions_Compat();
 
 				$this->register_component_hooks();
 			} else {
@@ -318,7 +346,7 @@ if ( ! class_exists( 'SS_Shipping_WC' ) ) :
 			$this->ss_plugin_screen_updates->register_hooks();
 
 			$this->admin_notices->register_hooks();
-			$this->order_meta->register_hooks();
+			$this->pickup_point_validator->register_hooks();
 			$this->meta_box->register_hooks();
 			$this->label_creator->register_hooks();
 			$this->bulk_actions->register_hooks();
@@ -469,6 +497,33 @@ if ( ! class_exists( 'SS_Shipping_WC' ) ) :
 		 */
 		public function order_meta(): SS_Shipping_Order_Meta {
 			return $this->order_meta;
+		}
+
+		/**
+		 * Get the shipping method resolver.
+		 *
+		 * @return SS_Shipping_Method_Resolver
+		 */
+		public function method_resolver(): SS_Shipping_Method_Resolver {
+			return $this->method_resolver;
+		}
+
+		/**
+		 * Get the booked shipment id accessor.
+		 *
+		 * @return SS_Shipping_Shipment_Ids
+		 */
+		public function shipment_ids(): SS_Shipping_Shipment_Ids {
+			return $this->shipment_ids;
+		}
+
+		/**
+		 * Get the pickup point (agent number) validator.
+		 *
+		 * @return SS_Shipping_Pickup_Point_Validator
+		 */
+		public function pickup_point_validator(): SS_Shipping_Pickup_Point_Validator {
+			return $this->pickup_point_validator;
 		}
 
 		/**

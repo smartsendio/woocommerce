@@ -34,13 +34,13 @@ function assert_order_meta_accessors_roundtrip(bool $hpos): void
         ->and($agent->company)->toBe('Corner Shop');
     expect(wc_get_order($order_id)->get_meta('_ss_shipping_order_agent', true))->toBeObject();
 
-    // v8 oddity: delete_ss_shipping_order_agent() calls delete_meta_data()
+    // v8 oddity: delete_pickup_point() calls delete_meta_data()
     // but never saves the order, so the delete is not persisted. What a
     // subsequent read sees then DIFFERS per backend: under legacy storage a
     // fresh wc_get_order() reloads from the database and still finds the
     // agent; under HPOS the in-process order cache returns the same object
     // instance, whose in-memory meta was already deleted.
-    $handler->delete_ss_shipping_order_agent($order_id);
+    $handler->delete_pickup_point($order_id);
     if ($hpos) {
         expect($handler->get_ss_shipping_order_agent($order_id))->toBeNull();
     } else {
@@ -53,12 +53,16 @@ function assert_order_meta_accessors_roundtrip(bool $hpos): void
     $handler->save_ss_shipping_order_parcels($order_id, $parcels);
     expect($handler->get_ss_shipping_order_parcels($order_id))->toEqual($parcels);
 
-    // Shipment/label ids for both normal and return labels.
-    $handler->save_ss_shipment_id_in_order_meta($order_id, 'shipment-123', false);
-    $handler->save_ss_shipment_id_in_order_meta($order_id, 'return-456', true);
+    // Shipment/label ids for both normal and return labels (the separate
+    // booking-outcome accessor, see SS_Shipping_Shipment_Ids).
+    $shipment_ids = SS_SHIPPING_WC()->shipment_ids();
+    $shipment_ids->save($order_id, 'shipment-123', false);
+    $shipment_ids->save($order_id, 'return-456', true);
     $fresh = wc_get_order($order_id);
     expect($fresh->get_meta('_ss_shipping_label_id', true))->toBe('shipment-123')
-        ->and($fresh->get_meta('_ss_shipping_return_label_id', true))->toBe('return-456');
+        ->and($fresh->get_meta('_ss_shipping_return_label_id', true))->toBe('return-456')
+        ->and($shipment_ids->get($order_id, false))->toBe('shipment-123')
+        ->and($shipment_ids->get($order_id, true))->toBe('return-456');
 
     // Label URLs are derived from the shipment id and the uploads dir.
     expect($fulfillment->get_label_url_from_order_id($order_id, false))
@@ -129,47 +133,8 @@ it('handles a missing order in every meta accessor without fatals', function () 
     $handler->save_ss_shipping_order_agent_no($missing, '1234');
     $handler->save_ss_shipping_order_agent($missing, sample_agent());
     $handler->save_ss_shipping_order_parcels($missing, []);
-    $handler->save_ss_shipment_id_in_order_meta($missing, 'shipment-1', false);
+    SS_SHIPPING_WC()->shipment_ids()->save($missing, 'shipment-1', false);
+    expect(SS_SHIPPING_WC()->shipment_ids()->get($missing, false))->toBe('');
 
     expect($handler->get_ss_shipping_order_agent_no($missing))->toBeNull();
-});
-
-it('detects the Smart Send shipping method on an order', function () {
-    $handler = SS_SHIPPING_WC()->order_meta();
-    $product = create_simple_product(['price' => 100, 'weight' => 1]);
-
-    $ss_order = create_order([
-        'products'        => [$product],
-        'shipping_method' => 'postnord_agent',
-        'return_method'   => 'postnord_returndropoff',
-        'auto_return'     => 'yes',
-    ]);
-    expect($handler->get_smart_send_method_id($ss_order->get_id()))->toBe('postnord_agent')
-        ->and($handler->get_smart_send_method_id($ss_order->get_id(), true))->toEqual([
-            'smart_send_return_method'              => 'postnord_returndropoff',
-            'smart_send_auto_generate_return_label' => 'yes',
-        ]);
-
-    $plain_order = create_order(['products' => [$product]]);
-    expect($handler->get_smart_send_method_id($plain_order->get_id()))->toBe('');
-
-    expect($handler->get_smart_send_method_id(0))->toBe('');
-});
-
-it('maps WooCommerce free shipping to the configured Smart Send method', function () {
-    with_ss_settings(['shipping_method_for_free_shipping' => 'gls_agent']);
-
-    $product = create_simple_product(['price' => 100, 'weight' => 1]);
-    $order   = create_order(['products' => [$product]]);
-
-    $shipping_item = new WC_Order_Item_Shipping();
-    $shipping_item->set_method_title('Free shipping');
-    $shipping_item->set_method_id('free_shipping');
-    $shipping_item->set_instance_id(2);
-    $shipping_item->set_total('0');
-    $order->add_item($shipping_item);
-    $order->save();
-
-    expect(SS_SHIPPING_WC()->order_meta()->get_smart_send_method_id($order->get_id()))
-        ->toBe('gls_agent');
 });

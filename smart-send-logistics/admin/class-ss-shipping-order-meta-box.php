@@ -23,17 +23,26 @@ if ( ! class_exists( 'SS_Shipping_Order_Meta_Box' ) ) :
 	class SS_Shipping_Order_Meta_Box {
 
 		/**
-		 * Order meta access component.
+		 * Order meta repository.
 		 *
 		 * @var SS_Shipping_Order_Meta
 		 */
 		protected SS_Shipping_Order_Meta $order_meta;
 
 		/**
-		 * @param SS_Shipping_Order_Meta $order_meta Order meta access component.
+		 * Shipping method resolver.
+		 *
+		 * @var SS_Shipping_Method_Resolver
 		 */
-		public function __construct( SS_Shipping_Order_Meta $order_meta ) {
-			$this->order_meta = $order_meta;
+		protected SS_Shipping_Method_Resolver $method_resolver;
+
+		/**
+		 * @param SS_Shipping_Order_Meta      $order_meta      Order meta repository.
+		 * @param SS_Shipping_Method_Resolver $method_resolver Shipping method resolver.
+		 */
+		public function __construct( SS_Shipping_Order_Meta $order_meta, SS_Shipping_Method_Resolver $method_resolver ) {
+			$this->order_meta      = $order_meta;
+			$this->method_resolver = $method_resolver;
 		}
 
 		/**
@@ -109,7 +118,7 @@ if ( ! class_exists( 'SS_Shipping_Order_Meta_Box' ) ) :
 
 			$shipping_ss_settings = SS_SHIPPING_WC()->get_ss_shipping_settings();
 
-			$ss_shipping_method_id = $this->order_meta->get_smart_send_method_id( $order_id );
+			$ss_shipping_method_id = $this->method_resolver->resolve_outbound( $order );
 
 			// Only display Smart Shipping (SS) meta box is SS selected as shipping method OR free shipping is set to SS method.
 			if ( ! $ss_shipping_method_id ) {

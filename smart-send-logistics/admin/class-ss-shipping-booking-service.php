@@ -44,19 +44,28 @@ if ( ! class_exists( 'SS_Shipping_Booking_Service' ) ) :
 	class SS_Shipping_Booking_Service {
 
 		/**
-		 * Order meta access component.
+		 * Order meta repository.
 		 *
 		 * @var SS_Shipping_Order_Meta
 		 */
 		protected SS_Shipping_Order_Meta $order_meta;
 
 		/**
+		 * Shipping method resolver.
+		 *
+		 * @var SS_Shipping_Method_Resolver
+		 */
+		protected SS_Shipping_Method_Resolver $method_resolver;
+
+		/**
 		 * Constructor.
 		 *
-		 * @param SS_Shipping_Order_Meta $order_meta Order meta access component.
+		 * @param SS_Shipping_Order_Meta      $order_meta      Order meta repository.
+		 * @param SS_Shipping_Method_Resolver $method_resolver Shipping method resolver.
 		 */
-		public function __construct( SS_Shipping_Order_Meta $order_meta ) {
-			$this->order_meta = $order_meta;
+		public function __construct( SS_Shipping_Order_Meta $order_meta, SS_Shipping_Method_Resolver $method_resolver ) {
+			$this->order_meta      = $order_meta;
+			$this->method_resolver = $method_resolver;
 		}
 
 		/**
@@ -67,7 +76,7 @@ if ( ! class_exists( 'SS_Shipping_Booking_Service' ) ) :
 		 * @return SS_Shipping_Booking
 		 */
 		public function book_outbound( WC_Order $order ): SS_Shipping_Booking {
-			$builder = new SS_Shipping_Shipment_Builder( $order, new SS_Shipping_Order_Reader( $order ), $this->order_meta );
+			$builder = new SS_Shipping_Shipment_Builder( $order, new SS_Shipping_Order_Reader( $order ), $this->order_meta, $this->method_resolver );
 
 			try {
 				$shipment = $builder->build_outbound();
@@ -86,7 +95,7 @@ if ( ! class_exists( 'SS_Shipping_Booking_Service' ) ) :
 		 * @return SS_Shipping_Booking
 		 */
 		public function book_return( WC_Order $order ): SS_Shipping_Booking {
-			$builder = new SS_Shipping_Shipment_Builder( $order, new SS_Shipping_Order_Reader( $order ), $this->order_meta );
+			$builder = new SS_Shipping_Shipment_Builder( $order, new SS_Shipping_Order_Reader( $order ), $this->order_meta, $this->method_resolver );
 
 			try {
 				$shipment = $builder->build_return();
