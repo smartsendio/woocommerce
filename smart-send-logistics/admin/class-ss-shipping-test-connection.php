@@ -98,6 +98,11 @@ if ( ! class_exists( 'SS_Shipping_Test_Connection' ) ) :
 				false
 			);
 			wp_localize_script( 'smart-send-test-connection', 'ss_test_connection_obj', $test_con_data );
+
+			// The stylesheet carrying the .ss-connection result styling this
+			// feature's script injects - owned here instead of a blanket
+			// admin enqueue on the plugin singleton (#140).
+			wp_enqueue_style( 'ss-shipping-admin-css', SS_SHIPPING_PLUGIN_DIR_URL . '/admin/css/ss-shipping-admin.css', array(), SS_SHIPPING_VERSION );
 		}
 
 		/**

@@ -69,31 +69,32 @@ if ( ! class_exists( 'SS_Shipping_Order_Meta_Box' ) ) :
 		 * @return void
 		 */
 		public function register_hooks() {
-			$this->define_button_labels();
-
 			add_action( 'add_meta_boxes', array( $this, 'add_smart_send_order_meta_box' ), 20 );
 		}
 
 		/**
-		 * Define the label-generation button label constants.
+		 * The label-generation button text, with the demo-mode prefix when
+		 * demo mode is on. Plain methods instead of the historic per-request
+		 * global define()s (#140).
 		 *
-		 * Kept as global constants (rather than class properties) because
-		 * the meta box's own HTML-building code below reads them directly,
-		 * matching the surrounding markup's style.
+		 * @return string
 		 */
-		protected function define_button_labels() {
-			SS_SHIPPING_WC()->define(
-				'SS_SHIPPING_BUTTON_LABEL_GEN',
-				$this->settings->demo_mode()
-					? __( 'DEMO MODE: Generate label', 'smart-send-logistics' )
-					: __( 'Generate label', 'smart-send-logistics' )
-			);
-			SS_SHIPPING_WC()->define(
-				'SS_SHIPPING_BUTTON_RETURN_LABEL_GEN',
-				$this->settings->demo_mode()
-					? __( 'DEMO MODE: Generate return label', 'smart-send-logistics' )
-					: __( 'Generate return label', 'smart-send-logistics' )
-			);
+		protected function label_button_text() {
+			return $this->settings->demo_mode()
+				? __( 'DEMO MODE: Generate label', 'smart-send-logistics' )
+				: __( 'Generate label', 'smart-send-logistics' );
+		}
+
+		/**
+		 * The return-label-generation button text, with the demo-mode prefix
+		 * when demo mode is on.
+		 *
+		 * @return string
+		 */
+		protected function return_label_button_text() {
+			return $this->settings->demo_mode()
+				? __( 'DEMO MODE: Generate return label', 'smart-send-logistics' )
+				: __( 'Generate return label', 'smart-send-logistics' );
 		}
 
 		/**
@@ -265,8 +266,8 @@ if ( ! class_exists( 'SS_Shipping_Order_Meta_Box' ) ) :
 			echo '<hr>';
 			echo '</p>';
 
-			echo '<button id="ss-shipping-label-button" class="button button-primary button-save-form">' . SS_SHIPPING_BUTTON_LABEL_GEN . '</button><br><br>';
-			echo '<button id="ss-shipping-return-label-button" class="button button-save-form">' . SS_SHIPPING_BUTTON_RETURN_LABEL_GEN . '</button>';
+			echo '<button id="ss-shipping-label-button" class="button button-primary button-save-form">' . $this->label_button_text() . '</button><br><br>';
+			echo '<button id="ss-shipping-return-label-button" class="button button-save-form">' . $this->return_label_button_text() . '</button>';
 
 			// Load JS for AJAX calls
 			$ss_label_data = array(
@@ -284,6 +285,9 @@ if ( ! class_exists( 'SS_Shipping_Order_Meta_Box' ) ) :
 				false
 			);
 			wp_localize_script( 'ss-shipping-label-js', 'ss_label_data', $ss_label_data );
+			// The meta box owns its stylesheet (message styling for the AJAX
+			// responses the label JS injects) - see #140.
+			wp_enqueue_style( 'ss-shipping-admin-css', SS_SHIPPING_PLUGIN_DIR_URL . '/admin/css/ss-shipping-admin.css', array(), SS_SHIPPING_VERSION );
 
 			echo '</div>';
 			// phpcs:enable WordPress.Security.EscapeOutput.OutputNotEscaped

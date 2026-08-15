@@ -332,9 +332,6 @@ if ( ! class_exists( 'SS_Shipping_WC' ) ) :
             add_filter('plugin_action_links_' . SS_SHIPPING_PLUGIN_BASENAME, array($this, 'plugin_action_links'));
             add_filter('plugin_row_meta', array($this, 'ss_shipping_plugin_row_meta'), 10, 2);
 
-            add_action('admin_enqueue_scripts', array($this, 'ss_shipping_theme_enqueue_admin_styles'));
-            add_action('wp_enqueue_scripts', array($this, 'ss_shipping_theme_enqueue_frontend_styles'));
-
             add_filter('woocommerce_shipping_methods', array($this, 'add_shipping_method'));
         }
 
@@ -414,27 +411,13 @@ if ( ! class_exists( 'SS_Shipping_WC' ) ) :
             load_plugin_textdomain('smart-send-logistics', false, dirname(plugin_basename(__FILE__)) . '/lang/');
         }
 
-		/**
-		 * Load Admin CSS
-		 */
-		public function ss_shipping_theme_enqueue_admin_styles() {
-			wp_enqueue_style( 'ss-shipping-admin-css', SS_SHIPPING_PLUGIN_DIR_URL . '/admin/css/ss-shipping-admin.css' ); // phpcs:ignore WordPress.WP.EnqueuedResourceParameters.MissingVersion -- pre-existing behaviour: the default WordPress version query string is kept; pinning a version is out of scope for the #43 move.
-		}
-
-		/**
-		 * Load Frontend CSS
-		 */
-		public function ss_shipping_theme_enqueue_frontend_styles() {
-			wp_enqueue_style( 'ss-shipping-frontend-css', SS_SHIPPING_PLUGIN_DIR_URL . '/public/css/ss-shipping-frontend.css' ); // phpcs:ignore WordPress.WP.EnqueuedResourceParameters.MissingVersion -- pre-existing behaviour: the default WordPress version query string is kept; pinning a version is out of scope for the #43 move.
-		}
-
         /**
          * Define constant if not already set.
          *
          * @param  string $name
          * @param  string|bool $value
          */
-        public function define($name, $value)
+        private function define($name, $value)
         {
             if (!defined($name)) {
                 define($name, $value);
@@ -637,21 +620,14 @@ if ( ! class_exists( 'SS_Shipping_WC' ) ) :
 			return $this->rate_sorter;
 		}
 
-	    /**
-	     * Find the closest agents by address - Convenience wrapper
-	     *
-	     * @param $carrier string unique carrier code
-	     * @param $country string ISO3166-A2 Country code
-	     * @param $postal_code string
-	     * @param $street string
-         * @param $city string optional but providing a city yields better accuracy for geocoding
-	     *
-	     * @return array
-	     */
-	    public function ss_find_closest_agents_by_address($carrier, $country, $postal_code, $street, $city=null) {
-	        return $this->ss_shipping_frontend
-                ->find_closest_agents_by_address($carrier, $country, $postal_code, $city, $street);
-        }
+		/**
+		 * Get the headless pickup point lookup (API + session cache).
+		 *
+		 * @return SS_Shipping_Pickup_Point_Lookup
+		 */
+		public function pickup_point_lookup(): SS_Shipping_Pickup_Point_Lookup {
+			return $this->pickup_point_lookup;
+		}
     }
 
 endif;

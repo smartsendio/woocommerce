@@ -58,11 +58,22 @@ if ( ! class_exists( 'SS_Shipping_Frontend' ) ) :
 		 * @return void
 		 */
 		public function register_hooks() {
+			add_action( 'wp_enqueue_scripts', array( $this, 'enqueue_frontend_styles' ) );
 			add_action( 'woocommerce_after_shipping_rate', array( $this, 'display_ss_pickup_points' ), 10, 2 );
 			add_action( 'woocommerce_checkout_process', array( $this, 'validate_agent_selected' ) );
 			add_action( 'woocommerce_checkout_order_processed', array( $this, 'process_ss_pickup_points' ), 10, 2 );
 			add_action( 'woocommerce_order_details_after_order_table', array( $this, 'display_ss_shipping_agent' ), 10, 2 );
 			add_action( 'woocommerce_email_after_order_table', array( $this, 'display_ss_shipping_agent' ), 10, 2 );
+		}
+
+		/**
+		 * Enqueue the checkout stylesheet - owned by this component instead
+		 * of a blanket enqueue on the plugin singleton (#140).
+		 *
+		 * @return void
+		 */
+		public function enqueue_frontend_styles() {
+			wp_enqueue_style( 'ss-shipping-frontend-css', SS_SHIPPING_PLUGIN_DIR_URL . '/public/css/ss-shipping-frontend.css', array(), SS_SHIPPING_VERSION );
 		}
 
 		/**
@@ -86,13 +97,8 @@ if ( ! class_exists( 'SS_Shipping_Frontend' ) ) :
 			$chosen_methods  = WC()->session->get( 'chosen_shipping_methods' );
 			$chosen_shipping = current( $chosen_methods );
 
-			if ( defined( 'WOOCOMMERCE_VERSION' ) && version_compare( WOOCOMMERCE_VERSION, '3.0', '>=' ) ) {
-				$method_id   = $method->get_method_id();
-				$shipping_id = $method->get_id();
-			} else {
-				$method_id   = $method->method_id;
-				$shipping_id = $method->id;
-			}
+			$method_id   = $method->get_method_id();
+			$shipping_id = $method->get_id();
 
 			$meta_data = $method->get_meta_data();
 
@@ -291,12 +297,7 @@ if ( ! class_exists( 'SS_Shipping_Frontend' ) ) :
 		}
 
 		protected function get_order_id( $order ) {
-			// WC 3.0 code!
-			if ( defined( 'WOOCOMMERCE_VERSION' ) && version_compare( WOOCOMMERCE_VERSION, '3.0', '>=' ) ) {
-				return $order->get_id();
-			} else {
-				return $order->id;
-			}
+			return $order->get_id();
 		}
 	}
 

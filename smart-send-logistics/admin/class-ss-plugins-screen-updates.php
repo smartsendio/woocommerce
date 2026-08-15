@@ -21,6 +21,24 @@ class SS_Plugins_Screen_Updates {
 	 */
 	public function register_hooks() {
 		add_action( 'in_plugin_update_message-smart-send-logistics/smart-send-logistics.php', array( $this, 'in_plugin_update_message' ), 10, 2 );
+		add_action( 'admin_enqueue_scripts', array( $this, 'enqueue_plugins_screen_styles' ) );
+	}
+
+	/**
+	 * Enqueue the stylesheet hiding the notice's .dummy filler paragraph on
+	 * the Plugins screen - owned here instead of a blanket admin enqueue on
+	 * the plugin singleton (#140).
+	 *
+	 * @param string $hook The current admin page hook.
+	 *
+	 * @return void
+	 */
+	public function enqueue_plugins_screen_styles( $hook ) {
+		if ( 'plugins.php' !== $hook ) {
+			return;
+		}
+
+		wp_enqueue_style( 'ss-shipping-admin-css', SS_SHIPPING_PLUGIN_DIR_URL . '/admin/css/ss-shipping-admin.css', array(), SS_SHIPPING_VERSION );
 	}
 
 	/**
