@@ -7,13 +7,13 @@ if ( ! defined( 'ABSPATH' ) ) {
 /**
  * Smart Send label creation AJAX controller.
  *
- * Owns the wp_ajax_ss_shipping_generate_label endpoint: nonce check,
- * request parsing and the pre-booking parcel-meta save, then delegates
- * the actual fulfillment workflow to SS_Shipping_Fulfillment_Service and
- * sends the legacy-shaped JSON response that
- * admin/js/ss-shipping-label.js parses. The class name is kept for the
- * facade's frozen delegations; it is a thin controller since the
- * fulfillment-service extraction.
+ * Owns the wp_ajax_ss_shipping_generate_label endpoint: nonce check and
+ * request parsing, translating the posted parcel rows into a typed
+ * SS_Shipping_Parcel_Plan handed to SS_Shipping_Fulfillment_Service as
+ * partial delivery details (#139), then sends the legacy-shaped JSON
+ * response that admin/js/ss-shipping-label.js parses. The JS<->PHP wire
+ * (request fields and response shape) is frozen until the #116
+ * request/response redesign.
  *
  * @package  SS_Shipping_Label_Creator
  * @category Shipping
