@@ -245,7 +245,6 @@ if ( ! class_exists( 'SS_Shipping_WC' ) ) :
 			// only require_once'd lazily once WooCommerce is confirmed active.
 			$this->define( 'SS_SHIPPING_METHOD_ID', 'smart_send_shipping' );
 		}
-
 		/**
 		 * Include required core files used in admin and on the frontend.
 		 *
@@ -257,56 +256,62 @@ if ( ! class_exists( 'SS_Shipping_WC' ) ) :
 			// Smart Send PHP API client (PSR-style, namespace Smartsend).
 			require_once SS_SHIPPING_PLUGIN_DIR_PATH . '/includes/lib/Smartsend/Api.php';
 
-			// Shared components used in admin and on the frontend.
-			require_once SS_SHIPPING_PLUGIN_DIR_PATH . '/includes/class-ss-shipping-settings.php';
-			require_once SS_SHIPPING_PLUGIN_DIR_PATH . '/includes/class-ss-shipping-api-credentials.php';
-			require_once SS_SHIPPING_PLUGIN_DIR_PATH . '/includes/class-ss-shipping-api-factory.php';
-			require_once SS_SHIPPING_PLUGIN_DIR_PATH . '/includes/class-ss-shipping-logger.php';
-			require_once SS_SHIPPING_PLUGIN_DIR_PATH . '/includes/class-ss-shipping-checkout-debug.php';
-			require_once SS_SHIPPING_PLUGIN_DIR_PATH . '/includes/class-ss-shipping-admin-notices.php';
-			require_once SS_SHIPPING_PLUGIN_DIR_PATH . '/includes/class-ss-shipping-order-reader.php';
-			require_once SS_SHIPPING_PLUGIN_DIR_PATH . '/includes/class-ss-shipping-pickup-point.php';
-			require_once SS_SHIPPING_PLUGIN_DIR_PATH . '/includes/class-ss-shipping-parcel-spec.php';
-			require_once SS_SHIPPING_PLUGIN_DIR_PATH . '/includes/class-ss-shipping-parcel-plan.php';
-			require_once SS_SHIPPING_PLUGIN_DIR_PATH . '/includes/class-ss-shipping-delivery-details.php';
-			require_once SS_SHIPPING_PLUGIN_DIR_PATH . '/includes/class-ss-shipping-pickup-point-formatter.php';
-			require_once SS_SHIPPING_PLUGIN_DIR_PATH . '/includes/class-ss-shipping-label-entry.php';
-			require_once SS_SHIPPING_PLUGIN_DIR_PATH . '/includes/class-ss-shipping-fulfillment-result.php';
-			require_once SS_SHIPPING_PLUGIN_DIR_PATH . '/includes/class-ss-shipping-fulfillment-service.php';
-			require_once SS_SHIPPING_PLUGIN_DIR_PATH . '/includes/class-ss-shipping-subscriptions-compat.php';
+			// Support: settings, API client construction, logging, notices.
+			require_once SS_SHIPPING_PLUGIN_DIR_PATH . '/includes/support/class-ss-shipping-settings.php';
+			require_once SS_SHIPPING_PLUGIN_DIR_PATH . '/includes/support/class-ss-shipping-api-credentials.php';
+			require_once SS_SHIPPING_PLUGIN_DIR_PATH . '/includes/support/class-ss-shipping-api-factory.php';
+			require_once SS_SHIPPING_PLUGIN_DIR_PATH . '/includes/support/class-ss-shipping-logger.php';
+			require_once SS_SHIPPING_PLUGIN_DIR_PATH . '/includes/support/class-ss-shipping-checkout-debug.php';
+			require_once SS_SHIPPING_PLUGIN_DIR_PATH . '/includes/support/class-ss-shipping-admin-notices.php';
+			require_once SS_SHIPPING_PLUGIN_DIR_PATH . '/includes/support/class-ss-shipping-subscriptions-compat.php';
+
+			// Delivery-details domain: value objects, repository, resolution,
+			// pickup point formatting/lookup/validation.
+			require_once SS_SHIPPING_PLUGIN_DIR_PATH . '/includes/delivery/class-ss-shipping-pickup-point.php';
+			require_once SS_SHIPPING_PLUGIN_DIR_PATH . '/includes/delivery/class-ss-shipping-parcel-spec.php';
+			require_once SS_SHIPPING_PLUGIN_DIR_PATH . '/includes/delivery/class-ss-shipping-parcel-plan.php';
+			require_once SS_SHIPPING_PLUGIN_DIR_PATH . '/includes/delivery/class-ss-shipping-delivery-details.php';
+			require_once SS_SHIPPING_PLUGIN_DIR_PATH . '/includes/delivery/class-ss-shipping-order-meta.php';
+			require_once SS_SHIPPING_PLUGIN_DIR_PATH . '/includes/delivery/class-ss-shipping-method-resolver.php';
+			require_once SS_SHIPPING_PLUGIN_DIR_PATH . '/includes/delivery/class-ss-shipping-pickup-point-formatter.php';
+			require_once SS_SHIPPING_PLUGIN_DIR_PATH . '/includes/delivery/class-ss-shipping-pickup-point-lookup.php';
+			require_once SS_SHIPPING_PLUGIN_DIR_PATH . '/includes/delivery/class-ss-shipping-pickup-point-validator.php';
+
+			// Booking domain: order reading, shipment representation,
+			// booking, fulfillment.
+			require_once SS_SHIPPING_PLUGIN_DIR_PATH . '/includes/booking/class-ss-shipping-order-reader.php';
+			require_once SS_SHIPPING_PLUGIN_DIR_PATH . '/includes/booking/class-ss-shipping-parcel.php';
+			require_once SS_SHIPPING_PLUGIN_DIR_PATH . '/includes/booking/class-ss-shipping-shipment.php';
+			require_once SS_SHIPPING_PLUGIN_DIR_PATH . '/includes/booking/class-ss-shipping-shipment-builder.php';
+			require_once SS_SHIPPING_PLUGIN_DIR_PATH . '/includes/booking/class-ss-shipping-booking.php';
+			require_once SS_SHIPPING_PLUGIN_DIR_PATH . '/includes/booking/class-ss-shipping-booking-exception.php';
+			require_once SS_SHIPPING_PLUGIN_DIR_PATH . '/includes/booking/class-ss-shipping-booking-service.php';
+			require_once SS_SHIPPING_PLUGIN_DIR_PATH . '/includes/booking/class-ss-shipping-shipment-ids.php';
+			require_once SS_SHIPPING_PLUGIN_DIR_PATH . '/includes/booking/class-ss-shipping-label-entry.php';
+			require_once SS_SHIPPING_PLUGIN_DIR_PATH . '/includes/booking/class-ss-shipping-fulfillment-result.php';
+			require_once SS_SHIPPING_PLUGIN_DIR_PATH . '/includes/booking/class-ss-shipping-fulfillment-service.php';
 
 			// Shipping-method layer helpers. Loaded eagerly: unlike
 			// SS_Shipping_WC_Method they extend nothing from WooCommerce, so
 			// only the method class itself needs the lazy require (see
 			// include_shipping_method_class()).
-			require_once SS_SHIPPING_PLUGIN_DIR_PATH . '/admin/class-ss-shipping-method-code.php';
-			require_once SS_SHIPPING_PLUGIN_DIR_PATH . '/admin/class-ss-shipping-method-catalog.php';
-			require_once SS_SHIPPING_PLUGIN_DIR_PATH . '/admin/class-ss-shipping-method-settings.php';
-			require_once SS_SHIPPING_PLUGIN_DIR_PATH . '/admin/class-ss-shipping-method-form-renderer.php';
-			require_once SS_SHIPPING_PLUGIN_DIR_PATH . '/admin/class-ss-shipping-test-connection.php';
-			require_once SS_SHIPPING_PLUGIN_DIR_PATH . '/admin/class-ss-shipping-weight-table.php';
-			require_once SS_SHIPPING_PLUGIN_DIR_PATH . '/admin/class-ss-shipping-availability-reporter.php';
-			require_once SS_SHIPPING_PLUGIN_DIR_PATH . '/admin/class-ss-shipping-rate-sorter.php';
+			require_once SS_SHIPPING_PLUGIN_DIR_PATH . '/includes/shipping-method/class-ss-shipping-method-code.php';
+			require_once SS_SHIPPING_PLUGIN_DIR_PATH . '/includes/shipping-method/class-ss-shipping-method-catalog.php';
+			require_once SS_SHIPPING_PLUGIN_DIR_PATH . '/includes/shipping-method/class-ss-shipping-method-settings.php';
+			require_once SS_SHIPPING_PLUGIN_DIR_PATH . '/includes/shipping-method/class-ss-shipping-method-form-renderer.php';
+			require_once SS_SHIPPING_PLUGIN_DIR_PATH . '/includes/shipping-method/class-ss-shipping-test-connection.php';
+			require_once SS_SHIPPING_PLUGIN_DIR_PATH . '/includes/shipping-method/class-ss-shipping-weight-table.php';
+			require_once SS_SHIPPING_PLUGIN_DIR_PATH . '/includes/shipping-method/class-ss-shipping-availability-reporter.php';
+			require_once SS_SHIPPING_PLUGIN_DIR_PATH . '/includes/shipping-method/class-ss-shipping-rate-sorter.php';
 
-			// Admin components.
+			// Admin entry-point controllers and UI.
 			require_once SS_SHIPPING_PLUGIN_DIR_PATH . '/admin/class-ss-plugins-screen-updates.php';
-			require_once SS_SHIPPING_PLUGIN_DIR_PATH . '/admin/class-ss-shipping-parcel.php';
-			require_once SS_SHIPPING_PLUGIN_DIR_PATH . '/admin/class-ss-shipping-shipment.php';
-			require_once SS_SHIPPING_PLUGIN_DIR_PATH . '/admin/class-ss-shipping-shipment-builder.php';
-			require_once SS_SHIPPING_PLUGIN_DIR_PATH . '/admin/class-ss-shipping-booking.php';
-			require_once SS_SHIPPING_PLUGIN_DIR_PATH . '/admin/class-ss-shipping-booking-exception.php';
-			require_once SS_SHIPPING_PLUGIN_DIR_PATH . '/admin/class-ss-shipping-booking-service.php';
-			require_once SS_SHIPPING_PLUGIN_DIR_PATH . '/admin/class-ss-shipping-order-meta.php';
-			require_once SS_SHIPPING_PLUGIN_DIR_PATH . '/admin/class-ss-shipping-method-resolver.php';
-			require_once SS_SHIPPING_PLUGIN_DIR_PATH . '/admin/class-ss-shipping-shipment-ids.php';
-			require_once SS_SHIPPING_PLUGIN_DIR_PATH . '/admin/class-ss-shipping-pickup-point-validator.php';
 			require_once SS_SHIPPING_PLUGIN_DIR_PATH . '/admin/class-ss-shipping-order-meta-box.php';
 			require_once SS_SHIPPING_PLUGIN_DIR_PATH . '/admin/class-ss-shipping-label-creator.php';
 			require_once SS_SHIPPING_PLUGIN_DIR_PATH . '/admin/class-ss-shipping-order-bulk-actions.php';
 			require_once SS_SHIPPING_PLUGIN_DIR_PATH . '/admin/class-ss-shipping-wc-product.php';
 
-			// Frontend components.
-			require_once SS_SHIPPING_PLUGIN_DIR_PATH . '/public/class-ss-shipping-pickup-point-lookup.php';
+			// Frontend checkout controller.
 			require_once SS_SHIPPING_PLUGIN_DIR_PATH . '/public/class-ss-shipping-frontend.php';
 		}
 
@@ -321,7 +326,7 @@ if ( ! class_exists( 'SS_Shipping_WC' ) ) :
 		 * helper classes extend nothing and are loaded eagerly in includes().
 		 */
 		public function include_shipping_method_class() {
-			require_once SS_SHIPPING_PLUGIN_DIR_PATH . '/admin/class-ss-shipping-wc-method.php';
+			require_once SS_SHIPPING_PLUGIN_DIR_PATH . '/includes/shipping-method/class-ss-shipping-wc-method.php';
 		}
 
         protected function init_hooks()
