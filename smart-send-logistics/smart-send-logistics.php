@@ -245,6 +245,8 @@ if ( ! class_exists( 'SS_Shipping_WC' ) ) :
 
 			// Shared components used in admin and on the frontend.
 			require_once SS_SHIPPING_PLUGIN_DIR_PATH . '/includes/class-ss-shipping-settings.php';
+			require_once SS_SHIPPING_PLUGIN_DIR_PATH . '/includes/class-ss-shipping-api-credentials.php';
+			require_once SS_SHIPPING_PLUGIN_DIR_PATH . '/includes/class-ss-shipping-api-factory.php';
 			require_once SS_SHIPPING_PLUGIN_DIR_PATH . '/includes/class-ss-shipping-logger.php';
 			require_once SS_SHIPPING_PLUGIN_DIR_PATH . '/includes/class-ss-shipping-checkout-debug.php';
 			require_once SS_SHIPPING_PLUGIN_DIR_PATH . '/includes/class-ss-shipping-admin-notices.php';
@@ -665,81 +667,18 @@ if ( ! class_exists( 'SS_Shipping_WC' ) ) :
             return $new_ship_method;
         }
 
-        public function get_api_handle()
-        {
-
-            if (!$this->api_handle) {
-                $api_token = $this->get_api_token_setting();
-
-				// Initiate an API handle with the login credentials.
-				$demo_mode        = $this->settings->demo_mode();
-				$website_url      = $this->get_website_url();
-				$this->api_handle = new \Smartsend\Api( $api_token, $website_url, $demo_mode );
-
-				// Log every API request/response (incl. HTTP status code and
-				// endpoint) through the plugin's logger.
-				$this->api_handle->setRequestLogger( array( 'SS_Shipping_Logger', 'log_api_request' ) );
-			}
-
-            return $this->api_handle;
-        }
-
-        /**
-         * Get the url of the current site like example.com
-         *
-         * @param string|null $website url
-         * @return string
-         */
-        public function get_website_url($website=null)
-        {
-            if (!$website) {
-	            $website = get_site_url();
-            }
-            return parse_url($website, PHP_URL_HOST);
-        }
-
-        /**
-         * Get the url of the current site
-         *
-         * @param string|null $api_token
-         * @return string
+		/**
+		 * Get the shared Smart Send API client, constructed on first use
+		 * through the single SS_Shipping_Api_Factory construction path.
+		 *
+		 * @return \Smartsend\Api
 		 */
-		public function get_api_token_setting( $api_token = null ) {
-			if ( ! $api_token ) {
-				$api_token = $this->settings->api_token();
+		public function get_api_handle() {
+			if ( ! $this->api_handle ) {
+				$this->api_handle = ( new SS_Shipping_Api_Factory( $this->settings ) )->create();
 			}
 
-			if ( is_string( $api_token ) && strpos( $api_token, ',' ) && strpos( $api_token, ':' ) ) {
-				//The API Token field contains multiple tokens in the format:
-				//site1:apitoken1,site2:apitoken2,....
-		        $tokens = array();
-		        $site_and_tokens = explode(',', $api_token);
-		        foreach ($site_and_tokens as $site_and_token) {
-			        $parts = explode(':', $site_and_token);
-			        if (!empty($parts[0]) && !empty($parts[1])) {
-				        $tokens[$parts[0]] = $parts[1];//key=site, value=apitoken
-			        }
-		        }
-
-		        if (!empty($tokens[$this->get_website_url()])) {
-			        return $tokens[$this->get_website_url()];
-		        }
-	        }
-
-	        return $api_token;
-        }
-
-	    /**
-	     * Validate the API token
-	     *
-	     * @return boolean
-		 */
-		public function validate_api_token() {
-			if ( $this->get_api_handle() ) {
-				return $this->api_handle->account()->getAuthenticatedUser()->isSuccessful();
-			}
-
-			return false;
+			return $this->api_handle;
 		}
 
         /**
