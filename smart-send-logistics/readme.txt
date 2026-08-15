@@ -148,12 +148,8 @@ Example: show at most 5 pickup points and pre-select the closest one:
 
 = Shipping label creation =
 
-* **smart_send_shipping_label_args**
-    A filter to modify the order parameters (carrier, method, pickup point, parcel split) that are used when creating shipping labels
-* **smart_send_order_pickup_point**
-    A filter to change the pickup point (agent) used when creating a shipping label
-* **smart_send_order_parcels** (since 9.0.0)
-    A filter on the parcel split stored for the order, before the shipment payload is assembled - return an array of rows (id, name, value) to split the items into numbered boxes
+* **smart_send_delivery_details** (since 9.0.0)
+    A filter on the merged `SS_Shipping_Delivery_Details` value object (shipping method, pickup point, parcel plan) right before a shipping label is booked. Receives the details, the `WC_Order` and whether the label is a return label; return the (modified) details object. This is the one extension point for overriding the shipping method, clearing or replacing the pickup point (`SS_Shipping_Pickup_Point`), or declaring a parcel plan (`SS_Shipping_Parcel_Plan` of `SS_Shipping_Parcel_Spec` rows - a spec may carry dimensions and an explicit weight with no item allocations at all)
 * **smart_send_order_receiver**
     A filter to change the receiver address that is used for shipping labels
 * **smart_send_receiver_phone** (since 9.0.0)
@@ -164,34 +160,23 @@ Example: show at most 5 pickup points and pre-select the closest one:
     A filter on the item lines (array) of the booking request
 * **smart_send_payload_totals** (since 9.0.0)
     A filter on the totals section (array) of the booking request
-* **smart_send_payload_parcels** (since 9.0.0)
-    A filter on the assembled parcels (array of parcel rows, each with an 'items' array of item rows - see #113) of the booking request
-* **smart_send_parcel_weight**
-    A filter on the weight of each parcel when the order is split into parcels
 * **smart_send_order_note**
     A filter to change the freetext that is inserted on shipping labels
 
-Example: split every order with more than one item into one box per item:
+Example: ship every order in two parcels of fixed size and weight, with no item allocation:
 
-    add_filter('smart_send_order_parcels', function ($parcels, $order_id, $is_return) {
-        if (!empty($parcels)) {
-            return $parcels; // Keep a split made in the order screen.
-        }
-        $rows = array();
-        $box = 1;
-        foreach (wc_get_order($order_id)->get_items() as $item) {
-            $product_id = $item->get_variation_id() ? $item->get_variation_id() : $item->get_product_id();
-            for ($i = 0; $i < $item->get_quantity(); $i++) {
-                $rows[] = array('id' => $product_id, 'name' => $item->get_name(), 'value' => (string) $box++);
-            }
-        }
-        return $rows;
+    add_filter('smart_send_delivery_details', function ($details, $order, $is_return) {
+        $plan = new SS_Shipping_Parcel_Plan();
+        $plan->add_spec((new SS_Shipping_Parcel_Spec())->set_weight(4)->set_length(30)->set_width(20)->set_height(10));
+        $plan->add_spec((new SS_Shipping_Parcel_Spec())->set_weight(2.5)->set_length(15)->set_width(15)->set_height(15));
+
+        return $details->set_parcel_plan($plan);
     }, 10, 3);
 
 = After the shipping label is created =
 
 * **smart_send_shipping_label_created**
-    An action which is called once a shipping label has been created for an order
+    An action which is called once a shipping label has been created for an order. Since 9.0.0 it receives the order id, the raw (unmutated) API booking response and a typed `SS_Shipping_Label_Entry` (label URL, order note HTML, return flag)
 * **smart_send_shipping_label_comment**
     A filter to modify the order comment that is added once a shipping label is created
 * **smart_send_tracking_url**
@@ -233,7 +218,7 @@ The plugin shows the selected pickup point relevant places using these two hooks
 
 = Meta fields =
 
-The following meta fields are used by the plugin:
+The following meta fields are used by the plugin. The order meta keys and their stored formats are a stable public contract - in particular the pickup point selection under **ss_shipping_order_agent_no** (the pickup point number) and **_ss_shipping_order_agent** (the stored pickup point object):
 
 * **smart_send_shipping_method**
     Shipping method meta field used to store the shipping method used when generating shipping labels
@@ -283,6 +268,10 @@ This box appears when a "Select Pickup Point" shipping method is selected, but n
 
 = 9.0.0 =
 * Breaking change: the weight table now defines which cart weights the Smart Send shipping method is available for at all. Free shipping (the flat-rate threshold) only zeroes the price of an otherwise-available rate and can no longer make the method available for a cart weight outside the configured weight table - see the "9.0.0" entry under Upgrade Notice
+* Breaking change: the filters smart_send_shipping_label_args, smart_send_order_pickup_point, smart_send_order_parcels, smart_send_parcel_weight and smart_send_payload_parcels are removed, replaced by the single typed smart_send_delivery_details filter - see the "9.0.0" entry under Upgrade Notice
+* Breaking change: the smart_send_shipping_label_created action no longer mutates the API response with a ->woocommerce presentation array; listeners receive a typed SS_Shipping_Label_Entry third argument instead - see the "9.0.0" entry under Upgrade Notice
+* Fix: hand-editing the pickup point number (ss_shipping_order_agent_no) in the order screen's Custom Fields box is now validated against the Smart Send API on stores using High-Performance Order Storage too (previously the validation silently never ran on HPOS stores)
+* Fix: with the "save shipping labels in uploads" setting enabled, the label link in the order note and label response now points at the saved uploads copy (previously the computed uploads URL was discarded and the Smart Send API link was always used)
 * Temporary restriction: the "Smart Send - Generate Labels" / "Generate Return Labels" bulk actions on the Orders screen now only process a single selected order at a time (previously up to 5 orders with a combined-PDF download). Selecting more than one order shows an error and processes nothing. Multi-order bulk processing will be back in an upcoming release - see the "9.0.0" entry under Upgrade Notice
 
 = 8.2.0 =
@@ -631,6 +620,12 @@ This box appears when a "Select Pickup Point" shipping method is selected, but n
 9.0 is the v9 major release and carries breaking changes for sites that rely on Smart Send hooks or filters, or on the pre-9.0 free-shipping behaviour. Note: 9.0.0 has not been released yet as of this writing; this entry is maintained on develop ahead of the actual release. Review before upgrading from 8.x:
 
 * The weight table now defines which cart weights the shipping method is available for at all. Previously, meeting the free-shipping (flat-rate) threshold made the method available and free regardless of the weight table, even for a cart weight the table did not cover. Now, free shipping only zeroes the price of a rate the weight table already allows - a cart weight outside every configured weight-table row means the method is not offered, no matter the subtotal. An empty weight table still means every weight is valid. Sites relying on free shipping to override the weight table should either widen the weight table or use the `woocommerce_shipping_smart_send_shipping_is_available` filter to restore the old behaviour.
+
+* The shipping-label filter surface is rebuilt around one typed extension point. The filters `smart_send_shipping_label_args` (the `$ss_args` array of carrier/method/agent/parcels), `smart_send_order_pickup_point`, `smart_send_order_parcels`, `smart_send_parcel_weight` and the unreleased `smart_send_payload_parcels` are removed and no longer fire. Their replacement is the single `smart_send_delivery_details` filter, which receives the merged `SS_Shipping_Delivery_Details` value object (plus the `WC_Order` and an is-return flag) before booking: use `set_shipping_method()` to override the method (was: `$ss_args['ss_carrier']`/`$ss_args['ss_type']`), `set_pickup_point()` with a `SS_Shipping_Pickup_Point` (or `null`) to replace or clear the pickup point (was: `smart_send_order_pickup_point`), and `set_parcel_plan()` with a `SS_Shipping_Parcel_Plan` of `SS_Shipping_Parcel_Spec` rows to control the parcel split (was: `smart_send_order_parcels`) - a spec's explicit `set_weight()` replaces `smart_send_parcel_weight`, and specs may declare dimensions and weight with no item allocations at all. Snippets registering the removed filters must be rewritten; see the Developers section for an example.
+
+* Listeners of the `smart_send_shipping_label_created` action now receive different data. The raw API response (second argument) is no longer mutated with a `->woocommerce` array - snippets reading `$response->woocommerce['label_url']`, `['order_note']` or `['return']` must switch to the new typed third argument, an `SS_Shipping_Label_Entry` with `get_label_url()`, `get_order_note()` and `is_return()`. Register the action with `add_action('smart_send_shipping_label_created', $callback, 10, 3)` to receive it.
+
+* With the "Save shipping labels in uploads folder" setting enabled, the label link placed in the order note and the label response now points at the saved uploads copy instead of the Smart Send API link (the historic behaviour computed the uploads URL and then discarded it). Sites relying on the API link while the setting is enabled should disable the setting or read the link from the API response.
 
 * The Orders screen bulk label actions temporarily process only a single selected order at a time. The previous multi-order flow (up to 5 orders, with a combined-PDF download) is removed while label processing is being rebuilt; selecting more than one order shows an error and processes nothing. Multi-order bulk processing will return in an upcoming release. Workflows that generate labels for several orders should run the bulk action once per order (or use the "Generate label" button on each order) until then.
 

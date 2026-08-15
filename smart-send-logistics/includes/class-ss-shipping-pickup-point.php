@@ -149,7 +149,7 @@ if ( ! class_exists( 'SS_Shipping_Pickup_Point' ) ) :
 				$pickup_point->source_keys[] = $key;
 
 				if ( isset( $field_map[ $key ] ) ) {
-					$field                        = $field_map[ $key ];
+					$field = $field_map[ $key ];
 					$pickup_point->{"set_$field"}( $value );
 				} else {
 					$pickup_point->extra[ $key ] = $value;
