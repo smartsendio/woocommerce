@@ -47,11 +47,32 @@ if ( ! class_exists( 'SS_Shipping_WC' ) ) :
 		protected static ?SS_Shipping_WC $_instance = null; // phpcs:ignore PSR2.Classes.PropertyDeclaration.Underscore -- pre-existing name, renaming is out of scope here.
 
 		/**
-		 * Order meta access component.
+		 * Order meta repository.
 		 *
 		 * @var SS_Shipping_Order_Meta|null
 		 */
 		protected ?SS_Shipping_Order_Meta $order_meta = null;
+
+		/**
+		 * Shipping method resolver.
+		 *
+		 * @var SS_Shipping_Method_Resolver|null
+		 */
+		protected ?SS_Shipping_Method_Resolver $method_resolver = null;
+
+		/**
+		 * Booked shipment id accessor.
+		 *
+		 * @var SS_Shipping_Shipment_Ids|null
+		 */
+		protected ?SS_Shipping_Shipment_Ids $shipment_ids = null;
+
+		/**
+		 * Pickup point (agent number) validator.
+		 *
+		 * @var SS_Shipping_Pickup_Point_Validator|null
+		 */
+		protected ?SS_Shipping_Pickup_Point_Validator $pickup_point_validator = null;
 
 		/**
 		 * Order screen meta box component.
@@ -117,11 +138,18 @@ if ( ! class_exists( 'SS_Shipping_WC' ) ) :
 		protected ?SS_Shipping_Frontend $ss_shipping_frontend = null;
 
 		/**
-		 * Smart Send agent address formats
+		 * Pickup point display formatter.
 		 *
-		 * @var array
+		 * @var SS_Shipping_Pickup_Point_Formatter|null
 		 */
-		protected array $agents_address_format = array();
+		protected ?SS_Shipping_Pickup_Point_Formatter $pickup_point_formatter = null;
+
+		/**
+		 * Headless pickup point lookup (API + session cache).
+		 *
+		 * @var SS_Shipping_Pickup_Point_Lookup|null
+		 */
+		protected ?SS_Shipping_Pickup_Point_Lookup $pickup_point_lookup = null;
 
 		/**
 		 * Smart Send api handle
@@ -210,24 +238,35 @@ if ( ! class_exists( 'SS_Shipping_WC' ) ) :
 			require_once SS_SHIPPING_PLUGIN_DIR_PATH . '/includes/class-ss-shipping-checkout-debug.php';
 			require_once SS_SHIPPING_PLUGIN_DIR_PATH . '/includes/class-ss-shipping-admin-notices.php';
 			require_once SS_SHIPPING_PLUGIN_DIR_PATH . '/includes/class-ss-shipping-order-reader.php';
+			require_once SS_SHIPPING_PLUGIN_DIR_PATH . '/includes/class-ss-shipping-pickup-point.php';
+			require_once SS_SHIPPING_PLUGIN_DIR_PATH . '/includes/class-ss-shipping-parcel-spec.php';
+			require_once SS_SHIPPING_PLUGIN_DIR_PATH . '/includes/class-ss-shipping-parcel-plan.php';
+			require_once SS_SHIPPING_PLUGIN_DIR_PATH . '/includes/class-ss-shipping-delivery-details.php';
+			require_once SS_SHIPPING_PLUGIN_DIR_PATH . '/includes/class-ss-shipping-pickup-point-formatter.php';
+			require_once SS_SHIPPING_PLUGIN_DIR_PATH . '/includes/class-ss-shipping-label-entry.php';
 			require_once SS_SHIPPING_PLUGIN_DIR_PATH . '/includes/class-ss-shipping-fulfillment-result.php';
 			require_once SS_SHIPPING_PLUGIN_DIR_PATH . '/includes/class-ss-shipping-fulfillment-service.php';
 			require_once SS_SHIPPING_PLUGIN_DIR_PATH . '/includes/class-ss-shipping-subscriptions-compat.php';
 
 			// Admin components.
 			require_once SS_SHIPPING_PLUGIN_DIR_PATH . '/admin/class-ss-plugins-screen-updates.php';
+			require_once SS_SHIPPING_PLUGIN_DIR_PATH . '/admin/class-ss-shipping-parcel.php';
 			require_once SS_SHIPPING_PLUGIN_DIR_PATH . '/admin/class-ss-shipping-shipment.php';
 			require_once SS_SHIPPING_PLUGIN_DIR_PATH . '/admin/class-ss-shipping-shipment-builder.php';
 			require_once SS_SHIPPING_PLUGIN_DIR_PATH . '/admin/class-ss-shipping-booking.php';
 			require_once SS_SHIPPING_PLUGIN_DIR_PATH . '/admin/class-ss-shipping-booking-exception.php';
 			require_once SS_SHIPPING_PLUGIN_DIR_PATH . '/admin/class-ss-shipping-booking-service.php';
 			require_once SS_SHIPPING_PLUGIN_DIR_PATH . '/admin/class-ss-shipping-order-meta.php';
+			require_once SS_SHIPPING_PLUGIN_DIR_PATH . '/admin/class-ss-shipping-method-resolver.php';
+			require_once SS_SHIPPING_PLUGIN_DIR_PATH . '/admin/class-ss-shipping-shipment-ids.php';
+			require_once SS_SHIPPING_PLUGIN_DIR_PATH . '/admin/class-ss-shipping-pickup-point-validator.php';
 			require_once SS_SHIPPING_PLUGIN_DIR_PATH . '/admin/class-ss-shipping-order-meta-box.php';
 			require_once SS_SHIPPING_PLUGIN_DIR_PATH . '/admin/class-ss-shipping-label-creator.php';
 			require_once SS_SHIPPING_PLUGIN_DIR_PATH . '/admin/class-ss-shipping-order-bulk-actions.php';
 			require_once SS_SHIPPING_PLUGIN_DIR_PATH . '/admin/class-ss-shipping-wc-product.php';
 
 			// Frontend components.
+			require_once SS_SHIPPING_PLUGIN_DIR_PATH . '/public/class-ss-shipping-pickup-point-lookup.php';
 			require_once SS_SHIPPING_PLUGIN_DIR_PATH . '/public/class-ss-shipping-frontend.php';
 		}
 
@@ -276,20 +315,28 @@ if ( ! class_exists( 'SS_Shipping_WC' ) ) :
 			if ( defined( 'WOOCOMMERCE_VERSION' ) && version_compare( WOOCOMMERCE_VERSION, '2.6', '>=' ) ) {
 				$this->include_shipping_method_class();
 
-				$this->ss_shipping_frontend     = new SS_Shipping_Frontend();
+				$this->pickup_point_formatter = new SS_Shipping_Pickup_Point_Formatter();
+				$this->pickup_point_lookup    = new SS_Shipping_Pickup_Point_Lookup();
+
+				$this->ss_shipping_frontend     = new SS_Shipping_Frontend( $this->pickup_point_lookup, $this->pickup_point_formatter );
 				$this->ss_shipping_wc_product   = new SS_Shipping_WC_Product();
 				$this->ss_plugin_screen_updates = new SS_Plugins_Screen_Updates();
 
-				$this->admin_notices        = new SS_Shipping_Admin_Notices();
-				$this->order_meta           = new SS_Shipping_Order_Meta();
-				$this->meta_box             = new SS_Shipping_Order_Meta_Box( $this->order_meta );
-				$this->fulfillment_service  = new SS_Shipping_Fulfillment_Service(
+				$this->admin_notices          = new SS_Shipping_Admin_Notices();
+				$this->order_meta             = new SS_Shipping_Order_Meta();
+				$this->method_resolver        = new SS_Shipping_Method_Resolver();
+				$this->shipment_ids           = new SS_Shipping_Shipment_Ids();
+				$this->pickup_point_validator = new SS_Shipping_Pickup_Point_Validator( $this->order_meta, $this->method_resolver );
+				$this->meta_box               = new SS_Shipping_Order_Meta_Box( $this->order_meta, $this->method_resolver, $this->pickup_point_formatter );
+				$this->fulfillment_service    = new SS_Shipping_Fulfillment_Service(
 					$this->order_meta,
-					new SS_Shipping_Booking_Service( $this->order_meta )
+					$this->method_resolver,
+					$this->shipment_ids,
+					new SS_Shipping_Booking_Service( $this->order_meta, $this->method_resolver )
 				);
-				$this->label_creator        = new SS_Shipping_Label_Creator( $this->order_meta, $this->fulfillment_service );
-				$this->bulk_actions         = new SS_Shipping_Order_Bulk_Actions( $this->order_meta, $this->fulfillment_service, $this->admin_notices );
-				$this->subscriptions_compat = new SS_Shipping_Subscriptions_Compat();
+				$this->label_creator          = new SS_Shipping_Label_Creator( $this->fulfillment_service );
+				$this->bulk_actions           = new SS_Shipping_Order_Bulk_Actions( $this->method_resolver, $this->fulfillment_service, $this->admin_notices );
+				$this->subscriptions_compat   = new SS_Shipping_Subscriptions_Compat();
 
 				$this->register_component_hooks();
 			} else {
@@ -313,7 +360,7 @@ if ( ! class_exists( 'SS_Shipping_WC' ) ) :
 			$this->ss_plugin_screen_updates->register_hooks();
 
 			$this->admin_notices->register_hooks();
-			$this->order_meta->register_hooks();
+			$this->pickup_point_validator->register_hooks();
 			$this->meta_box->register_hooks();
 			$this->label_creator->register_hooks();
 			$this->bulk_actions->register_hooks();
@@ -433,29 +480,14 @@ if ( ! class_exists( 'SS_Shipping_WC' ) ) :
             return get_option('woocommerce_' . SS_SHIPPING_METHOD_ID . '_settings');
         }
 
-        /**
-		 * Get Agent Address Format
+		/**
+		 * Get the pickup point display formatter.
 		 *
-		 * Built lazily on first call (not in the constructor): the plugin
-		 * bootstraps before the init action, and since WordPress 6.7 any
-		 * translation call for our text domain that runs before init triggers
-		 * a _load_textdomain_just_in_time "called incorrectly" notice.
+		 * @return SS_Shipping_Pickup_Point_Formatter
 		 */
-		public function get_agents_address_format() {
-			if ( empty( $this->agents_address_format ) ) {
-				$this->agents_address_format = array(
-					'1' => __( '#Company, #Street', 'smart-send-logistics' ),
-					'2' => __( '#Company, #Street, #Zipcode', 'smart-send-logistics' ),
-					'3' => __( '#Company, #Street, #City', 'smart-send-logistics' ),
-					'4' => __( '#Company, #Street, #Zipcode #City', 'smart-send-logistics' ),
-					'5' => __( '#Company, #Zipcode', 'smart-send-logistics' ),
-					'6' => __( '#Company, #Zipcode, #City', 'smart-send-logistics' ),
-					'7' => __( '#Company, #City', 'smart-send-logistics' ),
-				);
-			}
-
-            return $this->agents_address_format;
-        }
+		public function pickup_point_formatter(): SS_Shipping_Pickup_Point_Formatter {
+			return $this->pickup_point_formatter;
+		}
 
 		/**
 		 * Get the order meta access component.
@@ -464,6 +496,33 @@ if ( ! class_exists( 'SS_Shipping_WC' ) ) :
 		 */
 		public function order_meta(): SS_Shipping_Order_Meta {
 			return $this->order_meta;
+		}
+
+		/**
+		 * Get the shipping method resolver.
+		 *
+		 * @return SS_Shipping_Method_Resolver
+		 */
+		public function method_resolver(): SS_Shipping_Method_Resolver {
+			return $this->method_resolver;
+		}
+
+		/**
+		 * Get the booked shipment id accessor.
+		 *
+		 * @return SS_Shipping_Shipment_Ids
+		 */
+		public function shipment_ids(): SS_Shipping_Shipment_Ids {
+			return $this->shipment_ids;
+		}
+
+		/**
+		 * Get the pickup point (agent number) validator.
+		 *
+		 * @return SS_Shipping_Pickup_Point_Validator
+		 */
+		public function pickup_point_validator(): SS_Shipping_Pickup_Point_Validator {
+			return $this->pickup_point_validator;
 		}
 
 		/**

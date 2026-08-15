@@ -101,6 +101,42 @@ it('creates a label, saves the shipment id and adds an order note on success', f
         ->toContain('https://tracking.example.test/TRACK-1234');
 });
 
+it('persists submitted delivery overrides through the repository before booking', function () {
+    // The AJAX controller translates the posted parcel rows into a typed
+    // SS_Shipping_Parcel_Plan and hands it into the flow as partial
+    // delivery details (#139); the fulfillment service persists them in
+    // the frozen meta format before booking (save-before-book preserved).
+    $product_a = create_simple_product(['name' => 'Override Box One', 'price' => 100, 'weight' => 1]);
+    $product_b = create_simple_product(['name' => 'Override Box Two', 'price' => 50, 'weight' => 2]);
+    $order     = create_order([
+        'products'        => [$product_a, $product_b],
+        'shipping_method' => 'postnord_agent',
+        'shipping_total'  => '39',
+    ]);
+
+    $rows = [
+        ['id' => $product_a->get_id(), 'name' => 'Override Box One', 'value' => '1'],
+        ['id' => $product_b->get_id(), 'name' => 'Override Box Two', 'value' => '2'],
+    ];
+    $overrides = new SS_Shipping_Delivery_Details();
+    $overrides->set_parcel_plan(SS_Shipping_Parcel_Plan::from_box_rows($rows));
+
+    $capture = mock_smart_send_api();
+
+    $result = SS_SHIPPING_WC()->fulfillment()->fulfill_outbound($order->get_id(), false, $overrides);
+
+    expect($result->is_successful())->toBeTrue();
+
+    // The booking used the submitted plan...
+    $payload = json_decode(end($capture->requests)['body'], true);
+    expect($payload['parcels'])->toHaveCount(2)
+        ->and($payload['parcels'][0]['items'][0]['name'])->toBe('Override Box One')
+        ->and($payload['parcels'][1]['items'][0]['name'])->toBe('Override Box Two');
+
+    // ...and the split was persisted in the frozen meta row shape.
+    expect(wc_get_order($order->get_id())->get_meta('ss_shipping_order_parcels', true))->toEqual($rows);
+});
+
 it('updates the order status after label generation when configured', function () {
     with_ss_settings(['order_status' => 'wc-completed']);
 

@@ -20,7 +20,7 @@
 function build_shipment_representation(WC_Order $order, bool $return = false): SS_Shipping_Shipment
 {
     $order_reader = new SS_Shipping_Order_Reader($order);
-    $builder      = new SS_Shipping_Shipment_Builder($order, $order_reader, new SS_Shipping_Order_Meta());
+    $builder      = new SS_Shipping_Shipment_Builder($order, $order_reader, new SS_Shipping_Order_Meta(), new SS_Shipping_Method_Resolver());
 
     return $return ? $builder->build_return() : $builder->build_outbound();
 }
@@ -69,18 +69,28 @@ it('represents shipment, parcel and item totals as a single net + tax amount, wi
             ->and($getter)->not->toContain('including_tax');
     }
 
-    // Parcel level.
+    // Parcel level: a typed SS_Shipping_Parcel (#139) with the same single
+    // net/tax pair and no excluding/including-tax getters.
     expect($representation->get_parcels())->toHaveCount(1);
     $parcel = $representation->get_parcels()[0];
-    expect($parcel)->toHaveKeys(['total_net_amount', 'total_tax_amount']);
-    foreach (array_keys($parcel) as $key) {
-        expect($key)->not->toContain('excluding_tax')
-            ->and($key)->not->toContain('including_tax');
+    expect($parcel)->toBeInstanceOf(SS_Shipping_Parcel::class)
+        ->and($parcel->get_total_net_amount())->toEqual(200.0)
+        ->and($parcel->get_total_tax_amount())->toEqual(0.0);
+    $parcel_getters = array_values(array_filter(
+        array_map(
+            fn ($method) => $method->getName(),
+            (new ReflectionClass(SS_Shipping_Parcel::class))->getMethods(ReflectionMethod::IS_PUBLIC)
+        ),
+        fn ($name) => str_starts_with($name, 'get_')
+    ));
+    foreach ($parcel_getters as $getter) {
+        expect($getter)->not->toContain('excluding_tax')
+            ->and($getter)->not->toContain('including_tax');
     }
 
     // Item level.
-    expect($parcel['items'])->toHaveCount(1);
-    $item = $parcel['items'][0];
+    expect($parcel->get_items())->toHaveCount(1);
+    $item = $parcel->get_items()[0];
     expect($item)->toHaveKeys(['total_net_amount', 'total_tax_amount'])
         ->and($item['total_net_amount'])->toEqual(200.0)
         ->and($item['total_tax_amount'])->toEqual(0.0);
@@ -97,7 +107,7 @@ it('names the pickup-point section after v2\'s service_point_code, not v1\'s age
         'products'        => [$product],
         'shipping_method' => 'postnord_agent',
     ]);
-    SS_SHIPPING_WC()->order_meta()->save_ss_shipping_order_agent($order->get_id(), sample_agent());
+    save_order_pickup_point($order->get_id(), sample_agent());
 
     $representation = build_shipment_representation($order);
 
@@ -117,7 +127,7 @@ it('reconciles item-line totals with the order subtotal for a percentage coupon'
 
     $representation = build_shipment_representation($order);
 
-    $item_sum = array_sum(array_column($representation->get_parcels()[0]['items'], 'total_net_amount'));
+    $item_sum = array_sum(array_column($representation->get_parcels()[0]->get_items(), 'total_net_amount'));
 
     expect($item_sum)->toEqual($representation->get_subtotal_net_amount())
         ->and($item_sum)->toEqual(240.0); // 3 x 100, 20% off.
@@ -135,7 +145,7 @@ it('reconciles item-line totals with the order subtotal for a fixed-cart coupon'
 
     $representation = build_shipment_representation($order);
 
-    $item_sum = array_sum(array_column($representation->get_parcels()[0]['items'], 'total_net_amount'));
+    $item_sum = array_sum(array_column($representation->get_parcels()[0]->get_items(), 'total_net_amount'));
 
     // 100 order subtotal, 20 fixed-cart discount prorated across both lines.
     expect($item_sum)->toEqual($representation->get_subtotal_net_amount())
@@ -156,7 +166,7 @@ it('reconciles item-line totals with the order subtotal for a fixed-product coup
 
     $representation = build_shipment_representation($order);
 
-    $items    = $representation->get_parcels()[0]['items'];
+    $items    = $representation->get_parcels()[0]->get_items();
     $item_sum = array_sum(array_column($items, 'total_net_amount'));
 
     // Only product A's line is discounted, by exactly the fixed amount.
@@ -175,7 +185,7 @@ it('diverges shipping-method/agent selection between build_outbound() and build_
         'shipping_method' => 'postnord_agent',
         'return_method'   => 'postnord_returndropoff',
     ]);
-    SS_SHIPPING_WC()->order_meta()->save_ss_shipping_order_agent($order->get_id(), sample_agent());
+    save_order_pickup_point($order->get_id(), sample_agent());
 
     $outbound = build_shipment_representation($order, false);
     $return   = build_shipment_representation($order, true);

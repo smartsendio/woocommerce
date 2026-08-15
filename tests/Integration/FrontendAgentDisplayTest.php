@@ -40,9 +40,7 @@ it('renders the pickup point block for an order with a selected agent', function
     $product = create_simple_product(['price' => 100, 'weight' => 1]);
     $order   = create_order(['products' => [$product], 'shipping_method' => 'postnord_agent']);
 
-    $handler = SS_SHIPPING_WC()->order_meta();
-    $handler->save_ss_shipping_order_agent_no($order->get_id(), '1234');
-    $handler->save_ss_shipping_order_agent($order->get_id(), sample_agent());
+    save_order_pickup_point($order->get_id(), sample_agent());
 
     $output = capture_agent_display($order);
 
@@ -80,10 +78,9 @@ it('renders nothing for an order that does not exist in the database', function 
 it('survives deleting the agent meta of an order that no longer exists', function () {
     // Invalid-order guard (#60): the deleted_post_meta hook can fire for
     // orders that were already removed; the handler must not fatal.
-    $handler = SS_SHIPPING_WC()->order_meta();
-
-    $handler->delete_ss_shipping_order_agent(999999999);
-    $handler->action_deleted_agent_meta([1], 999999999, 'ss_shipping_order_agent_no', '1234');
+    SS_SHIPPING_WC()->order_meta()->delete_pickup_point(999999999);
+    SS_SHIPPING_WC()->pickup_point_validator()
+        ->action_deleted_agent_meta([1], 999999999, 'ss_shipping_order_agent_no', '1234');
 
     expect(true)->toBeTrue();
 });
@@ -145,9 +142,13 @@ it('saves the selected agent from the session onto the order at checkout', funct
 
     frontend()->process_ss_pickup_points($order->get_id(), []);
 
-    $handler = SS_SHIPPING_WC()->order_meta();
-    expect($handler->get_ss_shipping_order_agent_no($order->get_id()))->toBe('1234')
-        ->and($handler->get_ss_shipping_order_agent($order->get_id())->company)->toBe('Corner Shop');
+    $pickup_point = SS_SHIPPING_WC()->order_meta()->read($order->get_id())->get_pickup_point();
+    expect($pickup_point->get_agent_no())->toBe('1234')
+        ->and($pickup_point->get_company())->toBe('Corner Shop');
+    // The frozen meta keys carry the selection.
+    $fresh = wc_get_order($order->get_id());
+    expect($fresh->get_meta('ss_shipping_order_agent_no', true))->toBe('1234')
+        ->and($fresh->get_meta('_ss_shipping_order_agent', true)->company)->toBe('Corner Shop');
 });
 
 it('saves nothing when the posted agent is not in the session list', function () {
@@ -167,6 +168,6 @@ it('saves nothing when the posted agent is not in the session list', function ()
 
     frontend()->process_ss_pickup_points($order->get_id(), []);
 
-    expect(SS_SHIPPING_WC()->order_meta()->get_ss_shipping_order_agent_no($order->get_id()))
+    expect(SS_SHIPPING_WC()->order_meta()->read($order->get_id())->get_pickup_point())
         ->toBeNull();
 });

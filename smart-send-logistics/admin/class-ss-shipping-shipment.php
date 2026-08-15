@@ -25,10 +25,12 @@ if ( ! class_exists( 'SS_Shipping_Shipment' ) ) :
 	 * after v2's PickupParty.service_point_code rather than v1's
 	 * agent_no/agent.
 	 *
-	 * Nested sections (receiver, pickup_point, parcels and each parcel's
-	 * items) are kept as plain arrays rather than their own value-object
-	 * classes - promoting every nesting level would add ceremony without
-	 * adding safety here, since the only other reader is
+	 * Parcels are typed SS_Shipping_Parcel value objects (#139) - the one
+	 * nesting level with arithmetic. The other nested sections (receiver,
+	 * pickup_point and each parcel's items) are kept as plain arrays
+	 * rather than their own value-object classes - promoting every
+	 * remaining nesting level would add ceremony without adding safety
+	 * here, since the only other reader is
 	 * \Smartsend\Resources\BookingResource::fromShipment(), which already
 	 * needs array access to build its own sub-models.
 	 *
@@ -92,11 +94,10 @@ if ( ! class_exists( 'SS_Shipping_Shipment' ) ) :
 		protected ?array $pickup_point = null;
 
 		/**
-		 * One row per parcel: internal_id, internal_reference, weight,
-		 * height, width, length, freetext, items (item rows),
-		 * total_net_amount, total_tax_amount.
+		 * The resolved parcels (#139): typed SS_Shipping_Parcel value
+		 * objects, one per parcel.
 		 *
-		 * @var array[]
+		 * @var SS_Shipping_Parcel[]
 		 */
 		protected array $parcels = array();
 
@@ -304,18 +305,18 @@ if ( ! class_exists( 'SS_Shipping_Shipment' ) ) :
 		}
 
 		/**
-		 * Get the parcel rows.
+		 * Get the resolved parcels.
 		 *
-		 * @return array[]
+		 * @return SS_Shipping_Parcel[]
 		 */
 		public function get_parcels(): array {
 			return $this->parcels;
 		}
 
 		/**
-		 * Set the parcel rows.
+		 * Set the resolved parcels.
 		 *
-		 * @param array[] $parcels Parcel rows.
+		 * @param SS_Shipping_Parcel[] $parcels The resolved parcels.
 		 *
 		 * @return self
 		 */

@@ -23,17 +23,35 @@ if ( ! class_exists( 'SS_Shipping_Order_Meta_Box' ) ) :
 	class SS_Shipping_Order_Meta_Box {
 
 		/**
-		 * Order meta access component.
+		 * Order meta repository.
 		 *
 		 * @var SS_Shipping_Order_Meta
 		 */
 		protected SS_Shipping_Order_Meta $order_meta;
 
 		/**
-		 * @param SS_Shipping_Order_Meta $order_meta Order meta access component.
+		 * Shipping method resolver.
+		 *
+		 * @var SS_Shipping_Method_Resolver
 		 */
-		public function __construct( SS_Shipping_Order_Meta $order_meta ) {
-			$this->order_meta = $order_meta;
+		protected SS_Shipping_Method_Resolver $method_resolver;
+
+		/**
+		 * Pickup point display formatter.
+		 *
+		 * @var SS_Shipping_Pickup_Point_Formatter
+		 */
+		protected SS_Shipping_Pickup_Point_Formatter $pickup_point_formatter;
+
+		/**
+		 * @param SS_Shipping_Order_Meta             $order_meta             Order meta repository.
+		 * @param SS_Shipping_Method_Resolver        $method_resolver        Shipping method resolver.
+		 * @param SS_Shipping_Pickup_Point_Formatter $pickup_point_formatter Pickup point display formatter.
+		 */
+		public function __construct( SS_Shipping_Order_Meta $order_meta, SS_Shipping_Method_Resolver $method_resolver, SS_Shipping_Pickup_Point_Formatter $pickup_point_formatter ) {
+			$this->order_meta             = $order_meta;
+			$this->method_resolver        = $method_resolver;
+			$this->pickup_point_formatter = $pickup_point_formatter;
 		}
 
 		/**
@@ -109,7 +127,7 @@ if ( ! class_exists( 'SS_Shipping_Order_Meta_Box' ) ) :
 
 			$shipping_ss_settings = SS_SHIPPING_WC()->get_ss_shipping_settings();
 
-			$ss_shipping_method_id = $this->order_meta->get_smart_send_method_id( $order_id );
+			$ss_shipping_method_id = $this->method_resolver->resolve_outbound( $order );
 
 			// Only display Smart Shipping (SS) meta box is SS selected as shipping method OR free shipping is set to SS method.
 			if ( ! $ss_shipping_method_id ) {
@@ -124,9 +142,10 @@ if ( ! class_exists( 'SS_Shipping_Order_Meta_Box' ) ) :
 
 			$ss_shipping_method_name = SS_SHIPPING_WC()->get_shipping_method_name_from_all_shipping_method_instances( $ss_shipping_method_id );
 
-			// Get order agent object
-			$ss_shipping_order_agent    = $this->order_meta->get_ss_shipping_order_agent( $order_id );
-			$ss_shipping_order_agent_no = $this->order_meta->get_ss_shipping_order_agent_no( $order_id );
+			// The stored delivery configuration (pickup point + parcel plan).
+			$delivery_details           = $this->order_meta->read( $order );
+			$ss_shipping_order_agent    = null === $delivery_details->get_pickup_point() ? null : $delivery_details->get_pickup_point()->to_object();
+			$ss_shipping_order_agent_no = null === $delivery_details->get_pickup_point() ? null : $delivery_details->get_pickup_point()->get_agent_no();
 
 			echo '<div id="ss-shipping-label-form">';
 
@@ -168,12 +187,12 @@ if ( ! class_exists( 'SS_Shipping_Order_Meta_Box' ) ) :
 					esc_html__( 'Agent No.: %s', 'smart-send-logistics' ),
 					esc_html( (string) $ss_shipping_order_agent_no )
 				) . '</strong>';
-				echo wp_kses_post( $this->get_formatted_address( $ss_shipping_order_agent ) );
+				echo wp_kses_post( $this->pickup_point_formatter->format_admin_block( $ss_shipping_order_agent ) );
 			}
 
 			echo '<hr>';
 
-			$parcels        = $this->order_meta->get_ss_shipping_order_parcels( $order_id );
+			$parcels        = null === $delivery_details->get_parcel_plan() ? array() : $delivery_details->get_parcel_plan()->to_box_rows();
 			$checked_attrib = '';
 			$items_class    = 'hidden';
 			$items          = '';
@@ -260,21 +279,6 @@ if ( ! class_exists( 'SS_Shipping_Order_Meta_Box' ) ) :
 
 			echo '</div>';
 			// phpcs:enable WordPress.Security.EscapeOutput.OutputNotEscaped
-		}
-
-		/**
-		 * Return HTML formatted agent address
-		 *
-		 * @param object $ss_shipping_order_agent
-		 * @return string
-		 */
-		protected function get_formatted_address( $ss_shipping_order_agent ) {
-
-			if ( empty( $ss_shipping_order_agent ) ) {
-				return '';
-			}
-
-			return '<p class="ss_agent_address">' . $ss_shipping_order_agent->company . '</br>' . $ss_shipping_order_agent->address_line1 . '</br>' . $ss_shipping_order_agent->postal_code . ' ' . $ss_shipping_order_agent->city . '</p>';
 		}
 
 		/**

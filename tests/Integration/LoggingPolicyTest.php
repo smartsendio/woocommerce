@@ -175,7 +175,7 @@ it('logs an info event when the shopper selects a pickup point at checkout', fun
         ->and($selected['context']['order_id'])->toBe($order->get_id())
         ->and($selected['context']['agent_no'])->toBe('1234');
 
-    expect(SS_SHIPPING_WC()->order_meta()->get_ss_shipping_order_agent_no($order->get_id()))->toBe('1234');
+    expect(SS_SHIPPING_WC()->order_meta()->read($order->get_id())->get_pickup_point()->get_agent_no())->toBe('1234');
 });
 
 it('logs an info event when the pickup point is changed on an order', function () {
@@ -186,7 +186,7 @@ it('logs an info event when the pickup point is changed on an order', function (
     $product = create_simple_product(['price' => 100, 'weight' => 1]);
     $order   = create_order(['products' => [$product], 'shipping_method' => 'postnord_agent']);
 
-    $result = SS_SHIPPING_WC()->order_meta()->save_shipping_agent($order->get_id(), true, '5678');
+    $result = SS_SHIPPING_WC()->pickup_point_validator()->validate_and_store($order->get_id(), true, '5678');
 
     expect($result)->toBeTrue();
 
@@ -207,7 +207,7 @@ it('logs a warning when the agent number is rejected, even with the debug settin
     $product = create_simple_product(['price' => 100, 'weight' => 1]);
     $order   = create_order(['products' => [$product], 'shipping_method' => 'postnord_agent']);
 
-    $result = SS_SHIPPING_WC()->order_meta()->save_shipping_agent($order->get_id(), true, '9999');
+    $result = SS_SHIPPING_WC()->pickup_point_validator()->validate_and_store($order->get_id(), true, '9999');
 
     expect($result)->toBeString();
 
@@ -348,7 +348,7 @@ it('logs an error when the order cannot be loaded while deleting pickup point me
     with_ss_settings(['ss_debug' => 'no']);
     $spy = spy_on_logger();
 
-    SS_SHIPPING_WC()->order_meta()->delete_ss_shipping_order_agent(999999999);
+    SS_SHIPPING_WC()->order_meta()->delete_pickup_point(999999999);
 
     $failed = ss_policy_entry($spy, 'Failed to load WooCommerce order when deleting pickup point meta - skipping');
     expect($failed)->not->toBeNull()

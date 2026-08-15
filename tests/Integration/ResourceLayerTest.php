@@ -91,6 +91,23 @@ function sample_representation(array $overrides = []): SS_Shipping_Shipment
 {
     $data = sample_representation_data($overrides);
 
+    // Parcels are typed SS_Shipping_Parcel value objects (#139).
+    $parcels = array_map(function (array $parcel_row): SS_Shipping_Parcel {
+        $parcel = new SS_Shipping_Parcel();
+        $parcel->set_internal_id($parcel_row['internal_id'])
+            ->set_internal_reference($parcel_row['internal_reference'])
+            ->set_weight($parcel_row['weight'])
+            ->set_height($parcel_row['height'])
+            ->set_width($parcel_row['width'])
+            ->set_length($parcel_row['length'])
+            ->set_freetext($parcel_row['freetext'])
+            ->set_items($parcel_row['items'])
+            ->set_total_net_amount($parcel_row['total_net_amount'])
+            ->set_total_tax_amount($parcel_row['total_tax_amount']);
+
+        return $parcel;
+    }, $data['parcels']);
+
     $shipment = new SS_Shipping_Shipment();
     $shipment->set_internal_id($data['internal_id'])
         ->set_internal_reference($data['internal_reference'])
@@ -99,7 +116,7 @@ function sample_representation(array $overrides = []): SS_Shipping_Shipment
         ->set_shipping_date($data['shipping_date'])
         ->set_receiver($data['receiver'])
         ->set_pickup_point($data['pickup_point'])
-        ->set_parcels($data['parcels'])
+        ->set_parcels($parcels)
         ->set_subtotal_net_amount($data['subtotal_net_amount'])
         ->set_subtotal_tax_amount($data['subtotal_tax_amount'])
         ->set_shipping_net_amount($data['shipping_net_amount'])

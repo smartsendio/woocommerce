@@ -202,6 +202,30 @@ function ss_api_error_body(string $message = 'The given data was invalid.'): arr
 }
 
 /**
+ * Store a pickup point selection on an order through the repository
+ * (SS_Shipping_Order_Meta::write()), the way checkout does.
+ */
+function save_order_pickup_point(int $order_id, object $agent): void
+{
+    $details = new SS_Shipping_Delivery_Details();
+    $details->set_pickup_point(SS_Shipping_Pickup_Point::from_object($agent));
+
+    SS_SHIPPING_WC()->order_meta()->write($order_id, $details);
+}
+
+/**
+ * Store a parcel split on an order through the repository, from rows in
+ * the frozen id/name/value meta shape.
+ */
+function save_order_parcels(int $order_id, array $rows): void
+{
+    $details = new SS_Shipping_Delivery_Details();
+    $details->set_parcel_plan(SS_Shipping_Parcel_Plan::from_box_rows($rows));
+
+    SS_SHIPPING_WC()->order_meta()->write($order_id, $details);
+}
+
+/**
  * A pickup point agent object as the plugin stores it in order meta.
  */
 function sample_agent(array $overrides = []): object

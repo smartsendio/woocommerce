@@ -43,11 +43,25 @@ if ( ! class_exists( 'SS_Shipping_Fulfillment_Service' ) ) :
 		protected string $label_prefix = 'smart-send-label-';
 
 		/**
-		 * Order meta access component.
+		 * Order meta repository.
 		 *
 		 * @var SS_Shipping_Order_Meta
 		 */
 		protected SS_Shipping_Order_Meta $order_meta;
+
+		/**
+		 * Shipping method resolver.
+		 *
+		 * @var SS_Shipping_Method_Resolver
+		 */
+		protected SS_Shipping_Method_Resolver $method_resolver;
+
+		/**
+		 * Booked shipment id accessor.
+		 *
+		 * @var SS_Shipping_Shipment_Ids
+		 */
+		protected SS_Shipping_Shipment_Ids $shipment_ids;
 
 		/**
 		 * The booking service (stateless, order passed per call).
@@ -59,11 +73,15 @@ if ( ! class_exists( 'SS_Shipping_Fulfillment_Service' ) ) :
 		/**
 		 * Constructor.
 		 *
-		 * @param SS_Shipping_Order_Meta      $order_meta      Order meta access component.
+		 * @param SS_Shipping_Order_Meta      $order_meta      Order meta repository.
+		 * @param SS_Shipping_Method_Resolver $method_resolver Shipping method resolver.
+		 * @param SS_Shipping_Shipment_Ids    $shipment_ids    Booked shipment id accessor.
 		 * @param SS_Shipping_Booking_Service $booking_service The booking service.
 		 */
-		public function __construct( SS_Shipping_Order_Meta $order_meta, SS_Shipping_Booking_Service $booking_service ) {
+		public function __construct( SS_Shipping_Order_Meta $order_meta, SS_Shipping_Method_Resolver $method_resolver, SS_Shipping_Shipment_Ids $shipment_ids, SS_Shipping_Booking_Service $booking_service ) {
 			$this->order_meta      = $order_meta;
+			$this->method_resolver = $method_resolver;
+			$this->shipment_ids    = $shipment_ids;
 			$this->booking_service = $booking_service;
 		}
 
@@ -73,17 +91,20 @@ if ( ! class_exists( 'SS_Shipping_Fulfillment_Service' ) ) :
 		 * setting enabled and the outbound fulfillment succeeded - the return
 		 * label too.
 		 *
-		 * @param int|WC_Order $order           Order id or order object.
-		 * @param boolean      $save_order_note Whether to save an order note with information about the label.
+		 * @param int|WC_Order                      $order             Order id or order object.
+		 * @param boolean                           $save_order_note   Whether to save an order note with information about the label.
+		 * @param SS_Shipping_Delivery_Details|null $delivery_overrides Partial delivery details submitted with the request (e.g. the meta box parcel split), persisted through the repository before booking.
 		 *
 		 * @return SS_Shipping_Fulfillment_Result
 		 */
-		public function fulfill_outbound( $order, $save_order_note = true ): SS_Shipping_Fulfillment_Result {
+		public function fulfill_outbound( $order, $save_order_note = true, ?SS_Shipping_Delivery_Details $delivery_overrides = null ): SS_Shipping_Fulfillment_Result {
 			$order = $this->resolve_order( $order );
 
 			if ( ! $order instanceof WC_Order ) {
 				return new SS_Shipping_Fulfillment_Result( null, null, array( $order ) );
 			}
+
+			$this->apply_delivery_overrides( $order, $delivery_overrides );
 
 			$outbound_booking = $this->booking_service->book_outbound( $order );
 
@@ -108,23 +129,43 @@ if ( ! class_exists( 'SS_Shipping_Fulfillment_Service' ) ) :
 		/**
 		 * Fulfill a return shipping label for the order.
 		 *
-		 * @param int|WC_Order $order           Order id or order object.
-		 * @param boolean      $save_order_note Whether to save an order note with information about the label.
+		 * @param int|WC_Order                      $order             Order id or order object.
+		 * @param boolean                           $save_order_note   Whether to save an order note with information about the label.
+		 * @param SS_Shipping_Delivery_Details|null $delivery_overrides Partial delivery details submitted with the request, persisted through the repository before booking.
 		 *
 		 * @return SS_Shipping_Fulfillment_Result
 		 */
-		public function fulfill_return( $order, $save_order_note = true ): SS_Shipping_Fulfillment_Result {
+		public function fulfill_return( $order, $save_order_note = true, ?SS_Shipping_Delivery_Details $delivery_overrides = null ): SS_Shipping_Fulfillment_Result {
 			$order = $this->resolve_order( $order );
 
 			if ( ! $order instanceof WC_Order ) {
 				return new SS_Shipping_Fulfillment_Result( null, null, array( $order ) );
 			}
 
+			$this->apply_delivery_overrides( $order, $delivery_overrides );
+
 			$return_booking = $this->booking_service->book_return( $order );
 
 			$entries = array( $this->complete_fulfillment( $order, $return_booking, true, $save_order_note ) );
 
 			return new SS_Shipping_Fulfillment_Result( null, $return_booking, $entries );
+		}
+
+		/**
+		 * Persist the delivery details submitted with a fulfillment request
+		 * (e.g. the parcel split from the order meta box) before booking,
+		 * deliberately keeping the historic save-before-book behaviour: the
+		 * submitted configuration sticks even when the booking then fails.
+		 *
+		 * @param WC_Order                          $order              The WooCommerce order.
+		 * @param SS_Shipping_Delivery_Details|null $delivery_overrides Partial delivery details, or null when the request carried none.
+		 *
+		 * @return void
+		 */
+		protected function apply_delivery_overrides( WC_Order $order, ?SS_Shipping_Delivery_Details $delivery_overrides ) {
+			if ( null !== $delivery_overrides ) {
+				$this->order_meta->write( $order, $delivery_overrides );
+			}
 		}
 
 		/**
@@ -164,10 +205,7 @@ if ( ! class_exists( 'SS_Shipping_Fulfillment_Service' ) ) :
 		 * @return boolean
 		 */
 		protected function is_auto_return_enabled( WC_Order $order ): bool {
-			$ss_shipping_method_id = $this->order_meta->get_smart_send_method_id( $order->get_id(), true );
-
-			return isset( $ss_shipping_method_id['smart_send_auto_generate_return_label'] ) &&
-				'yes' == $ss_shipping_method_id['smart_send_auto_generate_return_label']; // phpcs:ignore Universal.Operators.StrictComparisons.LooseEqual -- pre-existing loose comparison; tightening is a behaviour change out of scope for this extraction.
+			return $this->method_resolver->is_auto_return_enabled( $order );
 		}
 
 		/**
@@ -201,7 +239,11 @@ if ( ! class_exists( 'SS_Shipping_Fulfillment_Service' ) ) :
 
 			if ( SS_SHIPPING_WC()->get_setting_save_shipping_labels_in_uploads() ) {
 				try {
-					// Save the PDF file
+					// Save the PDF file and link to the local copy. Deliberate
+					// v9 fix (#139): the computed uploads URL used to be
+					// discarded (unconditionally overwritten with the API
+					// link); with the setting enabled, the note/response now
+					// actually link the uploads copy.
 					$label_url = $this->save_label_file(
 						$response->shipment_id,
 						$response->pdf->base_64_encoded,
@@ -210,13 +252,13 @@ if ( ! class_exists( 'SS_Shipping_Fulfillment_Service' ) ) :
 				} catch ( Exception $e ) {
 					return array( 'error' => $e->getMessage() );
 				}
+			} else {
+				// Get the label link
+				$label_url = $response->pdf->link;
 			}
 
-			// Get the label link
-			$label_url = $response->pdf->link;
-
 			// save order meta data
-			$this->order_meta->save_ss_shipment_id_in_order_meta( $order_id, $response->shipment_id, $is_return );
+			$this->shipment_ids->save( $order, $response->shipment_id, $is_return );
 
 			SS_Shipping_Logger::info(
 				$is_return ? 'Return shipping label created' : 'Shipping label created',
@@ -228,13 +270,11 @@ if ( ! class_exists( 'SS_Shipping_Fulfillment_Service' ) ) :
 			);
 
 			// Get formatted order comment
-			$response->woocommerce['label_url']  = $label_url;
-			$response->woocommerce['order_note'] = $this->get_formatted_order_note_with_label_and_tracking(
-				$order_id,
+			$order_note_html = $this->get_formatted_order_note_with_label_and_tracking(
+				$label_url,
 				$response,
 				$is_return
 			);
-			$response->woocommerce['return']     = $is_return;
 
 			// Save order note
 			if ( $save_order_note ) {
@@ -247,7 +287,7 @@ if ( ! class_exists( 'SS_Shipping_Fulfillment_Service' ) ) :
 				 */
 				$order_note = apply_filters(
 					'smart_send_shipping_label_comment',
-					$response->woocommerce['order_note'],
+					$order_note_html,
 					$order,
 					$is_return
 				);
@@ -285,12 +325,39 @@ if ( ! class_exists( 'SS_Shipping_Fulfillment_Service' ) ) :
 				$this->set_order_status_after_label_generated( $order );
 			}
 
-			// Action when a shipping label has been created
-			do_action( 'smart_send_shipping_label_created', $order_id, $response );
+			/*
+			 * Action when a shipping label has been created.
+			 *
+			 * Deliberate v9 breaking change (#139): $response is now the
+			 * pristine API booking response - the presentation data that
+			 * used to be mutated into $response->woocommerce (label_url,
+			 * order_note, return) travels in the typed
+			 * SS_Shipping_Label_Entry third argument instead.
+			 *
+			 * @param int                    $order_id The WooCommerce order id.
+			 * @param object                 $response The raw API booking response.
+			 * @param SS_Shipping_Label_Entry $entry    The created label: label URL, order note HTML, return flag, response.
+			 */
+			do_action(
+				'smart_send_shipping_label_created',
+				$order_id,
+				$response,
+				new SS_Shipping_Label_Entry( $order_id, $is_return, $label_url, $order_note_html, $response )
+			);
+
+			// The legacy AJAX/bulk response entry keeps the frozen shape
+			// (admin/js/ss-shipping-label.js parses success.woocommerce.*),
+			// built on a clone so the raw response stays unmutated.
+			$legacy_response              = clone $response;
+			$legacy_response->woocommerce = array(
+				'label_url'  => $label_url,
+				'order_note' => $order_note_html,
+				'return'     => $is_return,
+			);
 
 			// return the success data
 			return array(
-				'success'  => $response,
+				'success'  => $legacy_response,
 				'shipment' => $booking->get_wire_shipment(),
 			);
 		}
@@ -313,19 +380,18 @@ if ( ! class_exists( 'SS_Shipping_Fulfillment_Service' ) ) :
 		 * Get a formatted string containing link to PDF label, tracking code and tracking link.
 		 * This note is inserted in the order comment.
 		 *
-		 * @param int $order_id Order ID
+		 * @param string $label_url The label download URL.
 		 * @param mixed $api_shipment_response response for API call
 		 * @param boolean $is_return true for return labels and false for normal labels (default)
 		 *
 		 * @return string HTML formatted note
 		 */
-		// phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundBeforeLastUsed -- pre-existing method signature, kept for backwards compatibility.
-		protected function get_formatted_order_note_with_label_and_tracking( $order_id, $api_shipment_response, $is_return ) {
+		protected function get_formatted_order_note_with_label_and_tracking( $label_url, $api_shipment_response, $is_return ) {
 
 			$tracking_note = sprintf(
 				'<label>%1$s: </label>%2$s',
 				$is_return ? __( 'Return shipping label', 'smart-send-logistics' ) : __( 'Shipping label', 'smart-send-logistics' ),
-				$this->get_ss_shipping_label_link( $api_shipment_response->woocommerce['label_url'], $is_return )
+				$this->get_ss_shipping_label_link( $label_url, $is_return )
 			);
 
 			foreach ( $api_shipment_response->parcels as $parcel ) {
@@ -376,43 +442,11 @@ if ( ! class_exists( 'SS_Shipping_Fulfillment_Service' ) ) :
 			return $file_ret['url'];
 		}
 
-		public function get_label_url_from_shipment_id( $shipment_id ) {
-			$upload_path = wp_upload_dir();
-			return $upload_path['url'] . '/' . $this->get_label_name_from_shipment_id( $shipment_id );
-		}
-
-		public function get_label_path_from_shipment_id( $shipment_id ) {
-			$upload_path = wp_upload_dir();
-			return $upload_path['path'] . '/' . $this->get_label_name_from_shipment_id( $shipment_id );
-		}
-
 		protected function get_label_name_from_shipment_id( $shipment_id ) {
 			if ( $this->label_prefix ) {
 				$shipment_id = $this->label_prefix . $shipment_id;
 			}
 			return $shipment_id . '.pdf';
-		}
-
-		/*
-		 * Gets label URL post meta array for an order
-		 *
-		 * @param int  $order_id  Order ID
-		 * @param boolean $return Whether or not the label is return (true) or normal (false)
-		 *
-		 * @return string URL label link
-		 */
-		// phpcs:ignore Universal.NamingConventions.NoReservedKeywordParameterNames.returnFound -- pre-existing public method signature, kept for backwards compatibility.
-		public function get_label_url_from_order_id( $order_id, $return ): string {
-			$order = wc_get_order( $order_id );
-			if ( ! $order instanceof WC_Order ) {
-				return '';
-			}
-			if ( $return ) {
-				$shipment_id = $order->get_meta( SS_Shipping_Order_Meta::META_RETURN_LABEL_ID, true );
-			} else {
-				$shipment_id = $order->get_meta( SS_Shipping_Order_Meta::META_LABEL_ID, true );
-			}
-			return $this->get_label_url_from_shipment_id( $shipment_id );
 		}
 
 		/**
