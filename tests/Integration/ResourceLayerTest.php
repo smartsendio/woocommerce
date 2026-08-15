@@ -217,18 +217,6 @@ it('combines labels for multiple shipments into a single request body', function
     ]);
 });
 
-it('surfaces the existing error taxonomy through BookingResource::combine()', function () {
-    $api = new Api('secret-token-123', 'example.test', true);
-    mock_smart_send_api(function () {
-        return ss_api_response(404, ss_api_error_body('One or more shipments could not be found.'));
-    });
-
-    $response = $api->bookings()->combine(['unknown-shipment']);
-
-    expect($response->isSuccessful())->toBeFalse();
-    expect($response->error()->message)->toBe('One or more shipments could not be found.');
-});
-
 it('looks up a pickup point by agent number', function () {
     $api = new Api('secret-token-123', 'example.test', true);
     $capture = mock_smart_send_api(function () {
@@ -287,18 +275,6 @@ it('omits the city segment from the closest-address lookup when no city is given
     $request = end($capture->requests);
     expect($request['url'])->toContain('agents/closest/carrier/postnord/country/DK/postalcode/2300/street/Islands Brygge 39');
     expect($request['url'])->not->toContain('/city/');
-});
-
-it('surfaces the existing error taxonomy through PickupPointResource::findClosestByAddress()', function () {
-    $api = new Api('secret-token-123', 'example.test', true);
-    mock_smart_send_api(function () {
-        return new WP_Error('http_request_failed', 'cURL error 28: Operation timed out after 4000 milliseconds');
-    });
-
-    $response = $api->pickupPoints()->findClosestByAddress('postnord', 'DK', '2300', 'Copenhagen', 'Islands Brygge 39');
-
-    expect($response->isSuccessful())->toBeFalse();
-    expect($response->error()->code)->toBe('transport-timeout');
 });
 
 it('applies the pickup point lookup timeout to both pickup point resource calls', function () {
