@@ -51,18 +51,6 @@ class SS_Shipping_Logger {
 	private const LEVELS = array( 'debug', 'info', 'warning', 'error', 'critical' );
 
 	/**
-	 * Log a debug trace message.
-	 *
-	 * Alias of {@see debug()} kept for the existing call sites.
-	 *
-	 * @param string $message Message to log.
-	 * @param array  $context Optional structured context.
-	 */
-	public static function log( $message, $context = array() ) {
-		self::debug( $message, is_array( $context ) ? $context : array() );
-	}
-
-	/**
 	 * Log a debug trace message (gated on the plugin's debug setting).
 	 *
 	 * @param string $message Message to log.
@@ -111,37 +99,6 @@ class SS_Shipping_Logger {
 	 */
 	public static function critical( $message, $context = array() ) {
 		self::write( 'critical', $message, $context, true );
-	}
-
-	/**
-	 * Log a debug trace message and surface it in WooCommerce's shipping
-	 * debug mode.
-	 *
-	 * The message is always written to the log like {@see log()}. When the
-	 * merchant has enabled WooCommerce → Settings → Shipping → "Enable debug
-	 * mode", the message is additionally shown as a checkout notice next to
-	 * core's own "Customer matched zone ..." notice, using the same gating
-	 * WooCommerce core applies (never during checkout submission or AJAX
-	 * requests, and never twice for the same message).
-	 *
-	 * @param string $message Message to log and show as a debug notice.
-	 */
-	public static function debug_notice( $message ) {
-		self::log( $message );
-
-		if ( 'yes' !== get_option( 'woocommerce_shipping_debug_mode', 'no' ) ) {
-			return;
-		}
-
-		if ( defined( 'WOOCOMMERCE_CHECKOUT' ) || defined( 'WC_DOING_AJAX' ) ) {
-			return;
-		}
-
-		if ( wc_has_notice( $message ) ) {
-			return;
-		}
-
-		wc_add_notice( $message );
 	}
 
 	/**
