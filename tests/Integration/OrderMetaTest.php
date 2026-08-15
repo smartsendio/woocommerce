@@ -17,8 +17,7 @@
  */
 function assert_order_meta_repository_roundtrip(bool $hpos): void
 {
-    $repository  = SS_SHIPPING_WC()->order_meta();
-    $fulfillment = SS_SHIPPING_WC()->fulfillment();
+    $repository = SS_SHIPPING_WC()->order_meta();
     $product = create_simple_product(['price' => 100, 'weight' => 1]);
     $order   = create_order(['products' => [$product], 'shipping_method' => 'postnord_agent']);
     $order_id = $order->get_id();
@@ -94,12 +93,6 @@ function assert_order_meta_repository_roundtrip(bool $hpos): void
         ->and($fresh->get_meta('_ss_shipping_return_label_id', true))->toBe('return-456')
         ->and($shipment_ids->get($order_id, false))->toBe('shipment-123')
         ->and($shipment_ids->get($order_id, true))->toBe('return-456');
-
-    // Label URLs are derived from the shipment id and the uploads dir.
-    expect($fulfillment->get_label_url_from_order_id($order_id, false))
-        ->toContain('smart-send-label-shipment-123.pdf')
-        ->and($fulfillment->get_label_url_from_order_id($order_id, true))
-        ->toContain('smart-send-label-return-456.pdf');
 }
 
 it('roundtrips order meta through the repository on legacy post storage', function () {
@@ -161,15 +154,12 @@ it('handles a missing order in every repository entry point without fatals', fun
     // Regression for #60: wc_get_order() returns false for order IDs that do
     // not exist (e.g. WooCommerce's email preview placeholder); every
     // entry point must guard instead of calling methods on false.
-    $repository  = SS_SHIPPING_WC()->order_meta();
-    $fulfillment = SS_SHIPPING_WC()->fulfillment();
+    $repository = SS_SHIPPING_WC()->order_meta();
     $missing = 999999999;
 
     $details = $repository->read($missing);
     expect($details->get_pickup_point())->toBeNull()
-        ->and($details->get_parcel_plan())->toBeNull()
-        ->and($fulfillment->get_label_url_from_order_id($missing, false))->toBe('')
-        ->and($fulfillment->get_label_url_from_order_id($missing, true))->toBe('');
+        ->and($details->get_parcel_plan())->toBeNull();
 
     // The writers no-op instead of fataling.
     save_order_pickup_point($missing, sample_agent());

@@ -243,6 +243,7 @@ if ( ! class_exists( 'SS_Shipping_WC' ) ) :
 			require_once SS_SHIPPING_PLUGIN_DIR_PATH . '/includes/class-ss-shipping-parcel-plan.php';
 			require_once SS_SHIPPING_PLUGIN_DIR_PATH . '/includes/class-ss-shipping-delivery-details.php';
 			require_once SS_SHIPPING_PLUGIN_DIR_PATH . '/includes/class-ss-shipping-pickup-point-formatter.php';
+			require_once SS_SHIPPING_PLUGIN_DIR_PATH . '/includes/class-ss-shipping-label-entry.php';
 			require_once SS_SHIPPING_PLUGIN_DIR_PATH . '/includes/class-ss-shipping-fulfillment-result.php';
 			require_once SS_SHIPPING_PLUGIN_DIR_PATH . '/includes/class-ss-shipping-fulfillment-service.php';
 			require_once SS_SHIPPING_PLUGIN_DIR_PATH . '/includes/class-ss-shipping-subscriptions-compat.php';
