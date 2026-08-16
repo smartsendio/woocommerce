@@ -254,6 +254,9 @@ This box appears when a "Select Pickup Point" shipping method is selected, but n
 = Info box: Enter shipping information =
 This box appears when a "Select Pickup Point" shipping method is selected, but no shipping address is entered. Enter a valid shipping address so that the plugin can search for nearby pickup points.
 
+= Are the plugin settings deleted when I deactivate or uninstall the plugin? =
+No - this is by design. Neither deactivating nor uninstalling the plugin deletes its settings (the API Token, the general settings or the configured shipping methods), so deactivating and re-activating - or removing and re-installing - the plugin brings it back exactly as it was configured. If you want to start over, clear the fields on the settings pages manually before saving.
+
 == Screenshots ==
 
 1. Show closest pickup points during checkout
