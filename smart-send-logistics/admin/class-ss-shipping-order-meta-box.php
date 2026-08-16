@@ -44,14 +44,23 @@ if ( ! class_exists( 'SS_Shipping_Order_Meta_Box' ) ) :
 		protected SS_Shipping_Pickup_Point_Formatter $pickup_point_formatter;
 
 		/**
+		 * Typed plugin settings reader.
+		 *
+		 * @var SS_Shipping_Settings
+		 */
+		protected SS_Shipping_Settings $settings;
+
+		/**
 		 * @param SS_Shipping_Order_Meta             $order_meta             Order meta repository.
 		 * @param SS_Shipping_Method_Resolver        $method_resolver        Shipping method resolver.
 		 * @param SS_Shipping_Pickup_Point_Formatter $pickup_point_formatter Pickup point display formatter.
+		 * @param SS_Shipping_Settings|null          $settings               Typed plugin settings reader (stateless; a fresh default is safe).
 		 */
-		public function __construct( SS_Shipping_Order_Meta $order_meta, SS_Shipping_Method_Resolver $method_resolver, SS_Shipping_Pickup_Point_Formatter $pickup_point_formatter ) {
+		public function __construct( SS_Shipping_Order_Meta $order_meta, SS_Shipping_Method_Resolver $method_resolver, SS_Shipping_Pickup_Point_Formatter $pickup_point_formatter, ?SS_Shipping_Settings $settings = null ) {
 			$this->order_meta             = $order_meta;
 			$this->method_resolver        = $method_resolver;
 			$this->pickup_point_formatter = $pickup_point_formatter;
+			$this->settings               = null === $settings ? new SS_Shipping_Settings() : $settings;
 		}
 
 		/**
@@ -60,31 +69,32 @@ if ( ! class_exists( 'SS_Shipping_Order_Meta_Box' ) ) :
 		 * @return void
 		 */
 		public function register_hooks() {
-			$this->define_button_labels();
-
 			add_action( 'add_meta_boxes', array( $this, 'add_smart_send_order_meta_box' ), 20 );
 		}
 
 		/**
-		 * Define the label-generation button label constants.
+		 * The label-generation button text, with the demo-mode prefix when
+		 * demo mode is on. Plain methods instead of the historic per-request
+		 * global define()s (#140).
 		 *
-		 * Kept as global constants (rather than class properties) because
-		 * the meta box's own HTML-building code below reads them directly,
-		 * matching the surrounding markup's style.
+		 * @return string
 		 */
-		protected function define_button_labels() {
-			SS_SHIPPING_WC()->define(
-				'SS_SHIPPING_BUTTON_LABEL_GEN',
-				SS_SHIPPING_WC()->get_demo_mode_setting()
-					? __( 'DEMO MODE: Generate label', 'smart-send-logistics' )
-					: __( 'Generate label', 'smart-send-logistics' )
-			);
-			SS_SHIPPING_WC()->define(
-				'SS_SHIPPING_BUTTON_RETURN_LABEL_GEN',
-				SS_SHIPPING_WC()->get_demo_mode_setting()
-					? __( 'DEMO MODE: Generate return label', 'smart-send-logistics' )
-					: __( 'Generate return label', 'smart-send-logistics' )
-			);
+		protected function label_button_text() {
+			return $this->settings->demo_mode()
+				? __( 'DEMO MODE: Generate label', 'smart-send-logistics' )
+				: __( 'Generate label', 'smart-send-logistics' );
+		}
+
+		/**
+		 * The return-label-generation button text, with the demo-mode prefix
+		 * when demo mode is on.
+		 *
+		 * @return string
+		 */
+		protected function return_label_button_text() {
+			return $this->settings->demo_mode()
+				? __( 'DEMO MODE: Generate return label', 'smart-send-logistics' )
+				: __( 'Generate return label', 'smart-send-logistics' );
 		}
 
 		/**
@@ -125,8 +135,6 @@ if ( ! class_exists( 'SS_Shipping_Order_Meta_Box' ) ) :
 
 			$order_id = $order->get_id();
 
-			$shipping_ss_settings = SS_SHIPPING_WC()->get_ss_shipping_settings();
-
 			$ss_shipping_method_id = $this->method_resolver->resolve_outbound( $order );
 
 			// Only display Smart Shipping (SS) meta box is SS selected as shipping method OR free shipping is set to SS method.
@@ -140,7 +148,8 @@ if ( ! class_exists( 'SS_Shipping_Order_Meta_Box' ) ) :
 
 			// phpcs:disable WordPress.Security.EscapeOutput.OutputNotEscaped -- pre-existing behaviour: the meta box HTML is built from translated strings and internally generated markup exactly as before the #43 move; escaping it is a behaviour change out of scope here.
 
-			$ss_shipping_method_name = SS_SHIPPING_WC()->get_shipping_method_name_from_all_shipping_method_instances( $ss_shipping_method_id );
+			$method_code             = new SS_Shipping_Method_Code( $ss_shipping_method_id );
+			$ss_shipping_method_name = $method_code->name();
 
 			// The stored delivery configuration (pickup point + parcel plan).
 			$delivery_details           = $this->order_meta->read( $order );
@@ -156,14 +165,14 @@ if ( ! class_exists( 'SS_Shipping_Order_Meta_Box' ) ) :
 				)
 			);
 
-			$shipping_method_carrier = ucfirst( SS_SHIPPING_WC()->get_shipping_method_carrier( $ss_shipping_method_id ) );
-			$shipping_method_type    = ucfirst( SS_SHIPPING_WC()->get_shipping_method_type( $ss_shipping_method_id ) );
+			$shipping_method_carrier = ucfirst( $method_code->carrier() );
+			$shipping_method_type    = ucfirst( $method_code->type() );
 
 			echo '<h3>' . __( 'Shipping Method', 'smart-send-logistics' ) . '</h3>';
 			echo '<p>' . $ss_shipping_method_name . '</p>';
 
 			// If debug is enabled then show the shipping method id and instance id.
-			if ( isset( $shipping_ss_settings['ss_debug'] ) && 'yes' === $shipping_ss_settings['ss_debug'] ) {
+			if ( $this->settings->debug_log() ) {
 				foreach ( $order->get_shipping_methods() as $method ) {
 					echo '<pre>' . sprintf(
 						/* translators: %s: shipping method id and instance id. */
@@ -257,8 +266,8 @@ if ( ! class_exists( 'SS_Shipping_Order_Meta_Box' ) ) :
 			echo '<hr>';
 			echo '</p>';
 
-			echo '<button id="ss-shipping-label-button" class="button button-primary button-save-form">' . SS_SHIPPING_BUTTON_LABEL_GEN . '</button><br><br>';
-			echo '<button id="ss-shipping-return-label-button" class="button button-save-form">' . SS_SHIPPING_BUTTON_RETURN_LABEL_GEN . '</button>';
+			echo '<button id="ss-shipping-label-button" class="button button-primary button-save-form">' . $this->label_button_text() . '</button><br><br>';
+			echo '<button id="ss-shipping-return-label-button" class="button button-save-form">' . $this->return_label_button_text() . '</button>';
 
 			// Load JS for AJAX calls
 			$ss_label_data = array(
@@ -276,6 +285,9 @@ if ( ! class_exists( 'SS_Shipping_Order_Meta_Box' ) ) :
 				false
 			);
 			wp_localize_script( 'ss-shipping-label-js', 'ss_label_data', $ss_label_data );
+			// The meta box owns its stylesheet (message styling for the AJAX
+			// responses the label JS injects) - see #140.
+			wp_enqueue_style( 'ss-shipping-admin-css', SS_SHIPPING_PLUGIN_DIR_URL . '/admin/css/ss-shipping-admin.css', array(), SS_SHIPPING_VERSION );
 
 			echo '</div>';
 			// phpcs:enable WordPress.Security.EscapeOutput.OutputNotEscaped

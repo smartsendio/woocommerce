@@ -133,11 +133,12 @@ if ( ! class_exists( 'SS_Shipping_Method_Settings' ) ) :
 		 * @return array
 		 */
 		public function build_form_fields() {
-			$log_path              = SS_Shipping_Logger::get_log_url();
-			$agents_address_format = SS_SHIPPING_WC()->pickup_point_formatter()->get_format_options();
+			$log_path = SS_Shipping_Logger::get_log_url();
+			// The formatter is stateless, so a fresh instance is safe here.
+			$agents_address_format = ( new SS_Shipping_Pickup_Point_Formatter() )->get_format_options();
 
 			return array(
-				'api_token'                         => array(
+				SS_Shipping_Settings::KEY_API_TOKEN    => array(
 					// Note that this can be input for multiple sites using
 					// site1:apitoken1,site2:apitoken2,....
 					'title'       => __( 'API Token', 'smart-send-logistics' ),
@@ -153,11 +154,11 @@ if ( ! class_exists( 'SS_Shipping_Method_Settings' ) ) :
 					),
 					'desc_tip'    => false,
 				),
-				'api_token_validate'                => array(
+				'api_token_validate'                   => array(
 					'title'             => __( 'Validate API Token', 'smart-send-logistics' ),
 					'type'              => 'button',
 					'custom_attributes' => array(
-						'onclick' => "ssTestConnection('#woocommerce_smart_send_shipping_api_token_validate');",
+						'onclick' => SS_Shipping_Test_Connection::button_onclick( 'woocommerce_smart_send_shipping_api_token_validate' ),
 					),
 					'description'       => __(
 						'Save the settings before clicking the button to validate API Token.',
@@ -165,7 +166,7 @@ if ( ! class_exists( 'SS_Shipping_Method_Settings' ) ) :
 					),
 					'desc_tip'          => false,
 				),
-				'demo'                              => array(
+				SS_Shipping_Settings::KEY_DEMO         => array(
 					'title'       => __( 'Demo mode', 'smart-send-logistics' ),
 					'description' => __(
 						'Demo mode is used for testing on a staging site. No data will be send to the shipping carrier.',
@@ -175,7 +176,7 @@ if ( ! class_exists( 'SS_Shipping_Method_Settings' ) ) :
 					'default'     => 'yes',
 					'label'       => __( 'Enable demo mode', 'smart-send-logistics' ),
 				),
-				'ss_debug'                          => array(
+				SS_Shipping_Settings::KEY_DEBUG        => array(
 					'title'       => __( 'Debug Log', 'smart-send-logistics' ),
 					'type'        => 'checkbox',
 					'label'       => __( 'Enable logging', 'smart-send-logistics' ),
@@ -190,12 +191,12 @@ if ( ! class_exists( 'SS_Shipping_Method_Settings' ) ) :
 						'</a>'
 					),
 				),
-				'title_labels'                      => array(
+				'title_labels'                         => array(
 					'title'       => __( 'Shipping Labels', 'smart-send-logistics' ),
 					'type'        => 'title',
 					'description' => __( 'Settings for generating shipping labels.', 'smart-send-logistics' ),
 				),
-				'order_status'                      => array(
+				SS_Shipping_Settings::KEY_ORDER_STATUS => array(
 					'title'   => __( 'Set order status after label print', 'smart-send-logistics' ),
 					'id'      => 'smart_send_shipping_order_status',
 					'default' => 'no',
@@ -206,7 +207,7 @@ if ( ! class_exists( 'SS_Shipping_Method_Settings' ) ) :
 						wc_get_order_statuses()
 					),
 				),
-				'shipping_method_for_free_shipping' => array(
+				SS_Shipping_Settings::KEY_FREE_SHIPPING_METHOD => array(
 					'title'       => __(
 						'Shipping method used for WooCommerce method Free Shipping',
 						'smart-send-logistics'
@@ -219,13 +220,13 @@ if ( ! class_exists( 'SS_Shipping_Method_Settings' ) ) :
 					),
 					'options'     => $this->catalog->get_shipping_methods(),
 				),
-				'include_order_comment'             => array(
+				SS_Shipping_Settings::KEY_INCLUDE_ORDER_COMMENT => array(
 					'title'    => __( 'Include order comment on label', 'smart-send-logistics' ),
 					'default'  => 'no',
 					'type'     => 'checkbox',
 					'desc_tip' => false,
 				),
-				'save_shipping_labels_in_uploads'   => array(
+				SS_Shipping_Settings::KEY_SAVE_LABELS_IN_UPLOADS => array(
 					'title'       => __( 'Save a copy of the PDF', 'smart-send-logistics' ),
 					'default'     => 'no',
 					'type'        => 'checkbox',
@@ -235,7 +236,7 @@ if ( ! class_exists( 'SS_Shipping_Method_Settings' ) ) :
 					),
 					'desc_tip'    => true,
 				),
-				'title_pickup'                      => array(
+				'title_pickup'                         => array(
 					'title'       => __( 'Pickup Points', 'smart-send-logistics' ),
 					'type'        => 'title',
 					'description' => __(
@@ -243,7 +244,7 @@ if ( ! class_exists( 'SS_Shipping_Method_Settings' ) ) :
 						'smart-send-logistics'
 					),
 				),
-				'dropdown_display_format'           => array(
+				SS_Shipping_Settings::KEY_DROPDOWN_DISPLAY_FORMAT => array(
 					'title'    => __( 'Dropdown format', 'smart-send-logistics' ),
 					'desc'     => __( 'How the pickup points are listed during checkout.', 'smart-send-logistics' ),
 					'default'  => '4',
@@ -252,7 +253,7 @@ if ( ! class_exists( 'SS_Shipping_Method_Settings' ) ) :
 					'desc_tip' => true,
 					'options'  => $agents_address_format,
 				),
-				'default_select_agent'              => array(
+				SS_Shipping_Settings::KEY_DEFAULT_SELECT_AGENT => array(
 					'title'       => __( 'Select Default', 'smart-send-logistics' ),
 					'label'       => __( 'Enable Select Default', 'smart-send-logistics' ),
 					'description' => __( 'This will automatically select the closest pickup point and let the customer change to a different pickup point. This means that the customer will not be forced to select a pickup point before completing the order.', 'smart-send-logistics' ),
@@ -260,12 +261,12 @@ if ( ! class_exists( 'SS_Shipping_Method_Settings' ) ) :
 					'type'        => 'checkbox',
 					'desc_tip'    => true,
 				),
-				'title_shipping_methods'            => array(
+				'title_shipping_methods'               => array(
 					'title'       => __( 'Shipping methods', 'smart-send-logistics' ),
 					'type'        => 'title',
 					'description' => __( 'Settings for shipping methods.', 'smart-send-logistics' ),
 				),
-				'sort_methods_by_cost'              => array(
+				SS_Shipping_Settings::KEY_SORT_METHODS_BY_COST => array(
 					'title'       => __( 'Sort shipping methods', 'smart-send-logistics' ),
 					'type'        => 'checkbox',
 					'label'       => __( 'Enable automatic sorting by cost on checkout page', 'smart-send-logistics' ),
@@ -308,14 +309,12 @@ if ( ! class_exists( 'SS_Shipping_Method_Settings' ) ) :
 					);
 					$value = 1;
 				} else {
-					//Check if API Token is valid
-					$website_url = SS_SHIPPING_WC()->get_website_url();
-					$api_token   = SS_SHIPPING_WC()->get_api_token_setting( $post_data['woocommerce_smart_send_shipping_api_token'] );
-					$api_handle  = new \Smartsend\Api(
-						$api_token,
-						$website_url,
-						false
-					);
+					// Check if the posted (not yet saved) API Token is valid for
+					// live mode. Built through the factory so the request is
+					// logged like every other API call (#140).
+					$credentials = new SS_Shipping_Api_Credentials( $post_data['woocommerce_smart_send_shipping_api_token'] );
+					$website_url = $credentials->website();
+					$api_handle  = ( new SS_Shipping_Api_Factory() )->create_for_credentials( $credentials, false );
 					if ( ! $api_handle->account()->getAuthenticatedUser()->isSuccessful() ) {
 						// The API Token was not valid for live mode, so need to shown an error and re-enable demo-mode
 						WC_Admin_Settings::add_error(

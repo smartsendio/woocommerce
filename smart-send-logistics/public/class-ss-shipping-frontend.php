@@ -32,15 +32,33 @@ if ( ! class_exists( 'SS_Shipping_Frontend' ) ) :
 		protected SS_Shipping_Pickup_Point_Formatter $pickup_point_formatter;
 
 		/**
-		 * Both collaborators are stateless, so fresh defaults are safe for
+		 * Typed plugin settings reader.
+		 *
+		 * @var SS_Shipping_Settings
+		 */
+		protected SS_Shipping_Settings $settings;
+
+		/**
+		 * Order meta repository (delivery details).
+		 *
+		 * @var SS_Shipping_Order_Meta
+		 */
+		protected SS_Shipping_Order_Meta $order_meta;
+
+		/**
+		 * All collaborators are stateless, so fresh defaults are safe for
 		 * ad-hoc construction (tests construct the frontend directly).
 		 *
 		 * @param SS_Shipping_Pickup_Point_Lookup|null    $pickup_point_lookup    Headless pickup point lookup.
 		 * @param SS_Shipping_Pickup_Point_Formatter|null $pickup_point_formatter Pickup point display formatter.
+		 * @param SS_Shipping_Settings|null               $settings               Typed plugin settings reader.
+		 * @param SS_Shipping_Order_Meta|null             $order_meta             Order meta repository.
 		 */
-		public function __construct( ?SS_Shipping_Pickup_Point_Lookup $pickup_point_lookup = null, ?SS_Shipping_Pickup_Point_Formatter $pickup_point_formatter = null ) {
+		public function __construct( ?SS_Shipping_Pickup_Point_Lookup $pickup_point_lookup = null, ?SS_Shipping_Pickup_Point_Formatter $pickup_point_formatter = null, ?SS_Shipping_Settings $settings = null, ?SS_Shipping_Order_Meta $order_meta = null ) {
 			$this->pickup_point_lookup    = null === $pickup_point_lookup ? new SS_Shipping_Pickup_Point_Lookup() : $pickup_point_lookup;
 			$this->pickup_point_formatter = null === $pickup_point_formatter ? new SS_Shipping_Pickup_Point_Formatter() : $pickup_point_formatter;
+			$this->settings               = null === $settings ? new SS_Shipping_Settings() : $settings;
+			$this->order_meta             = null === $order_meta ? new SS_Shipping_Order_Meta() : $order_meta;
 		}
 
 		/**
@@ -49,11 +67,22 @@ if ( ! class_exists( 'SS_Shipping_Frontend' ) ) :
 		 * @return void
 		 */
 		public function register_hooks() {
+			add_action( 'wp_enqueue_scripts', array( $this, 'enqueue_frontend_styles' ) );
 			add_action( 'woocommerce_after_shipping_rate', array( $this, 'display_ss_pickup_points' ), 10, 2 );
 			add_action( 'woocommerce_checkout_process', array( $this, 'validate_agent_selected' ) );
 			add_action( 'woocommerce_checkout_order_processed', array( $this, 'process_ss_pickup_points' ), 10, 2 );
 			add_action( 'woocommerce_order_details_after_order_table', array( $this, 'display_ss_shipping_agent' ), 10, 2 );
 			add_action( 'woocommerce_email_after_order_table', array( $this, 'display_ss_shipping_agent' ), 10, 2 );
+		}
+
+		/**
+		 * Enqueue the checkout stylesheet - owned by this component instead
+		 * of a blanket enqueue on the plugin singleton (#140).
+		 *
+		 * @return void
+		 */
+		public function enqueue_frontend_styles() {
+			wp_enqueue_style( 'ss-shipping-frontend-css', SS_SHIPPING_PLUGIN_DIR_URL . '/public/css/ss-shipping-frontend.css', array(), SS_SHIPPING_VERSION );
 		}
 
 		/**
@@ -77,13 +106,8 @@ if ( ! class_exists( 'SS_Shipping_Frontend' ) ) :
 			$chosen_methods  = WC()->session->get( 'chosen_shipping_methods' );
 			$chosen_shipping = current( $chosen_methods );
 
-			if ( defined( 'WOOCOMMERCE_VERSION' ) && version_compare( WOOCOMMERCE_VERSION, '3.0', '>=' ) ) {
-				$method_id   = $method->get_method_id();
-				$shipping_id = $method->get_id();
-			} else {
-				$method_id   = $method->method_id;
-				$shipping_id = $method->id;
-			}
+			$method_id   = $method->get_method_id();
+			$shipping_id = $method->get_id();
 
 			$meta_data = $method->get_meta_data();
 
@@ -100,16 +124,14 @@ if ( ! class_exists( 'SS_Shipping_Frontend' ) ) :
 					$street      = wc_clean( $_POST['s_address'] );
 					// phpcs:enable WordPress.Security.ValidatedSanitizedInput
 
-					$carrier = SS_SHIPPING_WC()->get_shipping_method_carrier( $meta_data['smart_send_shipping_method'] );
+					$carrier = ( new SS_Shipping_Method_Code( $meta_data['smart_send_shipping_method'] ) )->carrier();
 
 					$ss_pickup_points = $this->find_closest_agents_by_address( $carrier, $country, $postal_code, $city, $street );
 
 					if ( ! empty( $ss_pickup_points ) ) {
 
-						$ss_setting = SS_SHIPPING_WC()->get_ss_shipping_settings();
-
 						$pickup_point_options = array();
-						if ( ! isset( $ss_setting['default_select_agent'] ) || 'no' == $ss_setting['default_select_agent'] ) { // phpcs:ignore Universal.Operators.StrictComparisons.LooseEqual -- pre-existing loose comparison; tightening is a behaviour change out of scope for the #43 move.
+						if ( ! $this->settings->default_select_agent() ) {
 							$pickup_point_options[0] = __(
 								'- Select Pickup Point -',
 								'smart-send-logistics'
@@ -250,7 +272,7 @@ if ( ! class_exists( 'SS_Shipping_Frontend' ) ) :
 			if ( ! empty( $selected_pickup_point_no ) ) {
 				$details = new SS_Shipping_Delivery_Details();
 				$details->set_pickup_point( SS_Shipping_Pickup_Point::from_object( $selected_pickup_point ) );
-				SS_SHIPPING_WC()->order_meta()->write( $order_id, $details );
+				$this->order_meta->write( $order_id, $details );
 
 				SS_Shipping_Logger::info(
 					'Pickup point selected at checkout',
@@ -268,7 +290,7 @@ if ( ! class_exists( 'SS_Shipping_Frontend' ) ) :
 		public function display_ss_shipping_agent( $order ) {
 
 			$order_id             = $this->get_order_id( $order );
-			$ordered_pickup_point = SS_SHIPPING_WC()->order_meta()->read( $order_id )->get_pickup_point();
+			$ordered_pickup_point = $this->order_meta->read( $order_id )->get_pickup_point();
 
 			if ( null !== $ordered_pickup_point && $ordered_pickup_point->get_agent_no() ) {
 
@@ -284,12 +306,7 @@ if ( ! class_exists( 'SS_Shipping_Frontend' ) ) :
 		}
 
 		protected function get_order_id( $order ) {
-			// WC 3.0 code!
-			if ( defined( 'WOOCOMMERCE_VERSION' ) && version_compare( WOOCOMMERCE_VERSION, '3.0', '>=' ) ) {
-				return $order->get_id();
-			} else {
-				return $order->id;
-			}
+			return $order->get_id();
 		}
 	}
 

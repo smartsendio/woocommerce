@@ -31,6 +31,23 @@ if ( ! class_exists( 'SS_Shipping_Pickup_Point_Formatter' ) ) :
 		protected array $format_options = array();
 
 		/**
+		 * Typed plugin settings reader.
+		 *
+		 * @var SS_Shipping_Settings
+		 */
+		protected SS_Shipping_Settings $settings;
+
+		/**
+		 * The settings reader is stateless, so a fresh default is safe for
+		 * ad-hoc construction (tests construct the formatter directly).
+		 *
+		 * @param SS_Shipping_Settings|null $settings Typed plugin settings reader.
+		 */
+		public function __construct( ?SS_Shipping_Settings $settings = null ) {
+			$this->settings = null === $settings ? new SS_Shipping_Settings() : $settings;
+		}
+
+		/**
 		 * The translated "Dropdown display format" option labels, keyed by
 		 * format id.
 		 *
@@ -74,8 +91,7 @@ if ( ! class_exists( 'SS_Shipping_Pickup_Point_Formatter' ) ) :
 
 			if ( 0 == $format_id ) { // phpcs:ignore Universal.Operators.StrictComparisons.LooseEqual -- pre-existing loose comparison; tightening is a behaviour change out of scope for the #139 move.
 				// Find the setting
-				$ss_setting = SS_SHIPPING_WC()->get_ss_shipping_settings();
-				$format_id  = $ss_setting['dropdown_display_format'];
+				$format_id = $this->settings->dropdown_display_format();
 			}
 
 			switch ( $format_id ) {

@@ -38,6 +38,23 @@ if ( ! class_exists( 'SS_Shipping_Method_Resolver' ) ) :
 	class SS_Shipping_Method_Resolver {
 
 		/**
+		 * Typed plugin settings reader.
+		 *
+		 * @var SS_Shipping_Settings
+		 */
+		protected SS_Shipping_Settings $settings;
+
+		/**
+		 * The settings reader is stateless, so a fresh default is safe for
+		 * ad-hoc construction.
+		 *
+		 * @param SS_Shipping_Settings|null $settings Typed plugin settings reader.
+		 */
+		public function __construct( ?SS_Shipping_Settings $settings = null ) {
+			$this->settings = null === $settings ? new SS_Shipping_Settings() : $settings;
+		}
+
+		/**
 		 * Resolve the Smart Send shipping method used for an outbound
 		 * (normal) label.
 		 *
@@ -152,12 +169,11 @@ if ( ! class_exists( 'SS_Shipping_Method_Resolver' ) ) :
 							return $item['smart_send_shipping_method'];
 						}
 					} elseif ( stripos( $shipping_method_id, 'free_shipping' ) !== false ) {
-							// If free shipping, then filter the shipping method to the correct Smart Send method
+						// If free shipping, then filter the shipping method to the correct Smart Send method
+						$free_shipping_method = $this->settings->shipping_method_for_free_shipping();
 
-							$ss_settings = SS_SHIPPING_WC()->get_ss_shipping_settings();
-
-						if ( ! empty( $ss_settings['shipping_method_for_free_shipping'] ) ) {
-							return $ss_settings['shipping_method_for_free_shipping'];
+						if ( null !== $free_shipping_method ) {
+							return $free_shipping_method;
 						}
 					} elseif ( stripos( $shipping_method_id, 'vconnect_postnord' ) !== false ) {
 						// If vConnect, then filter the shipping method to the correct Smart Send method

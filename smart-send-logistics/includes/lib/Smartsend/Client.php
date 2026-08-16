@@ -22,10 +22,10 @@ class Client
 
     /** @var string Untyped: the value passes through the smart_send_api_endpoint filter, whose return value is not under our control. */
     private $api_host = 'https://app.smartsend.io/api/v1/';
-    // ?string: setWebsite() can receive null when get_website_url()'s
+    // ?string: setWebsite() can receive null when SS_Shipping_Api_Credentials'
     // parse_url() call fails to resolve a host (returns null on a malformed
     // site URL); setApiToken() can receive null when no token is configured
-    // yet (SS_Shipping_WC::get_api_token_setting() returns null).
+    // yet (SS_Shipping_Api_Credentials::api_token() returns null).
     private ?string $website = null;
     private ?string $api_token = null;
     private bool $demo = false;

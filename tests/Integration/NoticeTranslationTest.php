@@ -46,7 +46,7 @@ it('renders the checkout debug notice through the translation functions while th
     });
 
     $other = new WC_Shipping_Rate('flat_rate:3', 'Flat rate', '10', [], 'flat_rate', 3);
-    SS_SHIPPING_WC()->ss_sort_shipping_methods(['flat_rate:3' => $other]);
+    SS_SHIPPING_WC()->rate_sorter()->sort_shipping_methods(['flat_rate:3' => $other]);
 
     // The merchant-facing debug bar notice is translated ...
     expect(ss_policy_notices())->toContain($translated)
@@ -101,7 +101,7 @@ it('uses singular and plural pickup point summaries via _n()', function () {
         return ss_api_response(200, ['data' => [sample_agent()]]);
     });
 
-    SS_SHIPPING_WC()->ss_find_closest_agents_by_address('postnord', 'DK', '2300', 'Main Street 1', 'Copenhagen');
+    SS_SHIPPING_WC()->pickup_point_lookup()->find_closest_by_address('postnord', 'DK', '2300', 'Copenhagen', 'Main Street 1');
 
     expect(ss_policy_notices())->toContain('Smart Send: found 1 postnord pickup point near the entered address.');
 
@@ -110,7 +110,7 @@ it('uses singular and plural pickup point summaries via _n()', function () {
         return ss_api_response(200, ['data' => [sample_agent(), sample_agent(['agent_no' => '5678'])]]);
     });
 
-    SS_SHIPPING_WC()->ss_find_closest_agents_by_address('postnord', 'DK', '2300', 'Main Street 1', 'Copenhagen');
+    SS_SHIPPING_WC()->pickup_point_lookup()->find_closest_by_address('postnord', 'DK', '2300', 'Copenhagen', 'Main Street 1');
 
     expect(ss_policy_notices())->toContain('Smart Send: found 2 postnord pickup points near the entered address.');
 });

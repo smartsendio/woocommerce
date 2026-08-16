@@ -178,10 +178,9 @@ class SS_Shipping_Logger {
 	 * @return bool
 	 */
 	public static function is_enabled() {
-		$settings = get_option( 'woocommerce_' . SS_SHIPPING_METHOD_ID . '_settings' );
-		$ss_debug = isset( $settings['ss_debug'] ) ? $settings['ss_debug'] : 'yes';
-
-		return 'yes' === $ss_debug;
+		// v8 oddity, preserved: unlike the meta box's debug read, the logger
+		// treats a never-saved setting as enabled.
+		return ( new SS_Shipping_Settings() )->debug_log( true );
 	}
 
 	/**

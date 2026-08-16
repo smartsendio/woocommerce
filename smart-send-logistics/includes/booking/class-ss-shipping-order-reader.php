@@ -34,12 +34,22 @@ if ( ! class_exists( 'SS_Shipping_Order_Reader' ) ) :
 		protected WC_Order $order;
 
 		/**
-		 * Constructor.
+		 * Typed plugin settings reader.
 		 *
-		 * @param WC_Order $order The WooCommerce order.
+		 * @var SS_Shipping_Settings
 		 */
-		public function __construct( WC_Order $order ) {
-			$this->order = $order;
+		protected SS_Shipping_Settings $settings;
+
+		/**
+		 * Constructor. The settings reader is stateless, so a fresh default
+		 * is safe for the per-call constructions in the booking layer.
+		 *
+		 * @param WC_Order                  $order    The WooCommerce order.
+		 * @param SS_Shipping_Settings|null $settings Typed plugin settings reader.
+		 */
+		public function __construct( WC_Order $order, ?SS_Shipping_Settings $settings = null ) {
+			$this->order    = $order;
+			$this->settings = null === $settings ? new SS_Shipping_Settings() : $settings;
 		}
 
 		/**
@@ -297,10 +307,8 @@ if ( ! class_exists( 'SS_Shipping_Order_Reader' ) ) :
 		 * @return string|null
 		 */
 		public function get_order_note() {
-			$ss_settings = SS_SHIPPING_WC()->get_ss_shipping_settings();
-
 			$order_note = null;
-			if ( 'yes' === $ss_settings['include_order_comment'] ) {
+			if ( $this->settings->include_order_comment() ) {
 				$order_note = $this->order->get_customer_note();
 			}
 

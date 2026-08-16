@@ -274,7 +274,7 @@ if ( ! class_exists( 'SS_Shipping_Pickup_Point_Validator' ) ) :
 			$ss_shipping_method_id = $this->method_resolver->resolve_outbound( $order_id );
 
 			if ( ! empty( $ss_shipping_method_id ) ) {
-				$shipping_method_carrier = SS_SHIPPING_WC()->get_shipping_method_carrier( $ss_shipping_method_id );
+				$shipping_method_carrier = ( new SS_Shipping_Method_Code( $ss_shipping_method_id ) )->carrier();
 
 				$order            = wc_get_order( $order_id );
 				$shipping_address = $order->get_address( 'shipping' );
