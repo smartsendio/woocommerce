@@ -158,7 +158,7 @@ it('saves the configured method', function () {
 
     ss_step_open_method_settings($page);
     ss_step_fill_method_settings($page, 'Smart Send Shipping', 'postnord_collect');
-    ss_step_save_method_settings($page, 'Denmark');
+    ss_step_save_method_settings($page);
 
     capture_doc_screenshot($page, 'ShippingMethod', 'settings-saved');
 });

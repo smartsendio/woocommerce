@@ -330,6 +330,30 @@ update_option('woocommerce_smart_send_shipping_' . \$instance_id . '_settings', 
     'cost_weight' => array(array('ss_min_weight' => '', 'ss_max_weight' => '', 'ss_cost_weight' => '29')),
 ));
 
+// The zone must offer a second rate, ordered before the Smart Send one:
+// with a single available rate WooCommerce's classic checkout renders the
+// method as a hidden input instead of a radio (so the checkout test's
+// click can never succeed), and with Smart Send preselected the radio
+// click fires no change event (so the pickup dropdown never renders).
+// CI's store always has the setup script's Flat rate first; enforce the
+// same shape here for stores that have drifted.
+\$flat_instance = 0;
+\$created_flat = 0;
+foreach (\$zone->get_shipping_methods() as \$iid => \$method) {
+    if (\$method->id === 'flat_rate') {
+        \$flat_instance = \$iid;
+        break;
+    }
+}
+if (!\$flat_instance) {
+    \$flat_instance = \$zone->add_shipping_method('flat_rate');
+    \$created_flat = 1;
+    update_option('woocommerce_flat_rate_' . \$flat_instance . '_settings', array('title' => 'Flat rate', 'cost' => '39'));
+}
+global \$wpdb;
+\$wpdb->update("{\$wpdb->prefix}woocommerce_shipping_zone_methods", array('method_order' => 1), array('instance_id' => \$flat_instance));
+\$wpdb->update("{\$wpdb->prefix}woocommerce_shipping_zone_methods", array('method_order' => 2), array('instance_id' => \$instance_id));
+
 // A classic (shortcode) checkout page; the pickup point selector only
 // renders in the classic checkout.
 \$page_id = wp_insert_post(array(
@@ -395,6 +419,8 @@ foreach (\$config['orders'] as \$spec) {
     'zone_id'                => \$zone_id,
     'instance_id'            => \$instance_id,
     'created_instance'       => \$created_instance,
+    'flat_instance'          => \$flat_instance,
+    'created_flat'           => \$created_flat,
     'checkout_page_id'       => \$page_id,
     'original_checkout_page' => \$original_checkout_page,
     'cod_was_enabled'        => \$cod_was_enabled,
@@ -434,6 +460,10 @@ foreach (array_merge($fixture_orders, $checkout_orders) as $order) {
 if (!empty($state['created_instance']) && !empty($state['zone_id'])) {
     $zone = new WC_Shipping_Zone($state['zone_id']);
     $zone->delete_shipping_method($state['instance_id']);
+}
+if (!empty($state['created_flat']) && !empty($state['zone_id'])) {
+    $zone = new WC_Shipping_Zone($state['zone_id']);
+    $zone->delete_shipping_method($state['flat_instance']);
 }
 
 if (!empty($state['checkout_page_id'])) {

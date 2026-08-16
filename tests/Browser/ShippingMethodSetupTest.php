@@ -41,6 +41,7 @@ foreach ($zone->get_shipping_methods() as $method) {
         'method_id' => $method->id,
         'settings'  => get_option('woocommerce_' . $method->id . '_' . $method->instance_id . '_settings'),
         'enabled'   => $method->enabled,
+        'order'     => isset($method->method_order) ? (int) $method->method_order : 0,
     );
     $zone->delete_shipping_method($method->instance_id);
 }
@@ -83,17 +84,23 @@ $zone = new WC_Shipping_Zone(1);
 foreach ($zone->get_shipping_methods() as $method) {
     $zone->delete_shipping_method($method->instance_id);
 }
+global $wpdb;
 foreach (get_option('ss_method_setup_zone_snapshot', array()) as $entry) {
     $instance_id = $zone->add_shipping_method($entry['method_id']);
     if (is_array($entry['settings'])) {
         update_option('woocommerce_' . $entry['method_id'] . '_' . $instance_id . '_settings', $entry['settings']);
     }
-    if (isset($entry['enabled']) && 'yes' !== $entry['enabled']) {
-        // Newly added methods are enabled by default; disable when the
-        // snapshot says so.
-        global $wpdb;
-        $wpdb->update("{$wpdb->prefix}woocommerce_shipping_zone_methods", array('is_enabled' => 0), array('instance_id' => $instance_id));
-    }
+    // add_shipping_method() appends (enabled, next order); restore the
+    // snapshotted order and enabled flag so the store's rate ordering -
+    // which determines the preselected method at checkout - survives.
+    $wpdb->update(
+        "{$wpdb->prefix}woocommerce_shipping_zone_methods",
+        array(
+            'method_order' => isset($entry['order']) ? (int) $entry['order'] : 0,
+            'is_enabled'   => (isset($entry['enabled']) && 'yes' !== $entry['enabled']) ? 0 : 1,
+        ),
+        array('instance_id' => $instance_id)
+    );
 }
 delete_option('ss_method_setup_zone_snapshot');
 
@@ -126,9 +133,7 @@ it('configures a Smart Send method on a zone through the admin UI', function () 
     // One weight row: 0-10 kg costs 250 (a price the order total cannot
     // accidentally contain, so the checkout assertion below is unambiguous).
     ss_step_fill_weight_row($page, 0, '0', '10', '250');
-    ss_step_save_method_settings($page, $state['zone_name']);
-
-    $page->assertSee('SS UI Method');
+    ss_step_save_method_settings($page);
 
     // The UI-configured settings actually persisted.
     $saved = ss_browser_wp_eval(<<<'PHP'

@@ -87,11 +87,13 @@ function ss_step_fill_weight_row(Webpage|AwaitableWebpage $page, int $row, strin
 }
 
 /**
- * Save the open method settings form and wait for the zone screen.
+ * Save the open method settings form and wait for WooCommerce's saved
+ * notice. Saving stays on the settings form (it does not return to the
+ * zone's method list), so the notice is the reliable completion signal.
  */
-function ss_step_save_method_settings(Webpage|AwaitableWebpage $page, string $zoneName): void
+function ss_step_save_method_settings(Webpage|AwaitableWebpage $page): void
 {
-    $page->click('Save changes')->assertSee($zoneName);
+    $page->click('Save changes')->assertSee('Your settings have been saved.');
 }
 
 /**
