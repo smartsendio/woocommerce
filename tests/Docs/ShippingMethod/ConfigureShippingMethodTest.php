@@ -39,9 +39,13 @@
 |
 */
 
+/**
+ * The Denmark zone (zone 1) seeded by bin/setup-local-dev.sh - the zone
+ * this documentation flow is captured against.
+ */
 function docs_zone_url(): string
 {
-    return base_url('/wp-admin/admin.php?page=wc-settings&tab=shipping&zone_id=1');
+    return ss_zone_page_url(1);
 }
 
 it('starts from an empty shipping zone', function () {
@@ -101,17 +105,11 @@ it('adds the Smart Send method to the zone', function () {
         ->assertPathContains('wp-admin')
         ->navigate(docs_zone_url());
 
-    // The radio input itself (#smart_send_shipping) is visually hidden -
-    // WooCommerce's own add-method dialog (wc-backbone-modal-add-shipping-method)
-    // pairs it with a clickable <label for="smart_send_shipping"> as the
-    // actual interactive surface. Clicking the input directly waits forever
-    // for an element that can never become actionable; click the label
-    // instead, same as a real user would.
-    $page->click('Add shipping method')
-        ->click('label[for="smart_send_shipping"]')
-        ->click('Continue')
-        ->assertSee('Smart Send')
-        ->assertSee('Advanced shipping solution for PostNord, GLS and Bring');
+    // The add-method dialog interaction (including the hidden-radio
+    // clickable-label selector detail) lives in the shared step helper -
+    // see tests/Support/ShippingMethodSteps.php.
+    ss_step_add_smart_send_method($page);
+    $page->assertSee('Advanced shipping solution for PostNord, GLS and Bring');
 
     capture_doc_screenshot($page, 'ShippingMethod', 'method-added-to-zone');
 });
@@ -124,7 +122,7 @@ it('shows the empty method settings form', function () {
         ->assertPathContains('wp-admin')
         ->navigate(docs_zone_url());
 
-    $page->click('Edit')->assertSee('Method Title');
+    ss_step_open_method_settings($page);
 
     highlight_element($page, '#woocommerce_smart_send_shipping_method');
 
@@ -139,14 +137,11 @@ it('fills in the method title and carrier method', function () {
         ->assertPathContains('wp-admin')
         ->navigate(docs_zone_url());
 
-    $page->click('Edit')->assertSee('Method Title');
+    ss_step_open_method_settings($page);
 
-    // set_input_value(), not fill() - see its docblock: this screen keeps
-    // resetting the title field back to its default shortly after fill()
-    // sets it, and fill()'s built-in verify-and-retry then polls forever
-    // against a value that never stays put.
-    set_input_value($page, '#woocommerce_smart_send_shipping_title', 'Smart Send Shipping');
-    $page->select('woocommerce_smart_send_shipping_method', 'postnord_collect');
+    // ss_set_input_value() under the hood, not fill() - see the shared
+    // step helpers for why the title field defeats fill()'s retry loop.
+    ss_step_fill_method_settings($page, 'Smart Send Shipping', 'postnord_collect');
 
     highlight_element($page, '#woocommerce_smart_send_shipping_method');
 
@@ -161,13 +156,9 @@ it('saves the configured method', function () {
         ->assertPathContains('wp-admin')
         ->navigate(docs_zone_url());
 
-    $page->click('Edit')->assertSee('Method Title');
-
-    // set_input_value(), not fill() - see its docblock.
-    set_input_value($page, '#woocommerce_smart_send_shipping_title', 'Smart Send Shipping');
-    $page->select('woocommerce_smart_send_shipping_method', 'postnord_collect')
-        ->click('Save changes')
-        ->assertSee('Denmark');
+    ss_step_open_method_settings($page);
+    ss_step_fill_method_settings($page, 'Smart Send Shipping', 'postnord_collect');
+    ss_step_save_method_settings($page);
 
     capture_doc_screenshot($page, 'ShippingMethod', 'settings-saved');
 });
