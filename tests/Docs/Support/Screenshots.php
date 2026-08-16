@@ -84,87 +84,24 @@ function capture_doc_screenshot(Webpage|AwaitableWebpage $page, string $area, st
 }
 
 /**
- * Run a PHP snippet inside the store via WP-CLI, discarding its output.
- *
- * Same wp-cli.phar-in-the-store pattern as
- * tests/Browser/SmartSendFlowsTest.php's ss_browser_wp_eval() - reused here
- * (rather than shared) since the two suites' Pest bootstraps don't load each
- * other's files. Used to reset store state directly instead of through the
- * browser: a UI-driven "click Delete until the page stops mentioning the
- * method" loop is unreliable against a client-side-rendered admin screen,
- * where class names and label text from the JS bundle are present in the
- * page source regardless of whether anything is actually rendered - see the
- * ShippingMethod test's history for the two ways that bit this suite.
- */
-function docs_wp_eval(string $code): void
-{
-    $wpPath = rtrim(getenv('WP_DEV_PATH') ?: dirname(__DIR__, 3) . '/local-dev/wordpress', '/');
-
-    $snippet = tempnam(sys_get_temp_dir(), 'ss-docs-eval-') . '.php';
-    file_put_contents($snippet, "<?php\n" . $code);
-
-    $command = escapeshellarg(PHP_BINARY)
-        . ' -d memory_limit=512M -d error_reporting=0 -d display_errors=0 '
-        . escapeshellarg($wpPath . '/.wp-cli/wp-cli.phar')
-        . ' --path=' . escapeshellarg($wpPath)
-        . ' eval-file ' . escapeshellarg($snippet) . ' 2>/dev/null';
-
-    shell_exec($command);
-    unlink($snippet);
-}
-
-/**
  * Remove every shipping method configured on the given zone, directly
- * through WooCommerce's own API rather than the admin UI - see
- * docs_wp_eval()'s docblock for why.
+ * through WooCommerce's own API (shelling out via the Browser suite's
+ * shared ss_browser_wp_eval()) rather than by scripting the admin UI: a
+ * UI-driven "click Delete until the page stops mentioning the method" loop
+ * is unreliable against a client-side-rendered admin screen, where class
+ * names and label text from the JS bundle are present in the page source
+ * regardless of whether anything is actually rendered - see the
+ * ShippingMethod test's history for the two ways that bit this suite.
  */
 function docs_clear_shipping_zone_methods(int $zoneId): void
 {
-    docs_wp_eval(<<<PHP
+    ss_browser_wp_eval(<<<PHP
         \$zone = new WC_Shipping_Zone({$zoneId});
         foreach (\$zone->get_shipping_methods() as \$method) {
             \$zone->delete_shipping_method(\$method->instance_id);
         }
+        echo json_encode(array('cleared' => true));
         PHP);
-}
-
-/**
- * Set a text input's value directly via JavaScript and dispatch input/change
- * events, bypassing pest-plugin-browser's fill().
- *
- * WooCommerce's shipping zone method screen re-renders the settings form
- * after certain background activity (observed: the "Action Scheduler
- * past-due actions" admin notice visible on this screen implies some
- * periodic re-fetch/re-render is active), which appears to reset the title
- * field back to its default moments after fill() sets it. Playwright's
- * fill() verifies the value stuck and retries if not, so against a field
- * that keeps getting reset it polls forever rather than failing - exactly
- * the hang this sidesteps. Setting the value directly and dispatching the
- * events WooCommerce's own JS listens for gets the same practical result
- * (the field holds the value long enough to screenshot and save) without
- * relying on Playwright's retry loop ever seeing a stable value.
- */
-function set_input_value(Webpage|AwaitableWebpage $page, string $selector, string $value): void
-{
-    $encodedSelector = json_encode($selector);
-    $encodedValue = json_encode($value);
-
-    $page->script(
-        <<<JS
-        (function () {
-            var el = document.querySelector({$encodedSelector});
-            if (! el) {
-                return false;
-            }
-            el.focus();
-            el.value = {$encodedValue};
-            el.dispatchEvent(new Event('input', { bubbles: true }));
-            el.dispatchEvent(new Event('change', { bubbles: true }));
-            el.blur();
-            return true;
-        })();
-        JS
-    );
 }
 
 /**

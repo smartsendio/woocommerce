@@ -37,6 +37,21 @@ pest()->browser()->timeout(15_000);
 
 require __DIR__ . '/Docs/Support/Screenshots.php';
 
+/*
+|--------------------------------------------------------------------------
+| Shared support helpers
+|--------------------------------------------------------------------------
+|
+| Store-management helpers for the Browser suite (WP-CLI seeding, the API
+| mock) and the shipping-method admin UI steps shared between the Browser
+| and Docs suites. Loaded here because Pest loads every test file into one
+| process - a helper function defined in two test files would collide.
+|
+*/
+
+require __DIR__ . '/Browser/Support/SmartSendStore.php';
+require __DIR__ . '/Support/ShippingMethodSteps.php';
+
 uses()->beforeEach(function (): void {
     if (! getenv('CI') && ! getenv('SS_DOCS_HEADLESS')) {
         Playwright::headed();
