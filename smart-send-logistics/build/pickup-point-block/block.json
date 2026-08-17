@@ -1,0 +1,49 @@
+{
+  "$schema": "https://schemas.wp.org/trunk/block.json",
+  "apiVersion": 3,
+  "name": "smart-send/pickup-point-block",
+  "version": "1.0.0",
+  "title": "Pickup Point",
+  "category": "woocommerce",
+  "description": "Lets the customer choose a Smart Send pickup point when an agent-type shipping method is selected.",
+  "parent": [
+    "woocommerce/checkout-shipping-methods-block"
+  ],
+  "attributes": {
+    "title": {
+      "type": "string",
+      "default": "Pickup Point"
+    },
+    "description": {
+      "type": "string",
+      "default": "Select where you would like to pick up your order."
+    },
+    "lock": {
+      "type": "object",
+      "default": {
+        "remove": true,
+        "move": false
+      }
+    }
+  },
+  "supports": {
+    "align": false,
+    "html": false,
+    "multiple": false,
+    "reusable": false,
+    "color": {
+      "text": true,
+      "background": true,
+      "link": false
+    },
+    "typography": {
+      "fontSize": true,
+      "lineHeight": true
+    },
+    "spacing": {
+      "margin": true,
+      "padding": true
+    }
+  },
+  "textdomain": "smart-send-logistics"
+}
