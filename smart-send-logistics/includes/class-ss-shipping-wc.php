@@ -144,6 +144,14 @@ if ( ! class_exists( 'SS_Shipping_WC' ) ) :
 		protected ?SS_Shipping_Frontend $ss_shipping_frontend = null;
 
 		/**
+		 * Checkout Block integration (null when the running WooCommerce
+		 * predates the Blocks integration registry - see init()).
+		 *
+		 * @var SS_Shipping_Block_Checkout|null
+		 */
+		protected ?SS_Shipping_Block_Checkout $block_checkout = null;
+
+		/**
 		 * Pickup point display formatter.
 		 *
 		 * @var SS_Shipping_Pickup_Point_Formatter|null
@@ -190,6 +198,7 @@ if ( ! class_exists( 'SS_Shipping_WC' ) ) :
 			// FeaturesUtil exists since WC 6.5; the plugin's WC floor is 4.7.
 			if ( class_exists( \Automattic\WooCommerce\Utilities\FeaturesUtil::class ) ) {
 				\Automattic\WooCommerce\Utilities\FeaturesUtil::declare_compatibility( 'custom_order_tables', SS_SHIPPING_PLUGIN_FILE, true );
+				\Automattic\WooCommerce\Utilities\FeaturesUtil::declare_compatibility( 'cart_checkout_blocks', SS_SHIPPING_PLUGIN_FILE, true );
 			}
 		}
 
@@ -314,6 +323,22 @@ if ( ! class_exists( 'SS_Shipping_WC' ) ) :
 			require_once SS_SHIPPING_PLUGIN_DIR_PATH . '/includes/shipping-method/class-ss-shipping-wc-method.php';
 		}
 
+		/**
+		 * Load the Checkout Block integration class.
+		 *
+		 * SS_Shipping_Block_Checkout implements the WC Blocks
+		 * IntegrationInterface, so like SS_Shipping_WC_Method its file can
+		 * only be loaded once WooCommerce is available - and only on
+		 * WooCommerce versions that bundle the interface at all. Called from
+		 * init() behind the bootstrap WooCommerce gate.
+		 */
+		public function include_block_checkout_class() {
+			// IntegrationInterface ships with the WC Blocks bundled from WC 5.0; the plugin's WC floor is 4.7.
+			if ( interface_exists( \Automattic\WooCommerce\Blocks\Integrations\IntegrationInterface::class ) ) {
+				require_once SS_SHIPPING_PLUGIN_DIR_PATH . '/public/class-ss-shipping-block-checkout.php';
+			}
+		}
+
         protected function init_hooks()
         {
             add_action('init', array($this, 'init'), 0);
@@ -335,6 +360,7 @@ if ( ! class_exists( 'SS_Shipping_WC' ) ) :
 			// older WordPress. Everything downstream of it assumes WooCommerce is present.
 			if ( defined( 'WOOCOMMERCE_VERSION' ) && version_compare( WOOCOMMERCE_VERSION, '2.6', '>=' ) ) {
 				$this->include_shipping_method_class();
+				$this->include_block_checkout_class();
 
 				$this->pickup_point_formatter = new SS_Shipping_Pickup_Point_Formatter( $this->settings );
 				$this->pickup_point_lookup    = new SS_Shipping_Pickup_Point_Lookup();
@@ -361,6 +387,10 @@ if ( ! class_exists( 'SS_Shipping_WC' ) ) :
 				$this->rate_sorter            = new SS_Shipping_Rate_Sorter( $this->settings );
 				$this->bulk_actions           = new SS_Shipping_Order_Bulk_Actions( $this->method_resolver, $this->fulfillment_service, $this->admin_notices, $this->settings );
 				$this->subscriptions_compat   = new SS_Shipping_Subscriptions_Compat();
+
+				if ( class_exists( 'SS_Shipping_Block_Checkout' ) ) {
+					$this->block_checkout = new SS_Shipping_Block_Checkout();
+				}
 
 				$this->register_component_hooks();
 			} else {
@@ -391,6 +421,12 @@ if ( ! class_exists( 'SS_Shipping_WC' ) ) :
 			$this->rate_sorter->register_hooks();
 			$this->bulk_actions->register_hooks();
 			$this->subscriptions_compat->register_hooks();
+
+			// Only constructed when the running WooCommerce bundles the
+			// Blocks integration registry (see include_block_checkout_class()).
+			if ( null !== $this->block_checkout ) {
+				$this->block_checkout->register_hooks();
+			}
 		}
 
         /**
@@ -615,6 +651,16 @@ if ( ! class_exists( 'SS_Shipping_WC' ) ) :
 		 */
 		public function pickup_point_lookup(): SS_Shipping_Pickup_Point_Lookup {
 			return $this->pickup_point_lookup;
+		}
+
+		/**
+		 * Get the Checkout Block integration. Null on WooCommerce versions
+		 * that predate the Blocks integration registry (WC floor is 4.7).
+		 *
+		 * @return SS_Shipping_Block_Checkout|null
+		 */
+		public function block_checkout(): ?SS_Shipping_Block_Checkout {
+			return $this->block_checkout;
 		}
     }
 
