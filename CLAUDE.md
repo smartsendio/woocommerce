@@ -10,7 +10,11 @@ The actual plugin lives entirely in `smart-send-logistics/` — that folder is w
 
 ## Development environment
 
-There is no build step. Development is done against a local WordPress + WooCommerce install created by `bin/setup-local-dev.sh` (default location `./local-dev/wordpress`, plugin symlinked in and activated). The README.md has further details on the development environment.
+There is no PHP build step. Development is done against a local WordPress + WooCommerce install created by `bin/setup-local-dev.sh` (default location `./local-dev/wordpress`, plugin symlinked in and activated). The README.md has further details on the development environment.
+
+### JS build
+
+The checkout-block scripts are the repo's only compiled assets. Source lives in `src/` at the repo root (dev tooling, like `composer.json`); `npm run build` (`@wordpress/scripts`, Node version pinned in `.nvmrc`, config in `webpack.config.js`) compiles it into `smart-send-logistics/build/`, with `@woocommerce/dependency-extraction-webpack-plugin` turning `@wordpress/*`/`@woocommerce/*` imports into externals listed in generated `*.asset.php` files. The `build/` output is **committed** — contributors without Node get a working plugin and `scripts/svn-deploy.sh` stays copy-only — and `.github/workflows/js-build.yml` rebuilds on PRs touching `src/`/`package*.json`/`webpack.config.js` and fails if the committed output drifts from `src/`. After changing anything under `src/`, run `npm run build` and commit the result. Generated `build/` files are excluded from phpcs.
 
 ## Testing
 
@@ -80,7 +84,7 @@ Single-entry WordPress plugin. `smart-send-logistics/smart-send-logistics.php` i
    - `SS_Shipping_WC_Product` — per-product shipping meta.
    - `SS_Plugins_Screen_Updates` — upgrade notices on the plugins screen.
 
-6. **Frontend** in `public/`: `SS_Shipping_Frontend` — checkout-side pick-up point selection display (rendering + checkout persistence; lookup and formatting are delegated to the delivery domain).
+6. **Frontend** in `public/`: `SS_Shipping_Frontend` — checkout-side pick-up point selection display (rendering + checkout persistence; lookup and formatting are delegated to the delivery domain). `SS_Shipping_Block_Checkout` — the WC Blocks `IntegrationInterface` implementation for the Checkout Block surface (issue #74; PR 1 skeleton — registers the built `build/` scripts, see "JS build"). Like `SS_Shipping_WC_Method` it is lazily loaded (`include_block_checkout_class()`, guarded on the interface existing) because it implements a WooCommerce-shipped interface; the accessor `block_checkout()` is nullable for pre-Blocks WooCommerce.
 
 7. **PSR-style API client** in `includes/lib/Smartsend/` — namespace `Smartsend`: `Api` (a plain resource registry — `account()`, `bookings()`, `pickupPoints()` — over a composed `Client`), `Client` (the HTTP transport via `wp_remote_*` against `https://app.smartsend.io/api/v1/`; stateless between requests), the immutable `Response` value object every `Client` http call returns (success flag, data, links, `Error`, `errorString()`, status code, timing — no response state ever lives on the client or `Api`, so interleaved calls cannot corrupt each other's pending result, #141), plus `Models/` value objects (the v1 wire `Shipment` and its sub-models, and `Error`). This layer is deliberately WordPress-light; keep API concerns here rather than in the `SS_Shipping_*` classes, and never reference an `SS_Shipping_*` type from it. Construct clients only through `SS_Shipping_Api_Factory`.
 
