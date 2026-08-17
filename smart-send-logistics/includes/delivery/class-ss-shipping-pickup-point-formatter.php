@@ -86,7 +86,10 @@ if ( ! class_exists( 'SS_Shipping_Pickup_Point_Formatter' ) ) :
 		 *
 		 * @return string
 		 */
-		public function format( $pickup_point, $format_id = 0 ) {
+		// The parameter stays docblock-typed only: PHP 7.4 has no union types
+		// and both the value object and the plain API agent object are
+		// legitimate callers (normalize() accepts either).
+		public function format( $pickup_point, $format_id = 0 ): string {
 			$pickup_point = $this->normalize( $pickup_point );
 
 			if ( 0 == $format_id ) { // phpcs:ignore Universal.Operators.StrictComparisons.LooseEqual -- pre-existing loose comparison; tightening is a behaviour change out of scope for the #139 move.
@@ -165,7 +168,10 @@ if ( ! class_exists( 'SS_Shipping_Pickup_Point_Formatter' ) ) :
 		 *
 		 * @return string
 		 */
-		public function dropdown_label( $pickup_point ) {
+		// The parameter stays docblock-typed only: PHP 7.4 has no union types
+		// and both the value object and the plain API agent object are
+		// legitimate callers (format() normalizes either).
+		public function dropdown_label( $pickup_point ): string {
 			$formatted_address = $this->format( $pickup_point );
 
 			/*

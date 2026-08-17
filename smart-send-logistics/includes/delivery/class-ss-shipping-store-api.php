@@ -327,14 +327,14 @@ if ( ! class_exists( 'SS_Shipping_Store_Api' ) ) :
 			}
 
 			$details = new SS_Shipping_Delivery_Details();
-			$details->set_pickup_point( SS_Shipping_Pickup_Point::from_object( $pickup_point ) );
+			$details->set_pickup_point( $pickup_point );
 			$this->order_meta->write( $order, $details );
 
 			SS_Shipping_Logger::info(
 				'Pickup point selected at checkout',
 				array(
 					'order_id' => $order->get_id(),
-					'agent_no' => $pickup_point->agent_no,
+					'agent_no' => $pickup_point->get_agent_no(),
 				)
 			);
 		}
@@ -359,17 +359,17 @@ if ( ! class_exists( 'SS_Shipping_Store_Api' ) ) :
 
 		/**
 		 * Re-resolve a submitted agent number into the server-side pickup
-		 * point object: the session-cached lookup results first (cheap,
-		 * already validated - the same cache the classic checkout resolves
+		 * point: the session-cached lookup results first (cheap, already
+		 * validated - the same cache the classic checkout resolves
 		 * against), the findByAgentNo API call as fallback.
 		 *
 		 * @param string   $carrier  Unique carrier code (e.g. 'postnord').
 		 * @param WC_Order $order    The order being placed.
 		 * @param string   $agent_no The submitted agent number.
 		 *
-		 * @return object|null The pickup point object, or null when the agent number cannot be resolved.
+		 * @return SS_Shipping_Pickup_Point|null The pickup point, or null when the agent number cannot be resolved.
 		 */
-		protected function resolve_pickup_point( $carrier, $order, $agent_no ) {
+		protected function resolve_pickup_point( $carrier, $order, $agent_no ): ?SS_Shipping_Pickup_Point {
 			$cached = $this->pickup_point_lookup->find_cached_by_agent_no( $agent_no );
 
 			if ( null !== $cached ) {
@@ -383,7 +383,7 @@ if ( ! class_exists( 'SS_Shipping_Store_Api' ) ) :
 			$response = SS_SHIPPING_WC()->get_api_handle()->pickupPoints()->findByAgentNo( $carrier, $country, $agent_no );
 
 			if ( $response->isSuccessful() && is_object( $response->data() ) ) {
-				return $response->data();
+				return SS_Shipping_Pickup_Point::from_object( $response->data() );
 			}
 
 			SS_Shipping_Logger::warning(
