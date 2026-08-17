@@ -437,6 +437,39 @@ PHP);
 }
 
 /**
+ * Create a page carrying the Checkout block, alongside the classic
+ * (shortcode) checkout page ss_browser_seed_store() sets up - both
+ * checkouts coexist against the same store. The stock minimal markup (the
+ * same WC_Install writes for a fresh store's checkout page) is enough: the
+ * Checkout block force-renders every registered inner block - including the
+ * Smart Send pickup point block - when it is missing from the saved
+ * content. WooCommerce's checkout page setting stays on the classic page,
+ * so the post-purchase redirect exercises the same thank-you rendering as
+ * the classic journey.
+ */
+function ss_browser_create_block_checkout_page(): int
+{
+    $result = ss_browser_wp_eval(<<<'PHP'
+$page_id = wp_insert_post(array(
+    'post_title'   => 'SS Block Checkout',
+    'post_name'    => 'ss-block-checkout',
+    'post_content' => '<!-- wp:woocommerce/checkout --><div class="wp-block-woocommerce-checkout"></div><!-- /wp:woocommerce/checkout -->',
+    'post_status'  => 'publish',
+    'post_type'    => 'page',
+));
+echo json_encode(array('page_id' => $page_id));
+PHP);
+
+    return (int) $result['page_id'];
+}
+
+function ss_browser_delete_block_checkout_page(int $page_id): void
+{
+    $encoded = var_export($page_id, true);
+    ss_browser_wp_eval("wp_delete_post({$encoded}, true); echo json_encode(array('ok' => true));");
+}
+
+/**
  * Undo ss_browser_seed_store(): delete the fixture orders (both the seeded
  * ones and any placed by a checkout test run), the checkout page and the
  * product, restore the settings/COD/zone state and deactivate the mock.
