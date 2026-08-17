@@ -64,6 +64,22 @@ function block_cart_setup(string $method_code = 'postnord_agent', array $address
     };
     add_filter('woocommerce_package_rates', $rate_filter);
 
+    // The CI store is provisioned with --skip-seed, so NO shipping zone
+    // method exists there - and WC_Cart::show_shipping() short-circuits
+    // (calculate_shipping() then never builds any package) whenever
+    // wc_get_shipping_method_count() is zero. Create a throwaway zone with
+    // an enabled method so shipping is calculated at all; the Smart Send
+    // rate itself still comes from the woocommerce_package_rates filter.
+    $zone = new WC_Shipping_Zone();
+    $zone->set_zone_name('Block Store API test zone');
+    $zone->add_location($address['country'] ?: 'DK', 'country');
+    $zone->save();
+    $zone->add_shipping_method('flat_rate');
+
+    remember_cleanup_callback(function () use ($zone): void {
+        $zone->delete(true);
+    });
+
     remember_cleanup_callback(function () use ($rate_filter): void {
         remove_filter('woocommerce_package_rates', $rate_filter);
         WC()->cart->empty_cart();
@@ -80,8 +96,21 @@ function block_cart_setup(string $method_code = 'postnord_agent', array $address
 
     WC()->cart->calculate_shipping();
 
-    // Choose the Smart Send rate AFTER calculating: calculating a changed
-    // package resets the session choice to the default rate.
+    // Fail loudly when the rate did not make it into the calculated
+    // packages - otherwise a setup regression reads as a silently wrong
+    // rate selection in the actual tests.
+    $packages      = WC()->shipping()->get_packages();
+    $package_rates = array_keys($packages[0]['rates'] ?? []);
+    if (!in_array('smart_send_shipping:1', $package_rates, true)) {
+        throw new RuntimeException(
+            'block_cart_setup: the Smart Send rate is missing from the calculated package rates ('
+            . (empty($packages) ? 'no packages were calculated' : implode(', ', $package_rates)) . ')'
+        );
+    }
+
+    // Choose the Smart Send rate AFTER calculating, as the LAST setup step:
+    // calculating a changed package resets the session choice to the
+    // default rate.
     WC()->session->set('chosen_shipping_methods', ['smart_send_shipping:1']);
 }
 
