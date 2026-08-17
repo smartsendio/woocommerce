@@ -86,7 +86,10 @@ if ( ! class_exists( 'SS_Shipping_Pickup_Point_Formatter' ) ) :
 		 *
 		 * @return string
 		 */
-		public function format( $pickup_point, $format_id = 0 ) {
+		// The parameter stays docblock-typed only: PHP 7.4 has no union types
+		// and both the value object and the plain API agent object are
+		// legitimate callers (normalize() accepts either).
+		public function format( $pickup_point, $format_id = 0 ): string {
 			$pickup_point = $this->normalize( $pickup_point );
 
 			if ( 0 == $format_id ) { // phpcs:ignore Universal.Operators.StrictComparisons.LooseEqual -- pre-existing loose comparison; tightening is a behaviour change out of scope for the #139 move.
@@ -153,6 +156,36 @@ if ( ! class_exists( 'SS_Shipping_Pickup_Point_Formatter' ) ) :
 			}
 
 			return $formatted_address;
+		}
+
+		/**
+		 * The checkout drop-down label of a pickup point: the configured
+		 * "Dropdown display format" with the smart_send_pickup_point_option_label
+		 * filter applied - the single pipeline shared by the classic checkout
+		 * drop-down and the Checkout Block cart extension (#74).
+		 *
+		 * @param SS_Shipping_Pickup_Point|object $pickup_point The pickup point (value object or plain agent object).
+		 *
+		 * @return string
+		 */
+		// The parameter stays docblock-typed only: PHP 7.4 has no union types
+		// and both the value object and the plain API agent object are
+		// legitimate callers (format() normalizes either).
+		public function dropdown_label( $pickup_point ): string {
+			$formatted_address = $this->format( $pickup_point );
+
+			/*
+			 * Filter the label shown for a pickup point in the checkout
+			 * drop-down (classic checkout and Checkout Block alike).
+			 *
+			 * @since 9.0.0
+			 *
+			 * @param string $formatted_address The label formatted per the "Dropdown display format" setting.
+			 * @param object $pickup_point      The pickup point (agent_no, company, address_line1, postal_code, city, country, distance, ...).
+			 *
+			 * @return string The option label to render.
+			 */
+			return apply_filters( 'smart_send_pickup_point_option_label', $formatted_address, $pickup_point );
 		}
 
 		/**

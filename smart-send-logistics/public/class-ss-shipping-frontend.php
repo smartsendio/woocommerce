@@ -139,20 +139,9 @@ if ( ! class_exists( 'SS_Shipping_Frontend' ) ) :
 						}
 
 						foreach ( $ss_pickup_points as $key => $pickup_point ) {
-							$formatted_address = $this->pickup_point_formatter->format( $pickup_point );
-
-							/*
-							 * Filter the label shown for a pickup point in the
-							 * checkout drop-down.
-							 *
-							 * @since 9.0.0
-							 *
-							 * @param string $formatted_address The label formatted per the "Dropdown display format" setting.
-							 * @param object $pickup_point      The pickup point (agent_no, company, address_line1, postal_code, city, country, distance, ...).
-							 *
-							 * @return string The option label to render.
-							 */
-							$pickup_point_options[ $pickup_point->agent_no ] = apply_filters( 'smart_send_pickup_point_option_label', $formatted_address, $pickup_point );
+							// The label pipeline (format + the smart_send_pickup_point_option_label
+							// filter) is shared with the Checkout Block cart extension (#74).
+							$pickup_point_options[ $pickup_point->agent_no ] = $this->pickup_point_formatter->dropdown_label( $pickup_point );
 						}
 
 						/*
@@ -253,35 +242,39 @@ if ( ! class_exists( 'SS_Shipping_Frontend' ) ) :
 
 			$ss_shipping_store_pickup = wc_clean( $_POST['ss_shipping_store_pickup'] );
 			// phpcs:enable WordPress.Security.NonceVerification.Missing, WordPress.Security.ValidatedSanitizedInput
-			$retrieved_pickup_points = $this->pickup_point_lookup->get_session_pickup_points();
 
-			$selected_pickup_point_no = 0;
-			if ( $retrieved_pickup_points ) {
-				foreach ( $retrieved_pickup_points as $pickup_point_key => $pickup_point_value ) {
-					// If pickup point selected for the order, save it
-					if ( $pickup_point_value->agent_no == $ss_shipping_store_pickup ) { // phpcs:ignore Universal.Operators.StrictComparisons.LooseEqual -- pre-existing loose comparison; tightening is a behaviour change out of scope for the #43 move.
+			// If pickup point selected for the order, save it. The
+			// session-cache resolution is shared with the Checkout Block
+			// persistence (#74).
+			$selected_pickup_point = $this->pickup_point_lookup->find_cached_by_agent_no( $ss_shipping_store_pickup );
 
-						$selected_pickup_point_no = $pickup_point_value->agent_no;
-						$selected_pickup_point    = $pickup_point_value;
-						break;
-					}
-				}
+			if ( null === $selected_pickup_point || ! $selected_pickup_point->get_agent_no() ) {
+				// Recovered failure: the shopper's choice is silently
+				// dropped from the order (the classic checkout has no
+				// fallback resolution), so leave an always-logged trace.
+				SS_Shipping_Logger::warning(
+					'Posted pickup point could not be resolved from the session cache - selection not saved',
+					array(
+						'order_id' => $order_id,
+						'agent_no' => $ss_shipping_store_pickup,
+					)
+				);
+
+				return;
 			}
 
 			// Saving posted pickup point information.
-			if ( ! empty( $selected_pickup_point_no ) ) {
-				$details = new SS_Shipping_Delivery_Details();
-				$details->set_pickup_point( SS_Shipping_Pickup_Point::from_object( $selected_pickup_point ) );
-				$this->order_meta->write( $order_id, $details );
+			$details = new SS_Shipping_Delivery_Details();
+			$details->set_pickup_point( $selected_pickup_point );
+			$this->order_meta->write( $order_id, $details );
 
-				SS_Shipping_Logger::info(
-					'Pickup point selected at checkout',
-					array(
-						'order_id' => $order_id,
-						'agent_no' => $selected_pickup_point_no,
-					)
-				);
-			}
+			SS_Shipping_Logger::info(
+				'Pickup point selected at checkout',
+				array(
+					'order_id' => $order_id,
+					'agent_no' => $selected_pickup_point->get_agent_no(),
+				)
+			);
 		}
 
 		/**
