@@ -89,7 +89,7 @@ const Block = ( {
 
 	// Keep the checkout POST payload in sync with the session-stored
 	// selection, covering selections restored from a previous visit (the
-	// session already has an agent_no the shopper never re-picks).
+	// session already has an agent_no the customer never re-picks).
 	useEffect( () => {
 		if ( selectedRateIsAgent ) {
 			setExtensionData( EXTENSION_NAMESPACE, 'agent_no', agentNo );
@@ -116,7 +116,7 @@ const Block = ( {
 	] );
 
 	// Block Place Order while an agent rate has no pickup point selected.
-	// Hidden until the shopper submits (the checkout then reveals all
+	// Hidden until the customer submits (the checkout then reveals all
 	// validation errors); cleared on selection and on unmount (rate change).
 	useEffect( () => {
 		if ( selectedRateIsAgent && ! agentNo ) {

@@ -5,7 +5,7 @@
 	"version": "1.0.0",
 	"title": "Pickup Point",
 	"category": "woocommerce",
-	"description": "Lets the customer choose a Smart Send pickup point when an agent-type shipping method is selected.",
+	"description": "Lets the customer choose a pickup point for their delivery when a pickup point shipping method is selected.",
 	"parent": [ "woocommerce/checkout-shipping-methods-block" ],
 	"attributes": {
 		"title": {

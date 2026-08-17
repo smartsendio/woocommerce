@@ -5,7 +5,7 @@
  * the WooCommerce checkout inner-block pattern) and styles the block via
  * the block.json supports (color/typography/spacing panels). The selector
  * itself is a disabled preview: which pickup points exist depends on the
- * shopper's address, so nothing real can render in the editor.
+ * customer's address, so nothing real can render in the editor.
  */
 import { useBlockProps, RichText } from '@wordpress/block-editor';
 import { SelectControl, Disabled } from '@wordpress/components';
@@ -58,7 +58,7 @@ export const Edit = ( { attributes, setAttributes } ) => {
 					onChange={ () => {} }
 					__nextHasNoMarginBottom={ true }
 					help={ __(
-						'Shoppers see the pickup points closest to their address when a Smart Send agent method is selected.',
+						'Customers see the pickup points closest to their address when a pickup point shipping method is selected.',
 						'smart-send-logistics'
 					) }
 				/>
