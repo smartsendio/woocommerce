@@ -1,0 +1,1 @@
+(()=>{"use strict";const i=window.wp.i18n;window.smartSendPickupPointBlock=window.smartSendPickupPointBlock||{},window.smartSendPickupPointBlock.editorPlaceholder=()=>(0,i.__)("Smart Send pick-up point selection","smart-send-logistics")})();

@@ -102,7 +102,7 @@ if ( ! class_exists( 'SS_Shipping_Order_Meta_Box' ) ) :
 		 */
 		public function add_smart_send_order_meta_box() {
 			// @see https://github.com/woocommerce/woocommerce/wiki/High-Performance-Order-Storage-Upgrade-Recipe-Book#audit-for-order-administration-screen-functions
-			// The HPOS CustomOrdersTableController exists since WC 6.4; the plugin's WC floor is 4.7.
+			// The HPOS CustomOrdersTableController exists since WC 6.4; the plugin's WC floor is 5.0.
 			$screen = class_exists( '\Automattic\WooCommerce\Internal\DataStores\Orders\CustomOrdersTableController' ) && wc_get_container()->get( CustomOrdersTableController::class )->custom_orders_table_usage_is_enabled()
 				? wc_get_page_screen_id( 'shop-order' )
 				: 'shop_order';

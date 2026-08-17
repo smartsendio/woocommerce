@@ -12,7 +12,7 @@ Stable tag: 8.2.0
 License: GNU General Public License v3.0
 License URI: http://www.gnu.org/licenses/gpl-3.0.html
 Requires Plugins: woocommerce
-WC requires at least: 3.0.0
+WC requires at least: 5.0.0
 WC tested up to: 11.0
 Requires PHP: 7.4
 
@@ -270,6 +270,7 @@ No - this is by design. Neither deactivating nor uninstalling the plugin deletes
 == Changelog ==
 
 = 9.0.0 =
+* Breaking change: the minimum required WooCommerce version is raised from 4.7 to 5.0 (sites on older WooCommerce should stay on the 8.x series)
 * Breaking change: the weight table now defines which cart weights the Smart Send shipping method is available for at all. Free shipping (the flat-rate threshold) only zeroes the price of an otherwise-available rate and can no longer make the method available for a cart weight outside the configured weight table - see the "9.0.0" entry under Upgrade Notice
 * Breaking change: the filters smart_send_shipping_label_args, smart_send_order_pickup_point, smart_send_order_parcels, smart_send_parcel_weight and smart_send_payload_parcels are removed, replaced by the single typed smart_send_delivery_details filter - see the "9.0.0" entry under Upgrade Notice
 * Breaking change: the smart_send_shipping_label_created action no longer mutates the API response with a ->woocommerce presentation array; listeners receive a typed SS_Shipping_Label_Entry third argument instead - see the "9.0.0" entry under Upgrade Notice
