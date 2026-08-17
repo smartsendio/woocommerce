@@ -17,7 +17,7 @@ it('constructs the block checkout integration component', function () {
     expect(SS_SHIPPING_WC()->block_checkout())
         ->toBeInstanceOf(SS_Shipping_Block_Checkout::class)
         ->toBeInstanceOf(IntegrationInterface::class)
-        ->and(SS_SHIPPING_WC()->block_checkout()->get_name())->toBe('smart-send-logistics');
+        ->and(SS_SHIPPING_WC()->block_checkout()->get_name())->toBe('smart-send');
 });
 
 it('registers with the Checkout block integration registry when the registration action fires', function () {
@@ -27,8 +27,8 @@ it('registers with the Checkout block integration registry when the registration
     // integration registry; the component's hook must be listening.
     do_action('woocommerce_blocks_checkout_block_registration', $registry);
 
-    expect($registry->is_registered('smart-send-logistics'))->toBeTrue()
-        ->and($registry->get_registered('smart-send-logistics'))
+    expect($registry->is_registered('smart-send'))->toBeTrue()
+        ->and($registry->get_registered('smart-send'))
         ->toBe(SS_SHIPPING_WC()->block_checkout());
 });
 

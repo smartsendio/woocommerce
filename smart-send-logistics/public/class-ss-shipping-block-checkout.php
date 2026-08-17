@@ -31,8 +31,11 @@ if ( ! class_exists( 'SS_Shipping_Block_Checkout' ) ) :
 
 		/**
 		 * The integration name handed to the Blocks integration registry.
+		 * Also becomes the Store API extension namespace (PRs 2-3 of #74) -
+		 * matches the smart_send_* hook-prefix vocabulary, deliberately not
+		 * the plugin slug.
 		 */
-		const INTEGRATION_NAME = 'smart-send-logistics';
+		const INTEGRATION_NAME = 'smart-send';
 
 		/**
 		 * Script handle for the checkout-frontend bundle.
