@@ -145,6 +145,32 @@ if ( ! class_exists( 'SS_Shipping_Pickup_Point_Lookup' ) ) :
 		}
 
 		/**
+		 * Find one session-cached pickup point by its agent number - the
+		 * resolution both checkout paths run on submission: the shopper can
+		 * only have picked from the cached lookup results, so a match here
+		 * is already server-validated.
+		 *
+		 * @param string $agent_no The submitted agent number.
+		 *
+		 * @return object|null The cached pickup point, or null when none matches.
+		 */
+		public function find_cached_by_agent_no( $agent_no ) {
+			$cached_pickup_points = $this->get_session_pickup_points();
+
+			if ( ! is_array( $cached_pickup_points ) ) {
+				return null;
+			}
+
+			foreach ( $cached_pickup_points as $pickup_point ) {
+				if ( isset( $pickup_point->agent_no ) && $pickup_point->agent_no == $agent_no ) { // phpcs:ignore Universal.Operators.StrictComparisons.LooseEqual -- pre-existing loose comparison, moved verbatim from SS_Shipping_Frontend::process_ss_pickup_points().
+					return $pickup_point;
+				}
+			}
+
+			return null;
+		}
+
+		/**
 		 * Log why a pickup point lookup failed and surface the reason in
 		 * WooCommerce's shipping debug mode.
 		 *

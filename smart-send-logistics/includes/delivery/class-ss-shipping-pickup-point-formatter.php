@@ -156,6 +156,33 @@ if ( ! class_exists( 'SS_Shipping_Pickup_Point_Formatter' ) ) :
 		}
 
 		/**
+		 * The checkout drop-down label of a pickup point: the configured
+		 * "Dropdown display format" with the smart_send_pickup_point_option_label
+		 * filter applied - the single pipeline shared by the classic checkout
+		 * drop-down and the Checkout Block cart extension (#74).
+		 *
+		 * @param SS_Shipping_Pickup_Point|object $pickup_point The pickup point (value object or plain agent object).
+		 *
+		 * @return string
+		 */
+		public function dropdown_label( $pickup_point ) {
+			$formatted_address = $this->format( $pickup_point );
+
+			/*
+			 * Filter the label shown for a pickup point in the checkout
+			 * drop-down (classic checkout and Checkout Block alike).
+			 *
+			 * @since 9.0.0
+			 *
+			 * @param string $formatted_address The label formatted per the "Dropdown display format" setting.
+			 * @param object $pickup_point      The pickup point (agent_no, company, address_line1, postal_code, city, country, distance, ...).
+			 *
+			 * @return string The option label to render.
+			 */
+			return apply_filters( 'smart_send_pickup_point_option_label', $formatted_address, $pickup_point );
+		}
+
+		/**
 		 * The order meta box's address block markup for the selected pickup
 		 * point.
 		 *
