@@ -130,6 +130,13 @@ if ( ! class_exists( 'SS_Shipping_Pickup_Point_Lookup' ) ) :
 			} else {
 				$this->report_lookup_failure( $carrier, $response->error() );
 
+				// Cache the empty result (replacing any stale points from a
+				// previous address): checkout submission reads this to
+				// distinguish "no pickup points were available - nothing to
+				// select" (allowed without a selection) from "points were
+				// offered but none chosen" (rejected).
+				WC()->session->set( self::SESSION_KEY, array() );
+
 				return array();
 			}
 		}
