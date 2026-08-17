@@ -4,9 +4,11 @@
  *
  * The entry-point controller for the block-checkout surface: registers the
  * scripts built into build/ (see the repo-root src/ and webpack.config.js)
- * with the WooCommerce Blocks integration registry. In this skeleton (PR 1
- * of issue #74) the scripts are near-empty placeholders; PR 2 adds the
- * Store API extensions and PR 3 the pickup point block UI.
+ * with the WooCommerce Blocks integration registry, and opts the pickup
+ * point block into WooCommerce's data-attribute rendering so the block's
+ * saved attributes (editable title/description) reach the frontend
+ * component. The Store API extensions feeding the block live in
+ * SS_Shipping_Store_Api (#74).
  *
  * This file references Automattic\WooCommerce\Blocks classes at class
  * definition time, so the composition root loads it lazily (like
@@ -48,6 +50,11 @@ if ( ! class_exists( 'SS_Shipping_Block_Checkout' ) ) :
 		const HANDLE_EDITOR = 'smart-send-pickup-point-block-editor';
 
 		/**
+		 * The pickup point block's name (src/pickup-point-block/block.json).
+		 */
+		const BLOCK_NAME = 'smart-send/pickup-point-block';
+
+		/**
 		 * Register the WordPress hooks this component owns. Called once by
 		 * the composition root (hook registration convention: constructors
 		 * have zero side effects).
@@ -56,6 +63,26 @@ if ( ! class_exists( 'SS_Shipping_Block_Checkout' ) ) :
 		 */
 		public function register_hooks(): void {
 			add_action( 'woocommerce_blocks_checkout_block_registration', array( $this, 'register_integration' ) );
+			add_filter( '__experimental_woocommerce_blocks_add_data_attributes_to_block', array( $this, 'add_block_to_data_attribute_allowlist' ) );
+		}
+
+		/**
+		 * Opt the pickup point block into WooCommerce's render_block
+		 * data-attribute pass (BlockTypesController::add_data_attributes()):
+		 * the saved placeholder div gains data-block-name plus one data-*
+		 * attribute per saved block attribute, which is how the frontend
+		 * maps the markup to the React component and how the merchant's
+		 * edited title/description reach it as props. Only woocommerce/*
+		 * blocks get this by default; third-party blocks register here.
+		 *
+		 * @param array $blocks Block names opted into data attributes.
+		 * @return array
+		 */
+		public function add_block_to_data_attribute_allowlist( $blocks ) {
+			$blocks   = is_array( $blocks ) ? $blocks : array();
+			$blocks[] = self::BLOCK_NAME;
+
+			return $blocks;
 		}
 
 		/**
@@ -112,8 +139,10 @@ if ( ! class_exists( 'SS_Shipping_Block_Checkout' ) ) :
 
 		/**
 		 * Data made available to the scripts via the wc.wcSettings data
-		 * registry (key: the integration name). Minimal for the skeleton;
-		 * PR 3 adds the display settings the block needs.
+		 * registry (key: the integration name). Deliberately minimal: the
+		 * cart extension data (SS_Shipping_Store_Api::cart_extension_data())
+		 * is the single data channel the block consumes - display settings
+		 * ride it so they update live like everything else.
 		 *
 		 * @return array
 		 */

@@ -98,6 +98,33 @@ it('initialize() registers the built scripts with their asset metadata', functio
     }
 });
 
+it('opts the pickup point block into the Blocks data-attribute pass', function () {
+    // WooCommerce's render_block filter only adds data-block-name (and the
+    // saved attributes as data-* attributes) to woocommerce/* blocks by
+    // default; the frontend cannot map our saved placeholder div to the
+    // React component without this opt-in.
+    $allowlist = apply_filters('__experimental_woocommerce_blocks_add_data_attributes_to_block', []);
+
+    expect($allowlist)->toContain(SS_Shipping_Block_Checkout::BLOCK_NAME)
+        ->and(SS_Shipping_Block_Checkout::BLOCK_NAME)->toBe('smart-send/pickup-point-block');
+});
+
+it('ships the block.json metadata in the built output', function () {
+    $block_json = SS_SHIPPING_PLUGIN_DIR_PATH . '/build/pickup-point-block/block.json';
+
+    expect(file_exists($block_json))->toBeTrue("Missing built block.json: {$block_json}");
+
+    $metadata = json_decode((string) file_get_contents($block_json), true);
+
+    expect($metadata['name'])->toBe(SS_Shipping_Block_Checkout::BLOCK_NAME)
+        ->and($metadata['parent'])->toBe(['woocommerce/checkout-shipping-methods-block'])
+        // The lock default is load-bearing: the checkout registry derives
+        // the frontend force-render flag from it, and the editor's
+        // forced-layout pass auto-inserts (and refuses to remove) blocks
+        // carrying it.
+        ->and($metadata['attributes']['lock']['default']['remove'])->toBeTrue();
+});
+
 it('exposes minimal script data for the client', function () {
     expect(SS_SHIPPING_WC()->block_checkout()->get_script_data())
         ->toBe(['pluginVersion' => SS_SHIPPING_VERSION]);
