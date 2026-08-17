@@ -248,20 +248,33 @@ if ( ! class_exists( 'SS_Shipping_Frontend' ) ) :
 			// persistence (#74).
 			$selected_pickup_point = $this->pickup_point_lookup->find_cached_by_agent_no( $ss_shipping_store_pickup );
 
-			// Saving posted pickup point information.
-			if ( null !== $selected_pickup_point && ! empty( $selected_pickup_point->agent_no ) ) {
-				$details = new SS_Shipping_Delivery_Details();
-				$details->set_pickup_point( SS_Shipping_Pickup_Point::from_object( $selected_pickup_point ) );
-				$this->order_meta->write( $order_id, $details );
-
-				SS_Shipping_Logger::info(
-					'Pickup point selected at checkout',
+			if ( null === $selected_pickup_point || ! $selected_pickup_point->get_agent_no() ) {
+				// Recovered failure: the shopper's choice is silently
+				// dropped from the order (the classic checkout has no
+				// fallback resolution), so leave an always-logged trace.
+				SS_Shipping_Logger::warning(
+					'Posted pickup point could not be resolved from the session cache - selection not saved',
 					array(
 						'order_id' => $order_id,
-						'agent_no' => $selected_pickup_point->agent_no,
+						'agent_no' => $ss_shipping_store_pickup,
 					)
 				);
+
+				return;
 			}
+
+			// Saving posted pickup point information.
+			$details = new SS_Shipping_Delivery_Details();
+			$details->set_pickup_point( $selected_pickup_point );
+			$this->order_meta->write( $order_id, $details );
+
+			SS_Shipping_Logger::info(
+				'Pickup point selected at checkout',
+				array(
+					'order_id' => $order_id,
+					'agent_no' => $selected_pickup_point->get_agent_no(),
+				)
+			);
 		}
 
 		/**
