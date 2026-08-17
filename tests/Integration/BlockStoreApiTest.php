@@ -76,8 +76,22 @@ function block_cart_setup(string $method_code = 'postnord_agent', array $address
     $zone->save();
     $zone->add_shipping_method('flat_rate');
 
+    // Adding the method bumps the 'shipping' transient version, but the
+    // version stamp is (string) time() - SECOND resolution
+    // (WC_Cache_Helper::get_transient_version()). When an earlier test in
+    // the suite primed the wc_shipping_method_count transient with a
+    // 0-count in the SAME wall-clock second, the "bumped" version equals
+    // the cached one and wc_get_shipping_method_count() keeps returning
+    // the stale 0 - which made show_shipping() short-circuit in CI while
+    // passing locally whenever a second boundary happened to fall in
+    // between. Drop the count transient so the zone method is recounted.
+    delete_transient('wc_shipping_method_count');
+
     remember_cleanup_callback(function () use ($zone): void {
         $zone->delete(true);
+        // Same second-resolution staleness in the other direction: without
+        // this, a later test could keep counting the deleted zone's method.
+        delete_transient('wc_shipping_method_count');
     });
 
     remember_cleanup_callback(function () use ($rate_filter): void {
@@ -93,6 +107,17 @@ function block_cart_setup(string $method_code = 'postnord_agent', array $address
         $customer->set_shipping_city('');
         $customer->set_shipping_address_1('');
     });
+
+    // Verify the gate BEFORE calculating: WC_Cart::show_shipping() (and
+    // needs_shipping()) short-circuit when the store counts zero enabled
+    // shipping methods, and calculate_shipping() then silently builds no
+    // packages at all.
+    if (!WC()->cart->show_shipping()) {
+        throw new RuntimeException(
+            'block_cart_setup: WC()->cart->show_shipping() is false even though the test zone exists'
+            . ' (wc_get_shipping_method_count(true) = ' . wc_get_shipping_method_count(true) . ')'
+        );
+    }
 
     WC()->cart->calculate_shipping();
 
