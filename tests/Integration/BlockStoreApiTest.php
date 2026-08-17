@@ -176,7 +176,7 @@ it('registers cart and checkout schema extensions under the smart-send namespace
     $cart_schema = $extend->get_endpoint_schema('cart');
     expect($cart_schema)->toHaveProperty('smart-send');
     expect($cart_schema->{'smart-send'}['properties'] ?? $cart_schema->{'smart-send'})
-        ->toHaveKeys(['selected_rate_is_agent', 'pickup_points', 'selected_agent_no', 'select_default']);
+        ->toHaveKeys(['selected_rate_is_agent', 'pickup_points', 'no_pickup_points_found', 'selected_agent_no', 'select_default']);
 
     $checkout_schema = $extend->get_endpoint_schema('checkout');
     expect($checkout_schema)->toHaveProperty('smart-send');
@@ -198,7 +198,7 @@ it('carries the smart-send extension data in the full cart REST response', funct
 
     expect($extensions)->toHaveKey('smart-send')
         ->and((array) $extensions['smart-send'])
-        ->toHaveKeys(['selected_rate_is_agent', 'pickup_points', 'selected_agent_no', 'select_default']);
+        ->toHaveKeys(['selected_rate_is_agent', 'pickup_points', 'no_pickup_points_found', 'selected_agent_no', 'select_default']);
 });
 
 it('computes pickup points with formatted labels for an agent rate and a complete address', function () {
@@ -218,6 +218,7 @@ it('computes pickup points with formatted labels for an agent rate and a complet
         // Format 4 from with_ss_settings(): '#Company, #Street, #Zipcode #City'.
         ->and($data['pickup_points'][0]['label'])->toContain('First Shop, Main Street 1, 2300 Copenhagen')
         ->and($data['pickup_points'][1]['label'])->toContain('Second Shop, Main Street 1, 2300 Copenhagen')
+        ->and($data['no_pickup_points_found'])->toBeFalse()
         ->and($data['selected_agent_no'])->toBeNull()
         ->and($data['select_default'])->toBeFalse();
 
@@ -253,6 +254,7 @@ it('reports a non-agent rate with no pickup points and makes no API call', funct
 
     expect($data['selected_rate_is_agent'])->toBeFalse()
         ->and($data['pickup_points'])->toBe([])
+        ->and($data['no_pickup_points_found'])->toBeFalse()
         ->and($capture->requests)->toBe([]);
 });
 
@@ -264,7 +266,26 @@ it('returns no pickup points and makes no API call while the address is incomple
 
     expect($data['selected_rate_is_agent'])->toBeTrue()
         ->and($data['pickup_points'])->toBe([])
+        // No lookup ran, so this is NOT the none-found state - the block
+        // keeps its loading state rather than the "none found" fallback.
+        ->and($data['no_pickup_points_found'])->toBeFalse()
         ->and($capture->requests)->toBe([]);
+});
+
+it('reports the none-found state distinctly when the lookup runs and finds no pickup points', function () {
+    mock_smart_send_api(function () {
+        return ss_api_response(200, ['data' => []]);
+    });
+    block_cart_setup();
+
+    $data = block_cart_extension_data();
+
+    expect($data['selected_rate_is_agent'])->toBeTrue()
+        ->and($data['pickup_points'])->toBe([])
+        ->and($data['no_pickup_points_found'])->toBeTrue()
+        // The empty result is cached in the session - the server-side signal
+        // the checkout persistence uses to allow ordering without a selection.
+        ->and(WC()->session->get('ss_shipping_agents'))->toBe([]);
 });
 
 it('reflects the Select Default setting in the cart data', function () {
@@ -334,6 +355,13 @@ it('persists the pickup point byte-identically to the classic checkout path', fu
 });
 
 it('rejects checkout with a Store API validation error when an agent method has no agent_no', function () {
+    // No lookup ran this session (no cached result at all): the state of
+    // the pickup points is unknown, so the conservative rejection stands.
+    if (is_null(WC()->cart)) {
+        wc_load_cart();
+    }
+    WC()->session->set('ss_shipping_agents', null);
+
     $order = create_order(['shipping_method' => 'postnord_agent']);
 
     expect(function () use ($order) {
@@ -341,6 +369,67 @@ it('rejects checkout with a Store API validation error when an agent method has 
     })->toThrow(RouteException::class, 'A pickup point must be selected.');
 
     expect(wc_get_order($order->get_id())->get_meta(SS_Shipping_Order_Meta::META_AGENT_NO, true))->toBe('');
+});
+
+it('rejects checkout without an agent_no when pickup points WERE available for the address', function () {
+    // Points were offered (the lookup cached them in the session) but the
+    // shopper selected none: reject.
+    if (is_null(WC()->cart)) {
+        wc_load_cart();
+    }
+    WC()->session->set('ss_shipping_agents', [sample_agent()]);
+    remember_cleanup_callback(function (): void {
+        WC()->session->set('ss_shipping_agents', null);
+    });
+
+    $order = create_order(['shipping_method' => 'postnord_agent']);
+
+    expect(function () use ($order) {
+        do_action('woocommerce_store_api_checkout_update_order_from_request', $order, block_checkout_request(null));
+    })->toThrow(RouteException::class, 'A pickup point must be selected.');
+
+    expect(wc_get_order($order->get_id())->get_meta(SS_Shipping_Order_Meta::META_AGENT_NO, true))->toBe('');
+});
+
+it('accepts checkout without an agent_no when the lookup found NO pickup points for the address', function () {
+    // The none-found case end to end: the cart extension's lookup runs
+    // against an empty API result (caching the empty result in the session),
+    // and the checkout persistence then allows the order through with no
+    // pickup point meta written - there was nothing to select. The decision
+    // comes from the server-side session cache, never a client claim.
+    mock_smart_send_api(function () {
+        return ss_api_response(200, ['data' => []]);
+    });
+    block_cart_setup();
+
+    $data = block_cart_extension_data();
+    expect($data['no_pickup_points_found'])->toBeTrue();
+
+    $order = create_order(['shipping_method' => 'postnord_agent']);
+
+    do_action('woocommerce_store_api_checkout_update_order_from_request', $order, block_checkout_request(null));
+
+    $fresh = wc_get_order($order->get_id());
+    expect($fresh->get_meta(SS_Shipping_Order_Meta::META_AGENT_NO, true))->toBe('')
+        ->and($fresh->get_meta(SS_Shipping_Order_Meta::META_AGENT, true))->toBe('');
+});
+
+it('still rejects an empty agent_no string when pickup points were available', function () {
+    // The block posts agent_no '' while options exist (placeholder still
+    // selected): same rejection as omitting the extension entirely.
+    if (is_null(WC()->cart)) {
+        wc_load_cart();
+    }
+    WC()->session->set('ss_shipping_agents', [sample_agent()]);
+    remember_cleanup_callback(function (): void {
+        WC()->session->set('ss_shipping_agents', null);
+    });
+
+    $order = create_order(['shipping_method' => 'postnord_agent']);
+
+    expect(function () use ($order) {
+        do_action('woocommerce_store_api_checkout_update_order_from_request', $order, block_checkout_request(''));
+    })->toThrow(RouteException::class, 'A pickup point must be selected.');
 });
 
 it('rejects checkout when the submitted agent_no resolves nowhere (cache miss and API miss)', function () {

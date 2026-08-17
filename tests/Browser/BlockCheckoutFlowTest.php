@@ -132,6 +132,42 @@ it('shows the pickup point selector on block checkout and stores the chosen agen
         ->assertSee('Main Street 1');
 });
 
+it('shows the none-found state and places the order without a selection when no pickup points are found', function () {
+    $state = ss_browser_state();
+
+    ss_browser_set_api_scenario('no-pickup-points');
+
+    try {
+        $page = ss_block_checkout_reach_shipping_options();
+
+        // Choosing the agent rate renders the block's empty state: the
+        // friendly fallback text (same translated string as the classic
+        // checkout), no selector, and NO client-side validation error. Wait
+        // on the component's own data-status affordance ("empty" once the
+        // none-found cart response is in).
+        $page->click('input[value="smart_send_shipping:' . $state['instance_id'] . '"]')
+            ->assertPresent('.ss-pickup-point-block[data-status="empty"]')
+            ->assertSee('Shipping to closest pickup point')
+            ->assertMissing('#ss-pickup-point-select');
+
+        // The order goes through WITHOUT a pickup point selection - neither
+        // the client-side validation nor the Store API rejects it.
+        $page->assertSee('Cash on delivery')
+            ->assertButtonEnabled('.wc-block-components-checkout-place-order-button')
+            ->click('.wc-block-components-checkout-place-order-button')
+            ->assertSee('order has been received')
+            ->assertDontSee('A pickup point must be selected.')
+            // No pickup point block on the thank-you page: no agent meta was
+            // written. (The shipping method title 'Smart Send Pickup Point'
+            // legitimately contains 'Pickup Point', so assert on the mocked
+            // shop name and the block's heading markup instead.)
+            ->assertDontSee('Browser Test Shop')
+            ->assertSourceMissing('<h2>Pickup Point</h2>');
+    } finally {
+        ss_browser_set_api_scenario(null);
+    }
+});
+
 it('renders no pickup point selector for a non-agent rate', function () {
     $page = ss_block_checkout_reach_shipping_options();
 

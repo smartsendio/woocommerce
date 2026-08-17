@@ -97,3 +97,43 @@ it('shows the pickup point selector on classic checkout and stores the chosen ag
         ->assertSee('Browser Test Shop')
         ->assertSee('Main Street 1');
 });
+
+it('shows the fallback text and places the order without a selection when no pickup points are found', function () {
+    $state = ss_browser_state();
+
+    ss_browser_set_api_scenario('no-pickup-points');
+
+    try {
+        $page = visit(base_url('/?add-to-cart=' . $state['product_id']));
+
+        $page->navigate(base_url('/?page_id=' . $state['checkout_page_id']))
+            ->assertSee('Billing details')
+            ->fill('#billing_first_name', 'Browser')
+            ->fill('#billing_last_name', 'Test')
+            ->fill('#billing_address_1', 'Islands Brygge 39')
+            ->fill('#billing_city', 'Copenhagen')
+            ->fill('#billing_postcode', '2300')
+            ->fill('#billing_phone', '+4512345678')
+            ->fill('#billing_email', 'ss-browser-test@smartsend.io');
+
+        // Choosing the agent method now renders the friendly fallback text
+        // instead of a dropdown - there is nothing to select.
+        $page->click('#shipping_method_0_smart_send_shipping' . $state['instance_id'])
+            ->assertSee('Shipping to closest pickup point')
+            ->assertMissing('select[name=ss_shipping_store_pickup]');
+
+        // The order goes through WITHOUT a pickup point selection.
+        $page->assertSee('Cash on delivery')
+            ->click('#place_order')
+            ->assertSee('order has been received')
+            ->assertDontSee('A pickup point must be selected.')
+            // No pickup point block on the thank-you page: no agent meta was
+            // written. (The shipping method title 'Smart Send Pickup Point'
+            // legitimately contains 'Pickup Point', so assert on the mocked
+            // shop name and the block's heading markup instead.)
+            ->assertDontSee('Browser Test Shop')
+            ->assertSourceMissing('<h2>Pickup Point</h2>');
+    } finally {
+        ss_browser_set_api_scenario(null);
+    }
+});
