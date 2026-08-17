@@ -151,6 +151,13 @@ if ( ! class_exists( 'SS_Shipping_WC' ) ) :
 		protected ?SS_Shipping_Block_Checkout $block_checkout = null;
 
 		/**
+		 * Store API extensions for the Checkout Block.
+		 *
+		 * @var SS_Shipping_Store_Api|null
+		 */
+		protected ?SS_Shipping_Store_Api $store_api = null;
+
+		/**
 		 * Pickup point display formatter.
 		 *
 		 * @var SS_Shipping_Pickup_Point_Formatter|null
@@ -269,6 +276,7 @@ if ( ! class_exists( 'SS_Shipping_WC' ) ) :
 			require_once SS_SHIPPING_PLUGIN_DIR_PATH . '/includes/delivery/class-ss-shipping-pickup-point-formatter.php';
 			require_once SS_SHIPPING_PLUGIN_DIR_PATH . '/includes/delivery/class-ss-shipping-pickup-point-lookup.php';
 			require_once SS_SHIPPING_PLUGIN_DIR_PATH . '/includes/delivery/class-ss-shipping-pickup-point-validator.php';
+			require_once SS_SHIPPING_PLUGIN_DIR_PATH . '/includes/delivery/class-ss-shipping-store-api.php';
 
 			// Booking domain: order reading, shipment representation,
 			// booking, fulfillment.
@@ -385,6 +393,7 @@ if ( ! class_exists( 'SS_Shipping_WC' ) ) :
 				$this->subscriptions_compat   = new SS_Shipping_Subscriptions_Compat();
 
 				$this->block_checkout = new SS_Shipping_Block_Checkout();
+				$this->store_api      = new SS_Shipping_Store_Api( $this->pickup_point_lookup, $this->pickup_point_formatter, $this->settings, $this->order_meta, $this->method_resolver );
 
 				$this->register_component_hooks();
 			} else {
@@ -416,6 +425,7 @@ if ( ! class_exists( 'SS_Shipping_WC' ) ) :
 			$this->bulk_actions->register_hooks();
 			$this->subscriptions_compat->register_hooks();
 			$this->block_checkout->register_hooks();
+			$this->store_api->register_hooks();
 		}
 
         /**
@@ -649,6 +659,15 @@ if ( ! class_exists( 'SS_Shipping_WC' ) ) :
 		 */
 		public function block_checkout(): SS_Shipping_Block_Checkout {
 			return $this->block_checkout;
+		}
+
+		/**
+		 * Get the Store API extensions for the Checkout Block.
+		 *
+		 * @return SS_Shipping_Store_Api
+		 */
+		public function store_api(): SS_Shipping_Store_Api {
+			return $this->store_api;
 		}
     }
 
