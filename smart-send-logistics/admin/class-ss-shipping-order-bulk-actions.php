@@ -77,7 +77,7 @@ if ( ! class_exists( 'SS_Shipping_Order_Bulk_Actions' ) ) :
 		 * @return void
 		 */
 		public function register_hooks() {
-			// The HPOS CustomOrdersTableController exists since WC 6.4; the plugin's WC floor is 4.7.
+			// The HPOS CustomOrdersTableController exists since WC 6.4; the plugin's WC floor is 5.0.
 			$hpos_enabled = class_exists( '\Automattic\WooCommerce\Internal\DataStores\Orders\CustomOrdersTableController' )
 				&& wc_get_container()->get( CustomOrdersTableController::class )->custom_orders_table_usage_is_enabled();
 
