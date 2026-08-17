@@ -33,11 +33,35 @@
 | call has to stay inline in every test here.
 |
 | Runs against the "Denmark" shipping zone that bin/setup-local-dev.sh
-| seeds by default. The first test removes any Smart Send method already
-| on that zone so the suite is safe to re-run locally without resetting the
-| store between runs.
+| seeds by default. beforeAll snapshots the zone's real methods (the seeded
+| Flat rate) and clears the zone - the "empty zone" screenshot needs it
+| empty, and any Smart Send method left over from a previous run would get
+| duplicated by the "add method" test - and afterAll restores the snapshot,
+| so a Docs run leaves the local store the way it found it (a zone stripped
+| of its Flat rate broke the Browser suite's flat-rate storefront test until
+| someone restored it by hand).
 |
 */
+
+beforeAll(function (): void {
+    if (!ss_browser_store_manageable()) {
+        return;
+    }
+
+    // Through WooCommerce's own API (WP-CLI, see the helper's docblock)
+    // rather than by scripting the admin UI - the zone screen is
+    // client-side rendered, so "click Delete until the page looks empty"
+    // can never reliably terminate.
+    ss_browser_snapshot_and_clear_zone_methods(1, 'ss_docs_zone_snapshot');
+});
+
+afterAll(function (): void {
+    if (!ss_browser_store_manageable()) {
+        return;
+    }
+
+    ss_browser_restore_zone_methods(1, 'ss_docs_zone_snapshot');
+});
 
 /**
  * The Denmark zone (zone 1) seeded by bin/setup-local-dev.sh - the zone
@@ -49,23 +73,7 @@ function docs_zone_url(): string
 }
 
 it('starts from an empty shipping zone', function () {
-    // Idempotency: a Smart Send method left over from a previous run of this
-    // suite would otherwise show up in the "empty" screenshot and get
-    // duplicated by the "add method" test below.
-    //
-    // This is done through WooCommerce's own API (docs_clear_shipping_zone_methods(),
-    // shelling out via WP-CLI - see its docblock) rather than by scripting
-    // the admin UI ("click Delete until the page looks empty"). The zone
-    // screen is a client-side-rendered (Vue) app: its compiled JS bundle
-    // contains every method's name and every row's CSS class as template
-    // strings, so both are present in the page source regardless of whether
-    // anything is actually configured - a page-content check for "is there
-    // something to delete" can never reliably go false, and a stray
-    // ->click('Delete') on a method that was never actually rendered just
-    // hangs waiting for a locator that will never appear. Resetting state
-    // directly sidesteps both failure modes entirely.
-    docs_clear_shipping_zone_methods(1);
-
+    // The zone was snapshotted and cleared in beforeAll.
     $page = visit(base_url('/wp-login.php'))
         ->fill('#user_login', admin_username())
         ->fill('#user_pass', admin_password())

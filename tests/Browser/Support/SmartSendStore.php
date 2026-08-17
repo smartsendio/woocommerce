@@ -80,6 +80,74 @@ function ss_browser_wp_eval(string $code): array
     return $json;
 }
 
+/**
+ * Snapshot every shipping method configured on the given zone into a wp
+ * option and remove them from the zone, so the zone starts empty for the
+ * calling suite and ss_browser_restore_zone_methods() can put the store's
+ * real methods (e.g. the Flat rate seeded by bin/setup-local-dev.sh) back
+ * afterwards. Clearing goes through WooCommerce's own API rather than the
+ * admin UI: the zone screen is client-side rendered, so page-content checks
+ * for "is there something to delete" are unreliable - see the
+ * ShippingMethod test files' history for the two ways that bit the suites.
+ */
+function ss_browser_snapshot_and_clear_zone_methods(int $zoneId, string $optionName): void
+{
+    $encodedOption = var_export($optionName, true);
+
+    ss_browser_wp_eval(<<<PHP
+        \$zone = new WC_Shipping_Zone({$zoneId});
+        \$snapshot = array();
+        foreach (\$zone->get_shipping_methods() as \$method) {
+            \$snapshot[] = array(
+                'method_id' => \$method->id,
+                'settings'  => get_option('woocommerce_' . \$method->id . '_' . \$method->instance_id . '_settings'),
+                'enabled'   => \$method->enabled,
+                'order'     => isset(\$method->method_order) ? (int) \$method->method_order : 0,
+            );
+            \$zone->delete_shipping_method(\$method->instance_id);
+        }
+        update_option({$encodedOption}, \$snapshot);
+        echo json_encode(array('snapshotted' => count(\$snapshot)));
+        PHP);
+}
+
+/**
+ * Remove whatever the calling suite configured on the given zone and restore
+ * the methods snapshotted by ss_browser_snapshot_and_clear_zone_methods()
+ * (fresh instance ids, same configuration).
+ */
+function ss_browser_restore_zone_methods(int $zoneId, string $optionName): void
+{
+    $encodedOption = var_export($optionName, true);
+
+    ss_browser_wp_eval(<<<PHP
+        \$zone = new WC_Shipping_Zone({$zoneId});
+        foreach (\$zone->get_shipping_methods() as \$method) {
+            \$zone->delete_shipping_method(\$method->instance_id);
+        }
+        global \$wpdb;
+        foreach (get_option({$encodedOption}, array()) as \$entry) {
+            \$instance_id = \$zone->add_shipping_method(\$entry['method_id']);
+            if (is_array(\$entry['settings'])) {
+                update_option('woocommerce_' . \$entry['method_id'] . '_' . \$instance_id . '_settings', \$entry['settings']);
+            }
+            // add_shipping_method() appends (enabled, next order); restore the
+            // snapshotted order and enabled flag so the store's rate ordering -
+            // which determines the preselected method at checkout - survives.
+            \$wpdb->update(
+                "{\$wpdb->prefix}woocommerce_shipping_zone_methods",
+                array(
+                    'method_order' => isset(\$entry['order']) ? (int) \$entry['order'] : 0,
+                    'is_enabled'   => (isset(\$entry['enabled']) && 'yes' !== \$entry['enabled']) ? 0 : 1,
+                ),
+                array('instance_id' => \$instance_id)
+            );
+        }
+        delete_option({$encodedOption});
+        echo json_encode(array('restored' => true));
+        PHP);
+}
+
 function ss_browser_mu_plugin_path(): string
 {
     return ss_browser_wp_path() . '/wp-content/mu-plugins/ss-browser-test-api-mock.php';

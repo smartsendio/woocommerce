@@ -84,27 +84,6 @@ function capture_doc_screenshot(Webpage|AwaitableWebpage $page, string $area, st
 }
 
 /**
- * Remove every shipping method configured on the given zone, directly
- * through WooCommerce's own API (shelling out via the Browser suite's
- * shared ss_browser_wp_eval()) rather than by scripting the admin UI: a
- * UI-driven "click Delete until the page stops mentioning the method" loop
- * is unreliable against a client-side-rendered admin screen, where class
- * names and label text from the JS bundle are present in the page source
- * regardless of whether anything is actually rendered - see the
- * ShippingMethod test's history for the two ways that bit this suite.
- */
-function docs_clear_shipping_zone_methods(int $zoneId): void
-{
-    ss_browser_wp_eval(<<<PHP
-        \$zone = new WC_Shipping_Zone({$zoneId});
-        foreach (\$zone->get_shipping_methods() as \$method) {
-            \$zone->delete_shipping_method(\$method->instance_id);
-        }
-        echo json_encode(array('cleared' => true));
-        PHP);
-}
-
-/**
  * Draw a spotlight highlight around the given element, for screenshots that
  * call out a specific field. Adapted from dumbledore's highlightElement(),
  * using pest-plugin-browser's Webpage::script() (Playwright evaluate) rather

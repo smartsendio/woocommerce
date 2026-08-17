@@ -30,23 +30,12 @@ beforeAll(function (): void {
         return;
     }
 
-    $GLOBALS['ss_method_setup_state'] = ss_browser_wp_eval(<<<'PHP'
-// Snapshot and clear zone 1's methods: the method list must contain only
-// the method this suite configures, both for the unambiguous 'Edit' click
-// and so the checkout tests see exactly the UI-configured rate.
-$zone = new WC_Shipping_Zone(1);
-$snapshot = array();
-foreach ($zone->get_shipping_methods() as $method) {
-    $snapshot[] = array(
-        'method_id' => $method->id,
-        'settings'  => get_option('woocommerce_' . $method->id . '_' . $method->instance_id . '_settings'),
-        'enabled'   => $method->enabled,
-        'order'     => isset($method->method_order) ? (int) $method->method_order : 0,
-    );
-    $zone->delete_shipping_method($method->instance_id);
-}
-update_option('ss_method_setup_zone_snapshot', $snapshot);
+    // Snapshot and clear zone 1's methods: the method list must contain only
+    // the method this suite configures, both for the unambiguous 'Edit' click
+    // and so the checkout tests see exactly the UI-configured rate.
+    ss_browser_snapshot_and_clear_zone_methods(1, 'ss_method_setup_zone_snapshot');
 
+    $GLOBALS['ss_method_setup_state'] = ss_browser_wp_eval(<<<'PHP'
 // Products for the checkout tests: one inside the weight table (1 kg) and
 // one that pushes the cart outside it (15 kg).
 $make_product = function ($sku, $name, $weight) {
@@ -63,6 +52,8 @@ $make_product = function ($sku, $name, $weight) {
     return $product->get_id();
 };
 
+$zone = new WC_Shipping_Zone(1);
+
 echo json_encode(array(
     'zone_id'          => 1,
     'zone_name'        => $zone->get_zone_name(),
@@ -77,33 +68,9 @@ afterAll(function (): void {
         return;
     }
 
-    ss_browser_wp_eval(<<<'PHP'
-// Remove whatever this suite configured on zone 1 and restore the
-// snapshotted methods (fresh instance ids, same configuration).
-$zone = new WC_Shipping_Zone(1);
-foreach ($zone->get_shipping_methods() as $method) {
-    $zone->delete_shipping_method($method->instance_id);
-}
-global $wpdb;
-foreach (get_option('ss_method_setup_zone_snapshot', array()) as $entry) {
-    $instance_id = $zone->add_shipping_method($entry['method_id']);
-    if (is_array($entry['settings'])) {
-        update_option('woocommerce_' . $entry['method_id'] . '_' . $instance_id . '_settings', $entry['settings']);
-    }
-    // add_shipping_method() appends (enabled, next order); restore the
-    // snapshotted order and enabled flag so the store's rate ordering -
-    // which determines the preselected method at checkout - survives.
-    $wpdb->update(
-        "{$wpdb->prefix}woocommerce_shipping_zone_methods",
-        array(
-            'method_order' => isset($entry['order']) ? (int) $entry['order'] : 0,
-            'is_enabled'   => (isset($entry['enabled']) && 'yes' !== $entry['enabled']) ? 0 : 1,
-        ),
-        array('instance_id' => $instance_id)
-    );
-}
-delete_option('ss_method_setup_zone_snapshot');
+    ss_browser_restore_zone_methods(1, 'ss_method_setup_zone_snapshot');
 
+    ss_browser_wp_eval(<<<'PHP'
 foreach (array('SS-UI-LIGHT', 'SS-UI-HEAVY') as $sku) {
     $product_id = wc_get_product_id_by_sku($sku);
     if ($product_id) {
