@@ -52,7 +52,14 @@ function ss_block_checkout_reach_pickup_selector()
     $page = ss_block_checkout_reach_shipping_options();
 
     $page->click('input[value="smart_send_shipping:' . $state['instance_id'] . '"]')
-        ->assertPresent('#ss-pickup-point-select')
+        // The selector element renders as soon as the agent rate is chosen,
+        // but its options arrive with the next Store API cart response - so
+        // wait on the component's observable state (data-status flips to
+        // "ready" once the pickup points are in) and on the concrete option
+        // element, not on a source grep that could sample the in-between
+        // render on a slow runner.
+        ->assertPresent('.ss-pickup-point-block[data-status="ready"]')
+        ->assertPresent('#ss-pickup-point-select option[value="1234"]')
         // The mocked agents are options of the (closed) dropdown, so assert
         // against the markup rather than visible text.
         ->assertSourceHas('Browser Test Shop');
@@ -95,6 +102,9 @@ it('blocks Place Order until a pickup point is selected', function () {
     // server-side backstop). Explicit selector: text-based lookups do not
     // reliably match the Place Order button.
     $page->assertSee('Cash on delivery')
+        // Submit only once the checkout is idle (WooCommerce disables the
+        // button while cart updates are in flight).
+        ->assertButtonEnabled('.wc-block-components-checkout-place-order-button')
         ->click('.wc-block-components-checkout-place-order-button')
         ->assertSee('A pickup point must be selected.')
         ->assertDontSee('order has been received');
@@ -105,6 +115,12 @@ it('shows the pickup point selector on block checkout and stores the chosen agen
 
     $page->assertSee('Cash on delivery')
         ->select('#ss-pickup-point-select', '1234')
+        // Wait until the component reports the selection registered (it sets
+        // data-selected-agent in the same handler that pushes the agent_no
+        // into the checkout POST payload), and until the checkout is idle
+        // again after the selection's session round trip, before submitting.
+        ->assertPresent('.ss-pickup-point-block[data-selected-agent="1234"]')
+        ->assertButtonEnabled('.wc-block-components-checkout-place-order-button')
         ->click('.wc-block-components-checkout-place-order-button');
 
     // Thank-you page: the frontend hook renders the stored pickup point,

@@ -162,7 +162,16 @@ const Block = ( {
 	const hasVisibleError = !! validationError && ! validationError.hidden;
 
 	return (
-		<div className={ `ss-pickup-point-block ${ className }` }>
+		<div
+			className={ `ss-pickup-point-block ${ className }` }
+			// Testability affordances (used by the browser tests to wait on
+			// observable state instead of racing the Store API round trips):
+			// data-status flips to "ready" once the server-computed pickup
+			// points have arrived; data-selected-agent reflects the selection
+			// the component has pushed into the checkout POST payload.
+			data-status={ pickupPoints.length > 0 ? 'ready' : 'loading' }
+			data-selected-agent={ agentNo }
+		>
 			{ !! title && (
 				<h2 className="ss-pickup-point-block__title">{ title }</h2>
 			) }
