@@ -1,7 +1,13 @@
 {
   "name": "smartsend-woocommerce-dev",
   "private": true,
+  "scripts": {
+    "build": "wp-scripts build",
+    "start": "wp-scripts start"
+  },
   "devDependencies": {
+    "@woocommerce/dependency-extraction-webpack-plugin": "^5.1.0",
+    "@wordpress/scripts": "^30.0.0",
     "playwright": "^1.62.1"
   }
 }
