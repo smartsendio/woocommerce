@@ -1,16 +1,27 @@
 /**
- * Editor entry for the Smart Send pickup point Checkout Block integration.
+ * Editor entry for the Smart Send pickup point Checkout Block.
  *
- * PLACEHOLDER (PR 1 of issue #74): this file only exists to prove the build
- * pipeline end to end - wp-scripts build, WooCommerce dependency extraction
- * into the generated *.asset.php, the committed smart-send-logistics/build/
- * output and the CI freshness check. PR 3 replaces it with the real block
- * registration (block.json + edit component).
+ * Registers the block type with the parent set to the Checkout block's
+ * shipping-methods inner block area. The editor's forced-layout pass
+ * auto-inserts any registered block type whose lock attribute defaults to
+ * remove: true into that area, so the block appears on the checkout page in
+ * the Site Editor without the merchant inserting it - and cannot be
+ * removed, only styled and re-worded.
  */
-import { __ } from '@wordpress/i18n';
+import { registerBlockType } from '@wordpress/blocks';
 
-// A silent window side effect keeps the entry from being tree-shaken empty
-// and makes the @wordpress/i18n external show up in the *.asset.php deps.
-window.smartSendPickupPointBlock = window.smartSendPickupPointBlock || {};
-window.smartSendPickupPointBlock.editorPlaceholder = () =>
-	__( 'Smart Send pick-up point selection', 'smart-send-logistics' );
+import metadata from './block.json';
+import { attributes } from './attributes';
+import { Edit, Save } from './edit';
+
+registerBlockType( metadata.name, {
+	...metadata,
+	// The JS-side attribute definitions (translated defaults) win over the
+	// static block.json ones.
+	attributes: {
+		...metadata.attributes,
+		...attributes,
+	},
+	edit: Edit,
+	save: Save,
+} );

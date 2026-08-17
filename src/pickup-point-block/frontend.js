@@ -1,16 +1,28 @@
 /**
- * Frontend entry for the Smart Send pickup point Checkout Block integration.
+ * Frontend entry for the Smart Send pickup point Checkout Block.
  *
- * PLACEHOLDER (PR 1 of issue #74): this file only exists to prove the build
- * pipeline end to end - wp-scripts build, WooCommerce dependency extraction
- * into the generated *.asset.php, the committed smart-send-logistics/build/
- * output and the CI freshness check. PR 3 replaces it with the real
- * checkout-block component.
+ * registerCheckoutBlock maps the block name to the React component the
+ * Checkout block renders in place of the saved markup, and derives the
+ * block's `force` flag from metadata.attributes.lock.default.remove: a
+ * forced block is rendered inside its parent inner-block area even when the
+ * saved checkout page does not contain it, so the selector works with no
+ * merchant action on existing checkout pages.
  */
-import { __ } from '@wordpress/i18n';
+import { registerCheckoutBlock } from '@woocommerce/blocks-checkout';
 
-// A silent window side effect keeps the entry from being tree-shaken empty
-// and makes the @wordpress/i18n external show up in the *.asset.php deps.
-window.smartSendPickupPointBlock = window.smartSendPickupPointBlock || {};
-window.smartSendPickupPointBlock.frontendPlaceholder = () =>
-	__( 'Smart Send pick-up point selection', 'smart-send-logistics' );
+import metadata from './block.json';
+import { attributes } from './attributes';
+import Block from './block';
+
+registerCheckoutBlock( {
+	metadata: {
+		...metadata,
+		// Merge the JS-side definitions (translated defaults) over the
+		// static block.json attributes, mirroring the editor registration.
+		attributes: {
+			...metadata.attributes,
+			...attributes,
+		},
+	},
+	component: Block,
+} );
