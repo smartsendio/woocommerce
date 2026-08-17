@@ -37,6 +37,12 @@ if ( ! class_exists( 'SS_Shipping_Store_Api' ) ) :
 		const ENDPOINT_CART = 'cart';
 
 		/**
+		 * The Store API checkout endpoint identifier (see ENDPOINT_CART on
+		 * why this is a literal).
+		 */
+		const ENDPOINT_CHECKOUT = 'checkout';
+
+		/**
 		 * WooCommerce session key holding the shopper's in-progress pickup
 		 * point selection on the block checkout (pushed by the block via the
 		 * extension update callback), so it survives cart refreshes until
@@ -112,6 +118,8 @@ if ( ! class_exists( 'SS_Shipping_Store_Api' ) ) :
 			} else {
 				add_action( 'woocommerce_blocks_loaded', array( $this, 'register_store_api_extensions' ) );
 			}
+
+			add_action( 'woocommerce_store_api_checkout_update_order_from_request', array( $this, 'persist_pickup_point_from_request' ), 10, 2 );
 		}
 
 		/**
@@ -134,6 +142,14 @@ if ( ! class_exists( 'SS_Shipping_Store_Api' ) ) :
 					'namespace'       => SS_Shipping_Block_Checkout::INTEGRATION_NAME,
 					'data_callback'   => array( $this, 'cart_extension_data' ),
 					'schema_callback' => array( $this, 'cart_extension_schema' ),
+				)
+			);
+
+			woocommerce_store_api_register_endpoint_data(
+				array(
+					'endpoint'        => self::ENDPOINT_CHECKOUT,
+					'namespace'       => SS_Shipping_Block_Checkout::INTEGRATION_NAME,
+					'schema_callback' => array( $this, 'checkout_extension_schema' ),
 				)
 			);
 
@@ -223,6 +239,22 @@ if ( ! class_exists( 'SS_Shipping_Store_Api' ) ) :
 		}
 
 		/**
+		 * Schema of the data the checkout endpoint accepts from the block
+		 * ("data up"): the selected pickup point's agent number.
+		 *
+		 * @return array
+		 */
+		public function checkout_extension_schema() {
+			return array(
+				'agent_no' => array(
+					'description' => __( 'The agent number of the pickup point selected for the order.', 'smart-send-logistics' ),
+					'type'        => array( 'string', 'null' ),
+					'optional'    => true,
+				),
+			);
+		}
+
+		/**
 		 * Extension update callback (wc/store/v1/cart/extensions): keep the
 		 * shopper's in-progress selection in the WooCommerce session so it
 		 * survives cart refreshes. An empty agent_no clears the selection.
@@ -254,6 +286,138 @@ if ( ! class_exists( 'SS_Shipping_Store_Api' ) ) :
 			$agent_no = WC()->session->get( self::SESSION_SELECTED_AGENT_NO );
 
 			return empty( $agent_no ) ? null : (string) $agent_no;
+		}
+
+		/**
+		 * Persist the submitted pickup point on the order during Store API
+		 * checkout (woocommerce_store_api_checkout_update_order_from_request).
+		 *
+		 * Mirrors the classic checkout: a non-agent method ignores any
+		 * submitted agent_no; an agent method requires one and re-resolves
+		 * it server-side (session-cached lookup results first, then the
+		 * findByAgentNo API call) before writing the SERVER-side pickup
+		 * point object through the repository - client data never reaches
+		 * order meta, and the stored meta is byte-identical to the classic
+		 * checkout path.
+		 *
+		 * @param WC_Order        $order   The order being placed.
+		 * @param WP_REST_Request $request The checkout request.
+		 *
+		 * @throws Exception A Store API RouteException (HTTP 400) when an agent method is submitted without a resolvable agent_no.
+		 *
+		 * @return void
+		 */
+		public function persist_pickup_point_from_request( $order, $request ) {
+			$method_code = new SS_Shipping_Method_Code( $this->method_resolver->resolve_outbound( $order ) );
+
+			if ( stripos( $method_code->type(), 'agent' ) === false ) {
+				return;
+			}
+
+			$agent_no = $this->requested_agent_no( $request );
+
+			if ( '' === $agent_no ) {
+				$this->reject_checkout();
+			}
+
+			$pickup_point = $this->resolve_pickup_point( $method_code->carrier(), $order, $agent_no );
+
+			if ( null === $pickup_point ) {
+				$this->reject_checkout();
+			}
+
+			$details = new SS_Shipping_Delivery_Details();
+			$details->set_pickup_point( SS_Shipping_Pickup_Point::from_object( $pickup_point ) );
+			$this->order_meta->write( $order, $details );
+
+			SS_Shipping_Logger::info(
+				'Pickup point selected at checkout',
+				array(
+					'order_id' => $order->get_id(),
+					'agent_no' => $pickup_point->agent_no,
+				)
+			);
+		}
+
+		/**
+		 * The agent_no submitted under our extension namespace, or '' when
+		 * none was submitted.
+		 *
+		 * @param WP_REST_Request $request The checkout request.
+		 *
+		 * @return string
+		 */
+		protected function requested_agent_no( $request ) {
+			$extensions = $request->get_param( 'extensions' );
+
+			if ( ! is_array( $extensions ) || empty( $extensions[ SS_Shipping_Block_Checkout::INTEGRATION_NAME ]['agent_no'] ) ) {
+				return '';
+			}
+
+			return (string) wc_clean( wp_unslash( $extensions[ SS_Shipping_Block_Checkout::INTEGRATION_NAME ]['agent_no'] ) );
+		}
+
+		/**
+		 * Re-resolve a submitted agent number into the server-side pickup
+		 * point object: the session-cached lookup results first (cheap,
+		 * already validated - the same cache the classic checkout resolves
+		 * against), the findByAgentNo API call as fallback.
+		 *
+		 * @param string   $carrier  Unique carrier code (e.g. 'postnord').
+		 * @param WC_Order $order    The order being placed.
+		 * @param string   $agent_no The submitted agent number.
+		 *
+		 * @return object|null The pickup point object, or null when the agent number cannot be resolved.
+		 */
+		protected function resolve_pickup_point( $carrier, $order, $agent_no ) {
+			$cached = $this->pickup_point_lookup->find_cached_by_agent_no( $agent_no );
+
+			if ( null !== $cached ) {
+				return $cached;
+			}
+
+			$country = $order->get_shipping_country();
+
+			// The request and response (incl. HTTP status code and endpoint)
+			// are logged by the client's request logger.
+			$response = SS_SHIPPING_WC()->get_api_handle()->pickupPoints()->findByAgentNo( $carrier, $country, $agent_no );
+
+			if ( $response->isSuccessful() && is_object( $response->data() ) ) {
+				return $response->data();
+			}
+
+			SS_Shipping_Logger::warning(
+				'Pickup point not found - agent number rejected',
+				array(
+					'order_id' => $order->get_id(),
+					'agent_no' => $agent_no,
+					'carrier'  => $carrier,
+				)
+			);
+
+			return null;
+		}
+
+		/**
+		 * Reject the checkout with a Store API validation error (HTTP 400),
+		 * message-parity with the classic checkout's validate_agent_selected().
+		 *
+		 * @throws Exception The Store API RouteException.
+		 *
+		 * @return void
+		 */
+		protected function reject_checkout() {
+			// The Store API moved namespace when it graduated from the Blocks package into WooCommerce
+			// core (WC 7.2); support both locations across the supported WC 5.0+ range.
+			$route_exception = class_exists( 'Automattic\WooCommerce\StoreApi\Exceptions\RouteException' )
+				? 'Automattic\WooCommerce\StoreApi\Exceptions\RouteException'
+				: 'Automattic\WooCommerce\Blocks\StoreApi\Routes\RouteException';
+
+			throw new $route_exception(
+				'ss_shipping_pickup_point_required',
+				esc_html__( 'A pickup point must be selected.', 'smart-send-logistics' ),
+				400
+			);
 		}
 
 		/**
