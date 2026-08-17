@@ -68,8 +68,29 @@ function ensure_screenshot_path(string $area, string $name): string
  * is hardcoded), so this captures under a throwaway name there first and
  * moves the file into place.
  */
+/**
+ * Pause so a human watching the headed Docs run can follow along.
+ *
+ * Controlled by the SS_DOCS_SLOWMO environment variable: a delay in
+ * milliseconds applied at every meaningful UI state (each highlight and
+ * each screenshot capture). Unset or 0 keeps the suite at full speed -
+ * CI and normal local runs are unaffected. Example:
+ *
+ *     SS_DOCS_SLOWMO=1500 composer test:docs
+ */
+function docs_slowmo_pause(): void
+{
+    $delay_ms = (int) getenv('SS_DOCS_SLOWMO');
+
+    if ($delay_ms > 0) {
+        usleep($delay_ms * 1000);
+    }
+}
+
 function capture_doc_screenshot(Webpage|AwaitableWebpage $page, string $area, string $name, bool $fullPage = true): string
 {
+    docs_slowmo_pause();
+
     $page->assertNoJavaScriptErrors();
 
     $temporaryName = 'docs-' . str_replace('/', '-', $area) . '-' . uniqid();
@@ -91,6 +112,8 @@ function capture_doc_screenshot(Webpage|AwaitableWebpage $page, string $area, st
  */
 function highlight_element(Webpage|AwaitableWebpage $page, string $selector): void
 {
+    docs_slowmo_pause();
+
     $encodedSelector = json_encode($selector);
 
     $page->script(
