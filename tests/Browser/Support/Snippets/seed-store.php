@@ -31,7 +31,26 @@ $config = is_array($config) ? $config : array();
 $config += array('settings' => array(), 'orders' => array());
 $state_option = isset($args[1]) ? $args[1] : 'ss_browser_test_state';
 
-$original_settings = get_option('woocommerce_smart_send_shipping_settings');
+// cleanup-store.php deletes the state option, so if it still exists a
+// previous seed was never cleaned up (crashed run, demo mode left on). The
+// live option values are then that seed's fixtures, not the real originals -
+// reuse the earlier snapshots so cleanup restores the true pre-seed state
+// instead of pointing options at fixture pages that get deleted.
+$previous_state = get_option($state_option);
+$previous_state = is_array($previous_state) ? $previous_state : array();
+
+// The uncleaned seed's fixture pages would otherwise leak (fresh ones are
+// created below and the state option only tracks the newest ids).
+if (!empty($previous_state['checkout_page_id'])) {
+    wp_delete_post($previous_state['checkout_page_id'], true);
+}
+if (!empty($previous_state['block_checkout_page_id'])) {
+    wp_delete_post($previous_state['block_checkout_page_id'], true);
+}
+
+$original_settings = array_key_exists('original_settings', $previous_state)
+    ? $previous_state['original_settings']
+    : get_option('woocommerce_smart_send_shipping_settings');
 update_option('woocommerce_smart_send_shipping_settings', array_merge(array(
     'demo' => 'yes', 'ss_debug' => 'no', 'include_order_comment' => 'no',
     'save_shipping_labels_in_uploads' => 'no', 'dropdown_display_format' => '4',
@@ -42,7 +61,9 @@ delete_option('ss_test_api_scenario');
 
 // Cash on delivery so the checkout can be completed.
 $cod = get_option('woocommerce_cod_settings', array());
-$cod_was_enabled = isset($cod['enabled']) ? $cod['enabled'] : 'no';
+$cod_was_enabled = array_key_exists('cod_was_enabled', $previous_state)
+    ? $previous_state['cod_was_enabled']
+    : (isset($cod['enabled']) ? $cod['enabled'] : 'no');
 $cod['enabled'] = 'yes';
 update_option('woocommerce_cod_settings', $cod);
 
@@ -122,7 +143,9 @@ $page_id = wp_insert_post(array(
     'post_status'  => 'publish',
     'post_type'    => 'page',
 ));
-$original_checkout_page = get_option('woocommerce_checkout_page_id');
+$original_checkout_page = array_key_exists('original_checkout_page', $previous_state)
+    ? $previous_state['original_checkout_page']
+    : get_option('woocommerce_checkout_page_id');
 update_option('woocommerce_checkout_page_id', $page_id);
 
 // A product to buy.

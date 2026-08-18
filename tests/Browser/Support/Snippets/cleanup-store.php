@@ -42,7 +42,17 @@ if (!empty($state['block_checkout_page_id'])) {
     wp_delete_post($state['block_checkout_page_id'], true);
 }
 if (isset($state['original_checkout_page'])) {
-    update_option('woocommerce_checkout_page_id', $state['original_checkout_page']);
+    $original = (int) $state['original_checkout_page'];
+    // Never restore a dangling page id: the cart block would render its
+    // "Proceed to Checkout" button without a URL and spin forever. Fall
+    // back to the checkout page WooCommerce created at install.
+    if (!$original || !get_post($original)) {
+        $fallback = get_page_by_path('checkout');
+        if ($fallback) {
+            $original = $fallback->ID;
+        }
+    }
+    update_option('woocommerce_checkout_page_id', $original);
 }
 
 if (($state['cod_was_enabled'] ?? 'no') !== 'yes') {
