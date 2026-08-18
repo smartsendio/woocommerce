@@ -35,6 +35,9 @@
     "test": "pest --testsuite=Integration,Browser",
     "test:integration": "pest --testsuite=Integration",
     "test:browser": "pest --testsuite=Browser",
-    "test:docs": "pest --testsuite=Docs"
+    "test:docs": "pest --testsuite=Docs",
+    "demo:on": "bin/demo-store.sh on",
+    "demo:off": "bin/demo-store.sh off",
+    "demo:scenario": "bin/demo-store.sh scenario"
   }
 }

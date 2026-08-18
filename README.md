@@ -225,6 +225,21 @@ composer test
 
 The tests read `WP_BASE_URL`, `WP_ADMIN_USER` and `WP_ADMIN_PASS` from the environment (defaulting to the setup script's defaults: `http://127.0.0.1:8181`, `admin` / `password`). The same flow runs in CI via the Browser Tests workflow, which provisions the store with `bin/setup-local-dev.sh` on every pull request. Failure screenshots are saved to `tests/Browser/Screenshots/` and uploaded as workflow artifacts.
 
+### Manual testing (demo mode)
+
+Demo mode puts the local development store into the same state the Browser suite runs against — a mu-plugin that mocks the Smart Send API, a Denmark shipping zone with a Smart Send pick-up point method, a sample product, and both a classic and a block checkout page — and leaves it on until you turn it off. Useful for clicking through checkout and label generation by hand without a real API token.
+
+```bash
+composer demo:on                             # seed the store + install the API mock; prints URLs + admin creds
+composer demo:off                            # remove the mock and the demo fixtures again
+composer demo:scenario                       # show the active mock scenario + the valid list
+composer demo:scenario -- no-pickup-points   # switch the mock into a failure scenario
+```
+
+Valid scenarios: `success` (the default), `invalid-token` (authentication returns 401), `booking-failure` (label booking returns a 422 validation error), `no-pickup-points` (the pick-up point lookup finds nothing).
+
+The commands target the install at `WP_DEV_PATH` (default `./local-dev/wordpress`); start the store's web server as shown above to browse it. Both commands are idempotent, and `demo:off` only removes what `demo:on` created — zones, products, pages and orders you built on top are left alone. The mock and seeding logic are shared with the Browser suite (`tests/Browser/Support/`), so demo mode always matches what the tests exercise. Demo mode is a local-only tool: it refuses to run against a production environment or a non-localhost site URL.
+
 ### SVN
 
 Wordpress Plugin releases are managed by [SVN](https://developer.wordpress.org/plugins/wordpress-org/how-to-use-subversion/#starting-a-new-plugin) and to sync the plugin to a local folder run:
