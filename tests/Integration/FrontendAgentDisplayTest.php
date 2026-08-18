@@ -122,6 +122,46 @@ it('accepts checkout when a pickup point is selected', function () {
     expect(wc_notice_count('error'))->toBe(0);
 });
 
+it('accepts checkout when no pickup point dropdown was rendered because none were found', function () {
+    // The none-found case on the classic checkout: the lookup returns an
+    // empty result, display_ss_pickup_points() renders the "Shipping to
+    // closest pickup point" fallback instead of the dropdown (covered by
+    // PickupLookupDebugTest), so the submission carries NO
+    // ss_shipping_store_pickup field at all - and the order must go through
+    // without a pickup point selection.
+    if (is_null(WC()->cart)) {
+        wc_load_cart();
+    }
+    wc_clear_notices();
+
+    mock_smart_send_api(function () {
+        return ss_api_response(200, ['data' => []]);
+    });
+
+    remember_cleanup_callback(function (): void {
+        WC()->session->set('ss_shipping_agents', null);
+        wc_clear_notices();
+    });
+
+    // The render-time lookup finds nothing and caches the EMPTY result in
+    // the session (replacing any stale points from a previous address).
+    $points = (new SS_Shipping_Pickup_Point_Lookup())
+        ->find_closest_by_address('postnord', 'DK', '2300', 'Copenhagen', 'Islands Brygge 39');
+    expect($points)->toBe([])
+        ->and(WC()->session->get('ss_shipping_agents'))->toBe([]);
+
+    // No dropdown rendered -> the field is absent from the POST ->
+    // validation passes.
+    unset($_POST['ss_shipping_store_pickup']);
+    frontend()->validate_agent_selected();
+    expect(wc_notice_count('error'))->toBe(0);
+
+    // And checkout persistence writes no pickup point meta.
+    $order = create_order(['shipping_method' => 'postnord_agent']);
+    frontend()->process_ss_pickup_points($order->get_id(), []);
+    expect(SS_SHIPPING_WC()->order_meta()->read($order->get_id())->get_pickup_point())->toBeNull();
+});
+
 it('saves the selected agent from the session onto the order at checkout', function () {
     if (is_null(WC()->cart)) {
         wc_load_cart();

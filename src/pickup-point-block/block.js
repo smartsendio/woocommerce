@@ -64,6 +64,7 @@ const Block = ( {
 	const {
 		selected_rate_is_agent: selectedRateIsAgent = false,
 		pickup_points: pickupPoints = [],
+		no_pickup_points_found: noPickupPointsFound = false,
 		selected_agent_no: selectedAgentNo = null,
 		select_default: selectDefault = false,
 	} = extensionData || {};
@@ -115,11 +116,24 @@ const Block = ( {
 		pushSelection,
 	] );
 
+	// When the lookup found NO pickup points for the address, there is
+	// nothing to select: clear any stale selection (e.g. picked for a
+	// previous address) from the session and the checkout POST payload so
+	// the server never receives an agent_no that no longer applies.
+	useEffect( () => {
+		if ( selectedRateIsAgent && noPickupPointsFound && agentNo ) {
+			pushSelection( '' );
+		}
+	}, [ selectedRateIsAgent, noPickupPointsFound, agentNo, pushSelection ] );
+
 	// Block Place Order while an agent rate has no pickup point selected.
 	// Hidden until the customer submits (the checkout then reveals all
 	// validation errors); cleared on selection and on unmount (rate change).
+	// No error when the lookup found NO pickup points at all - the order may
+	// then be placed without a selection (classic-checkout parity), and the
+	// server accepts it based on its own session-cached lookup result.
 	useEffect( () => {
-		if ( selectedRateIsAgent && ! agentNo ) {
+		if ( selectedRateIsAgent && ! agentNo && ! noPickupPointsFound ) {
 			setValidationErrors( {
 				[ VALIDATION_ERROR_ID ]: {
 					message: __(
@@ -139,6 +153,7 @@ const Block = ( {
 	}, [
 		selectedRateIsAgent,
 		agentNo,
+		noPickupPointsFound,
 		setValidationErrors,
 		clearValidationError,
 	] );
@@ -161,14 +176,38 @@ const Block = ( {
 
 	const hasVisibleError = !! validationError && ! validationError.hidden;
 
+	// The lookup ran and found nothing: no selector, no validation error -
+	// just the same friendly, carrier-neutral fallback text the classic
+	// checkout shows. The customer places the order without a selection.
+	if ( noPickupPointsFound ) {
+		return (
+			<div
+				className={ `ss-pickup-point-block ${ className }` }
+				data-status="empty"
+				data-selected-agent=""
+			>
+				{ !! title && (
+					<h2 className="ss-pickup-point-block__title">{ title }</h2>
+				) }
+				<p className="ss-pickup-point-block__empty" role="status">
+					{ __(
+						'Shipping to closest pickup point',
+						'smart-send-logistics'
+					) }
+				</p>
+			</div>
+		);
+	}
+
 	return (
 		<div
 			className={ `ss-pickup-point-block ${ className }` }
 			// Testability affordances (used by the browser tests to wait on
 			// observable state instead of racing the Store API round trips):
 			// data-status flips to "ready" once the server-computed pickup
-			// points have arrived; data-selected-agent reflects the selection
-			// the component has pushed into the checkout POST payload.
+			// points have arrived (or to "empty" above when the lookup found
+			// none); data-selected-agent reflects the selection the component
+			// has pushed into the checkout POST payload.
 			data-status={ pickupPoints.length > 0 ? 'ready' : 'loading' }
 			data-selected-agent={ agentNo }
 		>

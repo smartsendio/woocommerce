@@ -175,19 +175,32 @@ if ( ! class_exists( 'SS_Shipping_Store_Api' ) ) :
 		public function cart_extension_data() {
 			$method_code   = $this->chosen_agent_rate_method_code();
 			$pickup_points = array();
+			$lookup_ran    = false;
 
 			if ( null !== $method_code ) {
-				foreach ( $this->lookup_pickup_points_for_customer( $method_code->carrier() ) as $pickup_point ) {
-					$pickup_points[] = array(
-						'agent_no' => (string) $pickup_point->agent_no,
-						'label'    => $this->pickup_point_formatter->dropdown_label( $pickup_point ),
-					);
+				$found = $this->lookup_pickup_points_for_customer( $method_code->carrier() );
+
+				if ( null !== $found ) {
+					$lookup_ran = true;
+
+					foreach ( $found as $pickup_point ) {
+						$pickup_points[] = array(
+							'agent_no' => (string) $pickup_point->agent_no,
+							'label'    => $this->pickup_point_formatter->dropdown_label( $pickup_point ),
+						);
+					}
 				}
 			}
 
 			return array(
 				'selected_rate_is_agent' => null !== $method_code,
 				'pickup_points'          => $pickup_points,
+				// True only when the lookup actually ran (agent rate, complete
+				// address) and found nothing: the block then renders the
+				// "Shipping to closest pickup point" fallback (classic-checkout
+				// parity) instead of an empty selector, and registers no
+				// "must select" validation error.
+				'no_pickup_points_found' => $lookup_ran && array() === $pickup_points,
 				'selected_agent_no'      => $this->get_selected_agent_no(),
 				'select_default'         => $this->settings->default_select_agent(),
 			);
@@ -224,6 +237,11 @@ if ( ! class_exists( 'SS_Shipping_Store_Api' ) ) :
 							),
 						),
 					),
+				),
+				'no_pickup_points_found' => array(
+					'description' => __( 'Whether the lookup ran for the customer address and found no pickup points at all.', 'smart-send-logistics' ),
+					'type'        => 'boolean',
+					'readonly'    => true,
 				),
 				'selected_agent_no'      => array(
 					'description' => __( 'The agent number of the pickup point currently selected in this session, if any.', 'smart-send-logistics' ),
@@ -317,6 +335,22 @@ if ( ! class_exists( 'SS_Shipping_Store_Api' ) ) :
 			$agent_no = $this->requested_agent_no( $request );
 
 			if ( '' === $agent_no ) {
+				// Classic-checkout parity: when the lookup found NO pickup
+				// points for the address there is nothing to select, so the
+				// order is allowed through with no pickup point meta (the
+				// classic checkout renders no dropdown in that case and its
+				// validation passes). The distinction comes from the
+				// server-side session cache the lookup maintains - never from
+				// a client-supplied claim.
+				if ( $this->no_pickup_points_were_available() ) {
+					SS_Shipping_Logger::info(
+						'No pickup points were available for the address - order placed without a pickup point selection',
+						array( 'order_id' => $order->get_id() )
+					);
+
+					return;
+				}
+
 				$this->reject_checkout();
 			}
 
@@ -355,6 +389,21 @@ if ( ! class_exists( 'SS_Shipping_Store_Api' ) ) :
 			}
 
 			return (string) wc_clean( wp_unslash( $extensions[ SS_Shipping_Block_Checkout::INTEGRATION_NAME ]['agent_no'] ) );
+		}
+
+		/**
+		 * Whether the last pickup point lookup ran for this session and
+		 * found no points at all. Reads the lookup's session cache: an
+		 * EMPTY array means a lookup ran and found nothing (the lookup
+		 * caches empty results too); null/absent means no lookup ran, which
+		 * keeps the conservative rejection path.
+		 *
+		 * @return bool
+		 */
+		protected function no_pickup_points_were_available(): bool {
+			$cached = $this->pickup_point_lookup->get_session_pickup_points();
+
+			return is_array( $cached ) && array() === $cached;
 		}
 
 		/**
@@ -473,18 +522,21 @@ if ( ! class_exists( 'SS_Shipping_Store_Api' ) ) :
 		 * address as WooCommerce knows it server-side (WC()->customer, never
 		 * client request data). An incomplete address (no country, postcode
 		 * or street - city is optional, matching the classic checkout)
-		 * yields no points and makes no API call. Lookup failures are
-		 * logged/reported by SS_Shipping_Pickup_Point_Lookup itself.
+		 * yields null and makes no API call - distinct from an empty array,
+		 * which means the lookup RAN and found no points (so the block can
+		 * render the "none found" state instead of a loading state). Lookup
+		 * failures are logged/reported by SS_Shipping_Pickup_Point_Lookup
+		 * itself.
 		 *
 		 * @param string $carrier Unique carrier code (e.g. 'postnord').
 		 *
-		 * @return object[]
+		 * @return object[]|null The found pickup points, or null when no lookup could run.
 		 */
 		protected function lookup_pickup_points_for_customer( $carrier ) {
 			$customer = WC()->customer;
 
 			if ( null === $customer ) {
-				return array();
+				return null;
 			}
 
 			$country     = $customer->get_shipping_country();
@@ -493,7 +545,7 @@ if ( ! class_exists( 'SS_Shipping_Store_Api' ) ) :
 			$street      = $customer->get_shipping_address();
 
 			if ( empty( $country ) || empty( $postal_code ) || empty( $street ) ) {
-				return array();
+				return null;
 			}
 
 			return $this->pickup_point_lookup->find_closest_by_address( $carrier, $country, $postal_code, empty( $city ) ? null : $city, $street );

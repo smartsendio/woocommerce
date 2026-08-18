@@ -161,9 +161,12 @@ function ss_browser_mu_plugin_path(): string
  * Failure scenarios are switched on per test via the ss_test_api_scenario
  * option - see ss_browser_set_api_scenario():
  *
- *  - 'invalid-token'   -> the account/authenticate call returns 401
- *  - 'booking-failure' -> the shipments/labels booking call returns 422
- *                         with a validation message
+ *  - 'invalid-token'    -> the account/authenticate call returns 401
+ *  - 'booking-failure'  -> the shipments/labels booking call returns 422
+ *                          with a validation message
+ *  - 'no-pickup-points' -> the agents/closest lookup returns an empty data
+ *                          set (no pickup points near the address; the
+ *                          client maps this to the NoResults error)
  */
 function ss_browser_install_api_mock(): void
 {
@@ -198,6 +201,12 @@ add_filter('pre_http_request', function ($pre, $args, $url) {
     $scenario = get_option('ss_test_api_scenario');
 
     if (strpos($url, 'agents/closest') !== false) {
+        if ($scenario === 'no-pickup-points') {
+            // An empty data set: Smartsend\Client maps this to the NoResults
+            // error - the "no pickup points near the address" case.
+            return $respond(array('data' => array()));
+        }
+
         return $respond(array('data' => array(
             array('id' => 1, 'agent_no' => '1234', 'company' => 'Browser Test Shop', 'address_line1' => 'Main Street 1', 'address_line2' => null, 'postal_code' => '2300', 'city' => 'Copenhagen', 'country' => 'DK', 'distance' => 0.42),
             array('id' => 2, 'agent_no' => '5678', 'company' => 'Second Test Shop', 'address_line1' => 'Other Street 9', 'address_line2' => null, 'postal_code' => '2300', 'city' => 'Copenhagen', 'country' => 'DK', 'distance' => 1.2),
