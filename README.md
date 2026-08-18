@@ -25,7 +25,7 @@ The Smart Send plugin for WooCommerce
 
 ### Quick start (setup script)
 
-The manual steps below are automated by [bin/setup-local-dev.sh](bin/setup-local-dev.sh), which sets up a complete local development store — WordPress + WooCommerce with the plugin from this repository symlinked in and activated, configured with a Danish store origin, DKK currency and metric units (kg/cm), plus sample products and a Denmark shipping zone:
+The manual steps below are automated by [bin/setup-local-dev.sh](bin/setup-local-dev.sh), which sets up a complete local development store — WordPress + WooCommerce with the plugin from this repository symlinked in and activated, the [Storefront](https://wordpress.org/themes/storefront/) theme active, configured with a Danish store origin, DKK currency and metric units (kg/cm), plus sample products and a Denmark shipping zone:
 
 ```bash
 bin/setup-local-dev.sh

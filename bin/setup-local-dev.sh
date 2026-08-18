@@ -45,8 +45,9 @@ usage() {
 Usage: bin/setup-local-dev.sh [options]
 
 Set up a local WordPress + WooCommerce development store with the Smart Send
-plugin from this repository symlinked in and activated, configured with
-sensible shop settings (Danish store origin, DKK, metric units).
+plugin from this repository symlinked in and activated, the Storefront theme
+active, configured with sensible shop settings (Danish store origin, DKK,
+metric units).
 
 Options:
   --path <dir>          Install directory (default: ./local-dev/wordpress)
@@ -257,7 +258,19 @@ fi
 wp plugin activate woocommerce >/dev/null 2>&1 || true
 
 # ------------------------------------------------------------------------------
-# 6. Symlink and activate the Smart Send plugin from this repository
+# 6. Install and activate the Storefront theme (WooCommerce's reference theme,
+#    used for development, tests and documentation screenshots)
+# ------------------------------------------------------------------------------
+if wp theme is-installed storefront 2>/dev/null; then
+    log "Storefront theme already installed, skipping install"
+else
+    log "Installing Storefront theme"
+    wp theme install storefront
+fi
+wp theme activate storefront
+
+# ------------------------------------------------------------------------------
+# 7. Symlink and activate the Smart Send plugin from this repository
 # ------------------------------------------------------------------------------
 PLUGIN_DEST="$INSTALL_PATH/wp-content/plugins/smart-send-logistics"
 if [[ ! -e "$PLUGIN_DEST" ]]; then
@@ -268,7 +281,7 @@ log "Activating Smart Send plugin"
 wp plugin activate smart-send-logistics
 
 # ------------------------------------------------------------------------------
-# 7. Configure the shop (Danish store origin, DKK, metric units)
+# 8. Configure the shop (Danish store origin, DKK, metric units)
 # ------------------------------------------------------------------------------
 log "Configuring store settings"
 wp option update woocommerce_store_address "Islands Brygge 39" >/dev/null
@@ -300,7 +313,7 @@ wp option update blogdescription "Local Smart Send test store" >/dev/null
 wp rewrite structure '/%postname%/' --hard >/dev/null 2>&1 || wp rewrite structure '/%postname%/' >/dev/null
 
 # ------------------------------------------------------------------------------
-# 8. Seed sample data: products and a shipping zone (via WC CLI)
+# 9. Seed sample data: products and a shipping zone (via WC CLI)
 # ------------------------------------------------------------------------------
 if [[ "$SKIP_SEED" == "true" ]]; then
     log "Skipping sample data (--skip-seed)"
