@@ -56,6 +56,11 @@ uses()->beforeEach(function (): void {
     if (! getenv('CI') && ! getenv('SS_DOCS_HEADLESS')) {
         Playwright::headed();
     }
+})->afterEach(function (): void {
+    // In slow-motion mode (SS_DOCS_SLOWMO), also pause AFTER the last
+    // assertion of each test - the final UI state is usually the one worth
+    // seeing, and without this the browser closes the moment it is reached.
+    docs_slowmo_pause();
 })->in('Docs');
 
 /*
