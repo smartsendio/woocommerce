@@ -31,6 +31,8 @@ composer test:docs          # needs the store running; opens a visible browser l
 composer test               # Integration + Browser (not Docs - see below)
 ```
 
+For manual testing there is a demo mode (`composer demo:on` / `demo:off` / `demo:scenario -- <name>`, backed by `bin/demo-store.sh`): it applies the Browser suite's seeded store state + API mock to the local dev store and leaves it on until turned off. The mock and seeding sources are shared with the Browser suite (`tests/Browser/Support/ApiMockMuPlugin.php` + `Snippets/*.php`) — one source of truth; see README "Manual testing (demo mode)".
+
 Local runs are fast: every suite finishes in under 2 minutes. If a run takes longer, something is wrong (store not running, wrong `WP_BASE_URL`, a hung Playwright session) — kill it and investigate instead of waiting.
 
 CI runs Integration and Browser (`.github/workflows/browser-tests.yml` and `integration-tests.yml`) on every pull request and on pushes to `main` and `develop`. **Docs is intentionally not part of that PR-blocking path** — screenshot generation is slow and a broken screenshot doesn't mean broken code (assertions only guard against a broken/erroring page, not visual regressions). It runs on demand from `.github/workflows/docs-screenshots.yml` (`workflow_dispatch` only, headless, uploads `docs/screenshots/` as a build artifact rather than committing — a human reviews and commits the images after eyeballing them) and locally via `composer test:docs`. Screenshots are committed to `docs/screenshots/` at the repo root (outside `smart-send-logistics/`, mirroring the existing plugin-vs-dev-tooling split) since the whole point of the suite is producing images for direct use in documentation, same as `smartsendio/dumbledore`'s `tests/Docs/`.
