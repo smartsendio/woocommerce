@@ -1,43 +1,52 @@
 {
-  "name": "smartsend/woocommerce",
-  "description": "Smart Send plugin for WooCommerce",
-  "minimum-stability": "stable",
-  "license": "proprietary",
-  "authors": [
-    {
-      "name": "Smart Send",
-      "email": "support@smartsend.io"
-    }
-  ],
-  "require-dev": {
-    "squizlabs/php_codesniffer": "^3.10",
-    "wp-coding-standards/wpcs": "^3.1",
-    "dealerdirect/phpcodesniffer-composer-installer": "^1.0",
-    "digitalrevolution/php-codesniffer-baseline": "^1.0",
-    "pestphp/pest": "^4.0",
-    "pestphp/pest-plugin-browser": "^4.0",
-    "phpcompatibility/phpcompatibility-wp": "^2.1"
-  },
-  "config": {
-    "platform": {
-      "php": "8.3.0"
+    "name": "smartsend/woocommerce",
+    "description": "Smart Send plugin for WooCommerce",
+    "minimum-stability": "stable",
+    "license": "proprietary",
+    "authors": [
+        {
+            "name": "Smart Send",
+            "email": "support@smartsend.io"
+        }
+    ],
+    "require-dev": {
+        "squizlabs/php_codesniffer": "^3.10",
+        "wp-coding-standards/wpcs": "^3.1",
+        "dealerdirect/phpcodesniffer-composer-installer": "^1.0",
+        "digitalrevolution/php-codesniffer-baseline": "^1.0",
+        "pestphp/pest": "^4.0",
+        "pestphp/pest-plugin-browser": "^4.0",
+        "phpcompatibility/phpcompatibility-wp": "^2.1",
+        "cweagans/composer-patches": "^2.0"
     },
-    "allow-plugins": {
-      "dealerdirect/phpcodesniffer-composer-installer": true,
-      "digitalrevolution/php-codesniffer-baseline": true,
-      "pestphp/pest-plugin": true
+    "config": {
+        "platform": {
+            "php": "8.3.0"
+        },
+        "allow-plugins": {
+            "dealerdirect/phpcodesniffer-composer-installer": true,
+            "digitalrevolution/php-codesniffer-baseline": true,
+            "pestphp/pest-plugin": true,
+            "cweagans/composer-patches": true
+        }
+    },
+    "scripts": {
+        "phpcs": "phpcs",
+        "phpcs:compat": "phpcs --standard=phpcs.compat.xml.dist",
+        "phpcs:fix": "phpcbf",
+        "test": "pest --testsuite=Integration,Browser",
+        "test:integration": "pest --testsuite=Integration",
+        "test:browser": "pest --testsuite=Browser",
+        "test:docs": "pest --testsuite=Docs",
+        "demo:on": "bin/demo-store.sh on",
+        "demo:off": "bin/demo-store.sh off",
+        "demo:scenario": "bin/demo-store.sh scenario"
+    },
+    "extra": {
+        "patches": {
+            "pestphp/pest-plugin-browser": {
+                "Fix PHP 8.4+ ReflectionProperty::setValue() deprecation (static property needs null, upstream unfixed as of v5.0.1)": "patches/pest-plugin-browser-static-setvalue.patch"
+            }
+        }
     }
-  },
-  "scripts": {
-    "phpcs": "phpcs",
-    "phpcs:compat": "phpcs --standard=phpcs.compat.xml.dist",
-    "phpcs:fix": "phpcbf",
-    "test": "pest --testsuite=Integration,Browser",
-    "test:integration": "pest --testsuite=Integration",
-    "test:browser": "pest --testsuite=Browser",
-    "test:docs": "pest --testsuite=Docs",
-    "demo:on": "bin/demo-store.sh on",
-    "demo:off": "bin/demo-store.sh off",
-    "demo:scenario": "bin/demo-store.sh scenario"
-  }
 }

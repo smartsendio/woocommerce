@@ -1,0 +1,17 @@
+{
+    "_hash": "b8e6dfeeda1611262f8b47ca3b085451f3585a8574a19458025cf0b7d87090fe",
+    "patches": {
+        "pestphp/pest-plugin-browser": [
+            {
+                "package": "pestphp/pest-plugin-browser",
+                "description": "Fix PHP 8.4+ ReflectionProperty::setValue() deprecation (static property needs null, upstream unfixed as of v5.0.1)",
+                "url": "patches/pest-plugin-browser-static-setvalue.patch",
+                "sha256": "30f3ef4b1f7e8f56b04e64b74eb31514f1e2c6e71cb9db80fefe88fb38504e92",
+                "depth": 1,
+                "extra": {
+                    "provenance": "root"
+                }
+            }
+        ]
+    }
+}
