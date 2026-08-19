@@ -81,12 +81,14 @@ if ( ! class_exists( 'SS_Shipping_Rate_Sorter' ) ) :
 		}
 
 		/**
-		 * Surface which Smart Send rates ended up offered for the package.
+		 * Log which Smart Send rates ended up offered for the package.
 		 *
 		 * Runs on woocommerce_package_rates after every shipping method has
 		 * calculated its rates, so this is the final set the shopper is
-		 * offered. The summary goes to the checkout shipping debug bar and
-		 * to the log as a developer trace.
+		 * offered. Log-only developer trace: the checkout shipping debug bar
+		 * already carries one evaluation summary line per method (from
+		 * calculate_shipping()), so a second offered-rates line would be
+		 * noise there.
 		 *
 		 * @param array $available_shipping_methods WC_Shipping_Rate objects keyed by rate id.
 		 */
@@ -100,17 +102,12 @@ if ( ! class_exists( 'SS_Shipping_Rate_Sorter' ) ) :
 			}
 
 			if ( empty( $offered ) ) {
-				$log_message    = 'Smart Send: no Smart Send rates offered for this package.';
-				$notice_message = __( 'Smart Send: no Smart Send rates offered for this package.', 'smart-send-logistics' );
+				$log_message = 'Smart Send: no Smart Send rates offered for this package.';
 			} else {
-				$rate_list   = implode( ', ', $offered );
-				$log_message = sprintf( 'Smart Send: rates offered for this package: %s.', $rate_list );
-				/* translators: %s: list of offered rates, each as "label" (rate id, cost). */
-				$notice_message = sprintf( __( 'Smart Send: rates offered for this package: %s.', 'smart-send-logistics' ), $rate_list );
+				$log_message = sprintf( 'Smart Send: rates offered for this package: %s.', implode( ', ', $offered ) );
 			}
 
 			SS_Shipping_Logger::debug( $log_message, array( 'offered_rates' => $offered ) );
-			SS_Shipping_Checkout_Debug::add_notice( $notice_message );
 		}
 	}
 

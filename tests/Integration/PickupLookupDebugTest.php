@@ -106,16 +106,20 @@ it('surfaces a transport failure as a debug notice and logs it at error level', 
 
     $output = pickup_debug_render();
 
-    $expected = 'Smart Send: pickup point lookup for postnord failed with a transport error: '
-        . 'The connection to the Smart Send API timed out. Please try again. If the problem persists, ask your host '
+    $transport_detail = 'The connection to the Smart Send API timed out. Please try again. If the problem persists, ask your host '
         . 'whether outgoing requests to app.smartsend.io are blocked or slow.'
-        . ' (http_request_failed: cURL error 28: Operation timed out after 30001 milliseconds)'
+        . ' (http_request_failed: cURL error 28: Operation timed out after 30001 milliseconds)';
+
+    $expected_log = 'Smart Send: pickup point lookup for postnord failed with a transport error: '
+        . $transport_detail
         . ' Falling back to "Shipping to closest pickup point".';
 
-    // The customer-facing fallback is byte-for-byte unchanged.
+    $expected_notice = 'Smart Send: Showing pickup point for "Smart Send" (smart_send_shipping:1). '
+        . 'Failed with a transport error: ' . $transport_detail;
+
     expect($output)->toContain(PICKUP_DEBUG_FALLBACK)
-        ->and(pickup_debug_notice_texts())->toContain($expected)
-        ->and(implode("\n", pickup_debug_logged($spy, 'error')))->toContain($expected);
+        ->and(pickup_debug_notice_texts())->toContain($expected_notice)
+        ->and(implode("\n", pickup_debug_logged($spy, 'error')))->toContain($expected_log);
 });
 
 it('surfaces an authentication failure as an error box, a debug notice and an error log entry', function () {
@@ -129,12 +133,15 @@ it('surfaces an authentication failure as an error box, a debug notice and an er
 
     $output = pickup_debug_render();
 
-    $expected = 'Smart Send: pickup point lookup for postnord failed with an authentication error (HTTP 401): '
+    $expected_log = 'Smart Send: pickup point lookup for postnord failed with an authentication error (HTTP 401): '
         . 'The API token is invalid.';
 
+    $expected_notice = 'Smart Send: Showing pickup point for "Smart Send" (smart_send_shipping:1). '
+        . 'Failed with an authentication error (HTTP 401): The API token is invalid.';
+
     expect($output)->toContain('<div class="woocommerce-error ss-agent-info ss-agent-info--auth_failed">The shop is not correctly connected with Smart Send.</div>')
-        ->and(pickup_debug_notice_texts())->toContain($expected)
-        ->and(implode("\n", pickup_debug_logged($spy, 'error')))->toContain($expected);
+        ->and(pickup_debug_notice_texts())->toContain($expected_notice)
+        ->and(implode("\n", pickup_debug_logged($spy, 'error')))->toContain($expected_log);
 });
 
 it('surfaces an authorization failure as an error box, a debug notice and an error log entry', function () {
@@ -148,12 +155,15 @@ it('surfaces an authorization failure as an error box, a debug notice and an err
 
     $output = pickup_debug_render();
 
-    $expected = 'Smart Send: pickup point lookup for postnord failed with an authorization error (HTTP 403): '
+    $expected_log = 'Smart Send: pickup point lookup for postnord failed with an authorization error (HTTP 403): '
         . 'Your plan does not include pickup points.';
 
+    $expected_notice = 'Smart Send: Showing pickup point for "Smart Send" (smart_send_shipping:1). '
+        . 'Failed with an authorization error (HTTP 403): Your plan does not include pickup points.';
+
     expect($output)->toContain('<div class="woocommerce-error ss-agent-info ss-agent-info--access_denied">The shop does not have access to pickup points.</div>')
-        ->and(pickup_debug_notice_texts())->toContain($expected)
-        ->and(implode("\n", pickup_debug_logged($spy, 'error')))->toContain($expected);
+        ->and(pickup_debug_notice_texts())->toContain($expected_notice)
+        ->and(implode("\n", pickup_debug_logged($spy, 'error')))->toContain($expected_log);
 });
 
 it('surfaces a missing API token as an error box and an error log entry without an API call', function () {
@@ -164,12 +174,15 @@ it('surfaces a missing API token as an error box and an error log entry without 
 
     $output = pickup_debug_render();
 
-    $expected = 'Smart Send: pickup point lookup skipped - no API token configured (plugin not connected).';
+    $expected_log = 'Smart Send: pickup point lookup skipped - no API token configured (plugin not connected).';
+
+    $expected_notice = 'Smart Send: Showing pickup point for "Smart Send" (smart_send_shipping:1). '
+        . 'No API token configured (plugin not connected).';
 
     expect($output)->toContain('<div class="woocommerce-error ss-agent-info ss-agent-info--not_connected">Connect the Smart Send plugin to enable pickup points.</div>')
         ->and($capture->requests)->toBeEmpty()
-        ->and(pickup_debug_notice_texts())->toContain($expected)
-        ->and(implode("\n", pickup_debug_logged($spy, 'error')))->toContain($expected);
+        ->and(pickup_debug_notice_texts())->toContain($expected_notice)
+        ->and(implode("\n", pickup_debug_logged($spy, 'error')))->toContain($expected_log);
 });
 
 it('reports a validation error body by its message', function () {
@@ -183,8 +196,8 @@ it('reports a validation error body by its message', function () {
 
     expect($output)->toContain(PICKUP_DEBUG_FALLBACK)
         ->and(pickup_debug_notice_texts())->toContain(
-            'Smart Send: pickup point lookup for postnord failed with an API error: '
-            . 'The given data was invalid. Falling back to "Shipping to closest pickup point".'
+            'Smart Send: Showing pickup point for "Smart Send" (smart_send_shipping:1). '
+            . 'Failed with an API error: The given data was invalid.'
         );
 });
 
@@ -197,12 +210,15 @@ it('reports an empty agent list as a debug notice and logs it at info level', fu
 
     $output = pickup_debug_render();
 
-    $expected = 'Smart Send: no postnord pickup points found near the entered address.';
+    $expected_log = 'Smart Send: no postnord pickup points found near the entered address.';
+
+    $expected_notice = 'Smart Send: Showing pickup point for "Smart Send" (smart_send_shipping:1). '
+        . 'No pickup points found near the entered address.';
 
     expect($output)->toContain(PICKUP_DEBUG_NONE_FOUND)
-        ->and(pickup_debug_notice_texts())->toContain($expected)
+        ->and(pickup_debug_notice_texts())->toContain($expected_notice)
         // Worth noticing but not a fault: logged at info (always on), never error.
-        ->and(implode("\n", pickup_debug_logged($spy, 'info')))->toContain($expected)
+        ->and(implode("\n", pickup_debug_logged($spy, 'info')))->toContain($expected_log)
         ->and(implode("\n", pickup_debug_logged($spy, 'error')))->not->toContain('no postnord pickup points');
 });
 
@@ -251,7 +267,7 @@ it('renders the agent dropdown and no failure notice when the lookup succeeds', 
         ->and(implode("\n", pickup_debug_notice_texts()))->not->toContain('pickup point lookup');
 });
 
-it('surfaces a success summary with the carrier and result count (#92)', function () {
+it('surfaces a success summary with the method and result count (#92)', function () {
     with_option('woocommerce_shipping_debug_mode', 'yes');
     with_ss_settings(['ss_debug' => 'yes']); // Debug-level log entries require the plugin debug setting.
     $spy = spy_on_logger();
@@ -261,11 +277,14 @@ it('surfaces a success summary with the carrier and result count (#92)', functio
 
     $output = pickup_debug_render();
 
-    $expected = 'Smart Send: found 2 postnord pickup points near the entered address.';
+    $expected_log = 'Smart Send: found 2 postnord pickup points near the entered address.';
+
+    $expected_notice = 'Smart Send: Showing pickup point for "Smart Send" (smart_send_shipping:1). '
+        . 'Found 2 pickup points near the entered address.';
 
     expect($output)->toContain('ss_shipping_store_pickup')
-        ->and(pickup_debug_notice_texts())->toContain($expected)
-        ->and(implode("\n", pickup_debug_logged($spy, 'debug')))->toContain($expected);
+        ->and(pickup_debug_notice_texts())->toContain($expected_notice)
+        ->and(implode("\n", pickup_debug_logged($spy, 'debug')))->toContain($expected_log);
 });
 
 it('adds no success summary notice when shipping debug mode is off', function () {

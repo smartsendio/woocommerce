@@ -236,15 +236,6 @@ if ( ! class_exists( 'SS_Shipping_WC_Method' ) ) :
 					'method'  => $rate['meta_data']['smart_send_shipping_method'],
 				)
 			);
-			SS_Shipping_Checkout_Debug::add_notice(
-				sprintf(
-					/* translators: 1: shipping rate label, 2: Smart Send shipping method code, 3: shipping rate id. */
-					__( 'Smart Send: evaluated method "%1$s" (%2$s, rate id %3$s).', 'smart-send-logistics' ),
-					$rate['label'],
-					$rate['meta_data']['smart_send_shipping_method'],
-					$rate['id']
-				)
-			);
 
 			// Set tax status based on selection otherwise always taxed
 			$this->tax_status = $this->get_option( 'tax_status' );
@@ -259,6 +250,11 @@ if ( ! class_exists( 'SS_Shipping_WC_Method' ) ) :
 			$weight_unit     = get_option( 'woocommerce_weight_unit' );
 			$weight_in_table = $weight_table->contains( $cart_weight );
 
+			// How the offered cost was derived, for the one-line debug bar
+			// summary emitted at the end: null (no rate), a flat fee, or the
+			// last applied weight table row.
+			$cost_derivation = null;
+
 			if ( ! $weight_in_table ) {
 				SS_Shipping_Logger::debug(
 					sprintf( 'Smart Send "%1$s": no rate added - cart weight %2$s %3$s did not match any weight table row.', $rate['label'], $cart_weight, $weight_unit ),
@@ -267,32 +263,16 @@ if ( ! class_exists( 'SS_Shipping_WC_Method' ) ) :
 						'cart_weight' => $cart_weight,
 					)
 				);
-				SS_Shipping_Checkout_Debug::add_notice(
-					sprintf(
-						/* translators: 1: shipping rate label, 2: cart weight, 3: weight unit. */
-						__( 'Smart Send "%1$s": no rate added - cart weight %2$s %3$s did not match any weight table row.', 'smart-send-logistics' ),
-						$rate['label'],
-						$cart_weight,
-						$weight_unit
-					)
-				);
 			} elseif ( $this->is_free_shipping( $package ) ) {
 
 				$rate['cost'] = $this->get_option( 'flatfee_cost' );
 				$this->add_rate( $rate );
+				$cost_derivation = array( 'type' => 'flat_fee' );
 				SS_Shipping_Logger::debug(
 					sprintf( 'Smart Send "%1$s": free shipping applies - rate added with flat fee cost %2$s.', $rate['label'], $rate['cost'] ),
 					array(
 						'rate_id' => $rate['id'],
 						'cost'    => $rate['cost'],
-					)
-				);
-				SS_Shipping_Checkout_Debug::add_notice(
-					sprintf(
-						/* translators: 1: shipping rate label, 2: flat fee cost. */
-						__( 'Smart Send "%1$s": free shipping applies - rate added with flat fee cost %2$s.', 'smart-send-logistics' ),
-						$rate['label'],
-						$rate['cost']
 					)
 				);
 
@@ -319,9 +299,13 @@ if ( ! class_exists( 'SS_Shipping_WC_Method' ) ) :
 					);
 
 					$this->add_rate( $rate );
-					$rate_added     = true;
-					$matched_row    = sprintf( '%1$s-%2$s %3$s', $weight_cost['ss_min_weight'], $weight_cost['ss_max_weight'], $weight_unit );
-					$matched_rows[] = $matched_row;
+					$rate_added      = true;
+					$matched_row     = sprintf( '%1$s-%2$s %3$s', $weight_cost['ss_min_weight'], $weight_cost['ss_max_weight'], $weight_unit );
+					$matched_rows[]  = $matched_row;
+					$cost_derivation = array(
+						'type' => 'weight_row',
+						'row'  => $matched_row,
+					);
 					SS_Shipping_Logger::debug(
 						sprintf(
 							'Smart Send "%1$s": cart weight %2$s %3$s matched weight table row %4$s - rate added with cost %5$s.',
@@ -335,17 +319,6 @@ if ( ! class_exists( 'SS_Shipping_WC_Method' ) ) :
 							'rate_id'     => $rate['id'],
 							'cost'        => $rate['cost'],
 							'cart_weight' => $cart_weight,
-						)
-					);
-					SS_Shipping_Checkout_Debug::add_notice(
-						sprintf(
-							/* translators: 1: shipping rate label, 2: cart weight, 3: weight unit, 4: matched weight table row as "min-max unit", 5: rate cost. */
-							__( 'Smart Send "%1$s": cart weight %2$s %3$s matched weight table row %4$s - rate added with cost %5$s.', 'smart-send-logistics' ),
-							$rate['label'],
-							$cart_weight,
-							$weight_unit,
-							$matched_row,
-							$rate['cost']
 						)
 					);
 				}
@@ -387,15 +360,6 @@ if ( ! class_exists( 'SS_Shipping_WC_Method' ) ) :
 							'cart_weight' => $cart_weight,
 						)
 					);
-					SS_Shipping_Checkout_Debug::add_notice(
-						sprintf(
-							/* translators: 1: shipping rate label, 2: cart weight, 3: weight unit. */
-							__( 'Smart Send "%1$s": no rate added - cart weight %2$s %3$s did not match any weight table row.', 'smart-send-logistics' ),
-							$rate['label'],
-							$cart_weight,
-							$weight_unit
-						)
-					);
 				}
 			}
 
@@ -414,6 +378,11 @@ if ( ! class_exists( 'SS_Shipping_WC_Method' ) ) :
 					array( 'rate_id' => $rate['id'] )
 				);
 			}
+
+			// One-line debug bar summary of this method's evaluation: the
+			// verdict plus how the offered cost was derived - the step-by-step
+			// trace above stays in the log only (#92).
+			$this->add_evaluation_summary_notice( $rate, $cost_derivation, $package['contents_cost'], $cart_weight, $weight_unit );
 
 			/**
 			 * Developers can add additional rates based on this one via this action
@@ -435,6 +404,70 @@ if ( ! class_exists( 'SS_Shipping_WC_Method' ) ) :
 			// Built from the constant (never $this->id) so the hook name can't drift
 			// out of sync with it if SS_SHIPPING_METHOD_ID's value ever changes - see #106.
 			do_action( 'woocommerce_' . SS_SHIPPING_METHOD_ID . '_shipping_add_rate', $this, $rate );
+		}
+
+		/**
+		 * Show the one-line evaluation summary of this method in the checkout
+		 * shipping debug bar: whether the rate ended up available for the
+		 * package (with the evaluated total and cart weight) and, when it did,
+		 * how its cost was derived (flat fee or weight table row).
+		 *
+		 * @param array      $rate            The rate array built by calculate_shipping().
+		 * @param array|null $cost_derivation How the cost was derived: null (no rate), ['type' => 'flat_fee'] or ['type' => 'weight_row', 'row' => 'min-max unit'].
+		 * @param mixed      $contents_cost   The package contents cost the evaluation ran against.
+		 * @param mixed      $cart_weight     The evaluated cart weight.
+		 * @param string     $weight_unit     The store weight unit.
+		 * @return void
+		 */
+		protected function add_evaluation_summary_notice( $rate, $cost_derivation, $contents_cost, $cart_weight, $weight_unit ) {
+			if ( ! isset( $this->rates[ $rate['id'] ] ) || null === $cost_derivation ) {
+				SS_Shipping_Checkout_Debug::add_notice(
+					sprintf(
+						/* translators: 1: shipping rate label, 2: shipping rate id, 3: package contents cost, 4: cart weight, 5: weight unit. */
+						__( 'Smart Send: Evaluated method "%1$s" (%2$s) as not available (total=%3$s, weight=%4$s %5$s): the cart weight matched no weight table row.', 'smart-send-logistics' ),
+						$rate['label'],
+						$rate['id'],
+						$contents_cost,
+						$cart_weight,
+						$weight_unit
+					)
+				);
+
+				return;
+			}
+
+			$cost = $this->rates[ $rate['id'] ]->get_cost();
+
+			if ( 'flat_fee' === $cost_derivation['type'] ) {
+				SS_Shipping_Checkout_Debug::add_notice(
+					sprintf(
+						/* translators: 1: shipping rate label, 2: shipping rate id, 3: package contents cost, 4: cart weight, 5: weight unit, 6: flat fee cost. */
+						__( 'Smart Send: Evaluated method "%1$s" (%2$s) as available (total=%3$s, weight=%4$s %5$s). Flat fee cost %6$s applied.', 'smart-send-logistics' ),
+						$rate['label'],
+						$rate['id'],
+						$contents_cost,
+						$cart_weight,
+						$weight_unit,
+						$cost
+					)
+				);
+
+				return;
+			}
+
+			SS_Shipping_Checkout_Debug::add_notice(
+				sprintf(
+					/* translators: 1: shipping rate label, 2: shipping rate id, 3: package contents cost, 4: cart weight, 5: weight unit, 6: applied weight table row as "min-max unit", 7: rate cost. */
+					__( 'Smart Send: Evaluated method "%1$s" (%2$s) as available (total=%3$s, weight=%4$s %5$s). Weight table row %6$s applied, cost %7$s.', 'smart-send-logistics' ),
+					$rate['label'],
+					$rate['id'],
+					$contents_cost,
+					$cart_weight,
+					$weight_unit,
+					$cost_derivation['row'],
+					$cost
+				)
+			);
 		}
 
 		public function is_available( $package ) {
@@ -478,7 +511,7 @@ if ( ! class_exists( 'SS_Shipping_WC_Method' ) ) :
 							break;
 					}
 
-					$this->availability_reporter->report_shipping_class_availability( $this->title, $display_shipping_class_opt, $is_available );
+					$this->availability_reporter->report_shipping_class_availability( $this->title, $display_shipping_class_opt, $is_available, $this->get_rate_id() );
 				}
 
 				// Exclude customer roles
@@ -504,9 +537,10 @@ if ( ! class_exists( 'SS_Shipping_WC_Method' ) ) :
 							);
 							SS_Shipping_Checkout_Debug::add_notice(
 								sprintf(
-									/* translators: 1: shipping method title, 2: customer role. */
-									__( 'Smart Send "%1$s": shipping method is NOT available, because customer role "%2$s" is being excluded.', 'smart-send-logistics' ),
+									/* translators: 1: shipping method title, 2: shipping rate id, 3: customer role. */
+									__( 'Smart Send: Evaluated method "%1$s" (%2$s) as not available: customer role "%3$s" is excluded.', 'smart-send-logistics' ),
 									$this->title,
+									$this->get_rate_id(),
 									$customer_role
 								)
 							);

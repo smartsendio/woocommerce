@@ -2,10 +2,12 @@
 
 /*
  * WooCommerce shipping debug mode support (#5): when the merchant enables
- * WooCommerce → Settings → Shipping → "Enable debug mode", the Smart Send
- * rate-calculation trace is surfaced as checkout notices through
- * SS_Shipping_Checkout_Debug::add_notice(). With the option off nothing
- * changes.
+ * WooCommerce → Settings → Shipping → "Enable debug mode", every evaluated
+ * Smart Send method is surfaced as ONE summary notice through
+ * SS_Shipping_Checkout_Debug::add_notice() - the availability verdict with
+ * the evaluated total and cart weight, plus how the offered cost was
+ * derived. The step-by-step trace stays in the log only. With the option
+ * off nothing changes.
  *
  * The notice gating mirrors WooCommerce core: only when
  * woocommerce_shipping_debug_mode is "yes", never when WOOCOMMERCE_CHECKOUT
@@ -73,6 +75,19 @@ function ss_debug_notice_texts(): array
     );
 }
 
+/**
+ * Only the Smart Send debug notices - WooCommerce core adds its own zone
+ * notices ("Customer matched zone ...") to the same bar while debug mode
+ * is on.
+ */
+function ss_debug_smart_send_notices(): array
+{
+    return array_values(array_filter(
+        ss_debug_notice_texts(),
+        fn (string $notice): bool => str_starts_with($notice, 'Smart Send')
+    ));
+}
+
 beforeEach(function (): void {
     with_ss_settings();
 
@@ -87,11 +102,11 @@ beforeEach(function (): void {
     });
 });
 
-it('surfaces the rate calculation trace as notices when shipping debug mode is on', function () {
+it('surfaces one evaluation summary line per method when shipping debug mode is on', function () {
     with_option('woocommerce_shipping_debug_mode', 'yes');
 
     $product = create_simple_product(['price' => 100, 'weight' => 1.5]);
-    $package = ss_debug_cart_package([[$product, 2]]); // 3 kg
+    $package = ss_debug_cart_package([[$product, 2]]); // 3 kg, 200 total
 
     $method = ss_debug_create_method([
         'cost_weight' => [
@@ -100,15 +115,18 @@ it('surfaces the rate calculation trace as notices when shipping debug mode is o
     ]);
     $method->calculate_shipping($package);
 
-    $unit  = get_option('woocommerce_weight_unit');
-    $trace = implode("\n", ss_debug_notice_texts());
+    $unit    = get_option('woocommerce_weight_unit');
+    $notices = ss_debug_smart_send_notices();
 
-    expect($trace)->toContain('Smart Send: evaluated method "SS Debug Method" (postnord_agent, rate id smart_send_shipping:99941).')
-        ->and($trace)->toContain('Smart Send "SS Debug Method": free shipping (flat fee) is NOT available, because it is not available.')
-        ->and($trace)->toContain('Smart Send "SS Debug Method": cart weight 3 ' . $unit . ' matched weight table row 1-5 ' . $unit . ' - rate added with cost 49.');
+    // ONE Smart Send line: the verdict, the evaluated inputs and the cost derivation.
+    expect($notices)->toHaveCount(1)
+        ->and($notices[0])->toBe(
+            'Smart Send: Evaluated method "SS Debug Method" (smart_send_shipping:99941) as available'
+            . ' (total=200, weight=3 ' . $unit . '). Weight table row 1-5 ' . $unit . ' applied, cost 49.'
+        );
 });
 
-it('surfaces the free shipping decision when the flat fee rules are met', function () {
+it('surfaces the free shipping decision inside the evaluation summary', function () {
     with_option('woocommerce_shipping_debug_mode', 'yes');
 
     $product = create_simple_product(['price' => 100, 'weight' => 2]);
@@ -121,10 +139,14 @@ it('surfaces the free shipping decision when the flat fee rules are met', functi
     ]);
     $method->calculate_shipping($package);
 
-    $trace = implode("\n", ss_debug_notice_texts());
+    $unit    = get_option('woocommerce_weight_unit');
+    $notices = ss_debug_smart_send_notices();
 
-    expect($trace)->toContain('Smart Send "SS Debug Method": free shipping (flat fee) IS available, because it is always enabled.')
-        ->and($trace)->toContain('Smart Send "SS Debug Method": free shipping applies - rate added with flat fee cost 25.');
+    expect($notices)->toHaveCount(1)
+        ->and($notices[0])->toBe(
+            'Smart Send: Evaluated method "SS Debug Method" (smart_send_shipping:99941) as available'
+            . ' (total=100, weight=2 ' . $unit . '). Flat fee cost 25 applied.'
+        );
 });
 
 it('explains why no rate was added when the cart weight matches no table row', function () {
@@ -138,11 +160,15 @@ it('explains why no rate was added when the cart weight matches no table row', f
     ]);
     $method->calculate_shipping($package);
 
-    $unit  = get_option('woocommerce_weight_unit');
-    $trace = implode("\n", ss_debug_notice_texts());
+    $unit    = get_option('woocommerce_weight_unit');
+    $notices = ss_debug_smart_send_notices();
 
     expect($method->rates)->toHaveCount(0)
-        ->and($trace)->toContain('Smart Send "SS Debug Method": no rate added - cart weight 10 ' . $unit . ' did not match any weight table row.');
+        ->and($notices)->toHaveCount(1)
+        ->and($notices[0])->toBe(
+            'Smart Send: Evaluated method "SS Debug Method" (smart_send_shipping:99941) as not available'
+            . ' (total=100, weight=10 ' . $unit . '): the cart weight matched no weight table row.'
+        );
 });
 
 it('explains why the method is excluded by the availability options', function () {
@@ -162,7 +188,30 @@ it('explains why the method is excluded by the availability options', function (
 
     $trace = implode("\n", ss_debug_notice_texts());
 
-    expect($trace)->toContain('Smart Send "SS Debug Method": shipping method is NOT available, because customer role "guest" is being excluded.');
+    expect($trace)->toContain('Smart Send: Evaluated method "SS Debug Method" (smart_send_shipping:99941) as not available: customer role "guest" is excluded.');
+});
+
+it('explains why the method is excluded by the shipping-class condition', function () {
+    with_option('woocommerce_shipping_debug_mode', 'yes');
+
+    $product = create_simple_product(['price' => 100, 'weight' => 1]);
+    $package = ss_debug_cart_package([$product]);
+
+    // Require ALL products in a shipping class the product is not in.
+    $method = ss_debug_create_method([
+        'advanced_settings_enable'   => 'yes',
+        'display_shipping_class'     => ['some-missing-class'],
+        'display_shipping_class_opt' => 'all_shipping_class',
+    ]);
+
+    expect($method->is_available($package))->toBeFalse();
+
+    $trace = implode("\n", ss_debug_notice_texts());
+
+    expect($trace)->toContain(
+        'Smart Send: Evaluated method "SS Debug Method" (smart_send_shipping:99941) as not available:'
+        . ' not ALL products belong to one of the selected shipping classes.'
+    );
 });
 
 it('adds no notices when shipping debug mode is off', function () {
