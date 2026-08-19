@@ -16,7 +16,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  * locations) get their own show_*() method here.
  *
  * The class also owns the pickup point section's status vocabulary: the
- * STATUS_* slugs both checkout surfaces (classic and block) derive from
+ * PICKUP_POINT_STATUS_* slugs both checkout surfaces (classic and block) derive from
  * the lookup outcome, and the customer-facing text for each - one home
  * for the strings, so the two surfaces can never drift apart.
  *
@@ -34,42 +34,42 @@ if ( ! class_exists( 'SS_Shipping_Checkout_Options' ) ) :
 		 * The lookup ran and found pickup points - the selector renders and
 		 * a selection is required.
 		 */
-		const STATUS_FOUND = 'found';
+		const PICKUP_POINT_STATUS_FOUND = 'found';
 
 		/**
 		 * The shipping address is incomplete (no country, postcode or
 		 * street) - no lookup ran.
 		 */
-		const STATUS_ADDRESS_INCOMPLETE = 'address_incomplete';
+		const PICKUP_POINT_STATUS_ADDRESS_INCOMPLETE = 'address_incomplete';
 
 		/**
 		 * The plugin has no API token configured - no lookup can run.
 		 */
-		const STATUS_NOT_CONNECTED = 'not_connected';
+		const PICKUP_POINT_STATUS_NOT_CONNECTED = 'not_connected';
 
 		/**
 		 * The API rejected the lookup as unauthenticated (HTTP 401) - the
 		 * token is wrong or revoked.
 		 */
-		const STATUS_AUTH_FAILED = 'auth_failed';
+		const PICKUP_POINT_STATUS_AUTH_FAILED = 'auth_failed';
 
 		/**
 		 * The API rejected the lookup as unauthorized (HTTP 403) - the
 		 * account has no access to pickup points.
 		 */
-		const STATUS_ACCESS_DENIED = 'access_denied';
+		const PICKUP_POINT_STATUS_ACCESS_DENIED = 'access_denied';
 
 		/**
 		 * The lookup ran and found no pickup points near the address
 		 * (typically an address the geocoder cannot resolve).
 		 */
-		const STATUS_NONE_FOUND = 'none_found';
+		const PICKUP_POINT_STATUS_NONE_FOUND = 'none_found';
 
 		/**
 		 * The lookup failed for any other reason (transport error, server
 		 * error, unexpected response).
 		 */
-		const STATUS_LOOKUP_FAILED = 'lookup_failed';
+		const PICKUP_POINT_STATUS_LOOKUP_FAILED = 'lookup_failed';
 
 		/**
 		 * Whether the checkout should render the pickup point section for
@@ -84,49 +84,49 @@ if ( ! class_exists( 'SS_Shipping_Checkout_Options' ) ) :
 		}
 
 		/**
-		 * Map a pickup point lookup failure to its STATUS_* slug. Shared by
+		 * Map a pickup point lookup failure to its PICKUP_POINT_STATUS_* slug. Shared by
 		 * both checkout surfaces so a given exception always renders as the
 		 * same state.
 		 *
 		 * @param \Exception $e The exception thrown by the lookup.
 		 *
-		 * @return string One of the STATUS_* constants.
+		 * @return string One of the PICKUP_POINT_STATUS_* constants.
 		 */
 		public function pickup_point_status_for_exception( \Exception $e ): string {
 			if ( $e instanceof SS_Shipping_Not_Connected_Exception ) {
-				return self::STATUS_NOT_CONNECTED;
+				return self::PICKUP_POINT_STATUS_NOT_CONNECTED;
 			}
 			if ( $e instanceof \Smartsend\Exceptions\UnauthenticatedException ) {
-				return self::STATUS_AUTH_FAILED;
+				return self::PICKUP_POINT_STATUS_AUTH_FAILED;
 			}
 			if ( $e instanceof \Smartsend\Exceptions\ForbiddenException ) {
-				return self::STATUS_ACCESS_DENIED;
+				return self::PICKUP_POINT_STATUS_ACCESS_DENIED;
 			}
 
-			return self::STATUS_LOOKUP_FAILED;
+			return self::PICKUP_POINT_STATUS_LOOKUP_FAILED;
 		}
 
 		/**
 		 * The customer-facing text of a pickup point section status, or null
-		 * for STATUS_FOUND (the selector renders instead of a message).
+		 * for PICKUP_POINT_STATUS_FOUND (the selector renders instead of a message).
 		 *
-		 * @param string $status One of the STATUS_* constants.
+		 * @param string $status One of the PICKUP_POINT_STATUS_* constants.
 		 *
 		 * @return string|null
 		 */
 		public function pickup_point_status_message( string $status ): ?string {
 			switch ( $status ) {
-				case self::STATUS_ADDRESS_INCOMPLETE:
+				case self::PICKUP_POINT_STATUS_ADDRESS_INCOMPLETE:
 					return __( 'Enter your shipping address to see available pickup points.', 'smart-send-logistics' );
-				case self::STATUS_NOT_CONNECTED:
+				case self::PICKUP_POINT_STATUS_NOT_CONNECTED:
 					return __( 'Connect the Smart Send plugin to enable pickup points.', 'smart-send-logistics' );
-				case self::STATUS_AUTH_FAILED:
+				case self::PICKUP_POINT_STATUS_AUTH_FAILED:
 					return __( 'The shop is not correctly connected with Smart Send.', 'smart-send-logistics' );
-				case self::STATUS_ACCESS_DENIED:
+				case self::PICKUP_POINT_STATUS_ACCESS_DENIED:
 					return __( 'The shop does not have access to pickup points.', 'smart-send-logistics' );
-				case self::STATUS_NONE_FOUND:
+				case self::PICKUP_POINT_STATUS_NONE_FOUND:
 					return __( 'We could not find available pickup points. Please check that the entered address is correct. Your order will be shipped to the closest possible pickup point.', 'smart-send-logistics' );
-				case self::STATUS_LOOKUP_FAILED:
+				case self::PICKUP_POINT_STATUS_LOOKUP_FAILED:
 					return __( 'Shipping to closest pickup point', 'smart-send-logistics' );
 			}
 
@@ -138,12 +138,12 @@ if ( ! class_exists( 'SS_Shipping_Checkout_Options' ) ) :
 		 * (rendered as an error box) rather than an informational state
 		 * (rendered as an info box).
 		 *
-		 * @param string $status One of the STATUS_* constants.
+		 * @param string $status One of the PICKUP_POINT_STATUS_* constants.
 		 *
 		 * @return bool
 		 */
 		public function is_pickup_point_error_status( string $status ): bool {
-			return in_array( $status, array( self::STATUS_NOT_CONNECTED, self::STATUS_AUTH_FAILED, self::STATUS_ACCESS_DENIED ), true );
+			return in_array( $status, array( self::PICKUP_POINT_STATUS_NOT_CONNECTED, self::PICKUP_POINT_STATUS_AUTH_FAILED, self::PICKUP_POINT_STATUS_ACCESS_DENIED ), true );
 		}
 	}
 

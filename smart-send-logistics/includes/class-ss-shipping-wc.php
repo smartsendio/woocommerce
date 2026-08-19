@@ -282,7 +282,7 @@ if ( ! class_exists( 'SS_Shipping_WC' ) ) :
 			require_once SS_SHIPPING_PLUGIN_DIR_PATH . '/includes/delivery/class-ss-shipping-order-meta.php';
 			require_once SS_SHIPPING_PLUGIN_DIR_PATH . '/includes/delivery/class-ss-shipping-method-resolver.php';
 			require_once SS_SHIPPING_PLUGIN_DIR_PATH . '/includes/delivery/class-ss-shipping-checkout-options.php';
-			require_once SS_SHIPPING_PLUGIN_DIR_PATH . '/includes/delivery/class-ss-shipping-not-connected-exception.php';
+			require_once SS_SHIPPING_PLUGIN_DIR_PATH . '/includes/delivery/exceptions/class-ss-shipping-not-connected-exception.php';
 			require_once SS_SHIPPING_PLUGIN_DIR_PATH . '/includes/delivery/class-ss-shipping-pickup-point-formatter.php';
 			require_once SS_SHIPPING_PLUGIN_DIR_PATH . '/includes/delivery/class-ss-shipping-pickup-point-lookup.php';
 			require_once SS_SHIPPING_PLUGIN_DIR_PATH . '/includes/delivery/class-ss-shipping-pickup-point-validator.php';

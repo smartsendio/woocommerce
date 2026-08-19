@@ -202,7 +202,7 @@ if ( ! class_exists( 'SS_Shipping_Store_Api' ) ) :
 				'selected_rate_is_agent' => null !== $method_code,
 				'pickup_points'          => $pickup_points,
 				// The pickup point section state (one of the
-				// SS_Shipping_Checkout_Options STATUS_* slugs) and its
+				// SS_Shipping_Checkout_Options PICKUP_POINT_STATUS_* slugs) and its
 				// customer-facing text, server-side i18n - the block renders
 				// the message verbatim and keys its behaviour (validation,
 				// styling) off the status. Null when the chosen rate is not
@@ -211,7 +211,7 @@ if ( ! class_exists( 'SS_Shipping_Store_Api' ) ) :
 				'pickup_point_message'   => null === $status ? null : $this->checkout_options->pickup_point_status_message( $status ),
 				// Back-compat flag (pre-status consumers): true only when the
 				// lookup ran and found nothing near the address.
-				'no_pickup_points_found' => SS_Shipping_Checkout_Options::STATUS_NONE_FOUND === $status,
+				'no_pickup_points_found' => SS_Shipping_Checkout_Options::PICKUP_POINT_STATUS_NONE_FOUND === $status,
 				'selected_agent_no'      => $this->get_selected_agent_no(),
 				'select_default'         => $this->settings->default_select_agent(),
 			);
@@ -253,13 +253,13 @@ if ( ! class_exists( 'SS_Shipping_Store_Api' ) ) :
 					'description' => __( 'The pickup point section state: found, address_incomplete, not_connected, auth_failed, access_denied, none_found or lookup_failed. Null when the chosen rate is not a Smart Send agent-type method.', 'smart-send-logistics' ),
 					'type'        => array( 'string', 'null' ),
 					'enum'        => array(
-						SS_Shipping_Checkout_Options::STATUS_FOUND,
-						SS_Shipping_Checkout_Options::STATUS_ADDRESS_INCOMPLETE,
-						SS_Shipping_Checkout_Options::STATUS_NOT_CONNECTED,
-						SS_Shipping_Checkout_Options::STATUS_AUTH_FAILED,
-						SS_Shipping_Checkout_Options::STATUS_ACCESS_DENIED,
-						SS_Shipping_Checkout_Options::STATUS_NONE_FOUND,
-						SS_Shipping_Checkout_Options::STATUS_LOOKUP_FAILED,
+						SS_Shipping_Checkout_Options::PICKUP_POINT_STATUS_FOUND,
+						SS_Shipping_Checkout_Options::PICKUP_POINT_STATUS_ADDRESS_INCOMPLETE,
+						SS_Shipping_Checkout_Options::PICKUP_POINT_STATUS_NOT_CONNECTED,
+						SS_Shipping_Checkout_Options::PICKUP_POINT_STATUS_AUTH_FAILED,
+						SS_Shipping_Checkout_Options::PICKUP_POINT_STATUS_ACCESS_DENIED,
+						SS_Shipping_Checkout_Options::PICKUP_POINT_STATUS_NONE_FOUND,
+						SS_Shipping_Checkout_Options::PICKUP_POINT_STATUS_LOOKUP_FAILED,
 						null,
 					),
 					'readonly'    => true,
@@ -567,7 +567,7 @@ if ( ! class_exists( 'SS_Shipping_Store_Api' ) ) :
 		 *
 		 * @param string $carrier Unique carrier code (e.g. 'postnord').
 		 *
-		 * @return array{0: object[], 1: string} [pickup points (possibly empty), STATUS_* slug]
+		 * @return array{0: object[], 1: string} [pickup points (possibly empty), PICKUP_POINT_STATUS_* slug]
 		 */
 		protected function lookup_pickup_points_for_customer( $carrier ): array {
 			$customer = WC()->customer;
@@ -578,7 +578,7 @@ if ( ! class_exists( 'SS_Shipping_Store_Api' ) ) :
 			$street      = null === $customer ? '' : $customer->get_shipping_address();
 
 			if ( empty( $country ) || empty( $postal_code ) || empty( $street ) ) {
-				return array( array(), SS_Shipping_Checkout_Options::STATUS_ADDRESS_INCOMPLETE );
+				return array( array(), SS_Shipping_Checkout_Options::PICKUP_POINT_STATUS_ADDRESS_INCOMPLETE );
 			}
 
 			try {
@@ -589,7 +589,7 @@ if ( ! class_exists( 'SS_Shipping_Store_Api' ) ) :
 
 			return array(
 				$found,
-				empty( $found ) ? SS_Shipping_Checkout_Options::STATUS_NONE_FOUND : SS_Shipping_Checkout_Options::STATUS_FOUND,
+				empty( $found ) ? SS_Shipping_Checkout_Options::PICKUP_POINT_STATUS_NONE_FOUND : SS_Shipping_Checkout_Options::PICKUP_POINT_STATUS_FOUND,
 			);
 		}
 	}

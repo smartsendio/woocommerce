@@ -142,14 +142,14 @@ if ( ! class_exists( 'SS_Shipping_Frontend' ) ) :
 				// No lookup can run without an address - render the
 				// enter-your-address hint (also on the very first, non-AJAX
 				// page load).
-				$status = SS_Shipping_Checkout_Options::STATUS_ADDRESS_INCOMPLETE;
+				$status = SS_Shipping_Checkout_Options::PICKUP_POINT_STATUS_ADDRESS_INCOMPLETE;
 			} else {
 				try {
 					$ss_pickup_points = $this->find_closest_agents_by_address( $method_code->carrier(), $country, $postal_code, $city, $street );
 
 					$status = empty( $ss_pickup_points )
-						? SS_Shipping_Checkout_Options::STATUS_NONE_FOUND
-						: SS_Shipping_Checkout_Options::STATUS_FOUND;
+						? SS_Shipping_Checkout_Options::PICKUP_POINT_STATUS_NONE_FOUND
+						: SS_Shipping_Checkout_Options::PICKUP_POINT_STATUS_FOUND;
 				} catch ( Exception $e ) {
 					// Logged and session-cached by the lookup itself - only
 					// rendering is left to do here.
@@ -157,7 +157,7 @@ if ( ! class_exists( 'SS_Shipping_Frontend' ) ) :
 				}
 			}
 
-			if ( SS_Shipping_Checkout_Options::STATUS_FOUND === $status ) {
+			if ( SS_Shipping_Checkout_Options::PICKUP_POINT_STATUS_FOUND === $status ) {
 
 				$pickup_point_options = array();
 				if ( ! $this->settings->default_select_agent() ) {
