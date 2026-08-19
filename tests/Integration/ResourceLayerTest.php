@@ -5,15 +5,16 @@
  * Smartsend\Api now exposes focused resource accessors (bookings(),
  * pickupPoints()) instead of one monolithic method-per-endpoint surface.
  * Each resource method is exercised here directly (success + one error
- * pass-through per resource, proving the Response object surfaces the
- * #38/#85 error taxonomy - the taxonomy itself is covered exhaustively
- * by HttpClientErrorTest), proving the split preserved both the wire
- * format and the error handling - complementary to the wire-format
- * golden tests in ShipmentPayloadTest.
+ * pass-through per resource, proving the resource re-throws the domain
+ * exception for that call - the exception taxonomy itself is covered
+ * exhaustively by HttpClientErrorTest), proving the split preserved both
+ * the wire format and the error handling - complementary to the
+ * wire-format golden tests in ShipmentPayloadTest.
  */
 
 use Smartsend\Api;
-use Smartsend\Models\Error;
+use Smartsend\Exceptions\RequestException;
+use Smartsend\Exceptions\ValidationException;
 use Smartsend\Models\Shipment;
 use Smartsend\Resources\BookingResource;
 use Smartsend\Resources\PickupPointResource;
@@ -158,28 +159,29 @@ it('accepts a Shipment through the client and returns a successful Response', fu
         ->and($api->bookings())->toBe($resource);
 
     $shipment = $resource->fromShipment(sample_representation());
-    expect($resource->create($shipment)->isSuccessful())->toBeTrue();
+    expect($resource->create($shipment)->data())->toBeObject();
 
     $request = end($capture->requests);
     expect($request['url'])->toContain('shipments/labels');
     expect($request['url'])->not->toContain('shipments/labels/combine');
 });
 
-it('surfaces the existing error taxonomy through BookingResource::create()', function () {
+it('re-throws a 422 as a ValidationException through BookingResource::create()', function () {
     $api = new Api('secret-token-123', 'example.test', true);
     mock_smart_send_api(function () {
         return ss_api_response(422, ss_api_error_body('The receiver postal code is invalid.'));
     });
 
     $shipment = $api->bookings()->fromShipment(sample_representation());
-    $response = $api->bookings()->create($shipment);
 
-    expect($response->isSuccessful())->toBeFalse();
-
-    $error = $response->error();
-    expect($error)->toBeInstanceOf(Error::class);
-    expect($error->code)->toBe('ValidationException');
-    expect($error->message)->toBe('The receiver postal code is invalid.');
+    try {
+        $api->bookings()->create($shipment);
+        test()->fail('Expected a ValidationException to be thrown.');
+    } catch (ValidationException $e) {
+        expect($e->getMessage())->toBe('The receiver postal code is invalid.');
+        expect($e->errors())->toHaveKey('receiver.postal_code');
+        expect($e->getResponse()->statusCode())->toBe(422);
+    }
 });
 
 it('builds the v1 wire Shipment model from the internal representation (BookingResource::fromShipment)', function () {
@@ -204,7 +206,7 @@ it('combines labels for multiple shipments into a single request body', function
 
     $response = $api->bookings()->combine(['shipment-1', 'shipment-2']);
 
-    expect($response->isSuccessful())->toBeTrue();
+    expect($response->data())->toBeObject();
     $request = end($capture->requests);
     expect($request['url'])->toContain('shipments/labels/combine');
 
@@ -229,24 +231,25 @@ it('looks up a pickup point by agent number', function () {
 
     $response = $resource->findByAgentNo('postnord', 'DK', '1234');
 
-    expect($response->isSuccessful())->toBeTrue();
     expect($response->data()->agent_no)->toBe('1234');
 
     $request = end($capture->requests);
     expect($request['url'])->toContain('agents/carrier/postnord/country/DK/agentno/1234');
 });
 
-it('surfaces the existing error taxonomy through PickupPointResource::findByAgentNo()', function () {
+it('throws a RequestException for a 404 through PickupPointResource::findByAgentNo()', function () {
     $api = new Api('secret-token-123', 'example.test', true);
     mock_smart_send_api(function () {
         return ss_api_response(404, ss_api_error_body('Agent number not found.'));
     });
 
-    $response = $api->pickupPoints()->findByAgentNo('postnord', 'DK', '9999');
-
-    expect($response->isSuccessful())->toBeFalse();
-    expect($response->error())->toBeInstanceOf(Error::class);
-    expect($response->error()->message)->toBe('Agent number not found.');
+    try {
+        $api->pickupPoints()->findByAgentNo('postnord', 'DK', '9999');
+        test()->fail('Expected a RequestException to be thrown.');
+    } catch (RequestException $e) {
+        expect(get_class($e))->toBe(RequestException::class);
+        expect($e->getMessage())->toBe('Agent number not found.');
+    }
 });
 
 it('finds the closest pickup points to an address, including the city segment', function () {
@@ -257,7 +260,6 @@ it('finds the closest pickup points to an address, including the city segment', 
 
     $response = $api->pickupPoints()->findClosestByAddress('postnord', 'DK', '2300', 'Copenhagen', 'Islands Brygge 39');
 
-    expect($response->isSuccessful())->toBeTrue();
     expect($response->data())->toHaveCount(1);
 
     $request = end($capture->requests);

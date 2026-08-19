@@ -16,8 +16,10 @@ use Smartsend\Resources\PickupPointResource;
  * composed Client transport (#141) - each resource is responsible for
  * one API concern (account/connection, booking/labels, pick-up point
  * lookup) and is the single point where its v1 wire payload is built.
- * Every resource call returns an immutable Response value object; no
- * response state lives on this instance.
+ * Every resource call returns an immutable Response value object on
+ * success and throws a Smartsend\Exceptions\HttpClientException on any
+ * failure (transport, non-2xx, unusable body); no response state lives
+ * on this instance.
  */
 class Api
 {

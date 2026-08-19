@@ -152,12 +152,20 @@ function mock_smart_send_api(?callable $responder = null): object
 
 /**
  * Build a wp_remote_request-shaped response array with a JSON body.
+ * Pass a Response-ID value via $response_id to simulate the API's
+ * response-tracing header.
  */
-function ss_api_response(int $status, array $body): array
+function ss_api_response(int $status, array $body, ?string $response_id = null): array
 {
+    $headers = ['content-type' => 'application/json'];
+
+    if ($response_id !== null) {
+        $headers['response-id'] = $response_id;
+    }
+
     return [
         'response' => ['code' => $status, 'message' => $status === 200 ? 'OK' : 'Error'],
-        'headers'  => ['content-type' => 'application/json'],
+        'headers'  => $headers,
         'body'     => json_encode($body),
         'cookies'  => [],
         'filename' => null,
@@ -188,14 +196,13 @@ function ss_api_shipment_data(array $overrides = []): array
 }
 
 /**
- * An error response body in the shape the Smart Send API produces.
+ * An error response body in the shape the Smart Send API produces. Only
+ * "message" and "errors" are read by the plugin (the response id travels
+ * in the Response-ID header - see ss_api_response()).
  */
 function ss_api_error_body(string $message = 'The given data was invalid.'): array
 {
     return [
-        'links'   => ['about' => 'https://app.smartsend.io/help/errors/ValidationException'],
-        'id'      => 'test-error-id',
-        'code'    => 'ValidationException',
         'message' => $message,
         'errors'  => ['receiver.postal_code' => ['The postal code is invalid.']],
     ];

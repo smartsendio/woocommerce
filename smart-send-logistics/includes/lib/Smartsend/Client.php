@@ -3,18 +3,30 @@
 
 namespace Smartsend;
 
-require_once __DIR__ . '/Models/Error.php';
 require_once __DIR__ . '/Response.php';
+require_once __DIR__ . '/Exceptions/HttpClientException.php';
+require_once __DIR__ . '/Exceptions/ConnectionException.php';
+require_once __DIR__ . '/Exceptions/RequestException.php';
 
-use Smartsend\Models\Error;
+use Smartsend\Exceptions\ConnectionException;
+use Smartsend\Exceptions\RequestException;
 
 /**
  * The HTTP transport against the Smart Send API (wp_remote_* based).
  *
- * Stateless between requests (#141): every http* call returns an
- * immutable Response value object carrying that call's outcome - no
- * response state persists on this instance, so interleaved calls on a
- * shared client can never corrupt each other's pending result.
+ * The client knows exactly two things about an exchange: whether it
+ * completed, and whether the status was 2xx. A transport failure throws
+ * ConnectionException; a completed non-2xx exchange throws
+ * RequestException (carrying the full Response); a 2xx exchange returns
+ * the immutable Response value object. Whether the 2xx body matches the
+ * expected format is endpoint-specific and judged by the resource layer,
+ * never here.
+ *
+ * Stateless between requests (#141): no response state persists on this
+ * instance, so interleaved calls on a shared client can never corrupt
+ * each other's pending result. The client does no logging of its own -
+ * it only invokes the injected request-logger callable (if any) once per
+ * request, on every outcome, before any throw.
  */
 class Client
 {
@@ -144,11 +156,14 @@ class Client
      * @param   string $http_verb The HTTP verb used for the request
      * @param   string $request_endpoint Full request URL
      * @param   string|null $request_body JSON request body, if any
-     * @param   Response $response The outcome of the request
+     * @param   int|string|null $status_code HTTP status code ('' on transport failure)
      * @param   string|null $response_body Raw response body
+     * @param   bool $success Whether the exchange completed with a 2xx status
+     * @param   string|null $error_message Message describing the failure, if any
+     * @param   float|null $started_at Timestamp when the request started
      * @return  void
      */
-    private function logRequest($http_verb, $request_endpoint, $request_body, Response $response, $response_body)
+    private function logRequest($http_verb, $request_endpoint, $request_body, $status_code, $response_body, $success, $error_message, $started_at)
     {
         if (!is_callable($this->request_logger)) {
             return;
@@ -158,12 +173,12 @@ class Client
             'method'        => strtoupper($http_verb),
             'endpoint'      => $request_endpoint,
             'request_body'  => $request_body,
-            'status_code'   => $response->statusCode(),
+            'status_code'   => $status_code,
             'response_body' => $response_body,
-            'success'       => $response->isSuccessful(),
-            'error'         => $response->error(),
-            'start_time'    => $response->startedAt(),
-            'end_time'      => $response->completedAt(),
+            'success'       => $success,
+            'error'         => $error_message,
+            'start_time'    => $started_at,
+            'end_time'      => microtime(true),
         ));
     }
 
@@ -174,7 +189,9 @@ class Client
      * @param   array $headers Assoc array of headers
      * @param   array $body Assoc array of body (will be converted to json)
      * @param   int $timeout Timeout limit for request in seconds
-     * @return  Response
+     * @return  Response The completed 2xx response.
+     * @throws  \Smartsend\Exceptions\ConnectionException When the exchange never completed (transport failure).
+     * @throws  \Smartsend\Exceptions\RequestException When the API answered with a non-2xx status.
      */
     public function httpDelete($method, $args = array(), $headers = array(), $body=null, $timeout = self::TIMEOUT)
     {
@@ -187,7 +204,9 @@ class Client
      * @param   array $headers Assoc array of headers
      * @param   array $body Assoc array of body (will be converted to json)
      * @param   int $timeout Timeout limit for request in seconds
-     * @return  Response
+     * @return  Response The completed 2xx response.
+     * @throws  \Smartsend\Exceptions\ConnectionException When the exchange never completed (transport failure).
+     * @throws  \Smartsend\Exceptions\RequestException When the API answered with a non-2xx status.
      */
     public function httpGet($method, $args = array(), $headers = array(), $body=null, $timeout = self::TIMEOUT)
     {
@@ -200,7 +219,9 @@ class Client
      * @param   array $headers Assoc array of headers
      * @param   array $body Assoc array of body (will be converted to json)
      * @param   int $timeout Timeout limit for request in seconds
-     * @return  Response
+     * @return  Response The completed 2xx response.
+     * @throws  \Smartsend\Exceptions\ConnectionException When the exchange never completed (transport failure).
+     * @throws  \Smartsend\Exceptions\RequestException When the API answered with a non-2xx status.
      */
     public function httpPatch($method, $args = array(), $headers = array(), $body=null, $timeout = self::TIMEOUT)
     {
@@ -213,7 +234,9 @@ class Client
      * @param   array $headers Assoc array of headers
      * @param   array $body Assoc array of body (will be converted to json)
      * @param   int $timeout Timeout limit for request in seconds
-     * @return  Response
+     * @return  Response The completed 2xx response.
+     * @throws  \Smartsend\Exceptions\ConnectionException When the exchange never completed (transport failure).
+     * @throws  \Smartsend\Exceptions\RequestException When the API answered with a non-2xx status.
      */
     public function httpPost($method, $args = array(), $headers = array(), $body=null, $timeout = self::TIMEOUT)
     {
@@ -226,7 +249,9 @@ class Client
      * @param   array $headers Assoc array of headers
      * @param   array $body Assoc array of body (will be converted to json)
      * @param   int $timeout Timeout limit for request in seconds
-     * @return  Response
+     * @return  Response The completed 2xx response.
+     * @throws  \Smartsend\Exceptions\ConnectionException When the exchange never completed (transport failure).
+     * @throws  \Smartsend\Exceptions\RequestException When the API answered with a non-2xx status.
      */
     public function httpPut($method, $args = array(), $headers = array(), $body=null, $timeout = self::TIMEOUT)
     {
@@ -302,19 +327,17 @@ class Client
             'reject_unsafe_urls' => true,
 	    ));
 
-        // execute request
-	    $response_body = wp_remote_retrieve_body($res);
-
-        // Save http status code and headers
-	    $http_status_code = wp_remote_retrieve_response_code($res);
-	    $content_type = wp_remote_retrieve_header($res, 'content-type');
-
         // Transport-level failure: the request never produced an HTTP response
         if (is_wp_error($res)) {
-            $response = $this->buildResponse(false, null, null, $this->createErrorFromWpError($res), $http_status_code, $request_started_at);
-            $this->logRequest($http_verb, $request_endpoint, $request_body, $response, $response_body);
-            return $response;
+            $exception = ConnectionException::fromWpError($res);
+            $this->logRequest($http_verb, $request_endpoint, $request_body, '', '', false, $exception->getMessage(), $request_started_at);
+            throw $exception;
         }
+
+        $response_body = wp_remote_retrieve_body($res);
+        $http_status_code = wp_remote_retrieve_response_code($res);
+        $content_type = wp_remote_retrieve_header($res, 'content-type');
+        $response_id = wp_remote_retrieve_header($res, 'response-id');
 
         // If response is JSON, then json_decode
         $decoded = null;
@@ -322,239 +345,26 @@ class Client
             $decoded = json_decode($response_body);
         }
 
-        //Error if response is not 2xx
-        if ($http_status_code < 200 || $http_status_code > 299 ) {
-            if (is_object($decoded) && !empty($decoded->message)) {
-                // Well-formed API error body (e.g. a validation error)
-                $error = $this->createErrorFromApiResponse($decoded, $http_status_code);
-            } elseif (empty($response_body)) {
-                $error = $this->createError(
-                    'api-empty-response',
-                    'The Smart Send API returned an empty response (HTTP '.$http_status_code.'). Please try again later.'
-                );
-            } else {
-                // Body present but not a parseable/recognisable JSON error
-                $error = $this->createError(
-                    'api-malformed-response',
-                    'The Smart Send API returned an unexpected response (HTTP '.$http_status_code.'). Please try again later.',
-                    array('response' => array($this->truncateForError($response_body)))
-                );
-            }
+        $response = new Response(
+            is_object($decoded) && isset($decoded->data) ? $decoded->data : null,
+            is_object($decoded) && isset($decoded->message) ? (string) $decoded->message : null,
+            is_object($decoded) && isset($decoded->errors) ? (array) $decoded->errors : array(),
+            (string) $response_body,
+            $http_status_code,
+            is_string($response_id) && $response_id !== '' ? $response_id : null,
+            $request_started_at,
+            microtime(true)
+        );
 
-            $response = $this->buildResponse(false, null, null, $error, $http_status_code, $request_started_at);
-            $this->logRequest($http_verb, $request_endpoint, $request_body, $response, $response_body);
-            return $response;
+        // Throw if response is not 2xx
+        if ($http_status_code < 200 || $http_status_code > 299) {
+            $exception = new RequestException($response);
+            $this->logRequest($http_verb, $request_endpoint, $request_body, $http_status_code, $response_body, false, $exception->getMessage(), $request_started_at);
+            throw $exception;
         }
 
-        // if no response->data
-        if (empty($decoded->data)) {
-            if ($http_verb == 'delete') {
-                //Successful DELETE with no BODY
-                $response = $this->buildResponse(true, null, null, null, $http_status_code, $request_started_at);
-            } elseif (is_object($decoded) && !empty($decoded->message)) {
-                $response = $this->buildResponse(false, null, null, $this->createErrorFromApiResponse($decoded, $http_status_code), $http_status_code, $request_started_at);
-            } elseif (empty($response_body)) {
-                $error = $this->createError(
-                    'api-empty-response',
-                    'The Smart Send API returned an empty response (HTTP '.$http_status_code.'). Please try again later.'
-                );
-                $response = $this->buildResponse(false, null, null, $error, $http_status_code, $request_started_at);
-            } elseif (isset($decoded->data)) {
-                $response = $this->buildResponse(false, null, null, $this->createError('NoResults', 'No results found'), $http_status_code, $request_started_at);
-            } else {
-                $error = $this->createError(
-                    'api-malformed-response',
-                    'The Smart Send API returned an unexpected response (HTTP '.$http_status_code.'). Please try again later.',
-                    array('response' => array($this->truncateForError($response_body)))
-                );
-                $response = $this->buildResponse(false, null, null, $error, $http_status_code, $request_started_at);
-            }
-        } else {
-            $links = isset($decoded->links) ? $decoded->links : null;
-            $response = $this->buildResponse(true, $decoded->data, $links, null, $http_status_code, $request_started_at);
-        }
+        $this->logRequest($http_verb, $request_endpoint, $request_body, $http_status_code, $response_body, true, null, $request_started_at);
 
-        $this->logRequest($http_verb, $request_endpoint, $request_body, $response, $response_body);
         return $response;
     }
-
-    /**
-     * Build the immutable Response for a finished request, stamping the
-     * completion time.
-     *
-     * @param   bool $success Whether the request succeeded
-     * @param   mixed $data Decoded response data, if any
-     * @param   mixed $links Decoded response links, if any
-     * @param   Error|null $error The error describing the failure, if any
-     * @param   int|string|null $status_code HTTP status code ('' on transport failure)
-     * @param   float|null $started_at Timestamp when the request started
-     * @return  Response
-     */
-    private function buildResponse($success, $data, $links, ?Error $error, $status_code, ?float $started_at): Response
-    {
-        return new Response($success, $data, $links, $error, $status_code, $started_at, microtime(true));
-    }
-
-    /**
-     * Build a Smartsend Error value object.
-     *
-     * @param   string|int $code Machine-readable error code
-     * @param   string $message Human-readable error message
-     * @param   array $errors Optional assoc array of error details
-     * @return  Error
-     */
-    private function createError($code, $message, $errors = array())
-    {
-        $error = new Error();
-        $error->links = null;
-        $error->id = null;
-        $error->code = $code;
-        $error->message = $message;
-        $error->errors = $errors;
-
-        return $error;
-    }
-
-    /**
-     * Normalise a decoded API error body (stdClass) into an Error value
-     * object, keeping the fields the API provided (links, id, code,
-     * message, errors).
-     *
-     * @param   object $response Decoded JSON error body
-     * @param   int|string|null $http_status_code HTTP status code of the response
-     * @return  Error
-     */
-    private function createErrorFromApiResponse($response, $http_status_code)
-    {
-        $error = new Error();
-        $error->links = isset($response->links) ? $response->links : null;
-        $error->id = isset($response->id) ? $response->id : null;
-        $error->code = !empty($response->code) ? $response->code : (int) $http_status_code;
-        $error->message = $response->message;
-        $error->errors = isset($response->errors) ? $response->errors : array();
-
-        return $error;
-    }
-
-    /**
-     * Map a WP_Error returned by the WordPress HTTP API to a meaningful,
-     * distinguishable Smartsend Error. The raw WP_Error code and message
-     * are preserved in the errors array for support/debugging.
-     *
-     * @param   \WP_Error $wp_error
-     * @return  Error
-     */
-    private function createErrorFromWpError($wp_error)
-    {
-        $wp_error_code = $wp_error->get_error_code();
-        $wp_error_message = $wp_error->get_error_message();
-
-        if ($this->isTimeoutError($wp_error_message)) {
-            $code = 'transport-timeout';
-            $message = 'The connection to the Smart Send API timed out. Please try again. If the problem persists, ask your host whether outgoing requests to app.smartsend.io are blocked or slow.';
-        } elseif ($this->isSslError($wp_error_message)) {
-            $code = 'transport-ssl';
-            $message = 'A secure (SSL/TLS) connection to the Smart Send API could not be established. Please ask your host to update the server\'s SSL/TLS libraries and CA certificates.';
-        } elseif ($this->isConnectionError($wp_error_message)) {
-            $code = 'transport-connection';
-            $message = 'Could not connect to the Smart Send API. Please check that the server can reach app.smartsend.io (DNS and outgoing HTTPS connections) and try again.';
-        } else {
-            $code = 'transport-'.($wp_error_code ? $wp_error_code : 'unknown');
-            $message = 'The request to the Smart Send API failed before a response was received: '.$wp_error_message;
-        }
-
-        return $this->createError($code, $message, array(
-            'transport' => array($wp_error_code.': '.$wp_error_message),
-        ));
-    }
-
-    /**
-     * Whether a WP_Error message describes a timed-out request.
-     *
-     * @param   string $message
-     * @return  bool
-     */
-    private function isTimeoutError($message)
-    {
-        return $this->messageContainsAny($message, array(
-            'timed out',
-            'timeout',
-            'curl error 28',
-        ));
-    }
-
-    /**
-     * Whether a WP_Error message describes an SSL/TLS failure.
-     *
-     * @param   string $message
-     * @return  bool
-     */
-    private function isSslError($message)
-    {
-        return $this->messageContainsAny($message, array(
-            'ssl',
-            'certificate',
-            'curl error 35:',
-            'curl error 51:',
-            'curl error 58:',
-            'curl error 60:',
-        ));
-    }
-
-    /**
-     * Whether a WP_Error message describes a DNS/connection failure.
-     *
-     * @param   string $message
-     * @return  bool
-     */
-    private function isConnectionError($message)
-    {
-        return $this->messageContainsAny($message, array(
-            'could not resolve',
-            "couldn't resolve",
-            'name or service not known',
-            'connection refused',
-            'failed to connect',
-            'network is unreachable',
-            'curl error 6:',
-            'curl error 7:',
-        ));
-    }
-
-    /**
-     * Case-insensitive check whether a message contains any of the needles.
-     *
-     * @param   string $message
-     * @param   array $needles
-     * @return  bool
-     */
-    private function messageContainsAny($message, $needles)
-    {
-        foreach ($needles as $needle) {
-            if (stripos((string) $message, $needle) !== false) {
-                return true;
-            }
-        }
-
-        return false;
-    }
-
-    /**
-     * Truncate a raw response body so it can be embedded in an error
-     * without dumping an entire HTML page on the merchant.
-     *
-     * @param   string $body
-     * @return  string
-     */
-    private function truncateForError($body)
-    {
-        $body = (string) $body;
-
-        if (strlen($body) > 500) {
-            return substr($body, 0, 500).'...';
-        }
-
-        return $body;
-    }
-
 }

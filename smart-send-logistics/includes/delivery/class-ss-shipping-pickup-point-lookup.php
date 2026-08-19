@@ -81,54 +81,10 @@ if ( ! class_exists( 'SS_Shipping_Pickup_Point_Lookup' ) ) :
 
 			// The request and response (incl. HTTP status code and endpoint)
 			// are logged by the client's request logger.
-			$response = SS_SHIPPING_WC()->get_api_handle()->pickupPoints()->findClosestByAddress( $carrier, $search_params['country'], $search_params['postal_code'], $search_params['city'], $search_params['street'] );
-
-			if ( $response->isSuccessful() ) {
-
-				$ss_pickup_points = $response->data();
-
-				/*
-				 * Filter the pickup points returned by the lookup before they
-				 * are cached in the session and rendered in the checkout
-				 * drop-down. Return a smaller (or re-ordered) array to limit
-				 * or re-rank the choices offered to the customer.
-				 *
-				 * @since 9.0.0
-				 *
-				 * @param object[] $ss_pickup_points     The pickup points returned by the API.
-				 * @param array    $search_params The (filtered) search parameters used for the lookup.
-				 *
-				 * @return object[] The pickup points to cache and render.
-				 */
-				$ss_pickup_points = apply_filters( 'smart_send_pickup_points_found', $ss_pickup_points, $search_params );
-
-				SS_Shipping_Logger::debug(
-					sprintf( 'Smart Send: found %1$d %2$s pickup points near the entered address.', count( $ss_pickup_points ), $carrier ),
-					array(
-						'carrier'      => $carrier,
-						'result_count' => count( $ss_pickup_points ),
-					)
-				);
-				SS_Shipping_Checkout_Debug::add_notice(
-					sprintf(
-						/* translators: 1: number of pickup points found, 2: carrier code. */
-						_n(
-							'Smart Send: found %1$d %2$s pickup point near the entered address.',
-							'Smart Send: found %1$d %2$s pickup points near the entered address.',
-							count( $ss_pickup_points ),
-							'smart-send-logistics'
-						),
-						count( $ss_pickup_points ),
-						$carrier
-					)
-				);
-
-				// Save all of the pickup points in the session.
-				WC()->session->set( self::SESSION_KEY, $ss_pickup_points );
-
-				return $ss_pickup_points;
-			} else {
-				$this->report_lookup_failure( $carrier, $response->error() );
+			try {
+				$response = SS_SHIPPING_WC()->get_api_handle()->pickupPoints()->findClosestByAddress( $carrier, $search_params['country'], $search_params['postal_code'], $search_params['city'], $search_params['street'] );
+			} catch ( \Smartsend\Exceptions\HttpClientException $e ) {
+				$this->report_lookup_failure( $carrier, $e );
 
 				// Cache the empty result (replacing any stale points from a
 				// previous address): checkout submission reads this to
@@ -139,6 +95,69 @@ if ( ! class_exists( 'SS_Shipping_Pickup_Point_Lookup' ) ) :
 
 				return array();
 			}
+
+			$ss_pickup_points = $response->data();
+
+			if ( empty( $ss_pickup_points ) ) {
+				// Not an error: the API answered, there are just no pickup
+				// points near the entered address.
+				SS_Shipping_Logger::debug(
+					sprintf( 'Smart Send: no %s pickup points found near the entered address - falling back to "Shipping to closest pickup point".', $carrier ),
+					array( 'carrier' => $carrier )
+				);
+				SS_Shipping_Checkout_Debug::add_notice(
+					sprintf(
+						/* translators: %s: carrier code. */
+						__( 'Smart Send: no %s pickup points found near the entered address - falling back to "Shipping to closest pickup point".', 'smart-send-logistics' ),
+						$carrier
+					)
+				);
+
+				WC()->session->set( self::SESSION_KEY, array() );
+
+				return array();
+			}
+
+			/*
+			 * Filter the pickup points returned by the lookup before they
+			 * are cached in the session and rendered in the checkout
+			 * drop-down. Return a smaller (or re-ordered) array to limit
+			 * or re-rank the choices offered to the customer.
+			 *
+			 * @since 9.0.0
+			 *
+			 * @param object[] $ss_pickup_points     The pickup points returned by the API.
+			 * @param array    $search_params The (filtered) search parameters used for the lookup.
+			 *
+			 * @return object[] The pickup points to cache and render.
+			 */
+			$ss_pickup_points = apply_filters( 'smart_send_pickup_points_found', $ss_pickup_points, $search_params );
+
+			SS_Shipping_Logger::debug(
+				sprintf( 'Smart Send: found %1$d %2$s pickup points near the entered address.', count( $ss_pickup_points ), $carrier ),
+				array(
+					'carrier'      => $carrier,
+					'result_count' => count( $ss_pickup_points ),
+				)
+			);
+			SS_Shipping_Checkout_Debug::add_notice(
+				sprintf(
+					/* translators: 1: number of pickup points found, 2: carrier code. */
+					_n(
+						'Smart Send: found %1$d %2$s pickup point near the entered address.',
+						'Smart Send: found %1$d %2$s pickup points near the entered address.',
+						count( $ss_pickup_points ),
+						'smart-send-logistics'
+					),
+					count( $ss_pickup_points ),
+					$carrier
+				)
+			);
+
+			// Save all of the pickup points in the session.
+			WC()->session->set( self::SESSION_KEY, $ss_pickup_points );
+
+			return $ss_pickup_points;
 		}
 
 		/**
@@ -193,56 +212,32 @@ if ( ! class_exists( 'SS_Shipping_Pickup_Point_Lookup' ) ) :
 		 * The checkout falls back to the "Shipping to closest pickup point"
 		 * text whenever no pickup points are available. That fallback hides several
 		 * distinct causes, so this classifies the failure (transport error,
-		 * API error response, empty result) and reports it: always to the log
-		 * (error level for failures, debug level for an empty result) and via
+		 * API error response) by exception type and reports it: always to the
+		 * log at the error level and via
 		 * SS_Shipping_Checkout_Debug::add_notice() when WooCommerce shipping
 		 * debug mode is on (a no-op during checkout AJAX requests, matching
 		 * core - the log entry is then the only trace).
 		 *
-		 * @param string      $carrier Unique carrier code the lookup ran for.
-		 * @param object|null $error   Smartsend\Models\Error describing the failure, if any.
+		 * @param string                                    $carrier Unique carrier code the lookup ran for.
+		 * @param \Smartsend\Exceptions\HttpClientException $e       The failure.
 		 */
-		protected function report_lookup_failure( $carrier, $error ) {
-			$code    = ( is_object( $error ) && isset( $error->code ) && is_scalar( $error->code ) ) ? (string) $error->code : '';
-			$message = ( is_object( $error ) && isset( $error->message ) && is_scalar( $error->message ) ) ? (string) $error->message : '';
+		protected function report_lookup_failure( $carrier, \Smartsend\Exceptions\HttpClientException $e ) {
+			$message = $e->getMessage();
 
-			if ( 'NoResults' === $code ) {
-				// Not an error: the API answered, there are just no pickup
-				// points near the entered address.
-				SS_Shipping_Logger::debug(
-					sprintf( 'Smart Send: no %s pickup points found near the entered address - falling back to "Shipping to closest pickup point".', $carrier ),
-					array( 'carrier' => $carrier )
-				);
-				SS_Shipping_Checkout_Debug::add_notice(
-					sprintf(
-						/* translators: %s: carrier code. */
-						__( 'Smart Send: no %s pickup points found near the entered address - falling back to "Shipping to closest pickup point".', 'smart-send-logistics' ),
-						$carrier
-					)
-				);
-
-				return;
-			}
-
-			if ( 0 === strpos( $code, 'transport-' ) ) {
-				$log_message = sprintf( 'Smart Send: pickup point lookup for %1$s failed with a transport error (%2$s): %3$s Falling back to "Shipping to closest pickup point".', $carrier, $code, $message );
-				/* translators: 1: carrier code, 2: error code, 3: error message. */
-				$notice_message = sprintf( __( 'Smart Send: pickup point lookup for %1$s failed with a transport error (%2$s): %3$s Falling back to "Shipping to closest pickup point".', 'smart-send-logistics' ), $carrier, $code, $message );
-			} elseif ( '' !== $code || '' !== $message ) {
-				$log_message = sprintf( 'Smart Send: pickup point lookup for %1$s failed with an API error (%2$s): %3$s Falling back to "Shipping to closest pickup point".', $carrier, $code, $message );
-				/* translators: 1: carrier code, 2: error code, 3: error message. */
-				$notice_message = sprintf( __( 'Smart Send: pickup point lookup for %1$s failed with an API error (%2$s): %3$s Falling back to "Shipping to closest pickup point".', 'smart-send-logistics' ), $carrier, $code, $message );
+			if ( $e instanceof \Smartsend\Exceptions\ConnectionException ) {
+				$log_message = sprintf( 'Smart Send: pickup point lookup for %1$s failed with a transport error: %2$s Falling back to "Shipping to closest pickup point".', $carrier, $message );
+				/* translators: 1: carrier code, 2: error message. */
+				$notice_message = sprintf( __( 'Smart Send: pickup point lookup for %1$s failed with a transport error: %2$s Falling back to "Shipping to closest pickup point".', 'smart-send-logistics' ), $carrier, $message );
 			} else {
-				$log_message = sprintf( 'Smart Send: pickup point lookup for %s failed for an unknown reason. Falling back to "Shipping to closest pickup point".', $carrier );
-				/* translators: %s: carrier code. */
-				$notice_message = sprintf( __( 'Smart Send: pickup point lookup for %s failed for an unknown reason. Falling back to "Shipping to closest pickup point".', 'smart-send-logistics' ), $carrier );
+				$log_message = sprintf( 'Smart Send: pickup point lookup for %1$s failed with an API error: %2$s Falling back to "Shipping to closest pickup point".', $carrier, $message );
+				/* translators: 1: carrier code, 2: error message. */
+				$notice_message = sprintf( __( 'Smart Send: pickup point lookup for %1$s failed with an API error: %2$s Falling back to "Shipping to closest pickup point".', 'smart-send-logistics' ), $carrier, $message );
 			}
 
 			SS_Shipping_Logger::error(
 				$log_message,
 				array(
 					'carrier'       => $carrier,
-					'error_code'    => $code,
 					'error_message' => $message,
 				)
 			);

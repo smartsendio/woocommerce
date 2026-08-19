@@ -282,9 +282,8 @@ if ( ! class_exists( 'SS_Shipping_Pickup_Point_Validator' ) ) :
 				if ( ! empty( $shipping_method_carrier ) && ! empty( $shipping_address['country'] ) ) {
 
 					// API call to get agent info by agent no.
-					$response = SS_SHIPPING_WC()->get_api_handle()->pickupPoints()->findByAgentNo( $shipping_method_carrier, $shipping_address['country'], $ss_shipping_agent_no );
-
-					if ( $response->isSuccessful() ) {
+					try {
+						$response = SS_SHIPPING_WC()->get_api_handle()->pickupPoints()->findByAgentNo( $shipping_method_carrier, $shipping_address['country'], $ss_shipping_agent_no );
 
 						SS_Shipping_Logger::info(
 							'Pickup point changed on order',
@@ -300,7 +299,7 @@ if ( ! class_exists( 'SS_Shipping_Pickup_Point_Validator' ) ) :
 							$response->data()
 						);
 						return true;
-					} else {
+					} catch ( \Smartsend\Exceptions\HttpClientException $e ) {
 
 						SS_Shipping_Logger::warning(
 							'Pickup point not found - agent number rejected',

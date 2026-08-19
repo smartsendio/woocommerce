@@ -429,10 +429,14 @@ if ( ! class_exists( 'SS_Shipping_Store_Api' ) ) :
 
 			// The request and response (incl. HTTP status code and endpoint)
 			// are logged by the client's request logger.
-			$response = SS_SHIPPING_WC()->get_api_handle()->pickupPoints()->findByAgentNo( $carrier, $country, $agent_no );
+			try {
+				$response = SS_SHIPPING_WC()->get_api_handle()->pickupPoints()->findByAgentNo( $carrier, $country, $agent_no );
 
-			if ( $response->isSuccessful() && is_object( $response->data() ) ) {
-				return SS_Shipping_Pickup_Point::from_object( $response->data() );
+				if ( is_object( $response->data() ) ) {
+					return SS_Shipping_Pickup_Point::from_object( $response->data() );
+				}
+			} catch ( \Smartsend\Exceptions\HttpClientException $e ) {
+				unset( $e ); // A failed lookup means the agent number cannot be resolved - fall through to the rejection below.
 			}
 
 			SS_Shipping_Logger::warning(

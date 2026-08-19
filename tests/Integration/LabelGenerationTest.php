@@ -152,7 +152,7 @@ it('updates the order status after label generation when configured', function (
 it('returns the formatted API error message when the API rejects the shipment', function () {
     $order = create_labelable_order();
     mock_smart_send_api(function () {
-        return ss_api_response(422, ss_api_error_body('The given data was invalid.'));
+        return ss_api_response(422, ss_api_error_body('The given data was invalid.'), 'test-response-id');
     });
 
     $response = create_labels_for($order->get_id());
@@ -160,9 +160,8 @@ it('returns the formatted API error message when the API rejects the shipment', 
     expect($response)->toHaveCount(1)
         ->and($response[0])->toHaveKey('error')
         ->and($response[0]['error'])->toContain('The given data was invalid.')
-        ->toContain('Read more here')
-        ->toContain('Unique ID: test-error-id')
-        ->toContain('The postal code is invalid.');
+        ->toContain('The postal code is invalid.')
+        ->toContain('Response ID: test-response-id');
 
     expect(wc_get_order($order->get_id())->get_meta('_ss_shipping_label_id', true))->toBe('');
 });

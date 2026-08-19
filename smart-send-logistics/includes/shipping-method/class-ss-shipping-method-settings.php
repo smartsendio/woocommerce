@@ -315,7 +315,13 @@ if ( ! class_exists( 'SS_Shipping_Method_Settings' ) ) :
 					$credentials = new SS_Shipping_Api_Credentials( $post_data['woocommerce_smart_send_shipping_api_token'] );
 					$website_url = $credentials->website();
 					$api_handle  = ( new SS_Shipping_Api_Factory() )->create_for_credentials( $credentials, false );
-					if ( ! $api_handle->account()->getAuthenticatedUser()->isSuccessful() ) {
+					try {
+						$api_handle->account()->getAuthenticatedUser();
+						$token_is_valid = true;
+					} catch ( \Smartsend\Exceptions\HttpClientException $e ) {
+						$token_is_valid = false;
+					}
+					if ( ! $token_is_valid ) {
 						// The API Token was not valid for live mode, so need to shown an error and re-enable demo-mode
 						WC_Admin_Settings::add_error(
 							sprintf(
