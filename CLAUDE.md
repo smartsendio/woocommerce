@@ -10,7 +10,7 @@ The actual plugin lives entirely in `smart-send-logistics/` — that folder is w
 
 ## Development environment
 
-There is no PHP build step. Development is done against a local WordPress + WooCommerce install created by `bin/setup-local-dev.sh` (default location `./local-dev/wordpress`, plugin symlinked in and activated). The README.md has further details on the development environment.
+There is no PHP build step. Development is done against a local WordPress + WooCommerce install created by `bin/setup-local-dev.sh` (default location `./local-dev/wordpress`, plugin symlinked in and activated). The store is seeded to look like a real webshop (for manual testing and documentation screenshots): the vendored sample catalog in `sample-data/` (WooCommerce core sample products enriched to kg/cm and DKK, images committed for offline determinism — refresh via `bin/update-sample-data.sh`, never edit by hand), a Storefront homepage + primary menu, and default onboarding/marketing admin notices suppressed. The README.md has further details on the development environment.
 
 ### JS build
 

@@ -25,7 +25,7 @@ The Smart Send plugin for WooCommerce
 
 ### Quick start (setup script)
 
-The manual steps below are automated by [bin/setup-local-dev.sh](bin/setup-local-dev.sh), which sets up a complete local development store — WordPress + WooCommerce with the plugin from this repository symlinked in and activated, the [Storefront](https://wordpress.org/themes/storefront/) theme active, configured with a Danish store origin, DKK currency and metric units (kg/cm), plus sample products and a Denmark shipping zone:
+The manual steps below are automated by [bin/setup-local-dev.sh](bin/setup-local-dev.sh), which sets up a complete local development store — WordPress + WooCommerce with the plugin from this repository symlinked in and activated, the [Storefront](https://wordpress.org/themes/storefront/) theme active, configured with a Danish store origin, DKK currency and metric units (kg/cm), plus a realistic sample catalog with images (see [sample-data/](sample-data/)), a Storefront homepage + menu, and a Denmark shipping zone:
 
 ```bash
 bin/setup-local-dev.sh
@@ -111,15 +111,15 @@ wp theme install storefront --activate
 
 ### Import Sample data
 
-Installing the [WooCommerce Sample Data](https://woocommerce.com/document/importing-woocommerce-sample-data/) serves as a good starting point:
+The setup script seeds the store from [sample-data/](sample-data/) — a vendored, enriched copy of the [WooCommerce Sample Data](https://woocommerce.com/document/importing-woocommerce-sample-data/) (metric weights/dimensions, DKK prices, product images committed locally so seeding is offline and deterministic). To seed manually:
 
 ```bash
-# Install the required plugin for importing
-wp plugin install wordpress-importer --activate
-
-# Import the WooCommerce sample data
-wp import "wp-content/plugins/woocommerce/sample-data/sample_products.xml" --authors=create
+# Import the product images into the media library, then the products
+wp media import sample-data/images/*.jpg --user=admin
+wp eval-file bin/import-sample-products.php sample-data/products.csv --user=admin
 ```
+
+To refresh `sample-data/` from the WooCommerce source, run `bin/update-sample-data.sh` and commit the result (see [sample-data/README.md](sample-data/README.md)).
 
 ### Install plugin
 
