@@ -455,3 +455,81 @@ it('no longer logs the removed noise entries', function () {
         ->and($all)->not->toContain('Weight based shipping rate added')
         ->and($all)->not->toContain('Shipping methods sorted by cost');
 });
+
+it('logs the not-connected pickup point lookup at error level even with debug off', function () {
+    with_ss_settings(['ss_debug' => 'no', 'api_token' => '', 'demo' => 'no']);
+    $spy = spy_on_logger();
+
+    try {
+        (new SS_Shipping_Pickup_Point_Lookup())
+            ->find_closest_by_address('postnord', 'DK', '2300', 'Copenhagen', 'Islands Brygge 39');
+        test()->fail('Expected an SS_Shipping_Not_Connected_Exception to be thrown.');
+    } catch (SS_Shipping_Not_Connected_Exception $e) {
+        // Expected: no token, no API call.
+    }
+
+    remember_cleanup_callback(function (): void {
+        WC()->session->set('ss_shipping_agents', null);
+    });
+
+    $errors = array_filter($spy->entries, fn (array $entry): bool => $entry['level'] === 'error');
+    expect(implode("\n", array_column($errors, 'message')))
+        ->toContain('pickup point lookup skipped - no API token configured');
+});
+
+it('logs authentication and authorization lookup failures at error level with the API message, even with debug off', function () {
+    with_ss_settings(['ss_debug' => 'no']);
+    $spy = spy_on_logger();
+    remember_cleanup_callback(function (): void {
+        WC()->session->set('ss_shipping_agents', null);
+    });
+
+    foreach ([[401, 'The API token is invalid.', 'authentication error (HTTP 401)'], [403, 'No pickup point access.', 'authorization error (HTTP 403)']] as [$status, $api_message, $classification]) {
+        mock_smart_send_api(function () use ($status, $api_message) {
+            return ss_api_response($status, ['message' => $api_message]);
+        });
+
+        try {
+            (new SS_Shipping_Pickup_Point_Lookup())
+                ->find_closest_by_address('postnord', 'DK', '2300', 'Copenhagen', 'Islands Brygge 39');
+            test()->fail('Expected the HTTP ' . $status . ' lookup to throw.');
+        } catch (Smartsend\Exceptions\RequestException $e) {
+            // Expected - logged by the lookup before rethrowing.
+        }
+
+        $errors = implode("\n", array_column(
+            array_filter($spy->entries, fn (array $entry): bool => $entry['level'] === 'error'),
+            'message'
+        ));
+        expect($errors)->toContain($classification)
+            ->and($errors)->toContain($api_message);
+    }
+});
+
+it('logs an empty pickup point result at info level even with debug off', function () {
+    with_ss_settings(['ss_debug' => 'no']);
+    $spy = spy_on_logger();
+    mock_smart_send_api(function () {
+        return ss_api_response(200, ['data' => []]);
+    });
+    remember_cleanup_callback(function (): void {
+        WC()->session->set('ss_shipping_agents', null);
+    });
+
+    $points = (new SS_Shipping_Pickup_Point_Lookup())
+        ->find_closest_by_address('postnord', 'DK', '2300', 'Copenhagen', 'Islands Brygge 39');
+
+    expect($points)->toBe([]);
+
+    $by_level = fn (string $level): string => implode("\n", array_column(
+        array_filter($spy->entries, fn (array $entry): bool => $entry['level'] === $level),
+        'message'
+    ));
+
+    // Worth noticing (likely a non-geocodable address), so part of the
+    // always-on info audit trail - never gated behind the debug setting,
+    // never an error.
+    expect($by_level('info'))->toContain('no postnord pickup points found near the entered address')
+        ->and($by_level('error'))->not->toContain('no postnord pickup points')
+        ->and($by_level('debug'))->not->toContain('no postnord pickup points');
+});

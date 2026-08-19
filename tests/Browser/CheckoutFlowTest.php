@@ -116,10 +116,10 @@ it('shows the fallback text and places the order without a selection when no pic
             ->fill('#billing_phone', '+4512345678')
             ->fill('#billing_email', 'ss-browser-test@smartsend.io');
 
-        // Choosing the agent method now renders the friendly fallback text
+        // Choosing the agent method now renders the none-found message
         // instead of a dropdown - there is nothing to select.
         $page->click('#shipping_method_0_smart_send_shipping' . $state['instance_id'])
-            ->assertSee('Shipping to closest pickup point')
+            ->assertSee('We could not find available pickup points')
             ->assertMissing('select[name=ss_shipping_store_pickup]');
 
         // The order goes through WITHOUT a pickup point selection.

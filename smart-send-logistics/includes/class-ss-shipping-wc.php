@@ -172,6 +172,14 @@ if ( ! class_exists( 'SS_Shipping_WC' ) ) :
 		protected ?SS_Shipping_Pickup_Point_Lookup $pickup_point_lookup = null;
 
 		/**
+		 * Checkout delivery-option resolution (which sections checkout
+		 * renders for a shipping method, pickup point section statuses).
+		 *
+		 * @var SS_Shipping_Checkout_Options|null
+		 */
+		protected ?SS_Shipping_Checkout_Options $checkout_options = null;
+
+		/**
 		 * Smart Send api handle
 		 *
 		 * @var \Smartsend\Api|null
@@ -273,6 +281,8 @@ if ( ! class_exists( 'SS_Shipping_WC' ) ) :
 			require_once SS_SHIPPING_PLUGIN_DIR_PATH . '/includes/delivery/class-ss-shipping-delivery-details.php';
 			require_once SS_SHIPPING_PLUGIN_DIR_PATH . '/includes/delivery/class-ss-shipping-order-meta.php';
 			require_once SS_SHIPPING_PLUGIN_DIR_PATH . '/includes/delivery/class-ss-shipping-method-resolver.php';
+			require_once SS_SHIPPING_PLUGIN_DIR_PATH . '/includes/delivery/class-ss-shipping-checkout-options.php';
+			require_once SS_SHIPPING_PLUGIN_DIR_PATH . '/includes/delivery/exceptions/class-ss-shipping-not-connected-exception.php';
 			require_once SS_SHIPPING_PLUGIN_DIR_PATH . '/includes/delivery/class-ss-shipping-pickup-point-formatter.php';
 			require_once SS_SHIPPING_PLUGIN_DIR_PATH . '/includes/delivery/class-ss-shipping-pickup-point-lookup.php';
 			require_once SS_SHIPPING_PLUGIN_DIR_PATH . '/includes/delivery/class-ss-shipping-pickup-point-validator.php';
@@ -367,10 +377,11 @@ if ( ! class_exists( 'SS_Shipping_WC' ) ) :
 				$this->include_block_checkout_class();
 
 				$this->pickup_point_formatter = new SS_Shipping_Pickup_Point_Formatter( $this->settings );
-				$this->pickup_point_lookup    = new SS_Shipping_Pickup_Point_Lookup();
+				$this->pickup_point_lookup    = new SS_Shipping_Pickup_Point_Lookup( $this->settings );
 				$this->order_meta             = new SS_Shipping_Order_Meta();
+				$this->checkout_options       = new SS_Shipping_Checkout_Options();
 
-				$this->ss_shipping_frontend     = new SS_Shipping_Frontend( $this->pickup_point_lookup, $this->pickup_point_formatter, $this->settings, $this->order_meta );
+				$this->ss_shipping_frontend     = new SS_Shipping_Frontend( $this->pickup_point_lookup, $this->pickup_point_formatter, $this->settings, $this->order_meta, $this->checkout_options );
 				$this->ss_shipping_wc_product   = new SS_Shipping_WC_Product();
 				$this->ss_plugin_screen_updates = new SS_Plugins_Screen_Updates();
 
@@ -393,7 +404,7 @@ if ( ! class_exists( 'SS_Shipping_WC' ) ) :
 				$this->subscriptions_compat   = new SS_Shipping_Subscriptions_Compat();
 
 				$this->block_checkout = new SS_Shipping_Block_Checkout();
-				$this->store_api      = new SS_Shipping_Store_Api( $this->pickup_point_lookup, $this->pickup_point_formatter, $this->settings, $this->order_meta, $this->method_resolver );
+				$this->store_api      = new SS_Shipping_Store_Api( $this->pickup_point_lookup, $this->pickup_point_formatter, $this->settings, $this->order_meta, $this->method_resolver, $this->checkout_options );
 
 				$this->register_component_hooks();
 			} else {
@@ -650,6 +661,15 @@ if ( ! class_exists( 'SS_Shipping_WC' ) ) :
 		 */
 		public function pickup_point_lookup(): SS_Shipping_Pickup_Point_Lookup {
 			return $this->pickup_point_lookup;
+		}
+
+		/**
+		 * Get the checkout delivery-option resolution component.
+		 *
+		 * @return SS_Shipping_Checkout_Options
+		 */
+		public function checkout_options(): SS_Shipping_Checkout_Options {
+			return $this->checkout_options;
 		}
 
 		/**

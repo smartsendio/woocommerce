@@ -46,6 +46,14 @@ if ( ! class_exists( 'SS_Shipping_Frontend' ) ) :
 		protected SS_Shipping_Order_Meta $order_meta;
 
 		/**
+		 * Checkout delivery-option resolution (which sections checkout
+		 * renders, pickup point section statuses and texts).
+		 *
+		 * @var SS_Shipping_Checkout_Options
+		 */
+		protected SS_Shipping_Checkout_Options $checkout_options;
+
+		/**
 		 * All collaborators are stateless, so fresh defaults are safe for
 		 * ad-hoc construction (tests construct the frontend directly).
 		 *
@@ -53,12 +61,14 @@ if ( ! class_exists( 'SS_Shipping_Frontend' ) ) :
 		 * @param SS_Shipping_Pickup_Point_Formatter|null $pickup_point_formatter Pickup point display formatter.
 		 * @param SS_Shipping_Settings|null               $settings               Typed plugin settings reader.
 		 * @param SS_Shipping_Order_Meta|null             $order_meta             Order meta repository.
+		 * @param SS_Shipping_Checkout_Options|null       $checkout_options       Checkout delivery-option resolution.
 		 */
-		public function __construct( ?SS_Shipping_Pickup_Point_Lookup $pickup_point_lookup = null, ?SS_Shipping_Pickup_Point_Formatter $pickup_point_formatter = null, ?SS_Shipping_Settings $settings = null, ?SS_Shipping_Order_Meta $order_meta = null ) {
+		public function __construct( ?SS_Shipping_Pickup_Point_Lookup $pickup_point_lookup = null, ?SS_Shipping_Pickup_Point_Formatter $pickup_point_formatter = null, ?SS_Shipping_Settings $settings = null, ?SS_Shipping_Order_Meta $order_meta = null, ?SS_Shipping_Checkout_Options $checkout_options = null ) {
 			$this->pickup_point_lookup    = null === $pickup_point_lookup ? new SS_Shipping_Pickup_Point_Lookup() : $pickup_point_lookup;
 			$this->pickup_point_formatter = null === $pickup_point_formatter ? new SS_Shipping_Pickup_Point_Formatter() : $pickup_point_formatter;
 			$this->settings               = null === $settings ? new SS_Shipping_Settings() : $settings;
 			$this->order_meta             = null === $order_meta ? new SS_Shipping_Order_Meta() : $order_meta;
+			$this->checkout_options       = null === $checkout_options ? new SS_Shipping_Checkout_Options() : $checkout_options;
 		}
 
 		/**
@@ -86,7 +96,12 @@ if ( ! class_exists( 'SS_Shipping_Frontend' ) ) :
 		}
 
 		/**
-		 * Display the pickup points next to the Smart Send method
+		 * Display the pickup point section next to the chosen Smart Send
+		 * agent rate: the selector when the lookup found pickup points, a
+		 * status message (enter address / not connected / auth failure /
+		 * none found / fallback) otherwise. The statuses and their texts
+		 * live on SS_Shipping_Checkout_Options, shared with the Checkout
+		 * Block surface.
 		 */
 		// phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed -- $index is part of the woocommerce_after_shipping_rate hook signature.
 		public function display_ss_pickup_points( $method, $index ) {
@@ -98,95 +113,140 @@ if ( ! class_exists( 'SS_Shipping_Frontend' ) ) :
 
 			// phpcs:disable WordPress.Security.NonceVerification.Missing -- pre-existing behaviour: this renders inside WooCommerce's own checkout update_order_review AJAX cycle, which carries no plugin nonce; changing the input handling is out of scope for the #43 move.
 
-			// Need posted address
-			if ( empty( $_POST ) ) {
-				return;
-			}
-
 			$chosen_methods  = WC()->session->get( 'chosen_shipping_methods' );
-			$chosen_shipping = current( $chosen_methods );
+			$chosen_shipping = is_array( $chosen_methods ) ? current( $chosen_methods ) : false;
 
 			$method_id   = $method->get_method_id();
 			$shipping_id = $method->get_id();
 
 			$meta_data = $method->get_meta_data();
 
-			if ( $chosen_shipping &&
-				( 'smart_send_shipping' == $method_id ) && // phpcs:ignore Universal.Operators.StrictComparisons.LooseEqual -- pre-existing loose comparison; tightening is a behaviour change out of scope for the #43 move.
-				( $chosen_shipping == $shipping_id ) && // phpcs:ignore Universal.Operators.StrictComparisons.LooseEqual -- pre-existing loose comparison; tightening is a behaviour change out of scope for the #43 move.
-				( stripos( $meta_data['smart_send_shipping_method'], 'agent' ) !== false ) ) {
+			if ( ! $chosen_shipping ||
+				( 'smart_send_shipping' != $method_id ) || // phpcs:ignore Universal.Operators.StrictComparisons.LooseNotEqual -- pre-existing loose comparison; tightening is a behaviour change out of scope for the #43 move.
+				( $chosen_shipping != $shipping_id ) || // phpcs:ignore Universal.Operators.StrictComparisons.LooseNotEqual -- pre-existing loose comparison; tightening is a behaviour change out of scope for the #43 move.
+				empty( $meta_data['smart_send_shipping_method'] ) ) {
+				return;
+			}
 
-				// phpcs:disable WordPress.Security.ValidatedSanitizedInput -- pre-existing behaviour: values are wc_clean-ed; changing the input handling is out of scope for the #43 move.
-				if ( ! empty( $_POST['s_country'] ) && ! empty( $_POST['s_postcode'] ) && ! empty( $_POST['s_address'] ) ) {
-					$country     = wc_clean( $_POST['s_country'] );
-					$postal_code = wc_clean( $_POST['s_postcode'] );
-					$city        = ( ! empty( $_POST['s_city'] ) ? wc_clean( $_POST['s_city'] ) : null );//not required but preferred
-					$street      = wc_clean( $_POST['s_address'] );
-					// phpcs:enable WordPress.Security.ValidatedSanitizedInput
+			$method_code = new SS_Shipping_Method_Code( $meta_data['smart_send_shipping_method'] );
 
-					$carrier = ( new SS_Shipping_Method_Code( $meta_data['smart_send_shipping_method'] ) )->carrier();
+			if ( ! $this->checkout_options->show_pickup_points( $method_code ) ) {
+				return;
+			}
 
-					$ss_pickup_points = $this->find_closest_agents_by_address( $carrier, $country, $postal_code, $city, $street );
+			list( $country, $postal_code, $city, $street ) = $this->resolve_shipping_address();
 
-					if ( ! empty( $ss_pickup_points ) ) {
+			$ss_pickup_points = array();
 
-						$pickup_point_options = array();
-						if ( ! $this->settings->default_select_agent() ) {
-							$pickup_point_options[0] = __(
-								'- Select Pickup Point -',
-								'smart-send-logistics'
-							);
-						}
+			if ( empty( $country ) || empty( $postal_code ) || empty( $street ) ) {
+				// No lookup can run without an address - render the
+				// enter-your-address hint (also on the very first, non-AJAX
+				// page load).
+				$status = SS_Shipping_Checkout_Options::PICKUP_POINT_STATUS_ADDRESS_INCOMPLETE;
+			} else {
+				try {
+					$ss_pickup_points = $this->find_closest_agents_by_address( $method_code->carrier(), $country, $postal_code, $city, $street );
 
-						foreach ( $ss_pickup_points as $key => $pickup_point ) {
-							// The label pipeline (format + the smart_send_pickup_point_option_label
-							// filter) is shared with the Checkout Block cart extension (#74).
-							$pickup_point_options[ $pickup_point->agent_no ] = $this->pickup_point_formatter->dropdown_label( $pickup_point );
-						}
-
-						/*
-						 * Filter which pickup point is pre-selected in the
-						 * checkout drop-down. Return the agent_no of one of the
-						 * found pickup points to pre-select it; return an empty
-						 * string to keep the default behaviour (the first option,
-						 * which is the "- Select Pickup Point -" placeholder
-						 * unless the "Select Default" setting is enabled).
-						 *
-						 * @since 9.0.0
-						 *
-						 * @param string   $default_pickup_point_no The pre-selected agent_no ('' selects the first option).
-						 * @param object[] $ss_pickup_points        The pickup points shown in the drop-down.
-						 *
-						 * @return string The agent_no to pre-select, or '' for the first option.
-						 */
-						$default_pickup_point_no = apply_filters( 'smart_send_default_selected_pickup_point', '', $ss_pickup_points );
-
-						woocommerce_form_field(
-							'ss_shipping_store_pickup',
-							array(
-								'type'        => 'select',
-								'options'     => $pickup_point_options,
-								'input_class' => array( 'ss-agent-list' ),
-								'default'     => $default_pickup_point_no,
-							)
-						);
-
-					} else {
-						// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- pre-existing static translated string in static markup; escaping is a behaviour change out of scope for the #43 move.
-						echo '<div class="woocommerce-info ss-agent-info">' . __(
-							'Shipping to closest pickup point',
-							'smart-send-logistics'
-						) . '</div>';
-					}
-				} else {
-					// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- pre-existing static translated string in static markup; escaping is a behaviour change out of scope for the #43 move.
-					echo '<div class="woocommerce-info ss-agent-info">' . __(
-						'Enter shipping information',
-						'smart-send-logistics'
-					) . '</div>';
+					$status = empty( $ss_pickup_points )
+						? SS_Shipping_Checkout_Options::PICKUP_POINT_STATUS_NONE_FOUND
+						: SS_Shipping_Checkout_Options::PICKUP_POINT_STATUS_FOUND;
+				} catch ( Exception $e ) {
+					// Logged and session-cached by the lookup itself - only
+					// rendering is left to do here.
+					$status = $this->checkout_options->pickup_point_status_for_exception( $e );
 				}
 			}
+
+			if ( SS_Shipping_Checkout_Options::PICKUP_POINT_STATUS_FOUND === $status ) {
+
+				$pickup_point_options = array();
+				if ( ! $this->settings->default_select_agent() ) {
+					$pickup_point_options[0] = __(
+						'- Select Pickup Point -',
+						'smart-send-logistics'
+					);
+				}
+
+				foreach ( $ss_pickup_points as $key => $pickup_point ) {
+					// The label pipeline (format + the smart_send_pickup_point_option_label
+					// filter) is shared with the Checkout Block cart extension (#74).
+					$pickup_point_options[ $pickup_point->agent_no ] = $this->pickup_point_formatter->dropdown_label( $pickup_point );
+				}
+
+				/*
+				 * Filter which pickup point is pre-selected in the
+				 * checkout drop-down. Return the agent_no of one of the
+				 * found pickup points to pre-select it; return an empty
+				 * string to keep the default behaviour (the first option,
+				 * which is the "- Select Pickup Point -" placeholder
+				 * unless the "Select Default" setting is enabled).
+				 *
+				 * @since 9.0.0
+				 *
+				 * @param string   $default_pickup_point_no The pre-selected agent_no ('' selects the first option).
+				 * @param object[] $ss_pickup_points        The pickup points shown in the drop-down.
+				 *
+				 * @return string The agent_no to pre-select, or '' for the first option.
+				 */
+				$default_pickup_point_no = apply_filters( 'smart_send_default_selected_pickup_point', '', $ss_pickup_points );
+
+				woocommerce_form_field(
+					'ss_shipping_store_pickup',
+					array(
+						'type'        => 'select',
+						'options'     => $pickup_point_options,
+						'input_class' => array( 'ss-agent-list' ),
+						'default'     => $default_pickup_point_no,
+					)
+				);
+
+			} else {
+				printf(
+					'<div class="%1$s ss-agent-info ss-agent-info--%2$s">%3$s</div>',
+					$this->checkout_options->is_pickup_point_error_status( $status ) ? 'woocommerce-error' : 'woocommerce-info',
+					esc_attr( $status ),
+					esc_html( $this->checkout_options->pickup_point_status_message( $status ) )
+				);
+			}
 			// phpcs:enable WordPress.Security.NonceVerification.Missing
+		}
+
+		/**
+		 * The shipping address the pickup point lookup should run for: the
+		 * address fields posted by WooCommerce's update_order_review AJAX
+		 * cycle when present, the customer's session-stored shipping address
+		 * otherwise (the very first, non-AJAX checkout page load posts
+		 * nothing - the same server-side source the Checkout Block surface
+		 * reads).
+		 *
+		 * @return array{0: string|null, 1: string|null, 2: string|null, 3: string|null} [country, postal_code, city, street]
+		 */
+		protected function resolve_shipping_address(): array {
+			// phpcs:disable WordPress.Security.NonceVerification.Missing, WordPress.Security.ValidatedSanitizedInput -- pre-existing behaviour: values are wc_clean-ed; this renders inside WooCommerce's own checkout update_order_review AJAX cycle, which carries no plugin nonce.
+			if ( ! empty( $_POST['s_country'] ) && ! empty( $_POST['s_postcode'] ) && ! empty( $_POST['s_address'] ) ) {
+				return array(
+					wc_clean( $_POST['s_country'] ),
+					wc_clean( $_POST['s_postcode'] ),
+					( ! empty( $_POST['s_city'] ) ? wc_clean( $_POST['s_city'] ) : null ), // not required but preferred.
+					wc_clean( $_POST['s_address'] ),
+				);
+			}
+			// phpcs:enable WordPress.Security.NonceVerification.Missing, WordPress.Security.ValidatedSanitizedInput
+
+			$customer = WC()->customer;
+
+			if ( null === $customer ) {
+				return array( null, null, null, null );
+			}
+
+			$city = $customer->get_shipping_city();
+
+			return array(
+				$customer->get_shipping_country(),
+				$customer->get_shipping_postcode(),
+				empty( $city ) ? null : $city,
+				$customer->get_shipping_address(),
+			);
 		}
 
 		/**
@@ -201,7 +261,10 @@ if ( ! class_exists( 'SS_Shipping_Frontend' ) ) :
 		 * @param $city string
 		 * @param $street string
 		 *
-		 * @return array
+		 * @throws SS_Shipping_Not_Connected_Exception When no API token is configured.
+		 * @throws \Smartsend\Exceptions\HttpClientException When the API call fails.
+		 *
+		 * @return array The found pickup points (possibly empty).
 		 */
 		public function find_closest_agents_by_address( $carrier, $country, $postal_code, $city, $street ) {
 			return $this->pickup_point_lookup->find_closest_by_address( $carrier, $country, $postal_code, $city, $street );

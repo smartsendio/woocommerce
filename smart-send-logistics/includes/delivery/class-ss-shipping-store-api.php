@@ -86,6 +86,14 @@ if ( ! class_exists( 'SS_Shipping_Store_Api' ) ) :
 		protected SS_Shipping_Method_Resolver $method_resolver;
 
 		/**
+		 * Checkout delivery-option resolution (which sections checkout
+		 * renders, pickup point section statuses and texts).
+		 *
+		 * @var SS_Shipping_Checkout_Options
+		 */
+		protected SS_Shipping_Checkout_Options $checkout_options;
+
+		/**
 		 * All collaborators are stateless, so fresh defaults are safe for
 		 * ad-hoc construction (tests construct the component directly).
 		 *
@@ -94,13 +102,15 @@ if ( ! class_exists( 'SS_Shipping_Store_Api' ) ) :
 		 * @param SS_Shipping_Settings|null               $settings               Typed plugin settings reader.
 		 * @param SS_Shipping_Order_Meta|null             $order_meta             Order meta repository.
 		 * @param SS_Shipping_Method_Resolver|null        $method_resolver        Shipping method resolver.
+		 * @param SS_Shipping_Checkout_Options|null       $checkout_options       Checkout delivery-option resolution.
 		 */
-		public function __construct( ?SS_Shipping_Pickup_Point_Lookup $pickup_point_lookup = null, ?SS_Shipping_Pickup_Point_Formatter $pickup_point_formatter = null, ?SS_Shipping_Settings $settings = null, ?SS_Shipping_Order_Meta $order_meta = null, ?SS_Shipping_Method_Resolver $method_resolver = null ) {
+		public function __construct( ?SS_Shipping_Pickup_Point_Lookup $pickup_point_lookup = null, ?SS_Shipping_Pickup_Point_Formatter $pickup_point_formatter = null, ?SS_Shipping_Settings $settings = null, ?SS_Shipping_Order_Meta $order_meta = null, ?SS_Shipping_Method_Resolver $method_resolver = null, ?SS_Shipping_Checkout_Options $checkout_options = null ) {
 			$this->pickup_point_lookup    = null === $pickup_point_lookup ? new SS_Shipping_Pickup_Point_Lookup() : $pickup_point_lookup;
 			$this->pickup_point_formatter = null === $pickup_point_formatter ? new SS_Shipping_Pickup_Point_Formatter() : $pickup_point_formatter;
 			$this->settings               = null === $settings ? new SS_Shipping_Settings() : $settings;
 			$this->order_meta             = null === $order_meta ? new SS_Shipping_Order_Meta() : $order_meta;
 			$this->method_resolver        = null === $method_resolver ? new SS_Shipping_Method_Resolver( $this->settings ) : $method_resolver;
+			$this->checkout_options       = null === $checkout_options ? new SS_Shipping_Checkout_Options() : $checkout_options;
 		}
 
 		/**
@@ -175,32 +185,33 @@ if ( ! class_exists( 'SS_Shipping_Store_Api' ) ) :
 		public function cart_extension_data() {
 			$method_code   = $this->chosen_agent_rate_method_code();
 			$pickup_points = array();
-			$lookup_ran    = false;
+			$status        = null;
 
 			if ( null !== $method_code ) {
-				$found = $this->lookup_pickup_points_for_customer( $method_code->carrier() );
+				list( $found, $status ) = $this->lookup_pickup_points_for_customer( $method_code->carrier() );
 
-				if ( null !== $found ) {
-					$lookup_ran = true;
-
-					foreach ( $found as $pickup_point ) {
-						$pickup_points[] = array(
-							'agent_no' => (string) $pickup_point->agent_no,
-							'label'    => $this->pickup_point_formatter->dropdown_label( $pickup_point ),
-						);
-					}
+				foreach ( $found as $pickup_point ) {
+					$pickup_points[] = array(
+						'agent_no' => (string) $pickup_point->agent_no,
+						'label'    => $this->pickup_point_formatter->dropdown_label( $pickup_point ),
+					);
 				}
 			}
 
 			return array(
 				'selected_rate_is_agent' => null !== $method_code,
 				'pickup_points'          => $pickup_points,
-				// True only when the lookup actually ran (agent rate, complete
-				// address) and found nothing: the block then renders the
-				// "Shipping to closest pickup point" fallback (classic-checkout
-				// parity) instead of an empty selector, and registers no
-				// "must select" validation error.
-				'no_pickup_points_found' => $lookup_ran && array() === $pickup_points,
+				// The pickup point section state (one of the
+				// SS_Shipping_Checkout_Options PICKUP_POINT_STATUS_* slugs) and its
+				// customer-facing text, server-side i18n - the block renders
+				// the message verbatim and keys its behaviour (validation,
+				// styling) off the status. Null when the chosen rate is not
+				// an agent method.
+				'pickup_point_status'    => $status,
+				'pickup_point_message'   => null === $status ? null : $this->checkout_options->pickup_point_status_message( $status ),
+				// Back-compat flag (pre-status consumers): true only when the
+				// lookup ran and found nothing near the address.
+				'no_pickup_points_found' => SS_Shipping_Checkout_Options::PICKUP_POINT_STATUS_NONE_FOUND === $status,
 				'selected_agent_no'      => $this->get_selected_agent_no(),
 				'select_default'         => $this->settings->default_select_agent(),
 			);
@@ -237,6 +248,26 @@ if ( ! class_exists( 'SS_Shipping_Store_Api' ) ) :
 							),
 						),
 					),
+				),
+				'pickup_point_status'    => array(
+					'description' => __( 'The pickup point section state: found, address_incomplete, not_connected, auth_failed, access_denied, none_found or lookup_failed. Null when the chosen rate is not a Smart Send agent-type method.', 'smart-send-logistics' ),
+					'type'        => array( 'string', 'null' ),
+					'enum'        => array(
+						SS_Shipping_Checkout_Options::PICKUP_POINT_STATUS_FOUND,
+						SS_Shipping_Checkout_Options::PICKUP_POINT_STATUS_ADDRESS_INCOMPLETE,
+						SS_Shipping_Checkout_Options::PICKUP_POINT_STATUS_NOT_CONNECTED,
+						SS_Shipping_Checkout_Options::PICKUP_POINT_STATUS_AUTH_FAILED,
+						SS_Shipping_Checkout_Options::PICKUP_POINT_STATUS_ACCESS_DENIED,
+						SS_Shipping_Checkout_Options::PICKUP_POINT_STATUS_NONE_FOUND,
+						SS_Shipping_Checkout_Options::PICKUP_POINT_STATUS_LOOKUP_FAILED,
+						null,
+					),
+					'readonly'    => true,
+				),
+				'pickup_point_message'   => array(
+					'description' => __( 'The customer-facing text of the pickup point section state, translated server-side. Null when the selector renders instead of a message.', 'smart-send-logistics' ),
+					'type'        => array( 'string', 'null' ),
+					'readonly'    => true,
 				),
 				'no_pickup_points_found' => array(
 					'description' => __( 'Whether the lookup ran for the customer address and found no pickup points at all.', 'smart-send-logistics' ),
@@ -328,20 +359,22 @@ if ( ! class_exists( 'SS_Shipping_Store_Api' ) ) :
 		public function persist_pickup_point_from_request( $order, $request ) {
 			$method_code = new SS_Shipping_Method_Code( $this->method_resolver->resolve_outbound( $order ) );
 
-			if ( stripos( $method_code->type(), 'agent' ) === false ) {
+			if ( ! $this->checkout_options->show_pickup_points( $method_code ) ) {
 				return;
 			}
 
 			$agent_no = $this->requested_agent_no( $request );
 
 			if ( '' === $agent_no ) {
-				// Classic-checkout parity: when the lookup found NO pickup
-				// points for the address there is nothing to select, so the
-				// order is allowed through with no pickup point meta (the
-				// classic checkout renders no dropdown in that case and its
-				// validation passes). The distinction comes from the
-				// server-side session cache the lookup maintains - never from
-				// a client-supplied claim.
+				// Classic-checkout parity: when the lookup offered NO pickup
+				// points for this session - none near the address, lookup
+				// failure, or plugin not connected - there is nothing to
+				// select, so the order is allowed through with no pickup
+				// point meta (the classic checkout renders no dropdown in
+				// those cases and its validation passes). The distinction
+				// comes from the server-side session cache the lookup
+				// maintains (it caches an empty array in every failure path
+				// too) - never from a client-supplied claim.
 				if ( $this->no_pickup_points_were_available() ) {
 					SS_Shipping_Logger::info(
 						'No pickup points were available for the address - order placed without a pickup point selection',
@@ -524,35 +557,40 @@ if ( ! class_exists( 'SS_Shipping_Store_Api' ) ) :
 		/**
 		 * Look up the closest pickup points from the customer's shipping
 		 * address as WooCommerce knows it server-side (WC()->customer, never
-		 * client request data). An incomplete address (no country, postcode
-		 * or street - city is optional, matching the classic checkout)
-		 * yields null and makes no API call - distinct from an empty array,
-		 * which means the lookup RAN and found no points (so the block can
-		 * render the "none found" state instead of a loading state). Lookup
-		 * failures are logged/reported by SS_Shipping_Pickup_Point_Lookup
-		 * itself.
+		 * client request data), yielding the points plus the section status.
+		 * An incomplete address (no country, postcode or street - city is
+		 * optional, matching the classic checkout) makes no API call and
+		 * yields the address_incomplete status. Lookup failures are logged
+		 * and session-cached by SS_Shipping_Pickup_Point_Lookup itself and
+		 * mapped to their status here - only rendering data leaves this
+		 * method.
 		 *
 		 * @param string $carrier Unique carrier code (e.g. 'postnord').
 		 *
-		 * @return object[]|null The found pickup points, or null when no lookup could run.
+		 * @return array{0: object[], 1: string} [pickup points (possibly empty), PICKUP_POINT_STATUS_* slug]
 		 */
-		protected function lookup_pickup_points_for_customer( $carrier ) {
+		protected function lookup_pickup_points_for_customer( $carrier ): array {
 			$customer = WC()->customer;
 
-			if ( null === $customer ) {
-				return null;
-			}
-
-			$country     = $customer->get_shipping_country();
-			$postal_code = $customer->get_shipping_postcode();
-			$city        = $customer->get_shipping_city();
-			$street      = $customer->get_shipping_address();
+			$country     = null === $customer ? '' : $customer->get_shipping_country();
+			$postal_code = null === $customer ? '' : $customer->get_shipping_postcode();
+			$city        = null === $customer ? '' : $customer->get_shipping_city();
+			$street      = null === $customer ? '' : $customer->get_shipping_address();
 
 			if ( empty( $country ) || empty( $postal_code ) || empty( $street ) ) {
-				return null;
+				return array( array(), SS_Shipping_Checkout_Options::PICKUP_POINT_STATUS_ADDRESS_INCOMPLETE );
 			}
 
-			return $this->pickup_point_lookup->find_closest_by_address( $carrier, $country, $postal_code, empty( $city ) ? null : $city, $street );
+			try {
+				$found = $this->pickup_point_lookup->find_closest_by_address( $carrier, $country, $postal_code, empty( $city ) ? null : $city, $street );
+			} catch ( Exception $e ) {
+				return array( array(), $this->checkout_options->pickup_point_status_for_exception( $e ) );
+			}
+
+			return array(
+				$found,
+				empty( $found ) ? SS_Shipping_Checkout_Options::PICKUP_POINT_STATUS_NONE_FOUND : SS_Shipping_Checkout_Options::PICKUP_POINT_STATUS_FOUND,
+			);
 		}
 	}
 
