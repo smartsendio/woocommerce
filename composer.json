@@ -30,6 +30,7 @@
     }
   },
   "scripts": {
+    "setup": "bin/setup-local-dev.sh",
     "phpcs": "phpcs",
     "phpcs:compat": "phpcs --standard=phpcs.compat.xml.dist",
     "phpcs:fix": "phpcbf",

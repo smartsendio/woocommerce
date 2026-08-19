@@ -28,8 +28,10 @@ The Smart Send plugin for WooCommerce
 The manual steps below are automated by [bin/setup-local-dev.sh](bin/setup-local-dev.sh), which sets up a complete local development store — WordPress + WooCommerce with the plugin from this repository symlinked in and activated, the [Storefront](https://wordpress.org/themes/storefront/) theme active, configured with a Danish store origin, DKK currency and metric units (kg/cm), plus a realistic sample catalog with images (see [sample-data/](sample-data/)), a Storefront homepage + menu, and a Denmark shipping zone:
 
 ```bash
-bin/setup-local-dev.sh
+composer setup            # shorthand for bin/setup-local-dev.sh
 ```
+
+Extra options pass through after `--`, e.g. `composer setup -- --force`.
 
 By default it installs the latest WordPress and WooCommerce into `./local-dev/wordpress` using SQLite (via the official [SQLite Database Integration](https://github.com/WordPress/sqlite-database-integration) plugin), so no database server is required. Everything is configurable:
 
