@@ -1,6 +1,8 @@
 /vendor
 /.idea
 /local-dev
+/.env
+/.env.testing
 /node_modules
 .DS_Store
 .phpunit.cache

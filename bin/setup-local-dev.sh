@@ -22,6 +22,16 @@ set -euo pipefail
 INSTALL_PATH="${WP_DEV_PATH:-./local-dev/wordpress}"
 SITE_URL="http://localhost:8181"
 SITE_TITLE="Smart Send"
+ENV_NAME=""                   # "" -> .env, "testing" -> .env.testing
+PATH_FROM_FLAG="false"
+URL_FROM_FLAG="false"
+
+# Defaults offered when creating a fresh .env interactively.
+ENV_DEFAULT_PATH="../../playground/smart-send-woocommerce"
+ENV_DEFAULT_URL="http://smart-send-woocommerce.test"
+# Defaults written to a fresh .env.testing (matches CI).
+ENV_TESTING_DEFAULT_PATH="./local-dev/wordpress"
+ENV_TESTING_DEFAULT_URL="http://127.0.0.1:8181"
 
 WP_VERSION="latest"
 WC_VERSION="latest"
@@ -50,9 +60,12 @@ active, configured with sensible shop settings (Danish store origin, DKK,
 metric units).
 
 Options:
-  --path <dir>          Install directory (default: ./local-dev/wordpress)
-  --url <url>           Site URL (default: http://localhost:8181)
+  --path <dir>          Install directory (default: WP_PATH from the env file)
+  --url <url>           Site URL (default: WP_URL from the env file)
   --title <title>       Site title (default: "Smart Send")
+  --env <name>          Read defaults from .env.<name> instead of .env
+                        (e.g. --env testing -> .env.testing, the disposable
+                        store rebuilt by every composer test:* run)
 
   --wp-version <v>      WordPress version to install (default: latest)
   --wc-version <v>      WooCommerce version to install (default: latest)
@@ -87,8 +100,9 @@ EOF
 # ------------------------------------------------------------------------------
 while [[ $# -gt 0 ]]; do
     case "$1" in
-        --path)         INSTALL_PATH="$2"; shift 2 ;;
-        --url)          SITE_URL="$2"; shift 2 ;;
+        --path)         INSTALL_PATH="$2"; PATH_FROM_FLAG="true"; shift 2 ;;
+        --url)          SITE_URL="$2"; URL_FROM_FLAG="true"; shift 2 ;;
+        --env)          ENV_NAME="$2"; shift 2 ;;
         --title)        SITE_TITLE="$2"; shift 2 ;;
         --wp-version)   WP_VERSION="$2"; shift 2 ;;
         --wc-version)   WC_VERSION="$2"; shift 2 ;;
@@ -116,11 +130,58 @@ fi
 # Resolve paths before changing directories.
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 PLUGIN_SRC="$REPO_ROOT/smart-send-logistics"
-mkdir -p "$INSTALL_PATH"
-INSTALL_PATH="$(cd "$INSTALL_PATH" && pwd)"
 
 log()  { printf '\033[1;32m==>\033[0m %s\n' "$*"; }
 warn() { printf '\033[1;33mWarning:\033[0m %s\n' "$*" >&2; }
+
+# ------------------------------------------------------------------------------
+# Env file (.env / .env.<name>): the persisted store location, shared with the
+# test bootstrap (tests/bootstrap.php, tests/Pest.php) and bin/demo-store.sh.
+# Explicit --path/--url flags always win; WP_PATH is resolved relative to the
+# repository root.
+# ------------------------------------------------------------------------------
+ENV_FILE="$REPO_ROOT/.env${ENV_NAME:+.$ENV_NAME}"
+
+env_get() { sed -n "s/^$1=//p" "$ENV_FILE" 2>/dev/null | tail -1; }
+
+if [[ ! -f "$ENV_FILE" && ( "$PATH_FROM_FLAG" != "true" || "$URL_FROM_FLAG" != "true" ) ]]; then
+    if [[ "$ENV_NAME" == "testing" ]]; then
+        log "Creating $ENV_FILE with defaults"
+        cat > "$ENV_FILE" <<EOF
+# Disposable testing store - rebuilt from scratch by every composer test:* run
+# (bin/run-tests.sh). WP_PATH is resolved relative to the repository root.
+# Point WP_URL at a localhost URL to have the test runner manage a PHP
+# built-in server, or at a parked .test domain to let Laravel Herd serve it.
+WP_PATH=$ENV_TESTING_DEFAULT_PATH
+WP_URL=$ENV_TESTING_DEFAULT_URL
+EOF
+    elif [[ -z "$ENV_NAME" && -t 0 ]]; then
+        log "No .env found - where should the local dev store live?"
+        read -r -p "Install path [$ENV_DEFAULT_PATH]: " ANSWER_PATH
+        read -r -p "Site URL [$ENV_DEFAULT_URL]: " ANSWER_URL
+        cat > "$ENV_FILE" <<EOF
+# Local dev store location, used by bin/setup-local-dev.sh and
+# bin/demo-store.sh. WP_PATH is resolved relative to the repository root.
+# The test suites use .env.testing instead (see bin/run-tests.sh).
+WP_PATH=${ANSWER_PATH:-$ENV_DEFAULT_PATH}
+WP_URL=${ANSWER_URL:-$ENV_DEFAULT_URL}
+EOF
+        log "Wrote $ENV_FILE"
+    fi
+fi
+
+if [[ -f "$ENV_FILE" ]]; then
+    if [[ "$PATH_FROM_FLAG" != "true" && -n "$(env_get WP_PATH)" ]]; then
+        INSTALL_PATH="$(env_get WP_PATH)"
+        [[ "$INSTALL_PATH" != /* ]] && INSTALL_PATH="$REPO_ROOT/$INSTALL_PATH"
+    fi
+    if [[ "$URL_FROM_FLAG" != "true" && -n "$(env_get WP_URL)" ]]; then
+        SITE_URL="$(env_get WP_URL)"
+    fi
+fi
+
+mkdir -p "$INSTALL_PATH"
+INSTALL_PATH="$(cd "$INSTALL_PATH" && pwd)"
 
 # ------------------------------------------------------------------------------
 # WP-CLI bootstrap (pinned phar, independent of any globally installed wp)
@@ -424,6 +485,15 @@ PORT="$(echo "$SITE_URL" | sed -nE 's#.*:([0-9]+).*#\1#p')"
 PORT="${PORT:-80}"
 HOST="$(echo "$SITE_URL" | sed -E 's#https?://([^:/]+).*#\1#')"
 
+if [[ "$HOST" == "localhost" || "$HOST" == "127.0.0.1" ]]; then
+    SERVE_HINT="Start the store with the PHP built-in server:
+
+  PHP_CLI_SERVER_WORKERS=6 $PHP_BIN -d memory_limit=512M \"$WP_CLI_PHAR\" --path=\"$INSTALL_PATH\" server --host=$HOST --port=$PORT"
+else
+    SERVE_HINT="Served by your local web server (e.g. Laravel Herd) at $SITE_URL
+(park or link the install directory there if you have not already)."
+fi
+
 cat <<EOF
 
 ------------------------------------------------------------------------------
@@ -437,9 +507,7 @@ Local development store is ready!
   WooCommerce: $(wp plugin get woocommerce --field=version 2>/dev/null)
   Smart Send:  symlinked from $PLUGIN_SRC
 
-Start the store with the PHP built-in server:
-
-  $PHP_BIN -d memory_limit=512M "$WP_CLI_PHAR" --path="$INSTALL_PATH" server --host=$HOST --port=$PORT
+$SERVE_HINT
 
 Configure your Smart Send API token under:
   WooCommerce -> Settings -> Shipping -> Smart Send

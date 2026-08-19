@@ -41,7 +41,16 @@ bin/setup-local-dev.sh \
   --db-engine mysql --db-name wp_dev --db-user root --db-pass secret --db-host 127.0.0.1
 ```
 
-Run `bin/setup-local-dev.sh --help` for all options. The script is idempotent — re-running re-applies configuration without reinstalling; use `--force` to start over. When it finishes it prints the admin credentials and the command to start the store with WP-CLI's built-in server.
+Run `bin/setup-local-dev.sh --help` for all options. The script is idempotent — re-running re-applies configuration without reinstalling; use `--force` to start over. When it finishes it prints the admin credentials and how to reach the store.
+
+#### Store locations: `.env` and `.env.testing`
+
+Two git-ignored env files at the repo root pin the store locations (`WP_PATH`, resolved relative to the repo root, and `WP_URL`):
+
+- **`.env` — your persistent dev store**, for manual testing and demo mode. On the first interactive run with no `.env`, the setup script asks where to put it (default: `../../playground/smart-send-woocommerce` at `http://smart-send-woocommerce.test`) and writes the file. Point it at a directory served by [Laravel Herd](https://herd.laravel.com) (parked or `herd link`ed) and no manual web server is needed — use plain `http://`, not `herd secure`.
+- **`.env.testing` — the disposable testing store** used by the test suites. Created automatically with defaults matching CI (`./local-dev/wordpress`, `http://127.0.0.1:8181`) and **rebuilt from scratch by every `composer test:*` run** (see Testing below), so tests never suffer drift from demo mode, earlier runs or manual clicking.
+
+Explicit `--path`/`--url` flags always override the env files (this is what CI does), and the legacy `WP_DEV_PATH`/`WP_BASE_URL` environment variables still work as overrides everywhere.
 
 Note: SQLite is convenient for development but is not what production stores run; use `--db-engine mysql` when database parity matters (e.g. debugging SQL-level issues).
 
@@ -208,22 +217,19 @@ The `tests/Integration` suite contains characterization tests that pin down the 
 
 ### Browser tests
 
-End-to-end browser tests are written with [Pest](https://pestphp.com/docs/browser-testing) (backed by Playwright) and run against a store created by the setup script. Locally:
+End-to-end browser tests are written with [Pest](https://pestphp.com/docs/browser-testing) (backed by Playwright) and run against the testing store (`.env.testing`). Locally:
 
 ```bash
 composer install
 npm install
 npx playwright install chromium
 
-# Set up and start the store (in a separate terminal, keep it running)
-bin/setup-local-dev.sh
-php -d memory_limit=512M local-dev/wordpress/.wp-cli/wp-cli.phar --path=local-dev/wordpress server --host=127.0.0.1 --port=8181
-
-# Run the tests
+# Run the tests - provisions a FRESH testing store first (bin/run-tests.sh),
+# and manages the store's web server for the duration of the run
 composer test
 ```
 
-The tests read `WP_BASE_URL`, `WP_ADMIN_USER` and `WP_ADMIN_PASS` from the environment (defaulting to the setup script's defaults: `http://127.0.0.1:8181`, `admin` / `password`). The same flow runs in CI via the Browser Tests workflow, which provisions the store with `bin/setup-local-dev.sh` on every pull request. Failure screenshots are saved to `tests/Browser/Screenshots/` and uploaded as workflow artifacts.
+Every `composer test:*` run rebuilds the testing store from scratch to eliminate drift; for quick iteration against the existing testing store, call Pest directly (`vendor/bin/pest --testsuite=Browser`) — with a localhost `WP_URL` you then need the store server running yourself. The tests read the store location from `.env.testing` (`WP_URL`; the `WP_BASE_URL`, `WP_ADMIN_USER` and `WP_ADMIN_PASS` env vars still override, defaulting to `http://127.0.0.1:8181`, `admin` / `password`). The same flow runs in CI via the Browser Tests workflow, which provisions the store with explicit `bin/setup-local-dev.sh` flags on every pull request. Failure screenshots are saved to `tests/Browser/Screenshots/` and uploaded as workflow artifacts.
 
 ### Manual testing (demo mode)
 
@@ -238,7 +244,7 @@ composer demo:scenario -- no-pickup-points   # switch the mock into a failure sc
 
 Valid scenarios: `success` (the default), `invalid-token` (authentication returns 401), `booking-failure` (label booking returns a 422 validation error), `no-pickup-points` (the pick-up point lookup finds nothing).
 
-The commands target the install at `WP_DEV_PATH` (default `./local-dev/wordpress`); start the store's web server as shown above to browse it. Both commands are idempotent, and `demo:off` only removes what `demo:on` created — zones, products, pages and orders you built on top are left alone. The mock and seeding logic are shared with the Browser suite (`tests/Browser/Support/`), so demo mode always matches what the tests exercise. Demo mode is a local-only tool: it refuses to run against a production environment or a non-localhost site URL.
+The commands target the dev store from `.env`'s `WP_PATH` (default `./local-dev/wordpress`; the `WP_DEV_PATH` env var still overrides) — deliberately *not* the disposable testing store, so demo state never leaks into test runs. Both commands are idempotent, and `demo:off` only removes what `demo:on` created — zones, products, pages and orders you built on top are left alone. The mock and seeding logic are shared with the Browser suite (`tests/Browser/Support/`), so demo mode always matches what the tests exercise. Demo mode is a local-only tool: it refuses to run against a production environment or any site URL that is not localhost/127.0.0.1/`*.test`.
 
 ### SVN
 
