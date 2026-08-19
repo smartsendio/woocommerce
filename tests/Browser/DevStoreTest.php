@@ -15,7 +15,7 @@
 
 it('loads the store home page without javascript errors', function () {
     visit(base_url('/'))
-        ->assertSee('Smart Send Dev Store')
+        ->assertSee('Smart Send')
         ->assertNoJavaScriptErrors();
 });
 
@@ -27,18 +27,20 @@ it('runs the Storefront theme', function () {
 });
 
 it('lists the sample products in the shop', function () {
+    // Two products from the seeded sample catalog (sample-data/products.csv,
+    // imported by bin/setup-local-dev.sh); both sort onto the first shop page.
     visit(base_url('/shop/'))
-        ->assertSee('Sample Parcel Product')
-        ->assertSee('Sample Letter Product')
+        ->assertSee('Beanie')
+        ->assertSee('Belt')
         ->assertNoJavaScriptErrors();
 });
 
 it('calculates flat rate shipping for the Danish store address in the cart', function () {
-    visit(base_url('/product/sample-parcel-product/'))
+    visit(base_url('/product/beanie/'))
         ->assertSee('Add to cart')
         ->click('Add to cart')
         ->navigate(base_url('/cart/'))
-        ->assertSee('Sample Parcel Product')
+        ->assertSee('Beanie')
         ->assertSee('Flat rate')
         ->assertNoJavaScriptErrors();
 });
@@ -47,7 +49,7 @@ it('proceeds from the cart to the checkout', function () {
     // Guards the store-page wiring: a woocommerce_checkout_page_id pointing
     // at a missing page makes the cart block render this button with an
     // empty href, spinning forever without an error anywhere.
-    visit(base_url('/product/sample-parcel-product/'))
+    visit(base_url('/product/beanie/'))
         ->assertSee('Add to cart')
         ->click('Add to cart')
         ->navigate(base_url('/cart/'))

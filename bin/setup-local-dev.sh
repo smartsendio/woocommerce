@@ -21,7 +21,7 @@ set -euo pipefail
 # ------------------------------------------------------------------------------
 INSTALL_PATH="${WP_DEV_PATH:-./local-dev/wordpress}"
 SITE_URL="http://localhost:8181"
-SITE_TITLE="Smart Send Dev Store"
+SITE_TITLE="Smart Send"
 
 WP_VERSION="latest"
 WC_VERSION="latest"
@@ -52,7 +52,7 @@ metric units).
 Options:
   --path <dir>          Install directory (default: ./local-dev/wordpress)
   --url <url>           Site URL (default: http://localhost:8181)
-  --title <title>       Site title (default: "Smart Send Dev Store")
+  --title <title>       Site title (default: "Smart Send")
 
   --wp-version <v>      WordPress version to install (default: latest)
   --wc-version <v>      WooCommerce version to install (default: latest)
@@ -68,7 +68,7 @@ Options:
   --admin-pass <pass>   Admin password (default: password)
   --admin-email <mail>  Admin email (default: dev@smartsend.io)
 
-  --skip-seed           Skip creating sample products and shipping zone
+  --skip-seed           Skip importing the sample catalog and shipping zone
   --force               Delete an existing installation at --path first
   -h, --help            Show this help
 
@@ -308,30 +308,23 @@ wp option update woocommerce_onboarding_profile '{"skipped":true}' --format=json
 wp option update woocommerce_task_list_hidden "yes" >/dev/null 2>&1 || true
 
 # General site settings.
+wp option update blogname "$SITE_TITLE" >/dev/null
 wp option update timezone_string "Europe/Copenhagen" >/dev/null
-wp option update blogdescription "Local Smart Send test store" >/dev/null
+wp option update blogdescription "Demo store" >/dev/null
 wp rewrite structure '/%postname%/' --hard >/dev/null 2>&1 || wp rewrite structure '/%postname%/' >/dev/null
 
 # ------------------------------------------------------------------------------
-# 9. Seed sample data: products and a shipping zone (via WC CLI)
+# 9. Seed sample data: the vendored WooCommerce sample catalog (sample-data/,
+#    refresh with bin/update-sample-data.sh) and a shipping zone (via WC CLI)
 # ------------------------------------------------------------------------------
 if [[ "$SKIP_SEED" == "true" ]]; then
     log "Skipping sample data (--skip-seed)"
 else
     if [[ -z "$(wp post list --post_type=product --field=ID --posts_per_page=1 2>/dev/null)" ]]; then
-        log "Creating sample products"
-        wp wc product create --user="$ADMIN_USER" \
-            --name="Sample Parcel Product" \
-            --type=simple --regular_price=149.00 \
-            --weight=1.5 \
-            --dimensions='{"length":"30","width":"20","height":"10"}' \
-            --manage_stock=true --stock_quantity=100 >/dev/null
-        wp wc product create --user="$ADMIN_USER" \
-            --name="Sample Letter Product" \
-            --type=simple --regular_price=49.00 \
-            --weight=0.2 \
-            --dimensions='{"length":"20","width":"15","height":"2"}' \
-            --manage_stock=true --stock_quantity=100 >/dev/null
+        log "Importing sample product images into the media library"
+        wp media import "$REPO_ROOT"/sample-data/images/*.jpg --user="$ADMIN_USER" --porcelain >/dev/null
+        log "Importing sample products (WooCommerce CSV importer)"
+        wp eval-file "$REPO_ROOT/bin/import-sample-products.php" "$REPO_ROOT/sample-data/products.csv" --user="$ADMIN_USER"
     else
         log "Products already present, skipping sample products"
     fi
@@ -353,6 +346,74 @@ else
         log "Shipping zone already present, skipping"
     fi
 fi
+
+# ------------------------------------------------------------------------------
+# 10. Front page and menu: Storefront's Homepage template renders a hero plus
+#     product category / featured / recent product sections automatically once
+#     products exist, which makes the store look like a real webshop.
+# ------------------------------------------------------------------------------
+# Remove WordPress's default placeholder content ("Hello world!" post with its
+# comment, "Sample Page") - it makes sidebars/widgets look like a fresh install.
+for slug_type in "hello-world:post" "sample-page:page"; do
+    slug="${slug_type%%:*}"; ptype="${slug_type##*:}"
+    DEFAULT_ID="$(wp post list --post_type="$ptype" --name="$slug" --field=ID --posts_per_page=1 2>/dev/null)"
+    if [[ -n "$DEFAULT_ID" ]]; then
+        log "Deleting default WordPress content: $slug"
+        wp post delete "$DEFAULT_ID" --force >/dev/null
+    fi
+done
+
+HOME_ID="$(wp post list --post_type=page --name=home --field=ID --posts_per_page=1 2>/dev/null)"
+if [[ -z "$HOME_ID" ]]; then
+    log "Creating front page (Storefront Homepage template)"
+    HOME_ID="$(wp post create --post_type=page --post_status=publish --porcelain \
+        --post_title="Welcome to our store" \
+        --post_name=home \
+        --post_content="<p>Quality goods, delivered with Smart Send. Free shipping on orders over 500 kr.</p>")"
+    wp post meta update "$HOME_ID" _wp_page_template template-homepage.php >/dev/null
+else
+    log "Front page already present, skipping"
+fi
+wp option update show_on_front "page" >/dev/null
+wp option update page_on_front "$HOME_ID" >/dev/null
+
+if ! wp menu list --fields=slug --format=csv 2>/dev/null | grep -q "^primary-menu$"; then
+    log "Creating primary menu"
+    wp menu create "Primary Menu" >/dev/null
+    wp menu item add-post primary-menu "$HOME_ID" --title="Home" >/dev/null
+    wp menu item add-post primary-menu "$(wp option get woocommerce_shop_page_id)" --title="Shop" >/dev/null
+    wp menu item add-post primary-menu "$(wp option get woocommerce_myaccount_page_id)" --title="My account" >/dev/null
+    wp menu location assign primary-menu primary >/dev/null
+else
+    log "Primary menu already present, skipping"
+fi
+
+# ------------------------------------------------------------------------------
+# 11. Branding from sample-data/branding/: smart-send-logo.png (Storefront
+#     header logo; the SVG source sits next to it for reference) and,
+#     optionally, site-icon.png (favicon, square PNG >= 512x512).
+# ------------------------------------------------------------------------------
+BRANDING_DIR="$REPO_ROOT/sample-data/branding"
+if [[ -f "$BRANDING_DIR/smart-send-logo.png" && -z "$(wp theme mod get custom_logo --format=json 2>/dev/null | grep -o '[0-9]\+')" ]]; then
+    log "Setting site logo from sample-data/branding/smart-send-logo.png"
+    LOGO_ID="$(wp media import "$BRANDING_DIR/smart-send-logo.png" --user="$ADMIN_USER" --porcelain)"
+    wp theme mod set custom_logo "$LOGO_ID" >/dev/null
+fi
+if [[ -f "$BRANDING_DIR/site-icon.png" && "$(wp option get site_icon 2>/dev/null || echo 0)" == "0" ]]; then
+    log "Setting site icon from sample-data/branding/site-icon.png"
+    ICON_ID="$(wp media import "$BRANDING_DIR/site-icon.png" --user="$ADMIN_USER" --porcelain)"
+    wp option update site_icon "$ICON_ID" >/dev/null
+fi
+
+# ------------------------------------------------------------------------------
+# 12. Suppress default onboarding/marketing admin notices (never anything that
+#     indicates an error) so admin screenshots are clean.
+# ------------------------------------------------------------------------------
+log "Suppressing onboarding and marketing admin notices"
+wp option update fresh_site "0" >/dev/null
+wp option update storefront_nux_dismissed "1" >/dev/null
+wp option update woocommerce_show_marketplace_suggestions "no" >/dev/null
+wp option update woocommerce_extended_task_list_hidden "yes" >/dev/null 2>&1 || true
 
 wp cache flush >/dev/null 2>&1 || true
 
