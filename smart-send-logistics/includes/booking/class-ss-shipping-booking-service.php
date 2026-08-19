@@ -123,13 +123,48 @@ if ( ! class_exists( 'SS_Shipping_Booking_Service' ) ) :
 
 			// Make API Request. The request and response (incl. HTTP status
 			// code and endpoint) are logged by the client's request logger.
-			$response = $api->bookings()->create( $wire_shipment );
-
-			if ( $response->isSuccessful() ) {
-				return new SS_Shipping_Booking( true, null, $response->data(), $wire_shipment );
+			try {
+				$response = $api->bookings()->create( $wire_shipment );
+			} catch ( \Smartsend\Exceptions\HttpClientException $e ) {
+				return new SS_Shipping_Booking( false, $this->format_booking_error( $e ), null, $wire_shipment );
 			}
 
-			return new SS_Shipping_Booking( false, $response->errorString(), null, $wire_shipment );
+			return new SS_Shipping_Booking( true, null, $response->data(), $wire_shipment );
+		}
+
+		/**
+		 * Render an API failure as the human-readable (HTML) error string
+		 * shown to the merchant: the message, each field's validation
+		 * errors and the API's Response-ID for support reference.
+		 *
+		 * @param \Smartsend\Exceptions\HttpClientException $e The failure.
+		 *
+		 * @return string
+		 */
+		protected function format_booking_error( \Smartsend\Exceptions\HttpClientException $e ): string {
+			$delimiter    = '<br>';
+			$error_string = $e->getMessage();
+
+			if ( $e instanceof \Smartsend\Exceptions\ValidationException ) {
+				foreach ( $e->errors() as $error_field => $error_details ) {
+					if ( count( $error_details ) > 1 ) {
+						$error_string .= $delimiter . $error_field . ':';
+						foreach ( $error_details as $error_description ) {
+							$error_string .= $delimiter . '- ' . $error_description;
+						}
+					} else {
+						foreach ( $error_details as $error_description ) {
+							$error_string .= $delimiter . '- ' . $error_field . ': ' . $error_description;
+						}
+					}
+				}
+			}
+
+			if ( $e instanceof \Smartsend\Exceptions\RequestException && null !== $e->getResponse()->responseId() ) {
+				$error_string .= $delimiter . 'Response ID: ' . $e->getResponse()->responseId();
+			}
+
+			return $error_string;
 		}
 	}
 

@@ -234,7 +234,13 @@ it('logs failed API calls at the error level with the error detail in context ev
         return ss_api_response(422, ss_api_error_body('The given data was invalid.'));
     });
 
-    create_logging_api_client()->account()->getAuthenticatedUser();
+    try {
+        create_logging_api_client()->account()->getAuthenticatedUser();
+        test()->fail('Expected a ValidationException to be thrown.');
+    } catch (Smartsend\Exceptions\ValidationException $e) {
+        // The request is logged by the injected request logger before the
+        // client throws.
+    }
 
     expect($spy->entries)->toHaveCount(1);
     expect($spy->entries[0]['level'])->toBe('error');

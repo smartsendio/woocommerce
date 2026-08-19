@@ -21,8 +21,8 @@
  *  - 'booking-failure'  -> the shipments/labels booking call returns 422
  *                          with a validation message
  *  - 'no-pickup-points' -> the agents/closest lookup returns an empty data
- *                          set (no pickup points near the address; the
- *                          client maps this to the NoResults error)
+ *                          set (no pickup points near the address; a valid
+ *                          empty-collection response)
  */
 add_filter('pre_http_request', function ($pre, $args, $url) {
     if (get_option('ss_test_api_mock') !== 'yes' || strpos($url, 'smartsend.io') === false) {
@@ -43,8 +43,8 @@ add_filter('pre_http_request', function ($pre, $args, $url) {
 
     if (strpos($url, 'agents/closest') !== false) {
         if ($scenario === 'no-pickup-points') {
-            // An empty data set: Smartsend\Client maps this to the NoResults
-            // error - the "no pickup points near the address" case.
+            // An empty data set: a valid empty-collection response - the
+            // "no pickup points near the address" case.
             return $respond(array('data' => array()));
         }
 
@@ -63,8 +63,9 @@ add_filter('pre_http_request', function ($pre, $args, $url) {
     if (strpos($url, 'shipments/labels') !== false) {
         if ($scenario === 'booking-failure') {
             // A validation failure in the shape the real API produces
-            // (message + field errors); the plugin renders it through
-            // Response::errorString() into the meta box error div.
+            // (message + field errors); the resource throws a
+            // ValidationException which the booking service renders into
+            // the meta box error div.
             return $respond(array(
                 'message' => 'The given data was invalid.',
                 'errors'  => array(

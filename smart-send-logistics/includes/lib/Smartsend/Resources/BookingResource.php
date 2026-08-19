@@ -4,8 +4,19 @@ namespace Smartsend\Resources;
 
 require_once __DIR__ . '/../Client.php';
 require_once __DIR__ . '/../Models/Shipment.php';
+require_once __DIR__ . '/../Exceptions/UnauthenticatedException.php';
+require_once __DIR__ . '/../Exceptions/ForbiddenException.php';
+require_once __DIR__ . '/../Exceptions/ValidationException.php';
+require_once __DIR__ . '/../Exceptions/ServerException.php';
+require_once __DIR__ . '/../Exceptions/UnexpectedResponseException.php';
 
 use Smartsend\Client;
+use Smartsend\Exceptions\ForbiddenException;
+use Smartsend\Exceptions\RequestException;
+use Smartsend\Exceptions\ServerException;
+use Smartsend\Exceptions\UnauthenticatedException;
+use Smartsend\Exceptions\UnexpectedResponseException;
+use Smartsend\Exceptions\ValidationException;
 use Smartsend\Models\Shipment;
 use Smartsend\Models\Shipment\Agent as ShipmentAgent;
 use Smartsend\Models\Shipment\Item;
@@ -49,11 +60,22 @@ class BookingResource
      * Book a shipment and create its labels in a single call.
      *
      * @param   Shipment $shipment The v1 wire shipment, see self::fromShipment().
-     * @return  \Smartsend\Response
+     * @return  \Smartsend\Response The response; data() is the booked shipment object.
+     * @throws  \Smartsend\Exceptions\HttpClientException
      */
     public function create(Shipment $shipment)
     {
-        return $this->client->httpPost('shipments/labels', array(), array(), $shipment);
+        try {
+            $response = $this->client->httpPost('shipments/labels', array(), array(), $shipment);
+        } catch (RequestException $e) {
+            throw $this->domainException($e);
+        }
+
+        if (!is_object($response->data())) {
+            throw new UnexpectedResponseException($response);
+        }
+
+        return $response;
     }
 
     /**
@@ -61,7 +83,8 @@ class BookingResource
      * single PDF.
      *
      * @param   string[] $shipment_ids
-     * @return  \Smartsend\Response
+     * @return  \Smartsend\Response The response; data() is the combined-label object.
+     * @throws  \Smartsend\Exceptions\HttpClientException
      */
     public function combine(array $shipment_ids)
     {
@@ -73,7 +96,44 @@ class BookingResource
             $request['shipments'][] = array('shipment_id' => $shipment_id);
         }
 
-        return $this->client->httpPost('shipments/labels/combine', array(), array(), $request);
+        try {
+            $response = $this->client->httpPost('shipments/labels/combine', array(), array(), $request);
+        } catch (RequestException $e) {
+            throw $this->domainException($e);
+        }
+
+        if (!is_object($response->data())) {
+            throw new UnexpectedResponseException($response);
+        }
+
+        return $response;
+    }
+
+    /**
+     * Re-throw a RequestException as the domain exception this resource's
+     * calls give the status code.
+     *
+     * @param   RequestException $e
+     * @return  RequestException
+     */
+    private function domainException(RequestException $e): RequestException
+    {
+        $status_code = (int) $e->getResponse()->statusCode();
+
+        if ($status_code === 401) {
+            return new UnauthenticatedException($e->getResponse(), $e->getMessage());
+        }
+        if ($status_code === 403) {
+            return new ForbiddenException($e->getResponse(), $e->getMessage());
+        }
+        if ($status_code === 422) {
+            return new ValidationException($e->getResponse(), $e->getMessage());
+        }
+        if ($status_code >= 500) {
+            return new ServerException($e->getResponse(), $e->getMessage());
+        }
+
+        return $e;
     }
 
     /**

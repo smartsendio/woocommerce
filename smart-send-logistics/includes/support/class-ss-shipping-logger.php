@@ -118,8 +118,8 @@ class SS_Shipping_Logger {
 	 *     @type string|null $request_body  JSON request body, if any.
 	 *     @type int|string  $status_code   HTTP status code of the response.
 	 *     @type string      $response_body Raw response body.
-	 *     @type bool        $success       Whether the client deemed the call successful.
-	 *     @type object|null $error         Smartsend\Models\Error describing the failure, if any.
+	 *     @type bool        $success       Whether the exchange completed with a 2xx status.
+	 *     @type string|null $error         Message describing the failure, if any.
 	 *     @type float|null  $start_time    Timestamp when the request started.
 	 *     @type float|null  $end_time      Timestamp when the request finished.
 	 * }
@@ -156,13 +156,8 @@ class SS_Shipping_Logger {
 
 		$log_context['response_body'] = isset( $context['response_body'] ) && '' !== $context['response_body'] ? $context['response_body'] : '';
 
-		if ( empty( $context['success'] ) && ! empty( $context['error'] ) && is_object( $context['error'] ) ) {
-			$error_code    = isset( $context['error']->code ) && is_scalar( $context['error']->code ) ? (string) $context['error']->code : '';
-			$error_message = isset( $context['error']->message ) && is_scalar( $context['error']->message ) ? (string) $context['error']->message : '';
-
-			if ( '' !== $error_code || '' !== $error_message ) {
-				$log_context['error'] = trim( $error_code . ' - ' . $error_message, ' -' );
-			}
+		if ( empty( $context['success'] ) && ! empty( $context['error'] ) && is_scalar( $context['error'] ) ) {
+			$log_context['error'] = (string) $context['error'];
 		}
 
 		if ( ! empty( $context['success'] ) ) {

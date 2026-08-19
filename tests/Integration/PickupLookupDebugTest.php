@@ -103,9 +103,10 @@ it('surfaces a transport failure as a debug notice and logs it at error level', 
 
     $output = pickup_debug_render();
 
-    $expected = 'Smart Send: pickup point lookup for postnord failed with a transport error (transport-timeout): '
+    $expected = 'Smart Send: pickup point lookup for postnord failed with a transport error: '
         . 'The connection to the Smart Send API timed out. Please try again. If the problem persists, ask your host '
         . 'whether outgoing requests to app.smartsend.io are blocked or slow.'
+        . ' (http_request_failed: cURL error 28: Operation timed out after 30001 milliseconds)'
         . ' Falling back to "Shipping to closest pickup point".';
 
     // The customer-facing fallback is byte-for-byte unchanged.
@@ -119,14 +120,13 @@ it('surfaces an API error response as a debug notice and logs it at error level'
     $spy = spy_on_logger();
     mock_smart_send_api(function () {
         return ss_api_response(401, [
-            'code'    => 'Unauthenticated',
             'message' => 'The API token is invalid.',
         ]);
     });
 
     $output = pickup_debug_render();
 
-    $expected = 'Smart Send: pickup point lookup for postnord failed with an API error (Unauthenticated): '
+    $expected = 'Smart Send: pickup point lookup for postnord failed with an API error: '
         . 'The API token is invalid. Falling back to "Shipping to closest pickup point".';
 
     expect($output)->toContain(PICKUP_DEBUG_FALLBACK)
@@ -134,7 +134,7 @@ it('surfaces an API error response as a debug notice and logs it at error level'
         ->and(implode("\n", pickup_debug_logged($spy, 'error')))->toContain($expected);
 });
 
-it('falls back to the HTTP status when a validation error body has no code', function () {
+it('reports a validation error body by its message', function () {
     with_option('woocommerce_shipping_debug_mode', 'yes');
     spy_on_logger();
     mock_smart_send_api(function () {
@@ -145,7 +145,7 @@ it('falls back to the HTTP status when a validation error body has no code', fun
 
     expect($output)->toContain(PICKUP_DEBUG_FALLBACK)
         ->and(pickup_debug_notice_texts())->toContain(
-            'Smart Send: pickup point lookup for postnord failed with an API error (422): '
+            'Smart Send: pickup point lookup for postnord failed with an API error: '
             . 'The given data was invalid. Falling back to "Shipping to closest pickup point".'
         );
 });
@@ -182,7 +182,8 @@ it('adds no notice when shipping debug mode is off but still logs the error', fu
     expect($output)->toContain(PICKUP_DEBUG_FALLBACK)
         ->and(wc_notice_count())->toBe(0)
         ->and(implode("\n", pickup_debug_logged($spy, 'error')))->toContain(
-            'Smart Send: pickup point lookup for postnord failed with a transport error (transport-connection):'
+            'Smart Send: pickup point lookup for postnord failed with a transport error: '
+            . 'Could not connect to the Smart Send API'
         );
 });
 

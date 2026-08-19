@@ -115,9 +115,9 @@ if ( ! class_exists( 'SS_Shipping_Test_Connection' ) ) :
 		public function handle_ajax() {
 			check_ajax_referer( self::NONCE_ACTION, 'test_connection_nonce' );
 
-			$response = $this->api_factory->create()->account()->getAuthenticatedUser();
+			try {
+				$response = $this->api_factory->create()->account()->getAuthenticatedUser();
 
-			if ( $response->isSuccessful() ) {
 				$connection_msg = sprintf(
 					/* translators: 1: email address of the connected Smart Send account, 2: website of the connected Smart Send account. */
 					__( 'API Token verified: Connected to Smart Send as %1$s from %2$s', 'smart-send-logistics' ),
@@ -125,11 +125,11 @@ if ( ! class_exists( 'SS_Shipping_Test_Connection' ) ) :
 					$response->data()->website
 				);
 				$error = 0;
-			} else {
+			} catch ( \Smartsend\Exceptions\HttpClientException $e ) {
 				$connection_msg = sprintf(
 					/* translators: %s: error message returned by the Smart Send API. */
 					__( 'API Token validation failed: %s. Make sure to save the settings before validating.', 'smart-send-logistics' ),
-					$response->error()->message
+					$e->getMessage()
 				);
 				$error = 1;
 			}
