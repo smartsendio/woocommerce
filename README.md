@@ -56,10 +56,10 @@ Explicit `--path`/`--url` flags always override the env files (this is what CI d
 
 Two more knobs configure how the store behaves, resolved as flag > exported environment variable > env file entry > default:
 
-- **Checkout type** — `--checkout classic|block` / `WP_CHECKOUT` (default `classic`): whether the store's checkout page carries the classic `[woocommerce_checkout]` shortcode or the WooCommerce Checkout block.
-- **Price entry tax mode** — `--prices-include-tax yes|no` / `WP_PRICES_INCLUDE_TAX` (default `no`): WooCommerce's "Prices entered with tax" setting. Dev stores are also seeded with a standard 25% Danish VAT rate so the setting takes effect; the disposable testing store stays tax-rate-free (the characterization suites pin behaviour against untaxed fixtures).
+- **Checkout type** — `--checkout classic|block` / `WP_CHECKOUT` (default `block`): whether the store's checkout page carries the classic `[woocommerce_checkout]` shortcode or the WooCommerce Checkout block.
+- **Price entry tax mode** — `--prices-tax include|exclude` / `WP_PRICES_TAX` (default `include`): WooCommerce's "Prices entered with tax" setting. Dev stores are also seeded with a standard 25% Danish VAT rate so the setting takes effect; the disposable testing store stays tax-rate-free (the characterization suites pin behaviour against untaxed fixtures).
 
-One-off runs work without editing the env file, e.g. `WP_CHECKOUT=block composer setup`.
+One-off runs work without editing the env file, e.g. `WP_CHECKOUT=classic WP_PRICES_TAX=exclude composer setup`.
 
 Note: SQLite is convenient for development but is not what production stores run; use `--db-engine mysql` when database parity matters (e.g. debugging SQL-level issues).
 

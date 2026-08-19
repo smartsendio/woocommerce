@@ -267,6 +267,10 @@ it('folds an order fee into the parcel totals but not into any item line', funct
 
 it('books a taxed order with the v8 tax semantics', function () {
     with_option('woocommerce_calc_taxes', 'yes');
+    // Pin the price-entry mode this scenario's numbers assume (100 excl ->
+    // 125 incl) - the store default is configurable via the setup script's
+    // --prices-tax / WP_PRICES_TAX.
+    with_option('woocommerce_prices_include_tax', 'no');
     create_tax_rate(['rate' => '25.0000', 'country' => 'DK', 'shipping' => 1]);
 
     $product = create_simple_product(['name' => 'Taxed Product', 'price' => 100, 'weight' => 1]);

@@ -51,12 +51,12 @@ FORCE="false"
 SKIP_SEED="false"
 
 # Checkout page type (classic|block) and whether product prices are entered
-# including tax (yes|no). Resolution order for each: --flag > exported
-# environment variable (WP_CHECKOUT / WP_PRICES_INCLUDE_TAX) > env file >
-# default (classic / no).
+# including or excluding tax (include|exclude). Resolution order for each:
+# --flag > exported environment variable (WP_CHECKOUT / WP_PRICES_TAX) >
+# env file > default (block / include).
 CHECKOUT_TYPE=""
 CHECKOUT_FROM_FLAG="false"
-PRICES_INCLUDE_TAX=""
+PRICES_TAX=""
 PRICES_FROM_FLAG="false"
 
 usage() {
@@ -79,12 +79,11 @@ Options:
   --checkout <type>     Checkout page type: "classic" (the [woocommerce_checkout]
                         shortcode) or "block" (the WooCommerce Checkout block).
                         Default: the WP_CHECKOUT environment variable or env
-                        file entry, else classic
-  --prices-include-tax <yes|no>
-                        Whether product prices are entered including tax
-                        (WooCommerce "Prices entered with tax"). Default: the
-                        WP_PRICES_INCLUDE_TAX environment variable or env file
-                        entry, else no
+                        file entry, else block
+  --prices-tax <mode>   Whether product prices are entered "include"-ing or
+                        "exclude"-ing tax (WooCommerce "Prices entered with
+                        tax"). Default: the WP_PRICES_TAX environment variable
+                        or env file entry, else include
 
   --wp-version <v>      WordPress version to install (default: latest)
   --wc-version <v>      WooCommerce version to install (default: latest)
@@ -135,7 +134,7 @@ while [[ $# -gt 0 ]]; do
         --admin-pass)   ADMIN_PASS="$2"; shift 2 ;;
         --admin-email)  ADMIN_EMAIL="$2"; shift 2 ;;
         --checkout)     CHECKOUT_TYPE="$2"; CHECKOUT_FROM_FLAG="true"; shift 2 ;;
-        --prices-include-tax) PRICES_INCLUDE_TAX="$2"; PRICES_FROM_FLAG="true"; shift 2 ;;
+        --prices-tax)   PRICES_TAX="$2"; PRICES_FROM_FLAG="true"; shift 2 ;;
         --skip-seed)    SKIP_SEED="true"; shift ;;
         --force)        FORCE="true"; shift ;;
         -h|--help)      usage; exit 0 ;;
@@ -176,9 +175,10 @@ if [[ ! -f "$ENV_FILE" && ( "$PATH_FROM_FLAG" != "true" || "$URL_FROM_FLAG" != "
 WP_PATH=$ENV_TESTING_DEFAULT_PATH
 WP_URL=$ENV_TESTING_DEFAULT_URL
 # Optional: checkout page type (classic|block) and whether product prices
-# are entered including tax (yes|no). Defaults: classic / no.
-#WP_CHECKOUT=classic
-#WP_PRICES_INCLUDE_TAX=no
+# are entered including or excluding tax (include|exclude).
+# Defaults: block / include.
+#WP_CHECKOUT=block
+#WP_PRICES_TAX=include
 EOF
     elif [[ -z "$ENV_NAME" && -t 0 ]]; then
         log "No .env found - where should the local dev store live?"
@@ -191,9 +191,10 @@ EOF
 WP_PATH=${ANSWER_PATH:-$ENV_DEFAULT_PATH}
 WP_URL=${ANSWER_URL:-$ENV_DEFAULT_URL}
 # Optional: checkout page type (classic|block) and whether product prices
-# are entered including tax (yes|no). Defaults: classic / no.
-#WP_CHECKOUT=classic
-#WP_PRICES_INCLUDE_TAX=no
+# are entered including or excluding tax (include|exclude).
+# Defaults: block / include.
+#WP_CHECKOUT=block
+#WP_PRICES_TAX=include
 EOF
         log "Wrote $ENV_FILE"
     fi
@@ -216,20 +217,20 @@ fi
 if [[ "$CHECKOUT_FROM_FLAG" != "true" ]]; then
     CHECKOUT_TYPE="${WP_CHECKOUT:-$(env_get WP_CHECKOUT)}"
 fi
-CHECKOUT_TYPE="${CHECKOUT_TYPE:-classic}"
+CHECKOUT_TYPE="${CHECKOUT_TYPE:-block}"
 
 if [[ "$PRICES_FROM_FLAG" != "true" ]]; then
-    PRICES_INCLUDE_TAX="${WP_PRICES_INCLUDE_TAX:-$(env_get WP_PRICES_INCLUDE_TAX)}"
+    PRICES_TAX="${WP_PRICES_TAX:-$(env_get WP_PRICES_TAX)}"
 fi
-PRICES_INCLUDE_TAX="${PRICES_INCLUDE_TAX:-no}"
+PRICES_TAX="${PRICES_TAX:-include}"
 
 if [[ "$CHECKOUT_TYPE" != "classic" && "$CHECKOUT_TYPE" != "block" ]]; then
     echo "Error: --checkout / WP_CHECKOUT must be 'classic' or 'block' (got '$CHECKOUT_TYPE')" >&2
     exit 1
 fi
 
-if [[ "$PRICES_INCLUDE_TAX" != "yes" && "$PRICES_INCLUDE_TAX" != "no" ]]; then
-    echo "Error: --prices-include-tax / WP_PRICES_INCLUDE_TAX must be 'yes' or 'no' (got '$PRICES_INCLUDE_TAX')" >&2
+if [[ "$PRICES_TAX" != "include" && "$PRICES_TAX" != "exclude" ]]; then
+    echo "Error: --prices-tax / WP_PRICES_TAX must be 'include' or 'exclude' (got '$PRICES_TAX')" >&2
     exit 1
 fi
 
@@ -407,7 +408,7 @@ wp option update woocommerce_weight_unit "kg" >/dev/null
 wp option update woocommerce_dimension_unit "cm" >/dev/null
 wp option update woocommerce_price_num_decimals "2" >/dev/null
 wp option update woocommerce_calc_taxes "yes" >/dev/null
-wp option update woocommerce_prices_include_tax "$PRICES_INCLUDE_TAX" >/dev/null
+wp option update woocommerce_prices_include_tax "$( [[ "$PRICES_TAX" == "include" ]] && echo "yes" || echo "no" )" >/dev/null
 wp option update woocommerce_enable_checkout_login_reminder "yes" >/dev/null
 wp option update woocommerce_enable_guest_checkout "yes" >/dev/null
 wp option update woocommerce_allowed_countries "specific" >/dev/null
@@ -578,7 +579,7 @@ Local development store is ready!
   WooCommerce: $(wp plugin get woocommerce --field=version 2>/dev/null)
   Smart Send:  symlinked from $PLUGIN_SRC
   Checkout:    $CHECKOUT_TYPE (--checkout / WP_CHECKOUT)
-  Prices:      entered $( [[ "$PRICES_INCLUDE_TAX" == "yes" ]] && echo "including" || echo "excluding" ) tax (--prices-include-tax / WP_PRICES_INCLUDE_TAX)
+  Prices:      entered $( [[ "$PRICES_TAX" == "include" ]] && echo "including" || echo "excluding" ) tax (--prices-tax / WP_PRICES_TAX)
 
 $SERVE_HINT
 
