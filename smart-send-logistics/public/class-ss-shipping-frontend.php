@@ -137,6 +137,7 @@ if ( ! class_exists( 'SS_Shipping_Frontend' ) ) :
 			list( $country, $postal_code, $city, $street ) = $this->resolve_shipping_address();
 
 			$ss_pickup_points = array();
+			$lookup_exception = null;
 
 			if ( empty( $country ) || empty( $postal_code ) || empty( $street ) ) {
 				// No lookup can run without an address - render the
@@ -153,9 +154,14 @@ if ( ! class_exists( 'SS_Shipping_Frontend' ) ) :
 				} catch ( Exception $e ) {
 					// Logged and session-cached by the lookup itself - only
 					// rendering is left to do here.
-					$status = $this->checkout_options->pickup_point_status_for_exception( $e );
+					$status           = $this->checkout_options->pickup_point_status_for_exception( $e );
+					$lookup_exception = $e;
 				}
 			}
+
+			// One-line debug bar summary of the delivery-options section:
+			// pickup points apply to this method, plus the lookup outcome.
+			$this->add_pickup_point_section_notice( $method->get_label(), $method->get_id(), $status, count( $ss_pickup_points ), $lookup_exception );
 
 			if ( SS_Shipping_Checkout_Options::PICKUP_POINT_STATUS_FOUND === $status ) {
 
@@ -209,6 +215,68 @@ if ( ! class_exists( 'SS_Shipping_Frontend' ) ) :
 				);
 			}
 			// phpcs:enable WordPress.Security.NonceVerification.Missing
+		}
+
+		/**
+		 * Show the one-line delivery-options summary in the checkout shipping
+		 * debug bar: pickup points apply to the chosen method, plus the lookup
+		 * outcome (found N / waiting for the address / the failure).
+		 *
+		 * @param string          $method_label     The chosen shipping rate's label.
+		 * @param string          $rate_id          The chosen shipping rate's id (e.g. 'smart_send_shipping:2').
+		 * @param string          $status           The SS_Shipping_Checkout_Options::PICKUP_POINT_STATUS_* slug.
+		 * @param int             $found_count      How many pickup points the lookup found.
+		 * @param \Exception|null $lookup_exception The lookup failure, when the status came from one.
+		 * @return void
+		 */
+		protected function add_pickup_point_section_notice( $method_label, $rate_id, $status, $found_count, $lookup_exception ) {
+			$error_message = null === $lookup_exception ? '' : $lookup_exception->getMessage();
+
+			switch ( $status ) {
+				case SS_Shipping_Checkout_Options::PICKUP_POINT_STATUS_FOUND:
+					$outcome = sprintf(
+						/* translators: %d: number of pickup points found. */
+						_n( 'Found %d pickup point near the entered address.', 'Found %d pickup points near the entered address.', $found_count, 'smart-send-logistics' ),
+						$found_count
+					);
+					break;
+				case SS_Shipping_Checkout_Options::PICKUP_POINT_STATUS_ADDRESS_INCOMPLETE:
+					$outcome = __( 'Waiting for the shipping address.', 'smart-send-logistics' );
+					break;
+				case SS_Shipping_Checkout_Options::PICKUP_POINT_STATUS_NOT_CONNECTED:
+					$outcome = __( 'No API token configured (plugin not connected).', 'smart-send-logistics' );
+					break;
+				case SS_Shipping_Checkout_Options::PICKUP_POINT_STATUS_AUTH_FAILED:
+					/* translators: %s: error message returned by the Smart Send API. */
+					$outcome = sprintf( __( 'Failed with an authentication error (HTTP 401): %s', 'smart-send-logistics' ), $error_message );
+					break;
+				case SS_Shipping_Checkout_Options::PICKUP_POINT_STATUS_ACCESS_DENIED:
+					/* translators: %s: error message returned by the Smart Send API. */
+					$outcome = sprintf( __( 'Failed with an authorization error (HTTP 403): %s', 'smart-send-logistics' ), $error_message );
+					break;
+				case SS_Shipping_Checkout_Options::PICKUP_POINT_STATUS_NONE_FOUND:
+					$outcome = __( 'No pickup points found near the entered address.', 'smart-send-logistics' );
+					break;
+				default:
+					if ( $lookup_exception instanceof \Smartsend\Exceptions\ConnectionException ) {
+						/* translators: %s: transport error message. */
+						$outcome = sprintf( __( 'Failed with a transport error: %s', 'smart-send-logistics' ), $error_message );
+					} else {
+						/* translators: %s: error message returned by the Smart Send API. */
+						$outcome = sprintf( __( 'Failed with an API error: %s', 'smart-send-logistics' ), $error_message );
+					}
+					break;
+			}
+
+			SS_Shipping_Checkout_Debug::add_notice(
+				sprintf(
+					/* translators: 1: shipping rate label, 2: shipping rate id, 3: the pickup point lookup outcome sentence. */
+					__( 'Smart Send: Showing pickup point for "%1$s" (%2$s). %3$s', 'smart-send-logistics' ),
+					$method_label,
+					$rate_id,
+					$outcome
+				)
+			);
 		}
 
 		/**

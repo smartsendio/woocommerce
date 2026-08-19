@@ -230,7 +230,7 @@ it('logs a debug trace when the meta box is rendered for a non Smart Send order'
         ->and(implode("\n", ss_policy_logged($spy, 'debug')))->toContain('No Smart Send shipping method on order - skipping meta box content');
 });
 
-it('surfaces which Smart Send rates ended up offered for the package', function () {
+it('logs which Smart Send rates ended up offered for the package, without a debug bar notice', function () {
     with_option('woocommerce_shipping_debug_mode', 'yes');
     $spy = spy_on_logger();
 
@@ -243,22 +243,23 @@ it('surfaces which Smart Send rates ended up offered for the package', function 
     ]);
 
     $expected = 'Smart Send: rates offered for this package: "SS Policy Rate" (smart_send_shipping:7, cost 49).';
-    $trace    = implode("\n", ss_policy_notices());
 
-    expect($trace)->toContain($expected)
-        ->and($trace)->not->toContain('Flat rate')
-        ->and(implode("\n", ss_policy_logged($spy, 'debug')))->toContain($expected);
+    // Log-only trace: the debug bar already carries one evaluation summary
+    // per method, so the sorter adds no second line there.
+    expect(implode("\n", ss_policy_logged($spy, 'debug')))->toContain($expected)
+        ->and(ss_policy_notices())->toBe([]);
 });
 
-it('reports when no Smart Send rates were offered for the package', function () {
+it('logs when no Smart Send rates were offered for the package, without a debug bar notice', function () {
     with_option('woocommerce_shipping_debug_mode', 'yes');
-    spy_on_logger();
+    $spy = spy_on_logger();
 
     $other = new WC_Shipping_Rate('flat_rate:3', 'Flat rate', '10', [], 'flat_rate', 3);
 
     SS_SHIPPING_WC()->rate_sorter()->sort_shipping_methods(['flat_rate:3' => $other]);
 
-    expect(implode("\n", ss_policy_notices()))->toContain('Smart Send: no Smart Send rates offered for this package.');
+    expect(implode("\n", ss_policy_logged($spy, 'debug')))->toContain('Smart Send: no Smart Send rates offered for this package.')
+        ->and(ss_policy_notices())->toBe([]);
 });
 
 it('explains that the last matching weight row wins when rows overlap', function () {
