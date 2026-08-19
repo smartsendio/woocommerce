@@ -50,6 +50,15 @@ ADMIN_EMAIL="dev@smartsend.io"
 FORCE="false"
 SKIP_SEED="false"
 
+# Checkout page type (classic|block) and whether product prices are entered
+# including tax (yes|no). Resolution order for each: --flag > exported
+# environment variable (WP_CHECKOUT / WP_PRICES_INCLUDE_TAX) > env file >
+# default (classic / no).
+CHECKOUT_TYPE=""
+CHECKOUT_FROM_FLAG="false"
+PRICES_INCLUDE_TAX=""
+PRICES_FROM_FLAG="false"
+
 usage() {
     cat <<'EOF'
 Usage: bin/setup-local-dev.sh [options]
@@ -66,6 +75,16 @@ Options:
   --env <name>          Read defaults from .env.<name> instead of .env
                         (e.g. --env testing -> .env.testing, the disposable
                         store rebuilt by every composer test:* run)
+
+  --checkout <type>     Checkout page type: "classic" (the [woocommerce_checkout]
+                        shortcode) or "block" (the WooCommerce Checkout block).
+                        Default: the WP_CHECKOUT environment variable or env
+                        file entry, else classic
+  --prices-include-tax <yes|no>
+                        Whether product prices are entered including tax
+                        (WooCommerce "Prices entered with tax"). Default: the
+                        WP_PRICES_INCLUDE_TAX environment variable or env file
+                        entry, else no
 
   --wp-version <v>      WordPress version to install (default: latest)
   --wc-version <v>      WooCommerce version to install (default: latest)
@@ -115,6 +134,8 @@ while [[ $# -gt 0 ]]; do
         --admin-user)   ADMIN_USER="$2"; shift 2 ;;
         --admin-pass)   ADMIN_PASS="$2"; shift 2 ;;
         --admin-email)  ADMIN_EMAIL="$2"; shift 2 ;;
+        --checkout)     CHECKOUT_TYPE="$2"; CHECKOUT_FROM_FLAG="true"; shift 2 ;;
+        --prices-include-tax) PRICES_INCLUDE_TAX="$2"; PRICES_FROM_FLAG="true"; shift 2 ;;
         --skip-seed)    SKIP_SEED="true"; shift ;;
         --force)        FORCE="true"; shift ;;
         -h|--help)      usage; exit 0 ;;
@@ -154,6 +175,10 @@ if [[ ! -f "$ENV_FILE" && ( "$PATH_FROM_FLAG" != "true" || "$URL_FROM_FLAG" != "
 # built-in server, or at a parked .test domain to let Laravel Herd serve it.
 WP_PATH=$ENV_TESTING_DEFAULT_PATH
 WP_URL=$ENV_TESTING_DEFAULT_URL
+# Optional: checkout page type (classic|block) and whether product prices
+# are entered including tax (yes|no). Defaults: classic / no.
+#WP_CHECKOUT=classic
+#WP_PRICES_INCLUDE_TAX=no
 EOF
     elif [[ -z "$ENV_NAME" && -t 0 ]]; then
         log "No .env found - where should the local dev store live?"
@@ -165,6 +190,10 @@ EOF
 # The test suites use .env.testing instead (see bin/run-tests.sh).
 WP_PATH=${ANSWER_PATH:-$ENV_DEFAULT_PATH}
 WP_URL=${ANSWER_URL:-$ENV_DEFAULT_URL}
+# Optional: checkout page type (classic|block) and whether product prices
+# are entered including tax (yes|no). Defaults: classic / no.
+#WP_CHECKOUT=classic
+#WP_PRICES_INCLUDE_TAX=no
 EOF
         log "Wrote $ENV_FILE"
     fi
@@ -178,6 +207,30 @@ if [[ -f "$ENV_FILE" ]]; then
     if [[ "$URL_FROM_FLAG" != "true" && -n "$(env_get WP_URL)" ]]; then
         SITE_URL="$(env_get WP_URL)"
     fi
+fi
+
+# Checkout type and price-entry tax mode: --flag > exported environment
+# variable > env file entry > default. The exported variable outranks the env
+# file so one-off runs work without editing the file
+# (e.g. WP_CHECKOUT=block bin/setup-local-dev.sh).
+if [[ "$CHECKOUT_FROM_FLAG" != "true" ]]; then
+    CHECKOUT_TYPE="${WP_CHECKOUT:-$(env_get WP_CHECKOUT)}"
+fi
+CHECKOUT_TYPE="${CHECKOUT_TYPE:-classic}"
+
+if [[ "$PRICES_FROM_FLAG" != "true" ]]; then
+    PRICES_INCLUDE_TAX="${WP_PRICES_INCLUDE_TAX:-$(env_get WP_PRICES_INCLUDE_TAX)}"
+fi
+PRICES_INCLUDE_TAX="${PRICES_INCLUDE_TAX:-no}"
+
+if [[ "$CHECKOUT_TYPE" != "classic" && "$CHECKOUT_TYPE" != "block" ]]; then
+    echo "Error: --checkout / WP_CHECKOUT must be 'classic' or 'block' (got '$CHECKOUT_TYPE')" >&2
+    exit 1
+fi
+
+if [[ "$PRICES_INCLUDE_TAX" != "yes" && "$PRICES_INCLUDE_TAX" != "no" ]]; then
+    echo "Error: --prices-include-tax / WP_PRICES_INCLUDE_TAX must be 'yes' or 'no' (got '$PRICES_INCLUDE_TAX')" >&2
+    exit 1
 fi
 
 mkdir -p "$INSTALL_PATH"
@@ -354,6 +407,7 @@ wp option update woocommerce_weight_unit "kg" >/dev/null
 wp option update woocommerce_dimension_unit "cm" >/dev/null
 wp option update woocommerce_price_num_decimals "2" >/dev/null
 wp option update woocommerce_calc_taxes "yes" >/dev/null
+wp option update woocommerce_prices_include_tax "$PRICES_INCLUDE_TAX" >/dev/null
 wp option update woocommerce_enable_checkout_login_reminder "yes" >/dev/null
 wp option update woocommerce_enable_guest_checkout "yes" >/dev/null
 wp option update woocommerce_allowed_countries "specific" >/dev/null
@@ -367,6 +421,12 @@ wp option update woocommerce_coming_soon "no" >/dev/null
 # Skip the WooCommerce onboarding wizard.
 wp option update woocommerce_onboarding_profile '{"skipped":true}' --format=json >/dev/null
 wp option update woocommerce_task_list_hidden "yes" >/dev/null 2>&1 || true
+
+# The checkout page: WooCommerce created it on install (block markup on
+# modern WooCommerce); (re)write its content to the configured type so the
+# store checks out through the surface under test.
+log "Configuring the $CHECKOUT_TYPE checkout page"
+wp eval-file "$REPO_ROOT/bin/configure-checkout-page.php" "$CHECKOUT_TYPE" >/dev/null
 
 # General site settings.
 wp option update blogname "$SITE_TITLE" >/dev/null
@@ -388,6 +448,17 @@ else
         wp eval-file "$REPO_ROOT/bin/import-sample-products.php" "$REPO_ROOT/sample-data/products.csv" --user="$ADMIN_USER"
     else
         log "Products already present, skipping sample products"
+    fi
+
+    # A standard 25% Danish VAT rate, so the tax settings (incl. the
+    # prices-entered-with-tax mode) actually take effect at checkout. Dev
+    # stores only: the disposable testing store stays tax-rate-free - the
+    # characterization suites (payload golden tests, order totals) pin
+    # behaviour against untaxed fixtures and create their own tax setup when
+    # a test needs one.
+    if [[ "$ENV_NAME" != "testing" && -z "$(wp wc tax list --user="$ADMIN_USER" --field=id 2>/dev/null | head -1)" ]]; then
+        log "Creating a standard 25% Danish VAT rate"
+        wp wc tax create --user="$ADMIN_USER" --country="DK" --rate="25" --name="VAT" --shipping=true >/dev/null
     fi
 
     if [[ -z "$(wp wc shipping_zone list --user="$ADMIN_USER" --field=id 2>/dev/null | sed '/^0$/d')" ]]; then
@@ -506,6 +577,8 @@ Local development store is ready!
   WordPress:   $(wp core version 2>/dev/null)
   WooCommerce: $(wp plugin get woocommerce --field=version 2>/dev/null)
   Smart Send:  symlinked from $PLUGIN_SRC
+  Checkout:    $CHECKOUT_TYPE (--checkout / WP_CHECKOUT)
+  Prices:      entered $( [[ "$PRICES_INCLUDE_TAX" == "yes" ]] && echo "including" || echo "excluding" ) tax (--prices-include-tax / WP_PRICES_INCLUDE_TAX)
 
 $SERVE_HINT
 
