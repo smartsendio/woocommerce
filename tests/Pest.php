@@ -83,7 +83,9 @@ uses()->afterEach(function (): void {
 
 function base_url(string $path = '/'): string
 {
-    $base = getenv('WP_BASE_URL') ?: 'http://127.0.0.1:8181';
+    // WP_URL comes from .env.testing (loaded by tests/bootstrap.php); the
+    // legacy WP_BASE_URL name is still honoured.
+    $base = getenv('WP_URL') ?: getenv('WP_BASE_URL') ?: 'http://127.0.0.1:8181';
 
     return rtrim($base, '/') . $path;
 }

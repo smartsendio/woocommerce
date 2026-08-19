@@ -26,14 +26,19 @@
 # and checkout-page option. Zones, products, pages and orders a developer
 # built on top are left alone.
 #
-# Targets the install at WP_DEV_PATH (default ./local-dev/wordpress), i.e.
-# the store created by bin/setup-local-dev.sh. Local tool only: refuses to
-# run against a production environment or a non-localhost site URL.
+# Targets the dev store from .env's WP_PATH (default ./local-dev/wordpress;
+# the WP_DEV_PATH env var still overrides), i.e. the store created by
+# bin/setup-local-dev.sh. Local tool only: refuses to run against a
+# production environment or a non-local site URL.
 #
 set -euo pipefail
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-INSTALL_PATH="${WP_DEV_PATH:-$REPO_ROOT/local-dev/wordpress}"
+ENV_WP_PATH="$(sed -n 's/^WP_PATH=//p' "$REPO_ROOT/.env" 2>/dev/null | tail -1)"
+if [[ -n "$ENV_WP_PATH" && "$ENV_WP_PATH" != /* ]]; then
+    ENV_WP_PATH="$REPO_ROOT/$ENV_WP_PATH"
+fi
+INSTALL_PATH="${WP_DEV_PATH:-${ENV_WP_PATH:-$REPO_ROOT/local-dev/wordpress}}"
 
 SUPPORT_DIR="$REPO_ROOT/tests/Browser/Support"
 MOCK_SRC="$SUPPORT_DIR/ApiMockMuPlugin.php"
@@ -93,8 +98,9 @@ guard_local() {
     if [[ "$env_type" == "production" ]]; then
         fail "WP_ENVIRONMENT_TYPE is 'production' - demo mode is a local-only tool, refusing to run."
     fi
-    if [[ "$host" != "localhost" && "$host" != "127.0.0.1" && "$host" != *.localhost ]]; then
-        fail "Site URL is $site_url - demo mode only runs against localhost/127.0.0.1 stores."
+    # *.test covers Herd-served local stores (see .env / README).
+    if [[ "$host" != "localhost" && "$host" != "127.0.0.1" && "$host" != *.localhost && "$host" != *.test ]]; then
+        fail "Site URL is $site_url - demo mode only runs against localhost/127.0.0.1/*.test stores."
     fi
 }
 

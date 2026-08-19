@@ -8,8 +8,12 @@
 | The Browser and Docs suites both talk to a running store over HTTP and
 | must not load WordPress into the test process. The Integration suite runs
 | against an in-process WordPress + WooCommerce, bootstrapped from the
-| development install created by bin/setup-local-dev.sh (default
-| ./local-dev/wordpress, override with WP_DEV_PATH).
+| testing install created by bin/setup-local-dev.sh --env testing.
+|
+| The store location comes from .env.testing at the repo root (WP_PATH /
+| WP_URL, written by the setup script; composer test:* rebuilds that store
+| fresh via bin/run-tests.sh). Real environment variables override the file,
+| and the legacy WP_DEV_PATH / WP_BASE_URL names are still honoured.
 |
 | WordPress has to be loaded in global scope before any test runs, so the
 | decision is made here from the requested test suite.
@@ -17,6 +21,25 @@
 */
 
 require __DIR__ . '/../vendor/autoload.php';
+
+// Push WP_PATH / WP_URL from .env.testing into the environment (real env vars
+// win). Runs before the suite check so tests/Pest.php's base_url() sees them.
+(function (): void {
+    $envFile = __DIR__ . '/../.env.testing';
+    if (! is_readable($envFile)) {
+        return;
+    }
+    foreach (file($envFile, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES) as $line) {
+        if (str_starts_with(trim($line), '#') || ! str_contains($line, '=')) {
+            continue;
+        }
+        [$key, $value] = explode('=', $line, 2);
+        $key = trim($key);
+        if (in_array($key, ['WP_PATH', 'WP_URL'], true) && getenv($key) === false) {
+            putenv($key . '=' . trim($value));
+        }
+    }
+})();
 
 $suite = null;
 $argv  = $_SERVER['argv'] ?? [];
@@ -32,7 +55,11 @@ if ($suite === 'Browser' || $suite === 'Docs') {
     return;
 }
 
-$wpPath = getenv('WP_DEV_PATH') ?: __DIR__ . '/../local-dev/wordpress';
+$wpPath = getenv('WP_PATH') ?: getenv('WP_DEV_PATH') ?: './local-dev/wordpress';
+if (! str_starts_with($wpPath, '/')) {
+    // Relative paths (as written in .env.testing) resolve against the repo root.
+    $wpPath = __DIR__ . '/../' . $wpPath;
+}
 $wpLoad = rtrim($wpPath, '/') . '/wp-load.php';
 
 if (! file_exists($wpLoad)) {
@@ -40,8 +67,8 @@ if (! file_exists($wpLoad)) {
     The Integration suite needs a local WordPress + WooCommerce install, but none
     was found at: {$wpPath}
 
-    Create one with:  bin/setup-local-dev.sh
-    Or point WP_DEV_PATH at an existing install created by that script.
+    Create one with:  bin/setup-local-dev.sh --env testing
+    Or point WP_PATH at an existing install created by that script.
     To run only the browser tests: vendor/bin/pest --testsuite=Browser
 
     MSG);
@@ -50,7 +77,7 @@ if (! file_exists($wpLoad)) {
 
 // WordPress and WooCommerce expect a web-request-like environment; mirror the
 // server variables WP-CLI sets up, derived from the store's base URL.
-$base = getenv('WP_BASE_URL') ?: 'http://localhost:8181';
+$base = getenv('WP_URL') ?: getenv('WP_BASE_URL') ?: 'http://localhost:8181';
 $host = parse_url($base, PHP_URL_HOST) ?: 'localhost';
 $port = parse_url($base, PHP_URL_PORT);
 
