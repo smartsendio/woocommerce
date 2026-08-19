@@ -132,6 +132,23 @@ it('shows the pickup point selector on block checkout and stores the chosen agen
         ->assertSee('Main Street 1');
 });
 
+it('shows the enter-your-address hint when the agent rate is chosen before an address is entered', function () {
+    $state = ss_browser_state();
+
+    $page = visit(base_url('/?add-to-cart=' . $state['product_id']));
+
+    // Straight to the checkout, no address filled in: the store-base
+    // country makes the zone rates render, but postcode and street are
+    // still empty, so no lookup can run.
+    $page->navigate(base_url('/?page_id=' . $GLOBALS['ss_block_checkout_page_id']))
+        ->assertSee('Contact information')
+        ->assertSee('Smart Send Pickup Point')
+        ->click('input[value="smart_send_shipping:' . $state['instance_id'] . '"]')
+        ->assertPresent('.ss-pickup-point-block[data-status="awaiting-address"]')
+        ->assertSee('Enter your shipping address to see available pickup points.')
+        ->assertMissing('#ss-pickup-point-select');
+});
+
 it('shows the none-found state and places the order without a selection when no pickup points are found', function () {
     $state = ss_browser_state();
 
@@ -141,13 +158,13 @@ it('shows the none-found state and places the order without a selection when no 
         $page = ss_block_checkout_reach_shipping_options();
 
         // Choosing the agent rate renders the block's empty state: the
-        // friendly fallback text (same translated string as the classic
+        // none-found message (same server-translated string as the classic
         // checkout), no selector, and NO client-side validation error. Wait
         // on the component's own data-status affordance ("empty" once the
         // none-found cart response is in).
         $page->click('input[value="smart_send_shipping:' . $state['instance_id'] . '"]')
             ->assertPresent('.ss-pickup-point-block[data-status="empty"]')
-            ->assertSee('Shipping to closest pickup point')
+            ->assertSee('We could not find available pickup points')
             ->assertMissing('#ss-pickup-point-select');
 
         // The order goes through WITHOUT a pickup point selection - neither

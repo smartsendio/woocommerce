@@ -211,3 +211,93 @@ it('saves nothing when the posted agent is not in the session list', function ()
     expect(SS_SHIPPING_WC()->order_meta()->read($order->get_id())->get_pickup_point())
         ->toBeNull();
 });
+
+/**
+ * Render the pickup point section for a chosen rate the way checkout does
+ * (is_checkout() forced, method chosen in the session), with control over
+ * the posted address fields and the customer's session-stored shipping
+ * address - covering the first, non-AJAX page load, which posts nothing.
+ */
+function frontend_render_pickup_section(string $method_code = 'postnord_agent', array $post = [], array $customer_address = []): string
+{
+    if (is_null(WC()->cart)) {
+        wc_load_cart();
+    }
+
+    add_filter('woocommerce_is_checkout', '__return_true');
+    unset($_POST['s_country'], $_POST['s_postcode'], $_POST['s_city'], $_POST['s_address']);
+    $_POST = array_merge($_POST, $post);
+    WC()->session->set('chosen_shipping_methods', ['smart_send_shipping:1']);
+
+    $customer = WC()->customer;
+    $customer->set_shipping_country($customer_address['country'] ?? '');
+    $customer->set_shipping_postcode($customer_address['postcode'] ?? '');
+    $customer->set_shipping_city($customer_address['city'] ?? '');
+    $customer->set_shipping_address_1($customer_address['address'] ?? '');
+
+    remember_cleanup_callback(function (): void {
+        remove_filter('woocommerce_is_checkout', '__return_true');
+        unset($_POST['s_country'], $_POST['s_postcode'], $_POST['s_city'], $_POST['s_address']);
+        WC()->session->set('chosen_shipping_methods', null);
+        WC()->session->set('ss_shipping_agents', null);
+
+        $customer = WC()->customer;
+        $customer->set_shipping_country('');
+        $customer->set_shipping_postcode('');
+        $customer->set_shipping_city('');
+        $customer->set_shipping_address_1('');
+    });
+
+    $rate = new WC_Shipping_Rate('smart_send_shipping:1', 'Smart Send', 49.0, [], 'smart_send_shipping', 1);
+    $rate->add_meta_data('smart_send_shipping_method', $method_code);
+
+    ob_start();
+    frontend()->display_ss_pickup_points($rate, 0);
+
+    return ob_get_clean();
+}
+
+it('renders the enter-your-address hint on the first page load, before any address is posted', function () {
+    $capture = mock_smart_send_api();
+
+    $output = frontend_render_pickup_section('postnord_agent');
+
+    expect($output)->toContain('<div class="woocommerce-info ss-agent-info ss-agent-info--address_incomplete">Enter your shipping address to see available pickup points.</div>')
+        ->and($capture->requests)->toBe([]);
+});
+
+it('renders nothing on first page load when the chosen method is not a pickup point method', function () {
+    mock_smart_send_api();
+
+    expect(frontend_render_pickup_section('postnord_homedelivery'))->toBe('');
+});
+
+it('falls back to the customer\'s session-stored shipping address when nothing is posted', function () {
+    $capture = mock_smart_send_api(function () {
+        return ss_api_response(200, ['data' => [sample_agent()]]);
+    });
+
+    $output = frontend_render_pickup_section('postnord_agent', [], [
+        'country'  => 'DK',
+        'postcode' => '2300',
+        'city'     => 'Copenhagen',
+        'address'  => 'Islands Brygge 39',
+    ]);
+
+    expect($output)->toContain('ss_shipping_store_pickup')
+        ->and(end($capture->requests)['url'])->toContain('/agents/closest/carrier/postnord/country/DK/postalcode/2300/city/Copenhagen/street/Islands');
+});
+
+it('prefers the posted address fields over the customer\'s stored address', function () {
+    $capture = mock_smart_send_api(function () {
+        return ss_api_response(200, ['data' => [sample_agent()]]);
+    });
+
+    frontend_render_pickup_section(
+        'postnord_agent',
+        ['s_country' => 'DK', 's_postcode' => '8000', 's_city' => 'Aarhus', 's_address' => 'Posted Street 1'],
+        ['country' => 'DK', 'postcode' => '2300', 'city' => 'Copenhagen', 'address' => 'Islands Brygge 39']
+    );
+
+    expect(end($capture->requests)['url'])->toContain('/postalcode/8000/city/Aarhus/street/Posted Street 1');
+});
