@@ -26,7 +26,12 @@ jobs:
         # #79 hardening (worker recycling, core-dump capture) — if they go
         # deterministically red again with the same environment signature,
         # drop them again and record it on #79.
-        php-version: ['7.4', '8.0', '8.1', '8.2', '8.3', '8.4']
+        # PHP 8.4 was temporarily removed on 2026-08-20 after going
+        # deterministically red the same way (5 of 6 attempts across PRs
+        # #167/#168, fpm SIGSEGV consistently striking the block checkout's
+        # /wp-json/wc/store/v1/batch render; the in-job fpm-restart retry no
+        # longer rescues it). Evidence and the canary reminder live on #79.
+        php-version: ['7.4', '8.0', '8.1', '8.2', '8.3']
         wp-version: ['latest']
         wc-version: ['latest']
 
