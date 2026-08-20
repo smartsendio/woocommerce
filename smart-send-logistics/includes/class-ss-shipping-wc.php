@@ -273,6 +273,10 @@ if ( ! class_exists( 'SS_Shipping_WC' ) ) :
 			require_once SS_SHIPPING_PLUGIN_DIR_PATH . '/includes/support/class-ss-shipping-admin-notices.php';
 			require_once SS_SHIPPING_PLUGIN_DIR_PATH . '/includes/support/class-ss-shipping-subscriptions-compat.php';
 
+			// Cross-domain exceptions (usable from any domain, e.g. no API
+			// token configured).
+			require_once SS_SHIPPING_PLUGIN_DIR_PATH . '/includes/exceptions/class-ss-shipping-not-connected-exception.php';
+
 			// Delivery-details domain: the serializable data model (value
 			// objects + repository) and shipping-method resolution.
 			require_once SS_SHIPPING_PLUGIN_DIR_PATH . '/includes/delivery/class-ss-shipping-pickup-point.php';
@@ -281,8 +285,6 @@ if ( ! class_exists( 'SS_Shipping_WC' ) ) :
 			require_once SS_SHIPPING_PLUGIN_DIR_PATH . '/includes/delivery/class-ss-shipping-delivery-details.php';
 			require_once SS_SHIPPING_PLUGIN_DIR_PATH . '/includes/delivery/class-ss-shipping-order-meta.php';
 			require_once SS_SHIPPING_PLUGIN_DIR_PATH . '/includes/delivery/class-ss-shipping-method-resolver.php';
-			require_once SS_SHIPPING_PLUGIN_DIR_PATH . '/includes/delivery/exceptions/class-ss-shipping-not-connected-exception.php';
-			require_once SS_SHIPPING_PLUGIN_DIR_PATH . '/includes/delivery/exceptions/class-ss-shipping-booking-exception.php';
 
 			// Pickup-point surface: the checkout/admin-facing services around
 			// pickup point selection (lookup, formatting, validation, the
@@ -294,6 +296,7 @@ if ( ! class_exists( 'SS_Shipping_WC' ) ) :
 			require_once SS_SHIPPING_PLUGIN_DIR_PATH . '/includes/delivery-options/class-ss-shipping-store-api.php';
 
 			// Booking domain: order reading, shipment representation, booking.
+			require_once SS_SHIPPING_PLUGIN_DIR_PATH . '/includes/booking/exceptions/class-ss-shipping-booking-exception.php';
 			require_once SS_SHIPPING_PLUGIN_DIR_PATH . '/includes/booking/class-ss-shipping-order-reader.php';
 			require_once SS_SHIPPING_PLUGIN_DIR_PATH . '/includes/booking/class-ss-shipping-parcel.php';
 			require_once SS_SHIPPING_PLUGIN_DIR_PATH . '/includes/booking/class-ss-shipping-shipment.php';
