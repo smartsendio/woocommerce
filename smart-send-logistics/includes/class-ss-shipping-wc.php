@@ -287,11 +287,11 @@ if ( ! class_exists( 'SS_Shipping_WC' ) ) :
 			// Pickup-point surface: the checkout/admin-facing services around
 			// pickup point selection (lookup, formatting, validation, the
 			// Store API channel and the checkout option/section vocabulary).
-			require_once SS_SHIPPING_PLUGIN_DIR_PATH . '/includes/pickup-point/class-ss-shipping-checkout-options.php';
-			require_once SS_SHIPPING_PLUGIN_DIR_PATH . '/includes/pickup-point/class-ss-shipping-pickup-point-formatter.php';
-			require_once SS_SHIPPING_PLUGIN_DIR_PATH . '/includes/pickup-point/class-ss-shipping-pickup-point-lookup.php';
-			require_once SS_SHIPPING_PLUGIN_DIR_PATH . '/includes/pickup-point/class-ss-shipping-pickup-point-validator.php';
-			require_once SS_SHIPPING_PLUGIN_DIR_PATH . '/includes/pickup-point/class-ss-shipping-store-api.php';
+			require_once SS_SHIPPING_PLUGIN_DIR_PATH . '/includes/delivery-options/class-ss-shipping-checkout-options.php';
+			require_once SS_SHIPPING_PLUGIN_DIR_PATH . '/includes/delivery-options/class-ss-shipping-pickup-point-formatter.php';
+			require_once SS_SHIPPING_PLUGIN_DIR_PATH . '/includes/delivery-options/class-ss-shipping-pickup-point-lookup.php';
+			require_once SS_SHIPPING_PLUGIN_DIR_PATH . '/includes/delivery-options/class-ss-shipping-pickup-point-validator.php';
+			require_once SS_SHIPPING_PLUGIN_DIR_PATH . '/includes/delivery-options/class-ss-shipping-store-api.php';
 
 			// Booking domain: order reading, shipment representation, booking.
 			require_once SS_SHIPPING_PLUGIN_DIR_PATH . '/includes/booking/class-ss-shipping-order-reader.php';
