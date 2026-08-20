@@ -162,7 +162,10 @@ warn() { printf '\033[1;33mWarning:\033[0m %s\n' "$*" >&2; }
 # ------------------------------------------------------------------------------
 ENV_FILE="$REPO_ROOT/.env${ENV_NAME:+.$ENV_NAME}"
 
-env_get() { sed -n "s/^$1=//p" "$ENV_FILE" 2>/dev/null | tail -1; }
+# Tolerate a missing env file: under `set -euo pipefail` a bare
+# `$(env_get ...)` assignment inherits sed's exit 2 and silently kills the
+# whole script (exactly what CI does - flags only, no .env at all).
+env_get() { [[ -f "$ENV_FILE" ]] || return 0; sed -n "s/^$1=//p" "$ENV_FILE" | tail -1; }
 
 if [[ ! -f "$ENV_FILE" && ( "$PATH_FROM_FLAG" != "true" || "$URL_FROM_FLAG" != "true" ) ]]; then
     if [[ "$ENV_NAME" == "testing" ]]; then
