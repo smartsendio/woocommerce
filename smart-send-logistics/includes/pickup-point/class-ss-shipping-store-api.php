@@ -14,7 +14,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  * in-progress selection in the WooCommerce session via the extension
  * update callback. All Store API references live inside method bodies
  * (string class names, literal endpoint identifiers), so this file loads
- * eagerly with the rest of the delivery domain - no definition-time
+ * eagerly with the rest of the pickup-point surface - no definition-time
  * dependency on WooCommerce.
  *
  * @package  SS_Shipping_Store_Api
