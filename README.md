@@ -47,7 +47,7 @@ Run `bin/setup-local-dev.sh --help` for all options. The script is idempotent �
 
 #### Store locations: `.env` and `.env.testing`
 
-Two git-ignored env files at the repo root pin the store locations (`WP_PATH`, resolved relative to the repo root, and `WP_URL`):
+Two git-ignored env files at the repo root pin the store locations (`WP_PATH`, resolved relative to the repo root, and `WP_URL`); [.env.example](.env.example) is the version-controlled reference documenting every supported entry:
 
 - **`.env` — your persistent dev store**, for manual testing and demo mode. On the first interactive run with no `.env`, the setup script asks where to put it (default: `../../playground/smart-send-woocommerce` at `http://smart-send-woocommerce.test`) and writes the file. Point it at a directory served by [Laravel Herd](https://herd.laravel.com) (parked or `herd link`ed) and no manual web server is needed — use plain `http://`, not `herd secure`.
 - **`.env.testing` — the disposable testing store** used by the test suites. Created automatically with defaults matching CI (`./local-dev/wordpress`, `http://127.0.0.1:8181`) and **rebuilt from scratch by every `composer test:*` run** (see Testing below), so tests never suffer drift from demo mode, earlier runs or manual clicking.
