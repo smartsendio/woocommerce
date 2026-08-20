@@ -1,6 +1,7 @@
 # WooCommerce
 The Smart Send plugin for WooCommerce
 
+- [Repository structure](#repository-structure)
 - [Setup](#setup-locally)
   - [Quick start (setup script)](#quick-start-setup-script)
   - [Install WP CLI](#install-wp-cli)
@@ -18,6 +19,58 @@ The Smart Send plugin for WooCommerce
   - [Release a new version](#release-a-new-version)
   - [Exporting to a zip file](#exporting-to-a-zip-file)
   - [Sandbox environment](#sandbox-environment)
+
+## Repository structure
+
+The plugin shipped to WordPress.org lives entirely in `smart-send-logistics/`; everything else in the repository is development tooling around it.
+
+```
+.
+├── smart-send-logistics/         # THE PLUGIN — the only folder shipped to WordPress.org
+│   ├── smart-send-logistics.php  # Thin plugin entry file (header, constant, bootstrap)
+│   ├── readme.txt                # WordPress.org readme (stable tag, changelog)
+│   ├── includes/                 # Composition root (class-ss-shipping-wc.php) + domain code
+│   │   ├── booking/              # Order → booked label: payload building, booking, fulfillment
+│   │   ├── delivery/             # Delivery details: order meta, pickup points, method resolution
+│   │   ├── shipping-method/      # The WooCommerce shipping method: rates, settings, weight table
+│   │   ├── support/              # Settings reader, API factory, logger, credentials, notices
+│   │   └── lib/Smartsend/        # PSR-style Smart Send API client (namespace Smartsend)
+│   ├── admin/                    # Admin controllers + UI (order meta box, bulk actions) + css/js
+│   ├── public/                   # Frontend: pickup point selection, Checkout Block integration
+│   ├── build/                    # Compiled checkout-block JS — committed, built from /src
+│   └── lang/                     # Translations
+├── src/                          # Checkout-block JS source (npm run build → plugin's build/)
+├── tests/
+│   ├── Integration/              # WP + WooCommerce loaded in-process; scenario coverage
+│   ├── Browser/                  # Playwright end-to-end tests against a running store
+│   │   └── Support/              # Store seeding/cleanup + API mock (shared with demo mode)
+│   ├── Docs/                     # Headed Playwright flows capturing documentation screenshots
+│   ├── Support/                  # Helpers shared between suites
+│   ├── bootstrap.php             # Loads WP + WC in-process for the Integration suite
+│   └── Pest.php                  # Pest configuration for all suites
+├── bin/                          # Dev tooling scripts
+│   ├── setup-local-dev.sh        # Builds a complete local dev store (composer setup)
+│   ├── run-tests.sh              # Rebuilds the testing store, runs the suites (composer test:*)
+│   ├── demo-store.sh             # Demo mode: seeded store + mocked API (composer demo:*)
+│   ├── import-sample-products.php
+│   ├── configure-checkout-page.php
+│   ├── update-sample-data.sh     # Refreshes sample-data/ from the WooCommerce source
+│   └── svn-deploy.sh             # Release deploy to the WordPress.org SVN repository
+├── sample-data/                  # Vendored sample catalog: products.csv, images, branding
+├── docs/screenshots/             # Generated documentation screenshots (output of tests/Docs)
+├── .github/workflows/            # CI: integration/browser tests, phpcs, JS build drift, docs
+├── local-dev/                    # Git-ignored: default disposable testing store location
+├── .env                          # Git-ignored: your persistent dev store (path, URL, knobs)
+├── .env.testing                  # Git-ignored: the disposable testing store used by the suites
+├── .env.example                  # Version-controlled reference documenting the env entries
+├── composer.json                 # Dev tooling: setup/test/demo scripts, phpcs, Pest
+├── package.json                  # JS build toolchain (@wordpress/scripts; Node pinned in .nvmrc)
+├── webpack.config.js             # Checkout-block build configuration
+├── phpunit.xml.dist              # Test suite definitions (Integration / Browser / Docs)
+├── phpcs.xml.dist                # Coding-standards ruleset (+ phpcs.compat.xml.dist, baseline)
+├── CLAUDE.md                     # Instructions for AI agents working in this repository
+└── README.md                     # This file
+```
 
 ## Setup locally
 
@@ -284,7 +337,7 @@ svn revert -R .
 The easiest way to release a new version of the plugin is by running the deploy script in the root of the repository:
 
 ```bash
-sh scripts/svn-deploy.sh
+sh bin/svn-deploy.sh
 ```
 
 Alternative do this manually by following these steps:

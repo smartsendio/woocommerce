@@ -6,7 +6,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 The Smart Send WooCommerce plugin ("Smart Send Shipping for WooCommerce", slug `smart-send-logistics`). It adds Smart Send shipping methods to WooCommerce, shows carrier pick-up points at checkout, and generates shipping labels via the Smart Send API. Supported carriers: PostNord, GLS, DAO, Burd, Budbee, Bring.
 
-The actual plugin lives entirely in `smart-send-logistics/` — that folder is what gets shipped to the WordPress.org plugin directory. The repo root only holds dev tooling (`composer.json` for phpcs, `scripts/svn-deploy.sh`, README).
+The actual plugin lives entirely in `smart-send-logistics/` — that folder is what gets shipped to the WordPress.org plugin directory. The repo root only holds dev tooling (`composer.json` for phpcs, `bin/svn-deploy.sh`, README).
 
 ## Development environment
 
@@ -14,7 +14,7 @@ There is no PHP build step. Development is done against local WordPress + WooCom
 
 ### JS build
 
-The checkout-block scripts are the repo's only compiled assets. Source lives in `src/` at the repo root (dev tooling, like `composer.json`); `npm run build` (`@wordpress/scripts`, Node version pinned in `.nvmrc`, config in `webpack.config.js`) compiles it into `smart-send-logistics/build/`, with `@woocommerce/dependency-extraction-webpack-plugin` turning `@wordpress/*`/`@woocommerce/*` imports into externals listed in generated `*.asset.php` files. The `build/` output is **committed** — contributors without Node get a working plugin and `scripts/svn-deploy.sh` stays copy-only — and `.github/workflows/js-build.yml` rebuilds on PRs touching `src/`/`package*.json`/`webpack.config.js` and fails if the committed output drifts from `src/`. After changing anything under `src/`, run `npm run build` and commit the result. Generated `build/` files are excluded from phpcs.
+The checkout-block scripts are the repo's only compiled assets. Source lives in `src/` at the repo root (dev tooling, like `composer.json`); `npm run build` (`@wordpress/scripts`, Node version pinned in `.nvmrc`, config in `webpack.config.js`) compiles it into `smart-send-logistics/build/`, with `@woocommerce/dependency-extraction-webpack-plugin` turning `@wordpress/*`/`@woocommerce/*` imports into externals listed in generated `*.asset.php` files. The `build/` output is **committed** — contributors without Node get a working plugin and `bin/svn-deploy.sh` stays copy-only — and `.github/workflows/js-build.yml` rebuilds on PRs touching `src/`/`package*.json`/`webpack.config.js` and fails if the committed output drifts from `src/`. After changing anything under `src/`, run `npm run build` and commit the result. Generated `build/` files are excluded from phpcs.
 
 ## Testing
 
@@ -124,7 +124,7 @@ Extension points are `smart_send_*` filters/actions (e.g. `smart_send_api_endpoi
 
 ## Releasing
 
-Releases go to the WordPress.org SVN repo, not GitHub. Use `sh scripts/svn-deploy.sh` (interactive; copies `smart-send-logistics/` into an SVN checkout's trunk, tags, commits).
+Releases go to the WordPress.org SVN repo, not GitHub. Use `sh bin/svn-deploy.sh` (interactive; copies `smart-send-logistics/` into an SVN checkout's trunk, tags, commits).
 
 A version bump must update **three places in lockstep**:
 - `smart-send-logistics/smart-send-logistics.php`: the `Version:` header and the private `$version` property
