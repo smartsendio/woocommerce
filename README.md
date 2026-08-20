@@ -30,8 +30,10 @@ The plugin shipped to WordPress.org lives entirely in `smart-send-logistics/`; e
 │   ├── smart-send-logistics.php  # Thin plugin entry file (header, constant, bootstrap)
 │   ├── readme.txt                # WordPress.org readme (stable tag, changelog)
 │   ├── includes/                 # Composition root (class-ss-shipping-wc.php) + domain code
-│   │   ├── booking/              # Order → booked label: payload building, booking, fulfillment
-│   │   ├── delivery/             # Delivery details: order meta, pickup points, method resolution
+│   │   ├── booking/              # Order → booked label: payload building and booking
+│   │   ├── fulfillment/          # Label fulfillment workflow around a booking (PDF, meta, tracking)
+│   │   ├── delivery/             # Delivery-details data model: value objects, order meta, resolution
+│   │   ├── delivery-options/     # Checkout/admin services around delivery options (pickup points today)
 │   │   ├── shipping-method/      # The WooCommerce shipping method: rates, settings, weight table
 │   │   ├── support/              # Settings reader, API factory, logger, credentials, notices
 │   │   └── lib/Smartsend/        # PSR-style Smart Send API client (namespace Smartsend)
