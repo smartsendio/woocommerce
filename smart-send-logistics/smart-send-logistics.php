@@ -1,8 +1,8 @@
 <?php
 /**
- * Plugin Name: Smart Send Shipping for WooCommerce
+ * Plugin Name: Smart Send for WooCommerce
  * Plugin URI: https://wordpress.org/plugins/smart-send-logistics/
- * Description: Smart Send Shipping for WooCommerce
+ * Description: Smart Send for WooCommerce
  * Author: Smart Send ApS
  * Author URI: https://www.smartsend.io
  * Text Domain: smart-send-logistics
