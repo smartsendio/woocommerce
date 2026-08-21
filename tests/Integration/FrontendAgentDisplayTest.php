@@ -1,15 +1,15 @@
 <?php
 
 /*
- * Characterization tests for SS_Shipping_Frontend: the pick-up point block
+ * Characterization tests for SS_Shipping_Frontend: the pickup point block
  * on the thank-you page and in order emails, the checkout validation and
  * agent persistence, and the invalid-order guard from #60.
  */
 
 /**
- * Fresh frontend instance to call the hook callbacks directly. (The plugin
- * singleton keeps its own instance private; constructing another one only
- * re-adds idempotent hooks.)
+ * Fresh frontend instance to call the hook callbacks directly. Construction
+ * has no side effects (hooks are wired separately via register_hooks()), so
+ * this does not disturb the plugin singleton's own registered instance.
  */
 function frontend(): SS_Shipping_Frontend
 {
@@ -36,17 +36,15 @@ it('hooks the agent display into the thank-you page and order emails', function 
         ->and(has_action('woocommerce_checkout_order_processed'))->not->toBeFalse();
 });
 
-it('renders the pick-up point block for an order with a selected agent', function () {
+it('renders the pickup point block for an order with a selected agent', function () {
     $product = create_simple_product(['price' => 100, 'weight' => 1]);
     $order   = create_order(['products' => [$product], 'shipping_method' => 'postnord_agent']);
 
-    $handler = SS_SHIPPING_WC()->get_ss_shipping_wc_order();
-    $handler->save_ss_shipping_order_agent_no($order->get_id(), '1234');
-    $handler->save_ss_shipping_order_agent($order->get_id(), sample_agent());
+    save_order_pickup_point($order->get_id(), sample_agent());
 
     $output = capture_agent_display($order);
 
-    expect($output)->toContain('Pick-up Point')
+    expect($output)->toContain('Pickup Point')
         ->toContain('Corner Shop')
         ->toContain('Main Street 1')
         ->toContain('DK 2300 Copenhagen')
@@ -80,15 +78,14 @@ it('renders nothing for an order that does not exist in the database', function 
 it('survives deleting the agent meta of an order that no longer exists', function () {
     // Invalid-order guard (#60): the deleted_post_meta hook can fire for
     // orders that were already removed; the handler must not fatal.
-    $handler = SS_SHIPPING_WC()->get_ss_shipping_wc_order();
-
-    $handler->delete_ss_shipping_order_agent(999999999);
-    $handler->action_deleted_agent_meta([1], 999999999, 'ss_shipping_order_agent_no', '1234');
+    SS_SHIPPING_WC()->order_meta()->delete_pickup_point(999999999);
+    SS_SHIPPING_WC()->pickup_point_validator()
+        ->action_deleted_agent_meta([1], 999999999, 'ss_shipping_order_agent_no', '1234');
 
     expect(true)->toBeTrue();
 });
 
-it('rejects checkout when the pick-up point dropdown is present but empty', function () {
+it('rejects checkout when the pickup point dropdown is present but empty', function () {
     if (is_null(WC()->cart)) {
         wc_load_cart();
     }
@@ -105,10 +102,10 @@ it('rejects checkout when the pick-up point dropdown is present but empty', func
     expect(wc_notice_count('error'))->toBe(1);
 
     $notices = wc_get_notices('error');
-    expect($notices[0]['notice'])->toBe('A pick-up point must be selected.');
+    expect($notices[0]['notice'])->toBe('A pickup point must be selected.');
 });
 
-it('accepts checkout when a pick-up point is selected', function () {
+it('accepts checkout when a pickup point is selected', function () {
     if (is_null(WC()->cart)) {
         wc_load_cart();
     }
@@ -123,6 +120,46 @@ it('accepts checkout when a pick-up point is selected', function () {
     frontend()->validate_agent_selected();
 
     expect(wc_notice_count('error'))->toBe(0);
+});
+
+it('accepts checkout when no pickup point dropdown was rendered because none were found', function () {
+    // The none-found case on the classic checkout: the lookup returns an
+    // empty result, display_ss_pickup_points() renders the "Shipping to
+    // closest pickup point" fallback instead of the dropdown (covered by
+    // PickupLookupDebugTest), so the submission carries NO
+    // ss_shipping_store_pickup field at all - and the order must go through
+    // without a pickup point selection.
+    if (is_null(WC()->cart)) {
+        wc_load_cart();
+    }
+    wc_clear_notices();
+
+    mock_smart_send_api(function () {
+        return ss_api_response(200, ['data' => []]);
+    });
+
+    remember_cleanup_callback(function (): void {
+        WC()->session->set('ss_shipping_agents', null);
+        wc_clear_notices();
+    });
+
+    // The render-time lookup finds nothing and caches the EMPTY result in
+    // the session (replacing any stale points from a previous address).
+    $points = (new SS_Shipping_Pickup_Point_Lookup())
+        ->find_closest_by_address('postnord', 'DK', '2300', 'Copenhagen', 'Islands Brygge 39');
+    expect($points)->toBe([])
+        ->and(WC()->session->get('ss_shipping_agents'))->toBe([]);
+
+    // No dropdown rendered -> the field is absent from the POST ->
+    // validation passes.
+    unset($_POST['ss_shipping_store_pickup']);
+    frontend()->validate_agent_selected();
+    expect(wc_notice_count('error'))->toBe(0);
+
+    // And checkout persistence writes no pickup point meta.
+    $order = create_order(['shipping_method' => 'postnord_agent']);
+    frontend()->process_ss_pickup_points($order->get_id(), []);
+    expect(SS_SHIPPING_WC()->order_meta()->read($order->get_id())->get_pickup_point())->toBeNull();
 });
 
 it('saves the selected agent from the session onto the order at checkout', function () {
@@ -145,9 +182,13 @@ it('saves the selected agent from the session onto the order at checkout', funct
 
     frontend()->process_ss_pickup_points($order->get_id(), []);
 
-    $handler = SS_SHIPPING_WC()->get_ss_shipping_wc_order();
-    expect($handler->get_ss_shipping_order_agent_no($order->get_id()))->toBe('1234')
-        ->and($handler->get_ss_shipping_order_agent($order->get_id())->company)->toBe('Corner Shop');
+    $pickup_point = SS_SHIPPING_WC()->order_meta()->read($order->get_id())->get_pickup_point();
+    expect($pickup_point->get_agent_no())->toBe('1234')
+        ->and($pickup_point->get_company())->toBe('Corner Shop');
+    // The frozen meta keys carry the selection.
+    $fresh = wc_get_order($order->get_id());
+    expect($fresh->get_meta('ss_shipping_order_agent_no', true))->toBe('1234')
+        ->and($fresh->get_meta('_ss_shipping_order_agent', true)->company)->toBe('Corner Shop');
 });
 
 it('saves nothing when the posted agent is not in the session list', function () {
@@ -167,6 +208,96 @@ it('saves nothing when the posted agent is not in the session list', function ()
 
     frontend()->process_ss_pickup_points($order->get_id(), []);
 
-    expect(SS_SHIPPING_WC()->get_ss_shipping_wc_order()->get_ss_shipping_order_agent_no($order->get_id()))
+    expect(SS_SHIPPING_WC()->order_meta()->read($order->get_id())->get_pickup_point())
         ->toBeNull();
+});
+
+/**
+ * Render the pickup point section for a chosen rate the way checkout does
+ * (is_checkout() forced, method chosen in the session), with control over
+ * the posted address fields and the customer's session-stored shipping
+ * address - covering the first, non-AJAX page load, which posts nothing.
+ */
+function frontend_render_pickup_section(string $method_code = 'postnord_agent', array $post = [], array $customer_address = []): string
+{
+    if (is_null(WC()->cart)) {
+        wc_load_cart();
+    }
+
+    add_filter('woocommerce_is_checkout', '__return_true');
+    unset($_POST['s_country'], $_POST['s_postcode'], $_POST['s_city'], $_POST['s_address']);
+    $_POST = array_merge($_POST, $post);
+    WC()->session->set('chosen_shipping_methods', ['smart_send_shipping:1']);
+
+    $customer = WC()->customer;
+    $customer->set_shipping_country($customer_address['country'] ?? '');
+    $customer->set_shipping_postcode($customer_address['postcode'] ?? '');
+    $customer->set_shipping_city($customer_address['city'] ?? '');
+    $customer->set_shipping_address_1($customer_address['address'] ?? '');
+
+    remember_cleanup_callback(function (): void {
+        remove_filter('woocommerce_is_checkout', '__return_true');
+        unset($_POST['s_country'], $_POST['s_postcode'], $_POST['s_city'], $_POST['s_address']);
+        WC()->session->set('chosen_shipping_methods', null);
+        WC()->session->set('ss_shipping_agents', null);
+
+        $customer = WC()->customer;
+        $customer->set_shipping_country('');
+        $customer->set_shipping_postcode('');
+        $customer->set_shipping_city('');
+        $customer->set_shipping_address_1('');
+    });
+
+    $rate = new WC_Shipping_Rate('smart_send_shipping:1', 'Smart Send', 49.0, [], 'smart_send_shipping', 1);
+    $rate->add_meta_data('smart_send_shipping_method', $method_code);
+
+    ob_start();
+    frontend()->display_ss_pickup_points($rate, 0);
+
+    return ob_get_clean();
+}
+
+it('renders the enter-your-address hint on the first page load, before any address is posted', function () {
+    $capture = mock_smart_send_api();
+
+    $output = frontend_render_pickup_section('postnord_agent');
+
+    expect($output)->toContain('<div class="woocommerce-info ss-agent-info ss-agent-info--address_incomplete">Enter your shipping address to see available pickup points.</div>')
+        ->and($capture->requests)->toBe([]);
+});
+
+it('renders nothing on first page load when the chosen method is not a pickup point method', function () {
+    mock_smart_send_api();
+
+    expect(frontend_render_pickup_section('postnord_homedelivery'))->toBe('');
+});
+
+it('falls back to the customer\'s session-stored shipping address when nothing is posted', function () {
+    $capture = mock_smart_send_api(function () {
+        return ss_api_response(200, ['data' => [sample_agent()]]);
+    });
+
+    $output = frontend_render_pickup_section('postnord_agent', [], [
+        'country'  => 'DK',
+        'postcode' => '2300',
+        'city'     => 'Copenhagen',
+        'address'  => 'Islands Brygge 39',
+    ]);
+
+    expect($output)->toContain('ss_shipping_store_pickup')
+        ->and(end($capture->requests)['url'])->toContain('/agents/closest/carrier/postnord/country/DK/postalcode/2300/city/Copenhagen/street/Islands');
+});
+
+it('prefers the posted address fields over the customer\'s stored address', function () {
+    $capture = mock_smart_send_api(function () {
+        return ss_api_response(200, ['data' => [sample_agent()]]);
+    });
+
+    frontend_render_pickup_section(
+        'postnord_agent',
+        ['s_country' => 'DK', 's_postcode' => '8000', 's_city' => 'Aarhus', 's_address' => 'Posted Street 1'],
+        ['country' => 'DK', 'postcode' => '2300', 'city' => 'Copenhagen', 'address' => 'Islands Brygge 39']
+    );
+
+    expect(end($capture->requests)['url'])->toContain('/postalcode/8000/city/Aarhus/street/Posted Street 1');
 });

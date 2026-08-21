@@ -4,8 +4,13 @@ namespace Smartsend\Models\Shipment;
 
 class Services  implements \JsonSerializable
 {
-    private $email_notification;
-    private $sms_notification;
+    private ?string $email_notification = null;
+    private ?string $sms_notification = null;
+    // Untyped: never assigned anywhere in the plugin (always null in the
+    // payload golden tests) or by any test, so the real API contract for
+    // this field (bool flag vs. a delivery-window string) can't be
+    // confirmed from usage. Guessing a scalar type risks silently coercing
+    // a shape the API doesn't expect.
     private $flex_delivery;
 
     public function __construct(Array $services=array())
@@ -24,36 +29,36 @@ class Services  implements \JsonSerializable
     }
 
     /**
-     * @return mixed
+     * @return string|null
      */
-    public function getEmailNotification()
+    public function getEmailNotification(): ?string
     {
         return $this->email_notification;
     }
 
     /**
-     * @param mixed $email_notification
-     * @return Services
+     * @param string|null $email_notification
+     * @return self
      */
-    public function setEmailNotification($email_notification)
+    public function setEmailNotification(?string $email_notification): self
     {
         $this->email_notification = $email_notification;
         return $this;
     }
 
     /**
-     * @return mixed
+     * @return string|null
      */
-    public function getSmsNotification()
+    public function getSmsNotification(): ?string
     {
         return $this->sms_notification;
     }
 
     /**
-     * @param mixed $sms_notification
-     * @return Services
+     * @param string|null $sms_notification
+     * @return self
      */
-    public function setSmsNotification($sms_notification)
+    public function setSmsNotification(?string $sms_notification): self
     {
         $this->sms_notification = $sms_notification;
         return $this;
@@ -69,9 +74,9 @@ class Services  implements \JsonSerializable
 
     /**
      * @param mixed $flex_delivery
-     * @return Services
+     * @return self
      */
-    public function setFlexDelivery($flex_delivery)
+    public function setFlexDelivery($flex_delivery): self
     {
         $this->flex_delivery = $flex_delivery;
         return $this;

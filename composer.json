@@ -22,6 +22,7 @@
     "platform": {
       "php": "8.3.0"
     },
+    "process-timeout": 900,
     "allow-plugins": {
       "dealerdirect/phpcodesniffer-composer-installer": true,
       "digitalrevolution/php-codesniffer-baseline": true,
@@ -29,11 +30,16 @@
     }
   },
   "scripts": {
+    "setup": "bin/setup-local-dev.sh",
     "phpcs": "phpcs",
     "phpcs:compat": "phpcs --standard=phpcs.compat.xml.dist",
     "phpcs:fix": "phpcbf",
-    "test": "pest",
-    "test:integration": "pest --testsuite=Integration",
-    "test:browser": "pest --testsuite=Browser"
+    "test": "bin/run-tests.sh Integration,Browser",
+    "test:integration": "bin/run-tests.sh Integration",
+    "test:browser": "bin/run-tests.sh Browser",
+    "test:docs": "bin/run-tests.sh Docs",
+    "demo:on": "bin/demo-store.sh on",
+    "demo:off": "bin/demo-store.sh off",
+    "demo:scenario": "bin/demo-store.sh scenario"
   }
 }

@@ -5,21 +5,23 @@ namespace Smartsend\Models\Shipment;
 
 class Item implements \JsonSerializable
 {
-    private $internal_id;
-    private $internal_reference;
-    private $sku;
-    private $name;
-    private $description;
-    private $hs_code;
-    private $country_of_origin;
-    private $image_url;
-    private $unit_weight;
-    private $unit_price_excluding_tax;
-    private $unit_price_including_tax;
-    private $quantity;
-    private $total_price_excluding_tax;
-    private $total_price_including_tax;
-    private $total_tax_amount;
+    // Typed properties keep "= null" so get_object_vars() serialization is
+    // unchanged.
+    private ?string $internal_id = null;
+    private ?string $internal_reference = null;
+    private ?string $sku = null;
+    private ?string $name = null;
+    private ?string $description = null;
+    private ?string $hs_code = null;
+    private ?string $country_of_origin = null;
+    private ?string $image_url = null;
+    private ?float $unit_weight = null;
+    private ?float $unit_price_excluding_tax = null;
+    private ?float $unit_price_including_tax = null;
+    private ?float $quantity = null;
+    private ?float $total_price_excluding_tax = null;
+    private ?float $total_price_including_tax = null;
+    private ?float $total_tax_amount = null;
 
     public function __construct($item=array())
     {
@@ -85,162 +87,162 @@ class Item implements \JsonSerializable
     }
 
     /**
-     * @return mixed
+     * @return string|null
      */
-    public function getInternalId()
+    public function getInternalId(): ?string
     {
         return $this->internal_id;
     }
 
     /**
      * @param string $internal_id
-     * @return Item
+     * @return self
      */
-    public function setInternalId($internal_id)
+    public function setInternalId($internal_id): self
     {
         $this->internal_id = (string) $internal_id;
         return $this;
     }
 
     /**
-     * @return mixed
+     * @return string|null
      */
-    public function getInternalReference()
+    public function getInternalReference(): ?string
     {
         return $this->internal_reference;
     }
 
     /**
      * @param string $internal_reference
-     * @return Item
+     * @return self
      */
-    public function setInternalReference($internal_reference)
+    public function setInternalReference($internal_reference): self
     {
         $this->internal_reference = (string) $internal_reference;
         return $this;
     }
 
     /**
-     * @return mixed
+     * @return string|null
      */
-    public function getSku()
+    public function getSku(): ?string
     {
         return $this->sku;
     }
 
     /**
-     * @param mixed $sku
-     * @return Item
+     * @param string|null $sku
+     * @return self
      */
-    public function setSku($sku)
+    public function setSku(?string $sku): self
     {
         $this->sku = $sku;
         return $this;
     }
 
     /**
-     * @return mixed
+     * @return string|null
      */
-    public function getName()
+    public function getName(): ?string
     {
         return $this->name;
     }
 
     /**
-     * @param mixed $name
-     * @return Item
+     * @param string|null $name
+     * @return self
      */
-    public function setName($name)
+    public function setName(?string $name): self
     {
         $this->name = $name;
         return $this;
     }
 
     /**
-     * @return mixed
+     * @return string|null
      */
-    public function getDescription()
+    public function getDescription(): ?string
     {
         return $this->description;
     }
 
     /**
-     * @param mixed $description
-     * @return Item
+     * @param string|null $description
+     * @return self
      */
-    public function setDescription($description)
+    public function setDescription(?string $description): self
     {
         $this->description = $description;
         return $this;
     }
 
     /**
-     * @return mixed
+     * @return string|null
      */
-    public function getHsCode()
+    public function getHsCode(): ?string
     {
         return $this->hs_code;
     }
 
     /**
-     * @param mixed $hs_code
-     * @return Item
+     * @param string|null $hs_code
+     * @return self
      */
-    public function setHsCode($hs_code)
+    public function setHsCode(?string $hs_code): self
     {
         $this->hs_code = $hs_code;
         return $this;
     }
 
     /**
-     * @return mixed
+     * @return string|null
      */
-    public function getCountryOfOrigin()
+    public function getCountryOfOrigin(): ?string
     {
         return $this->country_of_origin;
     }
 
     /**
-     * @param mixed $country_of_origin
-     * @return Item
+     * @param string|null $country_of_origin
+     * @return self
      */
-    public function setCountryOfOrigin($country_of_origin)
+    public function setCountryOfOrigin(?string $country_of_origin): self
     {
         $this->country_of_origin = $country_of_origin;
         return $this;
     }
 
     /**
-     * @return mixed
+     * @return string|null
      */
-    public function getImageUrl()
+    public function getImageUrl(): ?string
     {
         return $this->image_url;
     }
 
     /**
-     * @param mixed $image_url
-     * @return Item
+     * @param string|null $image_url
+     * @return self
      */
-    public function setImageUrl($image_url)
+    public function setImageUrl(?string $image_url): self
     {
         $this->image_url = $image_url;
         return $this;
     }
 
     /**
-     * @return mixed
+     * @return float|null
      */
-    public function getUnitWeight()
+    public function getUnitWeight(): ?float
     {
         return $this->unit_weight;
     }
 
     /**
      * @param mixed $unit_weight
-     * @return Item
+     * @return self
      */
-    public function setUnitWeight($unit_weight)
+    public function setUnitWeight($unit_weight): self
     {
 
         $this->unit_weight = is_null($unit_weight) ? null : ((float) $unit_weight);
@@ -248,108 +250,108 @@ class Item implements \JsonSerializable
     }
 
     /**
-     * @return mixed
+     * @return float|null
      */
-    public function getUnitPriceExcludingTax()
+    public function getUnitPriceExcludingTax(): ?float
     {
         return $this->unit_price_excluding_tax;
     }
 
     /**
      * @param mixed $unit_price_excluding_tax
-     * @return Item
+     * @return self
      */
-    public function setUnitPriceExcludingTax($unit_price_excluding_tax)
+    public function setUnitPriceExcludingTax($unit_price_excluding_tax): self
     {
         $this->unit_price_excluding_tax = is_null($unit_price_excluding_tax) ? null : ((float) $unit_price_excluding_tax);
         return $this;
     }
 
     /**
-     * @return mixed
+     * @return float|null
      */
-    public function getUnitPriceIncludingTax()
+    public function getUnitPriceIncludingTax(): ?float
     {
         return $this->unit_price_including_tax;
     }
 
     /**
      * @param mixed $unit_price_including_tax
-     * @return Item
+     * @return self
      */
-    public function setUnitPriceIncludingTax($unit_price_including_tax)
+    public function setUnitPriceIncludingTax($unit_price_including_tax): self
     {
         $this->unit_price_including_tax = is_null($unit_price_including_tax) ? null : ((float) $unit_price_including_tax);
         return $this;
     }
 
     /**
-     * @return mixed
+     * @return float|null
      */
-    public function getQuantity()
+    public function getQuantity(): ?float
     {
         return $this->quantity;
     }
 
     /**
      * @param mixed $quantity
-     * @return Item
+     * @return self
      */
-    public function setQuantity($quantity)
+    public function setQuantity($quantity): self
     {
         $this->quantity = is_null($quantity) ? null : ((float) $quantity);
         return $this;
     }
 
     /**
-     * @return mixed
+     * @return float|null
      */
-    public function getTotalPriceExcludingTax()
+    public function getTotalPriceExcludingTax(): ?float
     {
         return $this->total_price_excluding_tax;
     }
 
     /**
      * @param mixed $total_price_excluding_tax
-     * @return Item
+     * @return self
      */
-    public function setTotalPriceExcludingTax($total_price_excluding_tax)
+    public function setTotalPriceExcludingTax($total_price_excluding_tax): self
     {
         $this->total_price_excluding_tax = is_null($total_price_excluding_tax) ? null : ((float) $total_price_excluding_tax);
         return $this;
     }
 
     /**
-     * @return mixed
+     * @return float|null
      */
-    public function getTotalPriceIncludingTax()
+    public function getTotalPriceIncludingTax(): ?float
     {
         return $this->total_price_including_tax;
     }
 
     /**
      * @param mixed $total_price_including_tax;
-     * @return Item
+     * @return self
      */
-    public function setTotalPriceIncludingTax($total_price_including_tax)
+    public function setTotalPriceIncludingTax($total_price_including_tax): self
     {
         $this->total_price_including_tax = is_null($total_price_including_tax) ? null : ((float) $total_price_including_tax);
         return $this;
     }
 
     /**
-     * @return mixed
+     * @return float|null
      */
-    public function getTotalTaxAmount()
+    public function getTotalTaxAmount(): ?float
     {
         return $this->total_tax_amount;
     }
 
     /**
      * @param mixed $total_tax_amount
-     * @return Item
+     * @return self
      */
-    public function setTotalTaxAmount($total_tax_amount)
+    public function setTotalTaxAmount($total_tax_amount): self
     {
         $this->total_tax_amount = is_null($total_tax_amount) ? null : ((float) $total_tax_amount);
         return $this;

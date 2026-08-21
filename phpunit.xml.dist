@@ -5,12 +5,26 @@
          colors="true"
          failOnWarning="false"
 >
+    <!--
+        The combined `composer test` run (Integration's in-process WordPress
+        plus the Browser suite's Playwright client) exceeds the default CLI
+        128M memory_limit and dies with PHPUnit's opaque "Premature end of
+        PHPUnit's PHP process" at the suite boundary. 512M matches the
+        memory limit the README's store-server command uses.
+    -->
+    <php>
+        <ini name="memory_limit" value="512M"/>
+    </php>
+
     <testsuites>
         <testsuite name="Integration">
             <directory>tests/Integration</directory>
         </testsuite>
         <testsuite name="Browser">
             <directory>tests/Browser</directory>
+        </testsuite>
+        <testsuite name="Docs">
+            <directory>tests/Docs</directory>
         </testsuite>
     </testsuites>
 </phpunit>

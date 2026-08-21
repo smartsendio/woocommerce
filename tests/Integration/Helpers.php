@@ -132,9 +132,10 @@ function mock_smart_send_api(?callable $responder = null): object
         }
 
         $capture->requests[] = [
-            'url'    => $url,
-            'method' => $args['method'] ?? null,
-            'body'   => $args['body'] ?? null,
+            'url'     => $url,
+            'method'  => $args['method'] ?? null,
+            'body'    => $args['body'] ?? null,
+            'timeout' => $args['timeout'] ?? null,
         ];
 
         return $responder($url, $args);
@@ -151,12 +152,20 @@ function mock_smart_send_api(?callable $responder = null): object
 
 /**
  * Build a wp_remote_request-shaped response array with a JSON body.
+ * Pass a Response-ID value via $response_id to simulate the API's
+ * response-tracing header.
  */
-function ss_api_response(int $status, array $body): array
+function ss_api_response(int $status, array $body, ?string $response_id = null): array
 {
+    $headers = ['content-type' => 'application/json'];
+
+    if ($response_id !== null) {
+        $headers['response-id'] = $response_id;
+    }
+
     return [
         'response' => ['code' => $status, 'message' => $status === 200 ? 'OK' : 'Error'],
-        'headers'  => ['content-type' => 'application/json'],
+        'headers'  => $headers,
         'body'     => json_encode($body),
         'cookies'  => [],
         'filename' => null,
@@ -187,21 +196,44 @@ function ss_api_shipment_data(array $overrides = []): array
 }
 
 /**
- * An error response body in the shape the Smart Send API produces.
+ * An error response body in the shape the Smart Send API produces. Only
+ * "message" and "errors" are read by the plugin (the response id travels
+ * in the Response-ID header - see ss_api_response()).
  */
 function ss_api_error_body(string $message = 'The given data was invalid.'): array
 {
     return [
-        'links'   => ['about' => 'https://app.smartsend.io/help/errors/ValidationException'],
-        'id'      => 'test-error-id',
-        'code'    => 'ValidationException',
         'message' => $message,
         'errors'  => ['receiver.postal_code' => ['The postal code is invalid.']],
     ];
 }
 
 /**
- * A pick-up point agent object as the plugin stores it in order meta.
+ * Store a pickup point selection on an order through the repository
+ * (SS_Shipping_Order_Meta::write()), the way checkout does.
+ */
+function save_order_pickup_point(int $order_id, object $agent): void
+{
+    $details = new SS_Shipping_Delivery_Details();
+    $details->set_pickup_point(SS_Shipping_Pickup_Point::from_object($agent));
+
+    SS_SHIPPING_WC()->order_meta()->write($order_id, $details);
+}
+
+/**
+ * Store a parcel split on an order through the repository, from rows in
+ * the frozen id/name/value meta shape.
+ */
+function save_order_parcels(int $order_id, array $rows): void
+{
+    $details = new SS_Shipping_Delivery_Details();
+    $details->set_parcel_plan(SS_Shipping_Parcel_Plan::from_box_rows($rows));
+
+    SS_SHIPPING_WC()->order_meta()->write($order_id, $details);
+}
+
+/**
+ * A pickup point agent object as the plugin stores it in order meta.
  */
 function sample_agent(array $overrides = []): object
 {
