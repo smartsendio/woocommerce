@@ -56,7 +56,9 @@ update_option('woocommerce_smart_send_shipping_settings', array_merge(array(
     'save_shipping_labels_in_uploads' => 'no', 'dropdown_display_format' => '4',
     'default_select_agent' => 'no', 'order_status' => '0',
 ), $config['settings']));
-update_option('ss_test_api_mock', 'yes');
+update_option('ss_test_api', array('enabled' => true, 'scenarios' => array()));
+// Legacy single-scenario mock options (pre per-endpoint rework) - remove if left behind.
+delete_option('ss_test_api_mock');
 delete_option('ss_test_api_scenario');
 
 // Cash on delivery so the checkout can be completed.

@@ -101,7 +101,7 @@ it('shows the API error message when booking fails', function () {
     $state = ss_browser_state();
     $order_id = $state['orders'][3];
 
-    ss_browser_set_api_scenario('booking-failure');
+    ss_browser_set_api_scenarios(array('booking' => '422-wrong-zip'));
 
     try {
         // The mocked 422 validation error must surface in the meta box.
@@ -112,7 +112,7 @@ it('shows the API error message when booking fails', function () {
             ->assertSeeIn('#ss-shipping-error', 'The given data was invalid')
             ->assertSeeIn('#ss-shipping-error', 'The receiver zip code does not match the receiver country');
     } finally {
-        ss_browser_set_api_scenario(null);
+        ss_browser_set_api_scenarios(null);
     }
 
     // Nothing was written on the failed booking.

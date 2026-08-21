@@ -73,6 +73,8 @@ if (empty($state['original_settings'])) {
     update_option('woocommerce_smart_send_shipping_settings', $state['original_settings']);
 }
 
+delete_option('ss_test_api');
+// Legacy single-scenario mock options (pre per-endpoint rework) - remove if left behind.
 delete_option('ss_test_api_mock');
 delete_option('ss_test_api_scenario');
 delete_option($state_option);

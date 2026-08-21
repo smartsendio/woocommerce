@@ -10,24 +10,48 @@
  *    ss_browser_remove_api_mock() in tests/Browser/Support/SmartSendStore.php
  *  - the manual-testing demo mode, via bin/demo-store.sh (demo:on/demo:off)
  *
- * Only active while the ss_test_api_mock option is 'yes'; failure scenarios
- * are switched on via the ss_test_api_scenario option. The line below is
- * machine-read by bin/demo-store.sh to validate scenario names - keep it in
- * sync when adding a scenario ('success' means the option is unset).
+ * Controlled by the single ss_test_api option:
  *
- * Scenarios: success invalid-token booking-failure no-pickup-points
+ *   array(
+ *       'enabled'   => true,
+ *       'scenarios' => array('booking' => '500', 'pickup-points' => '403'),
+ *   )
  *
- *  - 'invalid-token'    -> the account/authenticate call returns 401
- *  - 'booking-failure'  -> the shipments/labels booking call returns 422
- *                          with a validation message
- *  - 'no-pickup-points' -> the agents/closest lookup returns an empty data
- *                          set (no pickup points near the address; a valid
- *                          empty-collection response)
+ * Only active while 'enabled' is truthy; every endpoint then returns its
+ * success response unless the 'scenarios' map overrides that endpoint. A
+ * scenario case is either a named case from the endpoint's list below, or
+ * any three-digit HTTP status code (a generic error body with that status)
+ * - so per-endpoint failures compose freely: authentication can succeed
+ * while the pick-up point lookup 403s and booking 500s.
+ *
+ * The "Cases" lines below are machine-read by bin/demo-store.sh to validate
+ * endpoint and case names - keep them in sync when adding either ('success'
+ * means no override; three-digit codes are always valid on every endpoint).
+ *
+ * Cases authenticate: success 401
+ * Cases pickup-points: success empty
+ * Cases booking: success 422-wrong-zip
+ * Cases labels-combine: success
+ * Cases agent-lookup: success
+ *
+ * Named cases:
+ *  - authenticate '401'      -> the real "Invalid API token provided" body
+ *                               (also reachable as the generic 401; named so
+ *                               the exact message is pinned for tests)
+ *  - pickup-points 'empty'   -> an empty data set (no pickup points near the
+ *                               address; a valid empty-collection response)
+ *  - booking '422-wrong-zip' -> a validation failure in the shape the real
+ *                               API produces (message + field errors)
  */
 add_filter('pre_http_request', function ($pre, $args, $url) {
-    if (get_option('ss_test_api_mock') !== 'yes' || strpos($url, 'smartsend.io') === false) {
+    $config = get_option('ss_test_api');
+    if (empty($config['enabled']) || strpos($url, 'smartsend.io') === false) {
         return $pre;
     }
+
+    $scenarios = (isset($config['scenarios']) && is_array($config['scenarios']))
+        ? $config['scenarios']
+        : array();
 
     $respond = function ($body, $code = 200) {
         return array(
@@ -39,12 +63,30 @@ add_filter('pre_http_request', function ($pre, $args, $url) {
         );
     };
 
-    $scenario = get_option('ss_test_api_scenario');
+    // Resolve the endpoint's case: a named case handled below, a bare
+    // three-digit HTTP status code (generic error body), or 'success'.
+    // An unknown case never falls through to success silently - that would
+    // make a typo in a test/demo scenario indistinguishable from a pass.
+    $case_of = function ($endpoint) use ($scenarios) {
+        return isset($scenarios[$endpoint]) ? (string) $scenarios[$endpoint] : 'success';
+    };
+    $generic = function ($endpoint, $case, $named_cases) use ($respond) {
+        if (preg_match('/^[0-9]{3}$/', $case) && $case !== '200') {
+            return $respond(array('message' => 'Mocked HTTP ' . $case . ' (ss_test_api scenario for ' . $endpoint . ')'), (int) $case);
+        }
+        if ($case !== 'success' && !in_array($case, $named_cases, true)) {
+            return $respond(array('message' => "Unknown ss_test_api scenario case '{$case}' for endpoint '{$endpoint}'"), 500);
+        }
+
+        return null;
+    };
 
     if (strpos($url, 'agents/closest') !== false) {
-        if ($scenario === 'no-pickup-points') {
-            // An empty data set: a valid empty-collection response - the
-            // "no pickup points near the address" case.
+        $case = $case_of('pickup-points');
+        if ($error = $generic('pickup-points', $case, array('empty'))) {
+            return $error;
+        }
+        if ($case === 'empty') {
             return $respond(array('data' => array()));
         }
 
@@ -55,23 +97,30 @@ add_filter('pre_http_request', function ($pre, $args, $url) {
     }
 
     if (strpos($url, 'shipments/labels/combine') !== false) {
+        $case = $case_of('labels-combine');
+        if ($error = $generic('labels-combine', $case, array())) {
+            return $error;
+        }
+
         return $respond(array('data' => array(
             'pdf' => array('link' => 'https://mock.smartsend.test/labels/combined.pdf', 'base_64_encoded' => base64_encode('%PDF-combo')),
         )));
     }
 
     if (strpos($url, 'shipments/labels') !== false) {
-        if ($scenario === 'booking-failure') {
-            // A validation failure in the shape the real API produces
-            // (message + field errors); the resource throws a
-            // ValidationException which the booking service renders into
-            // the meta box error div.
+        $case = $case_of('booking');
+        if ($case === '422-wrong-zip') {
+            // The resource throws a ValidationException which the booking
+            // service renders into the meta box error div.
             return $respond(array(
                 'message' => 'The given data was invalid.',
                 'errors'  => array(
                     'receiver.zip_code' => array('The receiver zip code does not match the receiver country'),
                 ),
             ), 422);
+        }
+        if ($error = $generic('booking', $case, array('422-wrong-zip'))) {
+            return $error;
         }
 
         return $respond(array('data' => array(
@@ -86,6 +135,11 @@ add_filter('pre_http_request', function ($pre, $args, $url) {
     }
 
     if (strpos($url, 'agents/carrier') !== false) {
+        $case = $case_of('agent-lookup');
+        if ($error = $generic('agent-lookup', $case, array())) {
+            return $error;
+        }
+
         return $respond(array('data' => array(
             'id' => 1, 'agent_no' => '1234', 'company' => 'Browser Test Shop', 'address_line1' => 'Main Street 1', 'address_line2' => null, 'postal_code' => '2300', 'city' => 'Copenhagen', 'country' => 'DK',
         )));
@@ -93,8 +147,12 @@ add_filter('pre_http_request', function ($pre, $args, $url) {
 
     // Anything else is the account/authenticate call (the API base URL with
     // no resource path - Smartsend\Resources\AccountResource::getAuthenticatedUser()).
-    if ($scenario === 'invalid-token') {
+    $case = $case_of('authenticate');
+    if ($case === '401') {
         return $respond(array('message' => 'Invalid API token provided'), 401);
+    }
+    if ($error = $generic('authenticate', $case, array('401'))) {
+        return $error;
     }
 
     return $respond(array('data' => array('id' => 1, 'email' => 'mock@smartsend.test', 'website' => 'localhost')));

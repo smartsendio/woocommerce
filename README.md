@@ -300,13 +300,24 @@ Every `composer test:*` run rebuilds the testing store from scratch to eliminate
 Demo mode puts the local development store into the same state the Browser suite runs against — a mu-plugin that mocks the Smart Send API, a Denmark shipping zone with a Smart Send pick-up point method, a sample product, and both a classic and a block checkout page — and leaves it on until you turn it off. Useful for clicking through checkout and label generation by hand without a real API token.
 
 ```bash
-composer demo:on                             # seed the store + install the API mock; prints URLs + admin creds
-composer demo:off                            # remove the mock and the demo fixtures again
-composer demo:scenario                       # show the active mock scenario + the valid list
-composer demo:scenario -- no-pickup-points   # switch the mock into a failure scenario
+composer demo:on          # seed the store + install the API mock; prints URLs + admin creds
+composer demo:off         # remove the mock and the demo fixtures again
+composer demo:scenario    # show the active scenarios + the valid endpoint/case list
 ```
 
-Valid scenarios: `success` (the default), `invalid-token` (authentication returns 401), `booking-failure` (label booking returns a 422 validation error), `no-pickup-points` (the pick-up point lookup finds nothing).
+Scenarios are **per endpoint**, so failures compose: authentication can succeed while the pick-up point lookup 403s and booking 500s. Every endpoint defaults to a success response; `composer demo:scenario -- <endpoint>=<case>...` overrides individual endpoints. A case is either one of the named cases below or any three-digit HTTP status code (a generic error body with that status):
+
+```bash
+composer demo:scenario -- authenticate=401        # invalid API token ("Invalid API token provided")
+composer demo:scenario -- pickup-points=empty     # the pick-up point lookup finds nothing (valid empty response)
+composer demo:scenario -- booking=422-wrong-zip   # label booking fails with a realistic validation error
+composer demo:scenario -- pickup-points=500       # any endpoint + any HTTP status code: generic error body
+composer demo:scenario -- booking=500 pickup-points=403   # multiple overrides compose in one command
+composer demo:scenario -- booking=success         # remove a single override (unmentioned endpoints keep theirs)
+composer demo:scenario -- reset                   # every endpoint back to success
+```
+
+The overridable endpoints are `authenticate`, `pickup-points`, `booking`, `labels-combine` and `agent-lookup`; the canonical endpoint/case list lives in the mock's header (`tests/Browser/Support/ApiMockMuPlugin.php`) and is what `demo:scenario` validates against and prints. All mock state lives in the single `ss_test_api` option (`enabled` + the `scenarios` map), so it can also be flipped from a code snippet or `wp option` directly.
 
 The commands target the dev store from `.env`'s `WP_PATH` (default `./local-dev/wordpress`; the `WP_DEV_PATH` env var still overrides) — deliberately *not* the disposable testing store, so demo state never leaks into test runs. Both commands are idempotent, and `demo:off` only removes what `demo:on` created — zones, products, pages and orders you built on top are left alone. The mock and seeding logic are shared with the Browser suite (`tests/Browser/Support/`), so demo mode always matches what the tests exercise. Demo mode is a local-only tool: it refuses to run against a production environment or any site URL that is not localhost/127.0.0.1/`*.test`.
 

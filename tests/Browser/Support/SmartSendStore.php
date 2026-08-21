@@ -172,13 +172,13 @@ function ss_browser_mu_plugin_path(): string
 /**
  * Install the Smart Send API mock as a temporary mu-plugin. The mock source
  * is the shared tests/Browser/Support/ApiMockMuPlugin.php (also installed by
- * bin/demo-store.sh for manual testing). Only active while the
- * ss_test_api_mock option is 'yes' (set by ss_browser_seed_store() and
+ * bin/demo-store.sh for manual testing). Only active while the ss_test_api
+ * option's 'enabled' key is truthy (set by ss_browser_seed_store() and
  * removed by ss_browser_cleanup_store()).
  *
- * Failure scenarios are switched on per test via the ss_test_api_scenario
- * option - see ss_browser_set_api_scenario() and the scenario list in the
- * mock source's header.
+ * Failure scenarios are switched on per test and per endpoint via the
+ * option's 'scenarios' map - see ss_browser_set_api_scenarios() and the
+ * endpoint/case lists in the mock source's header.
  */
 function ss_browser_install_api_mock(): void
 {
@@ -198,20 +198,23 @@ function ss_browser_remove_api_mock(): void
 }
 
 /**
- * Switch the API mock into a failure scenario ('invalid-token' or
- * 'booking-failure'), or back to normal (null). Tests that set a scenario
- * must reset it; ss_browser_cleanup_store() also clears it as a backstop.
+ * Override individual mock API endpoints with failure cases, e.g.
+ * ['authenticate' => '401'] or ['booking' => '422-wrong-zip'] - endpoint
+ * keys and named cases are listed in the mock source's header; any
+ * three-digit HTTP status code is also valid on every endpoint. Endpoints
+ * not in the map keep their success response. Pass null to reset every
+ * endpoint back to success. Tests that set scenarios must reset them;
+ * ss_browser_cleanup_store() also clears them as a backstop.
  */
-function ss_browser_set_api_scenario(?string $scenario): void
+function ss_browser_set_api_scenarios(?array $scenarios): void
 {
-    if ($scenario === null) {
-        ss_browser_wp_eval("delete_option('ss_test_api_scenario'); echo json_encode(array('ok' => true));");
-
-        return;
-    }
-
-    $encoded = var_export($scenario, true);
-    ss_browser_wp_eval("update_option('ss_test_api_scenario', {$encoded}); echo json_encode(array('ok' => true));");
+    $encoded = var_export($scenarios ?? array(), true);
+    ss_browser_wp_eval(<<<PHP
+\$config = get_option('ss_test_api', array());
+\$config['scenarios'] = {$encoded};
+update_option('ss_test_api', \$config);
+echo json_encode(array('ok' => true));
+PHP);
 }
 
 /**

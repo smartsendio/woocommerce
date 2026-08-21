@@ -101,7 +101,7 @@ it('shows the pickup point selector on classic checkout and stores the chosen ag
 it('shows the fallback text and places the order without a selection when no pickup points are found', function () {
     $state = ss_browser_state();
 
-    ss_browser_set_api_scenario('no-pickup-points');
+    ss_browser_set_api_scenarios(array('pickup-points' => 'empty'));
 
     try {
         $page = visit(base_url('/?add-to-cart=' . $state['product_id']));
@@ -134,6 +134,6 @@ it('shows the fallback text and places the order without a selection when no pic
             ->assertDontSee('Browser Test Shop')
             ->assertSourceMissing('<h2>Pickup Point</h2>');
     } finally {
-        ss_browser_set_api_scenario(null);
+        ss_browser_set_api_scenarios(null);
     }
 });

@@ -65,7 +65,7 @@ it('validates the API token with a valid token', function () {
 });
 
 it('shows a clear error for an invalid API token', function () {
-    ss_browser_set_api_scenario('invalid-token');
+    ss_browser_set_api_scenarios(array('authenticate' => '401'));
 
     try {
         login_as_admin()
@@ -74,7 +74,7 @@ it('shows a clear error for an invalid API token', function () {
             ->assertSeeIn('.ss-connection', 'API Token validation failed')
             ->assertSeeIn('.ss-connection', 'Invalid API token provided');
     } finally {
-        ss_browser_set_api_scenario(null);
+        ss_browser_set_api_scenarios(null);
     }
 });
 

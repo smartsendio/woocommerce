@@ -152,7 +152,7 @@ it('shows the enter-your-address hint when the agent rate is chosen before an ad
 it('shows the none-found state and places the order without a selection when no pickup points are found', function () {
     $state = ss_browser_state();
 
-    ss_browser_set_api_scenario('no-pickup-points');
+    ss_browser_set_api_scenarios(array('pickup-points' => 'empty'));
 
     try {
         $page = ss_block_checkout_reach_shipping_options();
@@ -181,7 +181,7 @@ it('shows the none-found state and places the order without a selection when no 
             ->assertDontSee('Browser Test Shop')
             ->assertSourceMissing('<h2>Pickup Point</h2>');
     } finally {
-        ss_browser_set_api_scenario(null);
+        ss_browser_set_api_scenarios(null);
     }
 });
 

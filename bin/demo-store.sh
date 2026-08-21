@@ -6,9 +6,10 @@
 # agent method, a sample product and both checkout pages - and leave it on
 # until switched off again.
 #
-#   bin/demo-store.sh on                    Seed the store + install the mock
-#   bin/demo-store.sh off                   Remove the mock, undo the seeding
-#   bin/demo-store.sh scenario [<name>]     Show or set the mock API scenario
+#   bin/demo-store.sh on                              Seed the store + install the mock
+#   bin/demo-store.sh off                             Remove the mock, undo the seeding
+#   bin/demo-store.sh scenario [<endpoint>=<case>...] Show or set per-endpoint API scenarios
+#   bin/demo-store.sh scenario reset                  Reset every endpoint to success
 #
 # Wrapped by the composer scripts demo:on / demo:off / demo:scenario.
 #
@@ -50,7 +51,7 @@ fail() { printf '\033[1;31mError:\033[0m %s\n' "$*" >&2; exit 1; }
 
 usage() {
     cat <<'EOF'
-Usage: bin/demo-store.sh <on|off|scenario> [<scenario name>]
+Usage: bin/demo-store.sh <on|off|scenario> [<endpoint>=<case>... | reset]
 
 Demo mode for manual testing: the browser-suite store state (Smart Send API
 mock, Denmark zone with a Smart Send agent method, sample product, classic +
@@ -60,10 +61,16 @@ block checkout pages), left on until turned off.
                      admin credentials. Idempotent.
   off                Remove the mock and the demo fixtures, restore what
                      demo:on changed. Idempotent.
-  scenario [<name>]  Show the active mock API scenario, or set it. With no
-                     name, prints the active scenario and the valid list.
+  scenario           Show the active per-endpoint scenarios and the valid
+                     endpoint/case names.
+  scenario <endpoint>=<case>...
+                     Override individual endpoints, e.g.
+                     'scenario booking=500 pickup-points=403'. Endpoints not
+                     mentioned keep their current case; <case> is a named
+                     case, 'success', or any three-digit HTTP status code.
+  scenario reset     Reset every endpoint back to success.
 
-Composer wrappers: composer demo:on / demo:off / demo:scenario -- <name>
+Composer wrappers: composer demo:on / demo:off / demo:scenario -- <args>
 Target install: WP_DEV_PATH (default ./local-dev/wordpress).
 EOF
 }
@@ -108,13 +115,36 @@ demo_is_on() {
     wp option get "$STATE_OPTION" >/dev/null 2>&1
 }
 
-current_scenario() {
-    wp option get ss_test_api_scenario 2>/dev/null || echo "success"
+current_scenarios() {
+    # One "endpoint=case" per line for every overridden endpoint; empty
+    # output means every endpoint is on its success response.
+    wp eval '
+$config = get_option("ss_test_api", array());
+$scenarios = isset($config["scenarios"]) && is_array($config["scenarios"]) ? $config["scenarios"] : array();
+foreach ($scenarios as $endpoint => $case) { echo "{$endpoint}={$case}\n"; }
+' 2>/dev/null || true
 }
 
-valid_scenarios() {
-    # Machine-read from the shared mock source's " * Scenarios: ..." line.
-    sed -n 's/^ \* Scenarios: //p' "$MOCK_SRC"
+print_current_scenarios() {
+    local active
+    active="$(current_scenarios)"
+    if [[ -z "$active" ]]; then
+        echo "Active scenarios: (none - every endpoint returns success)"
+    else
+        echo "Active scenarios:"
+        sed 's/^/  /' <<<"$active"
+    fi
+}
+
+valid_cases() {
+    # Machine-read from the shared mock source's " * Cases <endpoint>: ..."
+    # lines; prints "endpoint: named cases..." per endpoint. Any three-digit
+    # HTTP status code is additionally valid on every endpoint.
+    sed -n 's/^ \* Cases //p' "$MOCK_SRC"
+}
+
+cases_for_endpoint() {
+    valid_cases | sed -n "s/^$1: //p"
 }
 
 install_mock() {
@@ -145,9 +175,11 @@ Demo mode is ON - the store now runs against a FAKE Smart Send API.
   Block checkout:   $(page_url "$(state_value block_checkout_page_id)")
   Admin:            $site_url/wp-admin (${WP_ADMIN_USER:-admin} / ${WP_ADMIN_PASS:-password})
 
-  API scenario:     $(current_scenario)
-                    switch:  composer demo:scenario -- <name>
-                    valid:   $(valid_scenarios)
+  $(print_current_scenarios | sed '2,$s/^/  /')
+                    switch:  composer demo:scenario -- <endpoint>=<case>...
+                    reset:   composer demo:scenario -- reset
+$(valid_cases | sed 's/^/                    /')
+                    (any three-digit HTTP status code is also valid)
 
 Add the sample product "SS Browser Test Product" to the cart, then open a
 checkout page to see pick-up point selection against the mocked API.
@@ -187,25 +219,62 @@ cmd_off() {
     log "Demo mode is OFF - the store talks to the real Smart Send API again."
 }
 
+set_scenarios() {
+    # Args are already-validated "endpoint=case" pairs (safe to embed: the
+    # endpoint comes from the mock's Cases lines, the case from its list or
+    # a three-digit code); "success" removes the override. Applied on top of
+    # the current map so endpoints not mentioned keep their case.
+    local pair php_pairs=""
+    for pair in "$@"; do
+        php_pairs+="'${pair%%=*}' => '${pair#*=}', "
+    done
+    wp eval "
+\$config = get_option('ss_test_api', array());
+\$scenarios = isset(\$config['scenarios']) && is_array(\$config['scenarios']) ? \$config['scenarios'] : array();
+foreach (array($php_pairs) as \$endpoint => \$case) {
+    if (\$case === 'success') { unset(\$scenarios[\$endpoint]); } else { \$scenarios[\$endpoint] = \$case; }
+}
+\$config['scenarios'] = \$scenarios;
+update_option('ss_test_api', \$config);
+" >/dev/null
+}
+
 cmd_scenario() {
-    local scenario="${1:-}"
-    if [[ -z "$scenario" ]]; then
-        echo "Active scenario: $(current_scenario)"
-        echo "Valid scenarios: $(valid_scenarios)"
+    if [[ $# -eq 0 ]]; then
+        print_current_scenarios
+        echo "Valid cases per endpoint (any three-digit HTTP status code is also valid):"
+        valid_cases | sed 's/^/  /'
         return
     fi
-    if ! printf ' %s ' "$(valid_scenarios)" | grep -q " $scenario "; then
-        fail "Unknown scenario '$scenario'. Valid scenarios: $(valid_scenarios)"
-    fi
+
     if ! demo_is_on; then
         fail "Demo mode is not on - run 'composer demo:on' first."
     fi
-    if [[ "$scenario" == "success" ]]; then
-        wp option delete ss_test_api_scenario >/dev/null 2>&1 || true
-    else
-        wp option update ss_test_api_scenario "$scenario" >/dev/null
+
+    if [[ "$1" == "reset" ]]; then
+        wp eval '
+$config = get_option("ss_test_api", array());
+$config["scenarios"] = array();
+update_option("ss_test_api", $config);
+' >/dev/null
+        print_current_scenarios
+        return
     fi
-    echo "Active scenario: $(current_scenario)"
+
+    local pair endpoint case cases
+    for pair in "$@"; do
+        [[ "$pair" == *=* ]] || fail "Expected <endpoint>=<case>, got '$pair'. See 'composer demo:scenario' for the valid list."
+        endpoint="${pair%%=*}"
+        case="${pair#*=}"
+        cases="$(cases_for_endpoint "$endpoint")"
+        [[ -n "$cases" ]] || fail "Unknown endpoint '$endpoint'. Valid endpoints: $(valid_cases | sed 's/:.*//' | paste -sd' ' -)"
+        if ! printf ' %s ' "$cases" | grep -q " $case " && ! [[ "$case" =~ ^[0-9]{3}$ ]]; then
+            fail "Unknown case '$case' for endpoint '$endpoint'. Valid: $cases (or any three-digit HTTP status code)"
+        fi
+    done
+
+    set_scenarios "$@"
+    print_current_scenarios
 }
 
 COMMAND="${1:-}"
@@ -218,7 +287,7 @@ case "$COMMAND" in
         require_install
         guard_local
         shift
-        "cmd_$COMMAND" "${1:-}"
+        "cmd_$COMMAND" "$@"
         ;;
     "")
         usage
