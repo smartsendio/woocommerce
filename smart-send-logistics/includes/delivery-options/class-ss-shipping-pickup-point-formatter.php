@@ -180,12 +180,12 @@ if ( ! class_exists( 'SS_Shipping_Pickup_Point_Formatter' ) ) :
 			 *
 			 * @since 9.0.0
 			 *
-			 * @param string $formatted_address The label formatted per the "Dropdown display format" setting.
-			 * @param object $pickup_point      The pickup point (agent_no, company, address_line1, postal_code, city, country, distance, ...).
+			 * @param string                   $formatted_address The label formatted per the "Dropdown display format" setting.
+			 * @param SS_Shipping_Pickup_Point $pickup_point      The pickup point (typed value object, not a raw API object - #170).
 			 *
 			 * @return string The option label to render.
 			 */
-			return apply_filters( 'smart_send_pickup_point_option_label', $formatted_address, $pickup_point );
+			return apply_filters( 'smart_send_pickup_point_option_label', $formatted_address, $this->normalize( $pickup_point ) );
 		}
 
 		/**

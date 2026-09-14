@@ -176,7 +176,7 @@ if ( ! class_exists( 'SS_Shipping_Frontend' ) ) :
 				foreach ( $ss_pickup_points as $key => $pickup_point ) {
 					// The label pipeline (format + the smart_send_pickup_point_option_label
 					// filter) is shared with the Checkout Block cart extension (#74).
-					$pickup_point_options[ $pickup_point->agent_no ] = $this->pickup_point_formatter->dropdown_label( $pickup_point );
+					$pickup_point_options[ $pickup_point->get_agent_no() ] = $this->pickup_point_formatter->dropdown_label( $pickup_point );
 				}
 
 				/*
@@ -189,8 +189,8 @@ if ( ! class_exists( 'SS_Shipping_Frontend' ) ) :
 				 *
 				 * @since 9.0.0
 				 *
-				 * @param string   $default_pickup_point_no The pre-selected agent_no ('' selects the first option).
-				 * @param object[] $ss_pickup_points        The pickup points shown in the drop-down.
+				 * @param string                     $default_pickup_point_no The pre-selected agent_no ('' selects the first option).
+				 * @param SS_Shipping_Pickup_Point[] $ss_pickup_points        The pickup points shown in the drop-down (typed value objects, not raw API objects - #170).
 				 *
 				 * @return string The agent_no to pre-select, or '' for the first option.
 				 */
@@ -332,7 +332,7 @@ if ( ! class_exists( 'SS_Shipping_Frontend' ) ) :
 		 * @throws SS_Shipping_Not_Connected_Exception When no API token is configured.
 		 * @throws \Smartsend\Exceptions\HttpClientException When the API call fails.
 		 *
-		 * @return array The found pickup points (possibly empty).
+		 * @return SS_Shipping_Pickup_Point[] The found pickup points (possibly empty).
 		 */
 		public function find_closest_agents_by_address( $carrier, $country, $postal_code, $city, $street ) {
 			return $this->pickup_point_lookup->find_closest_by_address( $carrier, $country, $postal_code, $city, $street );

@@ -63,10 +63,16 @@ if ( ! class_exists( 'SS_Shipping_Pickup_Point_Lookup' ) ) :
 		 * @param $city string
 		 * @param $street string
 		 *
+		 * The raw API pickup point objects are mapped into
+		 * SS_Shipping_Pickup_Point value objects right here, at the API
+		 * boundary (#170): the smart_send_pickup_points_found filter, the
+		 * session cache and every consumer downstream (formatter, classic
+		 * checkout, Store API cart extension) see the typed DTO only.
+		 *
 		 * @throws SS_Shipping_Not_Connected_Exception When no API token is configured (no API call is made).
 		 * @throws \Smartsend\Exceptions\HttpClientException When the API call fails.
 		 *
-		 * @return array The found pickup points (possibly empty).
+		 * @return SS_Shipping_Pickup_Point[] The found pickup points (possibly empty).
 		 */
 		public function find_closest_by_address( $carrier, $country, $postal_code, $city, $street ) {
 			// Without an API token the lookup cannot succeed - skip the API
@@ -134,7 +140,7 @@ if ( ! class_exists( 'SS_Shipping_Pickup_Point_Lookup' ) ) :
 				throw $e;
 			}
 
-			$ss_pickup_points = $response->data();
+			$ss_pickup_points = $this->map_api_pickup_points( $response->data() );
 
 			if ( empty( $ss_pickup_points ) ) {
 				// Not an error, but worth noticing: the API answered, there
@@ -158,12 +164,14 @@ if ( ! class_exists( 'SS_Shipping_Pickup_Point_Lookup' ) ) :
 			 *
 			 * @since 9.0.0
 			 *
-			 * @param object[] $ss_pickup_points     The pickup points returned by the API.
-			 * @param array    $search_params The (filtered) search parameters used for the lookup.
+			 * @param SS_Shipping_Pickup_Point[] $ss_pickup_points The pickup points found, closest first (typed value objects, not raw API objects - #170).
+			 * @param array                      $search_params    The (filtered) search parameters used for the lookup.
 			 *
-			 * @return object[] The pickup points to cache and render.
+			 * @return SS_Shipping_Pickup_Point[] The pickup points to cache and render.
 			 */
-			$ss_pickup_points = apply_filters( 'smart_send_pickup_points_found', $ss_pickup_points, $search_params );
+			$ss_pickup_points = $this->only_pickup_points(
+				apply_filters( 'smart_send_pickup_points_found', $ss_pickup_points, $search_params )
+			);
 
 			SS_Shipping_Logger::debug(
 				sprintf( 'Smart Send: found %1$d %2$s pickup points near the entered address.', count( $ss_pickup_points ), $carrier ),
@@ -173,20 +181,43 @@ if ( ! class_exists( 'SS_Shipping_Pickup_Point_Lookup' ) ) :
 				)
 			);
 
-			// Save all of the pickup points in the session.
-			WC()->session->set( self::SESSION_KEY, $ss_pickup_points );
+			// Save all of the pickup points in the session, in their plain
+			// serializable form (see get_session_pickup_points()).
+			WC()->session->set( self::SESSION_KEY, $this->to_session_value( $ss_pickup_points ) );
 
 			return $ss_pickup_points;
 		}
 
 		/**
 		 * The pickup points cached in the WooCommerce session by the last
-		 * lookup, if any.
+		 * lookup, if any: an empty array when the last lookup found nothing
+		 * (or failed), null when no lookup ran in this session.
 		 *
-		 * @return object[]|null
+		 * The session holds the pickup points in their plain-object form
+		 * (SS_Shipping_Pickup_Point::to_object(), the same shape the order
+		 * meta stores) rather than serialized class instances, so a cached
+		 * session never depends on the plugin's class definitions to
+		 * unserialize; they are mapped back into value objects here.
+		 *
+		 * @return SS_Shipping_Pickup_Point[]|null
 		 */
 		public function get_session_pickup_points() {
-			return WC()->session->get( self::SESSION_KEY );
+			$cached = WC()->session->get( self::SESSION_KEY );
+
+			if ( ! is_array( $cached ) ) {
+				return null;
+			}
+
+			$pickup_points = array();
+			foreach ( $cached as $pickup_point ) {
+				if ( $pickup_point instanceof SS_Shipping_Pickup_Point ) {
+					$pickup_points[] = $pickup_point;
+				} elseif ( is_object( $pickup_point ) || is_array( $pickup_point ) ) {
+					$pickup_points[] = SS_Shipping_Pickup_Point::from_object( $pickup_point );
+				}
+			}
+
+			return $pickup_points;
 		}
 
 		/**
@@ -216,12 +247,74 @@ if ( ! class_exists( 'SS_Shipping_Pickup_Point_Lookup' ) ) :
 			}
 
 			foreach ( $cached_pickup_points as $pickup_point ) {
-				if ( isset( $pickup_point->agent_no ) && $pickup_point->agent_no == $agent_no ) { // phpcs:ignore Universal.Operators.StrictComparisons.LooseEqual -- pre-existing loose comparison, moved verbatim from SS_Shipping_Frontend::process_ss_pickup_points().
-					return SS_Shipping_Pickup_Point::from_object( $pickup_point );
+				if ( null !== $pickup_point->get_agent_no() && $pickup_point->get_agent_no() == $agent_no ) { // phpcs:ignore Universal.Operators.StrictComparisons.LooseEqual -- pre-existing loose comparison, moved verbatim from SS_Shipping_Frontend::process_ss_pickup_points().
+					return $pickup_point;
 				}
 			}
 
 			return null;
+		}
+
+		/**
+		 * Map the raw API pickup point objects of a lookup response into
+		 * value objects - the API boundary of the pickup point contract.
+		 *
+		 * @param mixed $data The response data (a list of plain agent objects).
+		 *
+		 * @return SS_Shipping_Pickup_Point[]
+		 */
+		protected function map_api_pickup_points( $data ): array {
+			$pickup_points = array();
+
+			foreach ( is_array( $data ) ? $data : array() as $agent ) {
+				if ( is_object( $agent ) || is_array( $agent ) ) {
+					$pickup_points[] = SS_Shipping_Pickup_Point::from_object( $agent );
+				}
+			}
+
+			return $pickup_points;
+		}
+
+		/**
+		 * Keep only SS_Shipping_Pickup_Point instances from a filtered list
+		 * (a snippet returning something else is logged and dropped rather
+		 * than crashing checkout), re-indexed from 0.
+		 *
+		 * @param mixed $filtered The smart_send_pickup_points_found return value.
+		 *
+		 * @return SS_Shipping_Pickup_Point[]
+		 */
+		protected function only_pickup_points( $filtered ): array {
+			$pickup_points = array();
+
+			foreach ( is_array( $filtered ) ? $filtered : array() as $pickup_point ) {
+				if ( $pickup_point instanceof SS_Shipping_Pickup_Point ) {
+					$pickup_points[] = $pickup_point;
+				} else {
+					SS_Shipping_Logger::warning(
+						'The smart_send_pickup_points_found filter returned an entry that is not a SS_Shipping_Pickup_Point - entry dropped.',
+						array( 'entry_type' => is_object( $pickup_point ) ? get_class( $pickup_point ) : gettype( $pickup_point ) )
+					);
+				}
+			}
+
+			return $pickup_points;
+		}
+
+		/**
+		 * The plain, serializable session form of a pickup point list.
+		 *
+		 * @param SS_Shipping_Pickup_Point[] $pickup_points The pickup points.
+		 *
+		 * @return object[]
+		 */
+		protected function to_session_value( array $pickup_points ): array {
+			return array_map(
+				static function ( SS_Shipping_Pickup_Point $pickup_point ) {
+					return $pickup_point->to_object();
+				},
+				$pickup_points
+			);
 		}
 
 		/**
