@@ -10,11 +10,12 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 /**
- * Transient-backed one-time admin notices ("flash messages").
+ * Smart Send admin notices: transient-backed one-time notices ("flash
+ * messages") and the per-user dismissible Orders screen notice.
  *
- * Owns the full lifecycle: push notices during an admin action, mark the
- * post-action redirect URL with a query parameter, render the pending
- * notices exactly once on the next page load, and clear them.
+ * Flash messages: push notices during an admin action, mark the post-action
+ * redirect URL with a query parameter, render the pending notices exactly
+ * once on the next page load, and clear them.
  *
  * Storage is the WordPress Transients API keyed per user, so notices are
  * only ever shown to the user who triggered the action. Retrieval is gated
@@ -25,6 +26,11 @@ if ( ! defined( 'ABSPATH' ) ) {
  * `WC_Admin_Notices`: that API stores notices site-wide in a single option
  * and keeps them until dismissed, which does not fit per-user render-once
  * flash messages.
+ *
+ * Dismissible notices: the "bulk label printing removed" notice (#173) shows
+ * on the Orders list screen to users who can manage WooCommerce until they
+ * dismiss it. Dismissal is a nonce-protected link (no JavaScript) stored per
+ * user in user meta.
  */
 class SS_Shipping_Admin_Notices {
 
@@ -47,12 +53,45 @@ class SS_Shipping_Admin_Notices {
 	const EXPIRATION = HOUR_IN_SECONDS;
 
 	/**
+	 * Id of the notice telling merchants the Orders screen bulk label
+	 * actions were removed in 9.0.0 (#173).
+	 */
+	const NOTICE_BULK_LABELS_REMOVED = 'bulk_labels_removed';
+
+	/**
+	 * User meta key holding the ids of the notices a user has dismissed.
+	 */
+	const DISMISSED_META_KEY = '_ss_shipping_dismissed_notices';
+
+	/**
+	 * Query parameter carrying the id of the notice to dismiss.
+	 */
+	const DISMISS_QUERY_ARG = 'ss_shipping_dismiss_notice';
+
+	/**
+	 * Nonce action prefix for dismissal links; the notice id is appended.
+	 */
+	const DISMISS_NONCE_ACTION = 'ss_shipping_dismiss_notice_';
+
+	/**
+	 * WordPress.org page listing the plugin's previous versions.
+	 */
+	const PREVIOUS_VERSIONS_URL = 'https://wordpress.org/plugins/smart-send-logistics/advanced/';
+
+	/**
+	 * Screen ids of the Orders list: legacy post-based and HPOS.
+	 */
+	const ORDERS_SCREEN_IDS = array( 'edit-shop_order', 'woocommerce_page_wc-orders' );
+
+	/**
 	 * Register this component's hooks.
 	 *
 	 * @return void
 	 */
 	public function register_hooks() {
 		add_action( 'admin_notices', array( $this, 'maybe_render' ) );
+		add_action( 'admin_notices', array( $this, 'maybe_render_bulk_labels_removed_notice' ) );
+		add_action( 'admin_init', array( $this, 'maybe_handle_dismiss' ) );
 	}
 
 	/**
@@ -132,6 +171,108 @@ class SS_Shipping_Admin_Notices {
 	}
 
 	/**
+	 * Tell users who can manage WooCommerce, on the Orders list screen, that
+	 * bulk label printing was removed in 9.0.0 - until they dismiss it.
+	 *
+	 * @return void
+	 */
+	public function maybe_render_bulk_labels_removed_notice() {
+		if ( ! $this->is_orders_list_screen()
+			|| ! current_user_can( 'manage_woocommerce' ) // phpcs:ignore WordPress.WP.Capabilities.Unknown -- WooCommerce core capability, registered by WooCommerce rather than WordPress.
+			|| $this->is_dismissed( self::NOTICE_BULK_LABELS_REMOVED ) ) {
+			return;
+		}
+
+		$message = sprintf(
+			/* translators: %s: URL of the WordPress.org page listing the plugin's previous versions. */
+			__( '<strong>Smart Send:</strong> Bulk printing of shipping labels from the Orders screen has been removed in version 9.0.0. We are building a much better version, and it is coming soon. You can still create labels one order at a time from the order page. If you need the old bulk printing, you can <a href="%s" target="_blank">downgrade to version 8.1.3</a>.', 'smart-send-logistics' ),
+			esc_url( self::PREVIOUS_VERSIONS_URL )
+		);
+
+		printf(
+			'<div class="notice notice-warning"><p>%1$s</p><p><a href="%2$s">%3$s</a></p></div>',
+			wp_kses_post( $message ),
+			esc_url( $this->get_dismiss_url( self::NOTICE_BULK_LABELS_REMOVED ) ),
+			esc_html__( 'Dismiss', 'smart-send-logistics' )
+		);
+	}
+
+	/**
+	 * Handle a dismissal link: with a valid nonce for a known notice, store
+	 * the dismissal for the current user and redirect back without the
+	 * dismissal parameters. Anything else is ignored.
+	 *
+	 * @return void
+	 */
+	public function maybe_handle_dismiss() {
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- the nonce is verified below before anything is stored.
+		if ( empty( $_GET[ self::DISMISS_QUERY_ARG ] ) ) {
+			return;
+		}
+
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- the nonce is verified below before anything is stored.
+		$notice_id = sanitize_key( wp_unslash( $_GET[ self::DISMISS_QUERY_ARG ] ) );
+		$nonce     = isset( $_GET['_wpnonce'] ) ? sanitize_text_field( wp_unslash( $_GET['_wpnonce'] ) ) : '';
+
+		if ( self::NOTICE_BULK_LABELS_REMOVED !== $notice_id
+			|| ! wp_verify_nonce( $nonce, self::DISMISS_NONCE_ACTION . $notice_id ) ) {
+			return;
+		}
+
+		$this->dismiss( $notice_id );
+
+		wp_safe_redirect( remove_query_arg( array( self::DISMISS_QUERY_ARG, '_wpnonce' ) ) );
+		exit;
+	}
+
+	/**
+	 * Whether a user has dismissed a notice.
+	 *
+	 * @param string   $notice_id Notice id.
+	 * @param int|null $user_id   User to check. Defaults to the current user.
+	 * @return bool
+	 */
+	public function is_dismissed( $notice_id, $user_id = null ) {
+		return in_array( $notice_id, $this->get_dismissed( $user_id ), true );
+	}
+
+	/**
+	 * Store a notice as dismissed for a user.
+	 *
+	 * @param string   $notice_id Notice id.
+	 * @param int|null $user_id   User to dismiss for. Defaults to the current user.
+	 * @return void
+	 */
+	public function dismiss( $notice_id, $user_id = null ) {
+		if ( $this->is_dismissed( $notice_id, $user_id ) ) {
+			return;
+		}
+
+		$dismissed   = $this->get_dismissed( $user_id );
+		$dismissed[] = $notice_id;
+
+		update_user_meta( null === $user_id ? get_current_user_id() : $user_id, self::DISMISSED_META_KEY, $dismissed );
+	}
+
+	/**
+	 * Get the nonce-protected URL (current request URL plus the dismissal
+	 * parameters) dismissing a notice for the current user. Unescaped:
+	 * escape with esc_url() on output. (wp_nonce_url() is avoided because it
+	 * HTML-escapes the URL itself.)
+	 *
+	 * @param string $notice_id Notice id.
+	 * @return string
+	 */
+	public function get_dismiss_url( $notice_id ) {
+		return add_query_arg(
+			array(
+				self::DISMISS_QUERY_ARG => $notice_id,
+				'_wpnonce'              => wp_create_nonce( self::DISMISS_NONCE_ACTION . $notice_id ),
+			)
+		);
+	}
+
+	/**
 	 * Print the given notices as admin notice markup.
 	 *
 	 * @param array<array{message: string, type: string, dismissible?: bool}> $messages Notices to print.
@@ -156,6 +297,40 @@ class SS_Shipping_Admin_Notices {
 				wp_kses_post( $message['message'] )
 			);
 		}
+	}
+
+	/**
+	 * Whether the current admin screen is the Orders list (legacy or HPOS).
+	 *
+	 * The HPOS list and single-order screens share one screen id; like
+	 * WooCommerce's own PageController, the `action` query parameter
+	 * (edit/new) tells them apart.
+	 *
+	 * @return bool
+	 */
+	protected function is_orders_list_screen() {
+		$screen = get_current_screen();
+
+		if ( ! $screen || ! in_array( $screen->id, self::ORDERS_SCREEN_IDS, true ) ) {
+			return false;
+		}
+
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- read-only screen detection.
+		$action = isset( $_GET['action'] ) ? sanitize_key( wp_unslash( $_GET['action'] ) ) : '';
+
+		return ! in_array( $action, array( 'edit', 'new' ), true );
+	}
+
+	/**
+	 * Get the ids of the notices a user has dismissed.
+	 *
+	 * @param int|null $user_id User id. Defaults to the current user.
+	 * @return string[]
+	 */
+	protected function get_dismissed( $user_id = null ) {
+		$dismissed = get_user_meta( null === $user_id ? get_current_user_id() : $user_id, self::DISMISSED_META_KEY, true );
+
+		return is_array( $dismissed ) ? $dismissed : array();
 	}
 
 	/**

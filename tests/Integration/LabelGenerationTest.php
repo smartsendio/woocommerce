@@ -4,14 +4,14 @@
  * Characterization tests for label generation via SS_Shipping_Fulfillment_Service with
  * the Smart Send API mocked through pre_http_request: the success path
  * (order meta, order note, status change), the API error path, auto return
- * labels, and the bulk order actions with the admin notices they produce.
+ * labels.
  */
 
 /**
  * Fulfill an order and return the legacy AJAX response shape. The only
- * public entry points (the AJAX handler and the bulk handler) wrap the
- * fulfillment service the same way; the AJAX handler cannot run in-process
- * because it ends with wp_send_json() + wp_die().
+ * public entry point (the AJAX handler) wraps the fulfillment service the
+ * same way; it cannot run in-process because it ends with wp_send_json() +
+ * wp_die().
  */
 function create_labels_for(int $order_id, bool $return = false, bool $save_order_note = true): array
 {
@@ -22,24 +22,6 @@ function create_labels_for(int $order_id, bool $return = false, bool $save_order
         : $fulfillment->fulfill_outbound($order_id, $save_order_note);
 
     return $result->to_legacy_response_array();
-}
-
-/**
- * Clear pending admin notices for the current user and leave a clean state
- * (no pending transient, no marker query parameter) after the test.
- */
-function with_empty_flash_messages(): SS_Shipping_Admin_Notices
-{
-    $notices = SS_SHIPPING_WC()->admin_notices();
-
-    $notices->clear();
-
-    remember_cleanup_callback(function () use ($notices): void {
-        $notices->clear();
-        unset($_GET[SS_Shipping_Admin_Notices::QUERY_ARG]);
-    });
-
-    return $notices;
 }
 
 /**
@@ -207,112 +189,4 @@ it('creates only a return label when explicitly requested', function () {
 
     $notes = wc_get_order_notes(['order_id' => $order->get_id()]);
     expect(implode("\n", wp_list_pluck($notes, 'content')))->toContain('Return shipping label');
-});
-
-it('generates a label for a single order via the bulk action and flashes a success notice', function () {
-    $notices = with_empty_flash_messages();
-
-    $order = create_labelable_order();
-    mock_smart_send_api();
-
-    $handler  = SS_SHIPPING_WC()->bulk_actions();
-    $sendback = $handler->handle_bulk_order_actions('/wp-admin/edit.php', 'ss_shipping_label_bulk', [
-        $order->get_id(),
-    ]);
-
-    // The redirect URL is marked so the next request looks up the notices.
-    expect($sendback)->toBe('/wp-admin/edit.php?ss_shipping_notices=1');
-
-    // The notices are stored in a per-user transient until rendered.
-    $messages = $notices->get_pending();
-    expect($messages)->toHaveCount(1)
-        ->and($messages[0]['type'])->toBe('success')
-        ->and($messages[0]['message'])->toContain('Order #' . $order->get_order_number())
-        ->toContain('Shipping label created by Smart Send')
-        ->toContain('https://api.example.test/labels/label.pdf');
-
-    expect(wc_get_order($order->get_id())->get_meta('_ss_shipping_label_id', true))->not->toBe('');
-
-    // maybe_render() prints the notices and clears the transient when the
-    // marker query parameter is present.
-    $_GET[SS_Shipping_Admin_Notices::QUERY_ARG] = '1';
-    ob_start();
-    $notices->maybe_render();
-    $output = ob_get_clean();
-
-    expect($output)->toContain('notice-success')
-        ->toContain('Shipping label created by Smart Send');
-    expect($notices->get_pending())->toBe([])
-        ->and(get_transient(SS_Shipping_Admin_Notices::TRANSIENT_PREFIX . get_current_user_id()))->toBeFalse();
-});
-
-it('flashes an error for bulk label generation on an order without a Smart Send method', function () {
-    $notices = with_empty_flash_messages();
-
-    $product = create_simple_product(['price' => 100, 'weight' => 1]);
-    $order   = create_order(['products' => [$product]]);
-
-    mock_smart_send_api();
-
-    SS_SHIPPING_WC()->bulk_actions()
-        ->handle_bulk_order_actions('/wp-admin/edit.php', 'ss_shipping_label_bulk', [$order->get_id()]);
-
-    $messages = $notices->get_pending();
-    expect($messages)->toHaveCount(1)
-        ->and($messages[0]['type'])->toBe('error')
-        // (sic) "Send Smart" typo is current v8 behaviour.
-        ->and($messages[0]['message'])->toContain('The selected order did not include a Send Smart shipping method');
-});
-
-it('flashes the API error per order when bulk label generation fails', function () {
-    $notices = with_empty_flash_messages();
-
-    $order = create_labelable_order();
-    mock_smart_send_api(function () {
-        return ss_api_response(422, ss_api_error_body('The given data was invalid.'));
-    });
-
-    SS_SHIPPING_WC()->bulk_actions()
-        ->handle_bulk_order_actions('/wp-admin/edit.php', 'ss_shipping_label_bulk', [$order->get_id()]);
-
-    $messages = $notices->get_pending();
-    expect($messages)->toHaveCount(1)
-        ->and($messages[0]['type'])->toBe('error')
-        ->and($messages[0]['message'])->toContain('Order #' . $order->get_order_number())
-        ->toContain('The given data was invalid.');
-});
-
-it('rejects bulk label generation for more than one order and books nothing', function () {
-    $notices = with_empty_flash_messages();
-
-    $order_a = create_labelable_order();
-    $order_b = create_labelable_order();
-    $capture = mock_smart_send_api();
-
-    SS_SHIPPING_WC()->bulk_actions()
-        ->handle_bulk_order_actions('/wp-admin/edit.php', 'ss_shipping_label_bulk', [
-            $order_a->get_id(),
-            $order_b->get_id(),
-        ]);
-
-    $messages = $notices->get_pending();
-    expect($messages)->toHaveCount(1)
-        ->and($messages[0]['type'])->toBe('error')
-        ->and($messages[0]['message'])->toContain('only a single order can be processed at a time')
-        ->and($capture->requests)->toBe([]);
-
-    expect(wc_get_order($order_a->get_id())->get_meta('_ss_shipping_label_id', true))->toBe('')
-        ->and(wc_get_order($order_b->get_id())->get_meta('_ss_shipping_label_id', true))->toBe('');
-});
-
-it('ignores bulk actions that are not Smart Send actions', function () {
-    $notices = with_empty_flash_messages();
-
-    $result = SS_SHIPPING_WC()->bulk_actions()
-        ->handle_bulk_order_actions('/wp-admin/edit.php', 'mark_processing', [1]);
-
-    // v8 oddity: for foreign actions the handler returns null instead of
-    // passing $sendback through.
-    expect($result)->toBeNull()
-        ->and($notices->get_pending())->toBe([]);
 });

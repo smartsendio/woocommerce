@@ -37,7 +37,7 @@ The plugin shipped to WordPress.org lives entirely in `smart-send-logistics/`; e
 │   │   ├── shipping-method/      # The WooCommerce shipping method: rates, settings, weight table
 │   │   ├── support/              # Settings reader, API factory, logger, credentials, notices
 │   │   └── lib/Smartsend/        # PSR-style Smart Send API client (namespace Smartsend)
-│   ├── admin/                    # Admin controllers + UI (order meta box, bulk actions) + css/js
+│   ├── admin/                    # Admin controllers + UI (order meta box) + css/js
 │   ├── public/                   # Frontend: pickup point selection, Checkout Block integration
 │   ├── build/                    # Compiled checkout-block JS — committed, built from /src
 │   └── lang/                     # Translations
