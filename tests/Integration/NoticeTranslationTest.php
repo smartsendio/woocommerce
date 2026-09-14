@@ -156,29 +156,3 @@ it('uses singular and plural pickup point outcomes via _n()', function () {
 
     expect(ss_policy_notices())->toContain('Smart Send: Showing pickup point for "Smart Send" (smart_send_shipping:1). Found 2 pickup points near the entered address.');
 });
-
-it('renders the Orders screen bulk printing notice through the translation functions', function () {
-    // act_as_new_user() / on_admin_screen() / render_bulk_labels_removed_notice()
-    // come from AdminNoticesTest.php, which loads earlier alphabetically.
-    $english_template = '<strong>Smart Send:</strong> Bulk printing of shipping labels from the Orders screen has been removed in version 9.0.0. We are building a much better version, and it is coming soon. You can still create labels one order at a time from the order page. If you need the old bulk printing, you can <a href="%s" target="_blank">downgrade to version 8.1.3</a>.';
-    $translated_template = '<strong>Smart Send:</strong> OVERSAT: masseudskrivning er fjernet. <a href="%s" target="_blank">Nedgrader til version 8.1.3</a>.';
-
-    $filter = function (string $translation, string $text, string $domain) use ($english_template, $translated_template): string {
-        if ('smart-send-logistics' === $domain && $english_template === $text) {
-            return $translated_template;
-        }
-
-        return $translation;
-    };
-    add_filter('gettext', $filter, 10, 3);
-    remember_cleanup_callback(function () use ($filter): void {
-        remove_filter('gettext', $filter, 10);
-    });
-
-    act_as_new_user('shop_manager');
-    on_admin_screen('edit-shop_order');
-
-    expect(render_bulk_labels_removed_notice())
-        ->toContain('OVERSAT: masseudskrivning er fjernet. <a href="' . SS_Shipping_Admin_Notices::PREVIOUS_VERSIONS_URL . '" target="_blank">Nedgrader til version 8.1.3</a>.')
-        ->not->toContain('Bulk printing of shipping labels');
-});

@@ -3,8 +3,8 @@
 /*
  * The merchant fulfillment journey: generating shipping labels from the
  * order screen meta box (outbound, return, the auto-return method setting
- * and the API-failure path), and the Orders screen without bulk label
- * actions since 9.0.0 (#173) - with the notice explaining their removal.
+ * and the API-failure path) and through the Orders screen bulk action
+ * (single order, and the 9.0 more-than-one-order limit, #173).
  *
  * Split from the historic SmartSendFlowsTest.php (#146); the customer
  * checkout side lives in CheckoutFlowTest.php. Store fixtures and the API
@@ -17,9 +17,10 @@ beforeAll(function (): void {
         return;
     }
 
-    // Four orders: outbound label, return label, auto-return method and
-    // booking failure.
-    ss_browser_seed_store(['orders' => [[], [], ['auto_return' => true], []]]);
+    // Five orders: outbound label, return label, auto-return method,
+    // booking failure, and the single-order bulk action (the multi-order
+    // rejection test reuses the first two without booking anything).
+    ss_browser_seed_store(['orders' => [[], [], ['auto_return' => true], [], []]]);
 });
 
 afterAll(function (): void {
@@ -27,7 +28,6 @@ afterAll(function (): void {
         return;
     }
 
-    ss_browser_forget_dismissed_notices();
     ss_browser_cleanup_store();
 });
 
@@ -124,25 +124,63 @@ PHP);
     expect($meta['label_id'])->toBe('');
 });
 
-it('offers no bulk label action and explains the removal on the Orders screen until dismissed', function () {
-    // 9.0.0 removed the Smart Send bulk label actions (#173); the Orders
-    // screen tells each merchant user once, until they dismiss it.
+it('rejects the bulk label action for more than one order', function () {
+    // Bulk printing of multiple orders is not available in 9.0 (#173) -
+    // selecting more than one order must explain that, link to the last
+    // 8.x release and book nothing.
     $state = ss_browser_state();
-    $notice = 'Bulk printing of shipping labels from the Orders screen has been removed in version 9.0.0';
-
-    ss_browser_forget_dismissed_notices();
+    $before = ss_browser_label_ids([$state['orders'][0], $state['orders'][1]]);
 
     $page = login_as_admin()->navigate(base_url($state['orders_list_path']));
 
-    $page->assertSourceMissing('ss_shipping_label_bulk')
-        ->assertSourceMissing('ss_shipping_return_bulk')
-        ->assertSee($notice)
-        ->assertSeeLink('downgrade to version 8.1.3')
-        ->click('a[href*="ss_shipping_dismiss_notice"]')
-        ->assertDontSee($notice);
+    $checkbox_name = $state['hpos'] ? 'id[]' : 'post[]';
+    $page->check($checkbox_name, (string) $state['orders'][0])
+        ->check($checkbox_name, (string) $state['orders'][1])
+        ->select('action', 'ss_shipping_label_bulk')
+        // Explicit selector: the Apply button is an input[type=submit], which
+        // text-based lookups cannot find.
+        ->click('#doaction');
 
-    // The dismissal is stored: a fresh visit no longer shows the notice.
-    $page->navigate(base_url($state['orders_list_path']))
-        ->assertSee('Orders')
-        ->assertDontSee($notice);
+    $page->assertSee('Bulk printing of multiple orders is not available in version 9.0.0')
+        ->assertSeeLink('downgrade to version 8.1.3');
+
+    // Nothing was booked: the selected orders' shipment ids are unchanged
+    // (the meta box tests above may already have labelled them).
+    expect(ss_browser_label_ids([$state['orders'][0], $state['orders'][1]]))->toBe($before);
+});
+
+/**
+ * Outbound and return shipment ids stored on the given orders.
+ */
+function ss_browser_label_ids(array $order_ids): array
+{
+    $ids = implode(',', array_map('intval', $order_ids));
+
+    // ss_browser_wp_eval() only picks up a JSON object line.
+    return ss_browser_wp_eval(<<<PHP
+\$label_ids = array();
+foreach (array({$ids}) as \$id) {
+    \$order = wc_get_order(\$id);
+    \$label_ids[] = array(
+        'label'  => \$order ? \$order->get_meta('_ss_shipping_label_id', true) : null,
+        'return' => \$order ? \$order->get_meta('_ss_shipping_return_label_id', true) : null,
+    );
+}
+echo json_encode(array('orders' => \$label_ids));
+PHP)['orders'];
+}
+
+it('generates a label for a single order through the bulk action', function () {
+    $state = ss_browser_state();
+
+    $page = login_as_admin()->navigate(base_url($state['orders_list_path']));
+
+    $checkbox_name = $state['hpos'] ? 'id[]' : 'post[]';
+    $page->check($checkbox_name, (string) $state['orders'][4])
+        ->select('action', 'ss_shipping_label_bulk')
+        // Explicit selector: the Apply button is an input[type=submit], which
+        // text-based lookups cannot find.
+        ->click('#doaction');
+
+    $page->assertSee('Shipping label created by Smart Send');
 });

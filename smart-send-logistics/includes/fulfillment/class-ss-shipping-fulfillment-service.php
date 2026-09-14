@@ -354,7 +354,7 @@ if ( ! class_exists( 'SS_Shipping_Fulfillment_Service' ) ) :
 				new SS_Shipping_Label_Entry( $order_id, $is_return, $label_url, $order_note_html, $response )
 			);
 
-			// The legacy AJAX response entry keeps the frozen shape
+			// The legacy AJAX/bulk response entry keeps the frozen shape
 			// (admin/js/ss-shipping-label.js parses success.woocommerce.*),
 			// built on a clone so the raw response stays unmutated.
 			$legacy_response              = clone $response;

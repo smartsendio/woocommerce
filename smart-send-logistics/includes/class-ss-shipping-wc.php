@@ -88,6 +88,13 @@ if ( ! class_exists( 'SS_Shipping_WC' ) ) :
 		protected ?SS_Shipping_Label_Creator $label_creator = null;
 
 		/**
+		 * Bulk actions component.
+		 *
+		 * @var SS_Shipping_Order_Bulk_Actions|null
+		 */
+		protected ?SS_Shipping_Order_Bulk_Actions $bulk_actions = null;
+
+		/**
 		 * API test-connection feature.
 		 *
 		 * @var SS_Shipping_Test_Connection|null
@@ -102,8 +109,8 @@ if ( ! class_exists( 'SS_Shipping_WC' ) ) :
 		protected ?SS_Shipping_Rate_Sorter $rate_sorter = null;
 
 		/**
-		 * Admin notices component: one-time flash notices and the
-		 * dismissible Orders screen notice.
+		 * Admin notices component used to flash one-time notices after
+		 * label-generation actions.
 		 *
 		 * @var SS_Shipping_Admin_Notices|null
 		 */
@@ -321,6 +328,7 @@ if ( ! class_exists( 'SS_Shipping_WC' ) ) :
 			require_once SS_SHIPPING_PLUGIN_DIR_PATH . '/admin/class-ss-plugins-screen-updates.php';
 			require_once SS_SHIPPING_PLUGIN_DIR_PATH . '/admin/class-ss-shipping-order-meta-box.php';
 			require_once SS_SHIPPING_PLUGIN_DIR_PATH . '/admin/class-ss-shipping-label-creator.php';
+			require_once SS_SHIPPING_PLUGIN_DIR_PATH . '/admin/class-ss-shipping-order-bulk-actions.php';
 			require_once SS_SHIPPING_PLUGIN_DIR_PATH . '/admin/class-ss-shipping-wc-product.php';
 
 			// Frontend checkout controller.
@@ -401,6 +409,7 @@ if ( ! class_exists( 'SS_Shipping_WC' ) ) :
 				$this->label_creator          = new SS_Shipping_Label_Creator( $this->fulfillment_service );
 				$this->test_connection        = new SS_Shipping_Test_Connection( new SS_Shipping_Api_Factory( $this->settings ) );
 				$this->rate_sorter            = new SS_Shipping_Rate_Sorter( $this->settings );
+				$this->bulk_actions           = new SS_Shipping_Order_Bulk_Actions( $this->method_resolver, $this->fulfillment_service, $this->admin_notices, $this->settings );
 				$this->subscriptions_compat   = new SS_Shipping_Subscriptions_Compat();
 
 				$this->block_checkout = new SS_Shipping_Block_Checkout();
@@ -433,6 +442,7 @@ if ( ! class_exists( 'SS_Shipping_WC' ) ) :
 			$this->label_creator->register_hooks();
 			$this->test_connection->register_hooks();
 			$this->rate_sorter->register_hooks();
+			$this->bulk_actions->register_hooks();
 			$this->subscriptions_compat->register_hooks();
 			$this->block_checkout->register_hooks();
 			$this->store_api->register_hooks();
@@ -606,6 +616,19 @@ if ( ! class_exists( 'SS_Shipping_WC' ) ) :
 		 */
 		public function meta_box(): SS_Shipping_Order_Meta_Box {
 			return $this->meta_box;
+		}
+
+		/**
+		 * Get the bulk actions component.
+		 *
+		 * Reachable directly (not just via hooks) because the Integration
+		 * test suite calls add_bulk_order_actions()/handle_bulk_order_actions()
+		 * on it outside a real bulk-action request.
+		 *
+		 * @return SS_Shipping_Order_Bulk_Actions
+		 */
+		public function bulk_actions(): SS_Shipping_Order_Bulk_Actions {
+			return $this->bulk_actions;
 		}
 
 		/**

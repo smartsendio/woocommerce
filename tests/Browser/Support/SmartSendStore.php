@@ -313,13 +313,3 @@ function ss_browser_cleanup_store(): void
 
     unset($GLOBALS['ss_browser_state']);
 }
-
-/**
- * Forget every user's dismissed Smart Send admin notices (e.g. the Orders
- * screen "bulk printing removed" notice), so a test sees them fresh and
- * leaves no dismissal behind.
- */
-function ss_browser_forget_dismissed_notices(): void
-{
-    ss_browser_wp_eval("delete_metadata('user', 0, '_ss_shipping_dismissed_notices', '', true); echo json_encode(array('ok' => true));");
-}
