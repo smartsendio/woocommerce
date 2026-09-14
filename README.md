@@ -110,10 +110,12 @@ Set scenarios in the same option, e.g. `{"enabled":true,"scenarios":{"booking":"
 When you want real API behaviour against Smart Send's sandbox (or a locally running Smart Send app), point the plugin there with the `smart_send_api_endpoint` filter, for example from a [Code Snippets](https://wordpress.org/plugins/code-snippets/) snippet set to run everywhere:
 
 ```php
-add_filter( 'smart_send_api_endpoint', function ( $endpoint ) {
-    return 'https://app.smartsend.dev/api/v1/';
+add_filter( 'smart_send_api_endpoint', function ( $api_host ) {
+    return 'https://app.smartsend.dev';
 } );
 ```
+
+The filter carries the **host only** (scheme + hostname, no `/api/v1/`): the plugin appends the API version path itself, so the override keeps working when the plugin moves to a newer Smart Send API version (#170). A value that still ends in `/api/v1/` (the pre-9.0 shape) is stripped to the host with a warning in the WooCommerce log rather than producing a `/api/v1/api/v1/` URL.
 
 ## Automated tests
 

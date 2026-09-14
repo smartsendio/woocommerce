@@ -32,8 +32,20 @@ class Client
 {
     const TIMEOUT = 30;
 
-    /** @var string Untyped: the value passes through the smart_send_api_endpoint filter, whose return value is not under our control. */
-    private $api_host = 'https://app.smartsend.io/api/v1/';
+    /**
+     * The production Smart Send host. The host is the only part of the
+     * base URL a consumer may replace (the smart_send_api_endpoint filter,
+     * applied by SS_Shipping_Api_Factory on the WordPress side); the API
+     * version path below is appended by the client itself, so the plugin
+     * can move to a newer API version without any consumer noticing (#170).
+     */
+    const DEFAULT_API_HOST = 'https://app.smartsend.io';
+
+    /** The API version path the client targets, appended to the host. */
+    const API_VERSION_PATH = '/api/v1/';
+
+    /** @var string The host (scheme + hostname, no API version path, no trailing slash). */
+    private string $api_host = self::DEFAULT_API_HOST;
     // ?string: setWebsite() can receive null when SS_Shipping_Api_Credentials'
     // parse_url() call fails to resolve a host (returns null on a malformed
     // site URL); setApiToken() can receive null when no token is configured
@@ -44,13 +56,59 @@ class Client
     /** @var callable|null Untyped: PHP does not support callable property types (the setter parameter below is still hinted `callable`). */
     private $request_logger;
 
-    public function __construct($api_token, $website, $demo=false)
+    public function __construct($api_token, $website, $demo=false, ?string $api_host = null)
     {
         $this->setApiToken($api_token);
         $this->setWebsite($website);
         $this->setDemo($demo);
+        $this->setApiHost($api_host === null ? self::DEFAULT_API_HOST : $api_host);
+    }
 
-        $this->api_host = apply_filters( 'smart_send_api_endpoint', $this->api_host);
+    /**
+     * Set the host the client talks to (e.g. 'https://app.smartsend.io' or
+     * a sandbox host). A trailing slash is tolerated, and a host that still
+     * carries the API version path is normalized defensively so the client
+     * never builds a '/api/v1/api/v1/' URL - see stripApiVersionPath().
+     *
+     * @param   string $api_host
+     * @return  void
+     */
+    public function setApiHost(string $api_host): void
+    {
+        $this->api_host = self::stripApiVersionPath($api_host);
+    }
+
+    /**
+     * Whether a host value still ends with the API version path (with or
+     * without a trailing slash) - the pre-9.0 shape of the
+     * smart_send_api_endpoint filter value, which now carries the host only.
+     *
+     * @param   string $api_host
+     * @return  bool
+     */
+    public static function hasApiVersionPath(string $api_host): bool
+    {
+        return self::stripApiVersionPath($api_host) !== rtrim(trim($api_host), '/');
+    }
+
+    /**
+     * Normalize a host value: trim whitespace, drop a trailing slash and
+     * strip a trailing API version path ('/api/v1' or '/api/v1/') if the
+     * caller still passed one.
+     *
+     * @param   string $api_host
+     * @return  string
+     */
+    public static function stripApiVersionPath(string $api_host): string
+    {
+        $api_host = rtrim(trim($api_host), '/');
+        $version_path = rtrim(self::API_VERSION_PATH, '/');
+
+        if (substr($api_host, -strlen($version_path)) === $version_path) {
+            $api_host = rtrim(substr($api_host, 0, -strlen($version_path)), '/');
+        }
+
+        return $api_host;
     }
 
     public function setApiToken(?string $api_token): void
@@ -75,10 +133,15 @@ class Client
 
     public function getApiEndpoint()
     {
-        return $this->getApiHost().($this->getDemo() ? 'demo/' : '')."website/".$this->getWebsite()."/";
+        return $this->getApiHost().self::API_VERSION_PATH.($this->getDemo() ? 'demo/' : '')."website/".$this->getWebsite()."/";
     }
 
-    private function getApiHost()
+    /**
+     * The host the client talks to, without the API version path.
+     *
+     * @return  string
+     */
+    public function getApiHost(): string
     {
         return $this->api_host;
     }
@@ -318,7 +381,7 @@ class Client
 		    'timeout'    => $timeout,
 		    'httpversion' => '1.1',
             'sslverify'  => apply_filters('smart_send_sslverify', true),
-            // Equivalent to using wp_safe_remote_*(): the endpoint is
+            // Equivalent to using wp_safe_remote_*(): the host is
             // filterable at runtime (smart_send_api_endpoint), so reject
             // requests that resolve to a private/internal IP range (SSRF
             // hardening). Independent of sslverify above and does not

@@ -35,9 +35,15 @@ class Api
     /** @var PickupPointResource|null */
     private $pickup_points;
 
-    public function __construct($api_token, $website, $demo=false)
+    /**
+     * @param   string|null $api_token
+     * @param   string|null $website
+     * @param   bool        $demo
+     * @param   string|null $api_host The host to talk to (no API version path); null for the production host. See Client::setApiHost().
+     */
+    public function __construct($api_token, $website, $demo=false, ?string $api_host = null)
     {
-        $this->client = new Client($api_token, $website, $demo);
+        $this->client = new Client($api_token, $website, $demo, $api_host);
     }
 
     /**
