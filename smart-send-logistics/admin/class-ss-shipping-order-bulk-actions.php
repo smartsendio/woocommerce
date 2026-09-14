@@ -12,10 +12,11 @@ use Automattic\WooCommerce\Internal\DataStores\Orders\CustomOrdersTableControlle
  * Owns the "Generate Labels" / "Generate Return Labels" bulk actions on
  * the Orders screen and the admin notices summarising the outcome.
  *
- * Temporarily restricted to a single selected order: selecting more than
- * one order surfaces an error notice and processes nothing. Multi-order
- * bulk processing (and the combined-PDF download it produced) returns
- * with the Phase 7 async processing rebuild (#116).
+ * Limited to a single selected order in 9.0 (#173): selecting more than one
+ * order surfaces an error notice and processes nothing. Multi-order bulk
+ * printing (and the combined-PDF download it produced) returns as a rebuilt
+ * implementation (#115); merchants who need the old flow are pointed to the
+ * last 8.x release.
  *
  * @package  SS_Shipping_Order_Bulk_Actions
  * @category Shipping
@@ -26,6 +27,12 @@ use Automattic\WooCommerce\Internal\DataStores\Orders\CustomOrdersTableControlle
 if ( ! class_exists( 'SS_Shipping_Order_Bulk_Actions' ) ) :
 
 	class SS_Shipping_Order_Bulk_Actions {
+
+		/**
+		 * WordPress.org page listing the plugin's previous versions, linked
+		 * from the more-than-one-order message.
+		 */
+		const PREVIOUS_VERSIONS_URL = 'https://wordpress.org/plugins/smart-send-logistics/advanced/';
 
 		/**
 		 * Shipping method resolver.
@@ -134,14 +141,18 @@ if ( ! class_exists( 'SS_Shipping_Order_Bulk_Actions' ) ) :
 						)
 					);
 				} elseif ( $orders_count > 1 ) {
-					// Temporary restriction: multi-order bulk processing (and the
-					// combined-PDF download) returns with the Phase 7 rebuild (#116).
+					// Single-order limit in 9.0 (#173): multi-order bulk printing
+					// (and the combined-PDF download) returns with #115.
 					array_push(
 						$array_messages,
 						array(
-							'message' => __(
-								'For now only a single order can be processed at a time. Please select one order - bulk label processing will be back in an upcoming release.',
-								'smart-send-logistics'
+							'message' => sprintf(
+								/* translators: %s: URL of the WordPress.org page listing the plugin's previous versions. */
+								__(
+									'Bulk printing of multiple orders is not available in version 9.0.0. We are building a much better version, and it is coming soon. Please select a single order, or create the label from the order page. If you need the old bulk printing, you can <a href="%s" target="_blank">downgrade to version 8.x</a>.',
+									'smart-send-logistics'
+								),
+								esc_url( self::PREVIOUS_VERSIONS_URL )
 							),
 							'type'    => 'error',
 						)

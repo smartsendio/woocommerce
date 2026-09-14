@@ -282,28 +282,98 @@ it('flashes the API error per order when bulk label generation fails', function 
         ->toContain('The given data was invalid.');
 });
 
-it('rejects bulk label generation for more than one order and books nothing', function () {
+/*
+ * The 9.0 single-order limit (#173), exercised through the Orders screen
+ * hook WordPress fires - legacy (edit-shop_order) and HPOS
+ * (woocommerce_page_wc-orders) - for both Smart Send bulk actions.
+ */
+
+dataset('bulk_orders_screens', [
+    'legacy' => 'edit-shop_order',
+    'HPOS'   => 'woocommerce_page_wc-orders',
+]);
+
+dataset('bulk_label_actions', [
+    'outbound' => ['ss_shipping_label_bulk', 'Shipping label created by Smart Send', '_ss_shipping_label_id'],
+    'return'   => ['ss_shipping_return_bulk', 'Return label created by Smart Send', '_ss_shipping_return_label_id'],
+]);
+
+/**
+ * Fire an Orders screen's handle_bulk_actions filter the way WordPress does
+ * after "Apply". The component only registers the screen matching the store's
+ * HPOS setting, so the other screen's hook is wired here for the duration of
+ * the test - with the same callback and arguments register_hooks() uses
+ * (pinned per HPOS branch by BulkActionsHookRegistrationTest.php). The HPOS
+ * option itself is not toggled: WooCommerce refuses to switch order storage
+ * while test orders are out of sync.
+ */
+function run_bulk_action_on_screen(string $screen_id, string $action, array $order_ids): string
+{
+    $hook     = 'handle_bulk_actions-' . $screen_id;
+    $callback = [SS_SHIPPING_WC()->bulk_actions(), 'handle_bulk_order_actions'];
+
+    if (false === has_filter($hook, $callback)) {
+        add_filter($hook, $callback, 10, 3);
+        remember_cleanup_callback(function () use ($hook, $callback): void {
+            remove_filter($hook, $callback, 10);
+        });
+    }
+
+    return apply_filters($hook, '/wp-admin/edit.php', $action, $order_ids);
+}
+
+it('books a single selected order through the bulk action on the Orders screen', function (string $screen_id, string $action, string $message, string $meta_key) {
+    $notices = with_empty_flash_messages();
+
+    $order   = create_labelable_order();
+    $capture = mock_smart_send_api();
+
+    $sendback = run_bulk_action_on_screen($screen_id, $action, [$order->get_id()]);
+
+    expect($sendback)->toBe('/wp-admin/edit.php?ss_shipping_notices=1')
+        ->and($capture->requests)->not->toBe([]);
+
+    $messages = $notices->get_pending();
+    expect($messages)->toHaveCount(1)
+        ->and($messages[0]['type'])->toBe('success')
+        ->and($messages[0]['message'])->toContain('Order #' . $order->get_order_number())
+        ->toContain($message);
+
+    expect(wc_get_order($order->get_id())->get_meta($meta_key, true))->not->toBe('');
+})->with('bulk_orders_screens')->with('bulk_label_actions');
+
+it('books nothing and explains the single-order limit when more than one order is selected', function (string $screen_id, string $action) {
     $notices = with_empty_flash_messages();
 
     $order_a = create_labelable_order();
     $order_b = create_labelable_order();
     $capture = mock_smart_send_api();
 
-    SS_SHIPPING_WC()->bulk_actions()
-        ->handle_bulk_order_actions('/wp-admin/edit.php', 'ss_shipping_label_bulk', [
-            $order_a->get_id(),
-            $order_b->get_id(),
-        ]);
+    $sendback = run_bulk_action_on_screen($screen_id, $action, [$order_a->get_id(), $order_b->get_id()]);
+
+    expect($sendback)->toBe('/wp-admin/edit.php?ss_shipping_notices=1');
 
     $messages = $notices->get_pending();
     expect($messages)->toHaveCount(1)
         ->and($messages[0]['type'])->toBe('error')
-        ->and($messages[0]['message'])->toContain('only a single order can be processed at a time')
+        ->and($messages[0]['message'])->toBe(
+            'Bulk printing of multiple orders is not available in version 9.0.0. We are building a much better version, and it is coming soon. Please select a single order, or create the label from the order page. If you need the old bulk printing, you can <a href="https://wordpress.org/plugins/smart-send-logistics/advanced/" target="_blank">downgrade to version 8.x</a>.'
+        )
         ->and($capture->requests)->toBe([]);
 
-    expect(wc_get_order($order_a->get_id())->get_meta('_ss_shipping_label_id', true))->toBe('')
-        ->and(wc_get_order($order_b->get_id())->get_meta('_ss_shipping_label_id', true))->toBe('');
-});
+    foreach ([$order_a, $order_b] as $order) {
+        $fresh = wc_get_order($order->get_id());
+        expect($fresh->get_meta('_ss_shipping_label_id', true))->toBe('')
+            ->and($fresh->get_meta('_ss_shipping_return_label_id', true))->toBe('');
+    }
+
+    // The link survives the notice renderer's wp_kses_post().
+    $_GET[SS_Shipping_Admin_Notices::QUERY_ARG] = '1';
+    ob_start();
+    $notices->maybe_render();
+    expect(ob_get_clean())->toContain('notice-error')
+        ->toContain('<a href="https://wordpress.org/plugins/smart-send-logistics/advanced/" target="_blank">downgrade to version 8.x</a>');
+})->with('bulk_orders_screens')->with(['ss_shipping_label_bulk', 'ss_shipping_return_bulk']);
 
 it('ignores bulk actions that are not Smart Send actions', function () {
     $notices = with_empty_flash_messages();

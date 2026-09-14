@@ -93,7 +93,7 @@ Single-entry WordPress plugin. `smart-send-logistics/smart-send-logistics.php` i
 7. **Admin entry-point controllers + UI** in `admin/`:
    - `SS_Shipping_Order_Meta_Box` — the order screen "Smart Send Shipping" meta box, legacy post-based and HPOS (the plugin declares HPOS compatibility) (`meta_box()`).
    - `SS_Shipping_Label_Creator` — the AJAX `wp_ajax_ss_shipping_generate_label` controller: nonce check, request parsing, translates the posted parcel rows into a `SS_Shipping_Parcel_Plan` and hands partial delivery details to the fulfillment service.
-   - `SS_Shipping_Order_Bulk_Actions` — bulk label actions on the Orders screen — temporarily single-order-only: selecting more than one order errors without processing, pending the Phase 7 bulk rebuild, #116 (`bulk_actions()`).
+   - `SS_Shipping_Order_Bulk_Actions` — bulk label actions on the Orders screen — single-order-only in 9.0 (#173): selecting more than one order errors without processing (the message links to the last 8.x release), until multi-order bulk printing is rebuilt, #115 (`bulk_actions()`).
    - `SS_Shipping_WC_Product` — per-product shipping meta.
    - `SS_Plugins_Screen_Updates` — upgrade notices on the plugins screen.
 

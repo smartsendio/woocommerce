@@ -4,7 +4,7 @@
  * The merchant fulfillment journey: generating shipping labels from the
  * order screen meta box (outbound, return, the auto-return method setting
  * and the API-failure path) and through the Orders screen bulk action
- * (single order, and the temporary more-than-one-order restriction).
+ * (single order, and the 9.0 more-than-one-order limit, #173).
  *
  * Split from the historic SmartSendFlowsTest.php (#146); the customer
  * checkout side lives in CheckoutFlowTest.php. Store fixtures and the API
@@ -125,10 +125,11 @@ PHP);
 });
 
 it('rejects the bulk label action for more than one order', function () {
-    // Multi-order bulk processing (and the combined PDF) is temporarily
-    // removed pending the Phase 7 async bulk rebuild - selecting more
-    // than one order must error without booking anything.
+    // Bulk printing of multiple orders is not available in 9.0 (#173) -
+    // selecting more than one order must explain that, link to the last
+    // 8.x release and book nothing.
     $state = ss_browser_state();
+    $before = ss_browser_label_ids([$state['orders'][0], $state['orders'][1]]);
 
     $page = login_as_admin()->navigate(base_url($state['orders_list_path']));
 
@@ -140,8 +141,36 @@ it('rejects the bulk label action for more than one order', function () {
         // text-based lookups cannot find.
         ->click('#doaction');
 
-    $page->assertSee('only a single order can be processed at a time');
+    // assertSeeLink() guesses a locator from its argument and trips over
+    // "8.x" (parsed as a CSS class selector), so locate the link by href.
+    $page->assertSee('Bulk printing of multiple orders is not available in version 9.0.0')
+        ->assertSeeIn('a[href="https://wordpress.org/plugins/smart-send-logistics/advanced/"]', 'downgrade to version 8.x');
+
+    // Nothing was booked: the selected orders' shipment ids are unchanged
+    // (the meta box tests above may already have labelled them).
+    expect(ss_browser_label_ids([$state['orders'][0], $state['orders'][1]]))->toBe($before);
 });
+
+/**
+ * Outbound and return shipment ids stored on the given orders.
+ */
+function ss_browser_label_ids(array $order_ids): array
+{
+    $ids = implode(',', array_map('intval', $order_ids));
+
+    // ss_browser_wp_eval() only picks up a JSON object line.
+    return ss_browser_wp_eval(<<<PHP
+\$label_ids = array();
+foreach (array({$ids}) as \$id) {
+    \$order = wc_get_order(\$id);
+    \$label_ids[] = array(
+        'label'  => \$order ? \$order->get_meta('_ss_shipping_label_id', true) : null,
+        'return' => \$order ? \$order->get_meta('_ss_shipping_return_label_id', true) : null,
+    );
+}
+echo json_encode(array('orders' => \$label_ids));
+PHP)['orders'];
+}
 
 it('generates a label for a single order through the bulk action', function () {
     $state = ss_browser_state();
