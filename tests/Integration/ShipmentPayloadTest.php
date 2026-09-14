@@ -635,41 +635,47 @@ it('lets the smart_send_receiver_phone filter adjust the receiver phone', functi
         ->and($payload['services']['sms_notification'])->toBe('+4587654321');
 });
 
-it('no longer runs the removed smart_send_payload_* filters on the booking request (#170)', function () {
-    // The unreleased smart_send_payload_receiver/_items/_totals filters
-    // exposed API-v1-shaped arrays and were removed before 9.0.0 (no shim,
-    // no deprecation notice - they never shipped). A snippet still
-    // registering them is simply never called; API-version-dependent
-    // payload filters return with the API v2 switch (#175).
-    $product = create_simple_product(['name' => 'Unfiltered Product', 'price' => 100, 'weight' => 1]);
+it('lets the per-section payload filters adjust receiver, items and totals', function () {
+    // The kept WC-derived-data filters (smart_send_payload_receiver/_items/
+    // _totals). The unreleased smart_send_payload_parcels filter is removed
+    // in v9 (#139), superseded by the typed parcel plan on the
+    // smart_send_delivery_details filter.
+    $product = create_simple_product(['name' => 'Filtered Product', 'price' => 100, 'weight' => 1]);
     $order   = create_order([
         'products'        => [$product],
         'shipping_method' => 'postnord_homedelivery',
         'shipping_total'  => '39',
-        'address'         => ['company' => 'Original Company'],
     ]);
 
-    $calls  = 0;
-    $filter = function ($value) use (&$calls) {
-        $calls++;
+    $receiver_filter = function (array $receiver_data, WC_Order $filtered_order) {
+        $receiver_data['company'] = 'Filtered Company';
 
-        return ['tampered' => true];
+        return $receiver_data;
     };
-    foreach (['smart_send_payload_receiver', 'smart_send_payload_items', 'smart_send_payload_totals'] as $hook) {
-        add_filter($hook, $filter, 10, 2);
-    }
-    remember_cleanup_callback(function () use ($filter): void {
-        foreach (['smart_send_payload_receiver', 'smart_send_payload_items', 'smart_send_payload_totals'] as $hook) {
-            remove_filter($hook, $filter, 10);
-        }
+    $items_filter = function (array $items, WC_Order $filtered_order) {
+        $items[0]['name'] = 'Filtered Item Name';
+
+        return $items;
+    };
+    $totals_filter = function (array $totals, WC_Order $filtered_order) {
+        $totals['total_net_amount'] = 999;
+
+        return $totals;
+    };
+    add_filter('smart_send_payload_receiver', $receiver_filter, 10, 2);
+    add_filter('smart_send_payload_items', $items_filter, 10, 2);
+    add_filter('smart_send_payload_totals', $totals_filter, 10, 2);
+    remember_cleanup_callback(function () use ($receiver_filter, $items_filter, $totals_filter): void {
+        remove_filter('smart_send_payload_receiver', $receiver_filter, 10);
+        remove_filter('smart_send_payload_items', $items_filter, 10);
+        remove_filter('smart_send_payload_totals', $totals_filter, 10);
     });
 
     $payload = capture_shipment_payload($order);
 
-    expect($calls)->toBe(0)
-        ->and($payload['receiver']['company'])->toBe('Original Company')
-        ->and($payload['parcels'][0]['items'][0]['name'])->toBe('Unfiltered Product')
-        ->and($payload['total_price_including_tax'])->toEqual(139);
+    expect($payload['receiver']['company'])->toBe('Filtered Company')
+        ->and($payload['parcels'][0]['items'][0]['name'])->toBe('Filtered Item Name')
+        ->and($payload['total_price_including_tax'])->toEqual(999);
 });
 
 it('lets the smart_send_delivery_details filter override the shipping method', function () {

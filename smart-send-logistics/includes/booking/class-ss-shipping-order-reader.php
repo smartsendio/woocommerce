@@ -23,14 +23,6 @@ if ( ! class_exists( 'SS_Shipping_Order_Reader' ) ) :
 	 * returns plain arrays; assembling the internal shipment representation
 	 * (SS_Shipping_Shipment) from them is the job of
 	 * SS_Shipping_Shipment_Builder.
-	 *
-	 * The arrays are internal: no smart_send_* filter runs on them (#170).
-	 * The unreleased smart_send_payload_receiver/_items/_totals filters
-	 * were removed before 9.0.0 because they exposed API-v1-shaped
-	 * arrays; the stable override points are smart_send_order_receiver,
-	 * smart_send_receiver_phone, smart_send_order_note and
-	 * smart_send_delivery_details. API-version-dependent payload filters
-	 * return with the API v2 switch (#175).
 	 */
 	class SS_Shipping_Order_Reader {
 
@@ -138,7 +130,7 @@ if ( ! class_exists( 'SS_Shipping_Order_Reader' ) ) :
 				$shipping_address['email'] = $billing_address['email'];
 			}
 
-			return array(
+			$receiver_data = array(
 				'company'       => $shipping_address['company'],
 				'name_line1'    => $shipping_address['first_name'],
 				'name_line2'    => $shipping_address['last_name'],
@@ -150,6 +142,14 @@ if ( ! class_exists( 'SS_Shipping_Order_Reader' ) ) :
 				'phone'         => $phone,
 				'email'         => isset( $shipping_address['email'] ) ? $shipping_address['email'] : null,
 			);
+
+			/*
+			 * Filter the receiver section of the booking request.
+			 *
+			 * @param array    $receiver_data The receiver data (see the return doc above).
+			 * @param WC_Order $order         The WooCommerce order.
+			 */
+			return apply_filters( 'smart_send_payload_receiver', $receiver_data, $this->order );
 		}
 
 		/**
@@ -213,7 +213,15 @@ if ( ! class_exists( 'SS_Shipping_Order_Reader' ) ) :
 				);
 			}
 
-			return $items;
+			/*
+			 * Filter the item lines of the booking request.
+			 *
+			 * @since 9.0.0
+			 *
+			 * @param array[]  $items One row per order line (see the return doc above).
+			 * @param WC_Order $order The WooCommerce order.
+			 */
+			return apply_filters( 'smart_send_payload_items', $items, $this->order );
 		}
 
 		/**
@@ -269,7 +277,7 @@ if ( ! class_exists( 'SS_Shipping_Order_Reader' ) ) :
 			$subtotal_tax           = $total_tax - $shipping_tax;
 			$subtotal_excluding_tax = $subtotal_including_tax - $subtotal_tax;
 
-			return array(
+			$totals = array(
 				'subtotal_net_amount' => max( 0.0, $subtotal_excluding_tax ),
 				'subtotal_tax_amount' => max( 0.0, $subtotal_tax ),
 				'shipping_net_amount' => max( 0.0, $shipping_excluding_tax ),
@@ -278,6 +286,18 @@ if ( ! class_exists( 'SS_Shipping_Order_Reader' ) ) :
 				'total_tax_amount'    => max( 0.0, $total_tax ),
 				'currency'            => $this->order->get_currency(),
 			);
+
+			/*
+			 * Filter the totals section of the booking request. The filter
+			 * runs after the clamping rule, so returned values are used
+			 * as-is.
+			 *
+			 * @since 9.0.0
+			 *
+			 * @param array    $totals The order totals (see the return doc above).
+			 * @param WC_Order $order  The WooCommerce order.
+			 */
+			return apply_filters( 'smart_send_payload_totals', $totals, $this->order );
 		}
 
 		/**

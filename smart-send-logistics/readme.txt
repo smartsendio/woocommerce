@@ -162,6 +162,12 @@ Example: show at most 5 pickup points, and pre-select the closest one that is op
     A filter to change the receiver address that is used for shipping labels
 * **smart_send_receiver_phone** (since 9.0.0)
     A filter to change the receiver phone number used for the shipping label and the SMS notification
+* **smart_send_payload_receiver** (since 9.0.0)
+    A filter on the receiver data (array) read from the order before the shipment is built
+* **smart_send_payload_items** (since 9.0.0)
+    A filter on the item lines (array) read from the order before the shipment is built
+* **smart_send_payload_totals** (since 9.0.0)
+    A filter on the order totals (array) read from the order before the shipment is built
 * **smart_send_order_note**
     A filter to change the freetext that is inserted on shipping labels
 
@@ -301,7 +307,6 @@ No - this is by design. Neither deactivating nor uninstalling the plugin deletes
 * Change: the order screen and the bulk action notice now show every document and every code a booking produced (today one PDF label per shipment; API v2 will add QR codes, label codes and ZPL/customs documents); the order note lists them the same way
 * Breaking change: the smart_send_api_endpoint filter now receives and returns the Smart Send host only (e.g. https://app.smartsend.dev); the plugin appends the API version path itself. A sandbox override returning a full /api/v1/ URL must be changed to the host - see the "9.0.0" entry under Upgrade Notice
 * Change: the smart_send_pickup_points_found, smart_send_default_selected_pickup_point and smart_send_pickup_point_option_label filters (all new in 9.0.0) pass SS_Shipping_Pickup_Point value objects instead of raw API objects; the value object gained carrier, name lines, coordinates, opening hours and to_array()
-* The unreleased smart_send_payload_receiver, smart_send_payload_items and smart_send_payload_totals filters are removed before release (they exposed API-version-dependent request arrays); use smart_send_order_receiver, smart_send_receiver_phone, smart_send_order_note and smart_send_delivery_details instead
 * Fix: hand-editing the pickup point number (ss_shipping_order_agent_no) in the order screen's Custom Fields box is now validated against the Smart Send API on stores using High-Performance Order Storage too (previously the validation silently never ran on HPOS stores)
 * Fix: with the "save shipping labels in uploads" setting enabled, the label link in the order note and label response now points at the saved uploads copy (previously the computed uploads URL was discarded and the Smart Send API link was always used)
 * Breaking change: the "Smart Send - Generate Labels" / "Generate Return Labels" bulk actions on the Orders screen now process a single selected order (previously up to 5 orders with a combined-PDF download). Selecting more than one order shows a message and books nothing. Bulk printing of multiple orders is not available in 9.0.0 - we are building a much better version, and it is coming soon. If you need the old bulk printing, downgrade to version 8.x - see the "9.0.0" entry under Upgrade Notice
