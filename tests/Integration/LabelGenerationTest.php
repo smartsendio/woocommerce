@@ -357,7 +357,7 @@ it('books nothing and explains the single-order limit when more than one order i
     expect($messages)->toHaveCount(1)
         ->and($messages[0]['type'])->toBe('error')
         ->and($messages[0]['message'])->toBe(
-            'Bulk printing of multiple orders is not available in version 9.0.0. We are building a much better version, and it is coming soon. Please select a single order, or create the label from the order page. If you need the old bulk printing, you can <a href="https://wordpress.org/plugins/smart-send-logistics/advanced/" target="_blank">downgrade to version 8.1.3</a>.'
+            'Bulk printing of multiple orders is not available in version 9.0.0. We are building a much better version, and it is coming soon. Please select a single order, or create the label from the order page. If you need the old bulk printing, you can <a href="https://wordpress.org/plugins/smart-send-logistics/advanced/" target="_blank">downgrade to version 8.x</a>.'
         )
         ->and($capture->requests)->toBe([]);
 
@@ -372,7 +372,7 @@ it('books nothing and explains the single-order limit when more than one order i
     ob_start();
     $notices->maybe_render();
     expect(ob_get_clean())->toContain('notice-error')
-        ->toContain('<a href="https://wordpress.org/plugins/smart-send-logistics/advanced/" target="_blank">downgrade to version 8.1.3</a>');
+        ->toContain('<a href="https://wordpress.org/plugins/smart-send-logistics/advanced/" target="_blank">downgrade to version 8.x</a>');
 })->with('bulk_orders_screens')->with(['ss_shipping_label_bulk', 'ss_shipping_return_bulk']);
 
 it('ignores bulk actions that are not Smart Send actions', function () {

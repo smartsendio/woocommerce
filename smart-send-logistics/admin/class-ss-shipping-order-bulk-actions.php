@@ -149,7 +149,7 @@ if ( ! class_exists( 'SS_Shipping_Order_Bulk_Actions' ) ) :
 							'message' => sprintf(
 								/* translators: %s: URL of the WordPress.org page listing the plugin's previous versions. */
 								__(
-									'Bulk printing of multiple orders is not available in version 9.0.0. We are building a much better version, and it is coming soon. Please select a single order, or create the label from the order page. If you need the old bulk printing, you can <a href="%s" target="_blank">downgrade to version 8.1.3</a>.',
+									'Bulk printing of multiple orders is not available in version 9.0.0. We are building a much better version, and it is coming soon. Please select a single order, or create the label from the order page. If you need the old bulk printing, you can <a href="%s" target="_blank">downgrade to version 8.x</a>.',
 									'smart-send-logistics'
 								),
 								esc_url( self::PREVIOUS_VERSIONS_URL )
