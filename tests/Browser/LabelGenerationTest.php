@@ -141,8 +141,10 @@ it('rejects the bulk label action for more than one order', function () {
         // text-based lookups cannot find.
         ->click('#doaction');
 
+    // assertSeeLink() guesses a locator from its argument and trips over
+    // "8.x" (parsed as a CSS class selector), so locate the link by href.
     $page->assertSee('Bulk printing of multiple orders is not available in version 9.0.0')
-        ->assertSeeLink('downgrade to version 8.x');
+        ->assertSeeIn('a[href="https://wordpress.org/plugins/smart-send-logistics/advanced/"]', 'downgrade to version 8.x');
 
     // Nothing was booked: the selected orders' shipment ids are unchanged
     // (the meta box tests above may already have labelled them).
