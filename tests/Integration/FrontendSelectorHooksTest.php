@@ -52,6 +52,37 @@ function selector_hooks_render(): string
     return ob_get_clean();
 }
 
+
+/**
+ * Replace the logger's WC_Logger with a spy that records every entry.
+ * Restored automatically after the test. (Local twin of the LoggerTest
+ * helper so this file does not depend on test-file load order.)
+ */
+function spy_on_logger_for_selector_hooks(): object
+{
+    $spy = new class {
+        public array $entries = [];
+
+        public function log($level, $message, $context = []): void
+        {
+            $this->entries[] = ['level' => $level, 'message' => $message, 'context' => $context];
+        }
+
+        public function __call(string $level, array $args): void
+        {
+            $this->log($level, $args[0], $args[1] ?? []);
+        }
+    };
+
+    SS_Shipping_Logger::$logger = $spy;
+
+    remember_cleanup_callback(function (): void {
+        SS_Shipping_Logger::$logger = null;
+    });
+
+    return $spy;
+}
+
 beforeEach(function (): void {
     with_ss_settings();
 });
@@ -120,12 +151,16 @@ it('lets smart_send_pickup_points_found trim the list before rendering and cachi
         ]]);
     });
 
-    $filter = function (array $ss_agents, array $search_params) {
-        expect($ss_agents)->toHaveCount(2)
+    $filter = function (array $ss_pickup_points, array $search_params) {
+        // Typed value objects, not raw API objects (#170).
+        expect($ss_pickup_points)->toHaveCount(2)
+            ->and($ss_pickup_points[0])->toBeInstanceOf(SS_Shipping_Pickup_Point::class)
+            ->and($ss_pickup_points[0]->get_agent_no())->toBe('1111')
+            ->and($ss_pickup_points[1]->get_company())->toBe('Second Shop')
             ->and($search_params['carrier'])->toBe('postnord');
 
         // Keep only the second pickup point.
-        return [$ss_agents[1]];
+        return [$ss_pickup_points[1]];
     };
     add_filter('smart_send_pickup_points_found', $filter, 10, 2);
     remember_cleanup_callback(function () use ($filter): void {
@@ -135,8 +170,78 @@ it('lets smart_send_pickup_points_found trim the list before rendering and cachi
     $output = selector_hooks_render();
 
     expect($output)->toContain('Second Shop')
-        ->and($output)->not->toContain('First Shop')
+        ->and($output)->not->toContain('First Shop');
+
+    // The session cache holds the filtered list in its plain serializable
+    // form (never class instances), and reads back as value objects.
+    $cached = WC()->session->get('ss_shipping_agents');
+    expect($cached)->toHaveCount(1)
+        ->and($cached[0])->toBeInstanceOf(stdClass::class)
+        ->and($cached[0]->agent_no)->toBe('2222');
+    $read_back = (new SS_Shipping_Pickup_Point_Lookup())->get_session_pickup_points();
+    expect($read_back)->toHaveCount(1)
+        ->and($read_back[0])->toBeInstanceOf(SS_Shipping_Pickup_Point::class)
+        ->and($read_back[0]->get_agent_no())->toBe('2222');
+});
+
+it('lets smart_send_pickup_points_found add a pickup point built directly from the value object', function () {
+    mock_smart_send_api(function () {
+        return ss_api_response(200, ['data' => [sample_agent()]]);
+    });
+
+    $filter = function (array $ss_pickup_points) {
+        $own = (new SS_Shipping_Pickup_Point())
+            ->set_agent_no('9000')
+            ->set_company('Own Shop')
+            ->set_address_line1('Custom Road 1')
+            ->set_postal_code('2300')
+            ->set_city('Copenhagen')
+            ->set_country('DK');
+
+        return array_merge([$own], $ss_pickup_points);
+    };
+    add_filter('smart_send_pickup_points_found', $filter, 10, 2);
+    remember_cleanup_callback(function () use ($filter): void {
+        remove_filter('smart_send_pickup_points_found', $filter, 10);
+    });
+
+    $output = selector_hooks_render();
+
+    expect($output)->toContain('value="9000"')
+        ->and($output)->toContain('Own Shop, Custom Road 1, 2300 Copenhagen')
+        ->and($output)->toContain('Corner Shop');
+
+    // The directly-built point resolves at checkout submission like any other.
+    $cached = (new SS_Shipping_Pickup_Point_Lookup())->find_cached_by_agent_no('9000');
+    expect($cached)->not->toBeNull()
+        ->and($cached->get_company())->toBe('Own Shop');
+});
+
+it('drops entries returned by smart_send_pickup_points_found that are not value objects, with a warning', function () {
+    $spy = spy_on_logger_for_selector_hooks();
+    mock_smart_send_api(function () {
+        return ss_api_response(200, ['data' => [sample_agent()]]);
+    });
+
+    $filter = function (array $ss_pickup_points) {
+        // A raw object or array is no longer accepted (#170).
+        return array_merge($ss_pickup_points, [sample_agent(['agent_no' => '5555', 'company' => 'Raw Shop'])]);
+    };
+    add_filter('smart_send_pickup_points_found', $filter, 10, 2);
+    remember_cleanup_callback(function () use ($filter): void {
+        remove_filter('smart_send_pickup_points_found', $filter, 10);
+    });
+
+    $output = selector_hooks_render();
+
+    expect($output)->toContain('Corner Shop')
+        ->and($output)->not->toContain('Raw Shop')
         ->and(WC()->session->get('ss_shipping_agents'))->toHaveCount(1);
+
+    $warnings = array_values(array_filter($spy->entries, fn ($entry) => $entry['level'] === 'warning'));
+    expect($warnings)->toHaveCount(1)
+        ->and($warnings[0]['message'])->toContain('smart_send_pickup_points_found')
+        ->and($warnings[0]['context']['entry_type'])->toBe('stdClass');
 });
 
 it('lets smart_send_pickup_point_option_label rewrite the drop-down option label', function () {
@@ -144,12 +249,14 @@ it('lets smart_send_pickup_point_option_label rewrite the drop-down option label
         return ss_api_response(200, ['data' => [sample_agent()]]);
     });
 
-    $filter = function (string $label, object $agent) {
-        // The default label follows the "Dropdown display format" setting.
+    $filter = function (string $label, SS_Shipping_Pickup_Point $pickup_point) {
+        // The default label follows the "Dropdown display format" setting;
+        // the pickup point is the typed value object (#170).
         expect($label)->toContain('Corner Shop')
-            ->and($agent->agent_no)->toBe('1234');
+            ->and($pickup_point->get_agent_no())->toBe('1234')
+            ->and($pickup_point->get_distance())->toBe(0.5);
 
-        return 'Custom Label ' . $agent->agent_no;
+        return 'Custom Label ' . $pickup_point->get_agent_no();
     };
     add_filter('smart_send_pickup_point_option_label', $filter, 10, 2);
     remember_cleanup_callback(function () use ($filter): void {
@@ -170,11 +277,14 @@ it('lets smart_send_default_selected_pickup_point pre-select a pickup point', fu
         ]]);
     });
 
-    $filter = function (string $default_agent_no, array $ss_agents) {
+    $filter = function (string $default_agent_no, array $ss_pickup_points) {
         expect($default_agent_no)->toBe('')
-            ->and($ss_agents)->toHaveCount(2);
+            ->and($ss_pickup_points)->toHaveCount(2)
+            ->and($ss_pickup_points[1])->toBeInstanceOf(SS_Shipping_Pickup_Point::class)
+            ->and($ss_pickup_points[1]->get_company())->toBe('Second Shop');
 
-        return '2222';
+        // The documented pattern: return the agent_no of one of the found points.
+        return $ss_pickup_points[1]->get_agent_no();
     };
     add_filter('smart_send_default_selected_pickup_point', $filter, 10, 2);
     remember_cleanup_callback(function () use ($filter): void {

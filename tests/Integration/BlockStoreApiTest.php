@@ -235,8 +235,8 @@ it('applies the smart_send_pickup_point_option_label filter to the labels, like 
     });
     block_cart_setup();
 
-    $filter = function (string $label, object $agent) {
-        return 'Custom Label ' . $agent->agent_no;
+    $filter = function (string $label, SS_Shipping_Pickup_Point $pickup_point) {
+        return 'Custom Label ' . $pickup_point->get_agent_no();
     };
     add_filter('smart_send_pickup_point_option_label', $filter, 10, 2);
     remember_cleanup_callback(function () use ($filter): void {

@@ -140,8 +140,9 @@ it('round-trips the stored agent object losslessly, keeping unknown properties',
     $product = create_simple_product(['price' => 100, 'weight' => 1]);
     $order   = create_order(['products' => [$product], 'shipping_method' => 'postnord_agent']);
 
-    // The API may deliver properties the value object does not model
-    // (e.g. opening hours); the stored object must keep them.
+    // A stored object may carry properties the value object does not model,
+    // or modeled ones in a non-canonical shape (opening hours here); the
+    // stored object must keep them verbatim (#170).
     $agent = sample_agent(['opening_hours' => ['mon' => '8-16']]);
     save_order_pickup_point($order->get_id(), $agent);
 

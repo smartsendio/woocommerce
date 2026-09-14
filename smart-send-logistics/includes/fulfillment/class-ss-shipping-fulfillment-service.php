@@ -337,21 +337,19 @@ if ( ! class_exists( 'SS_Shipping_Fulfillment_Service' ) ) :
 			/*
 			 * Action when a shipping label has been created.
 			 *
-			 * Deliberate v9 breaking change (#139): $response is now the
-			 * pristine API booking response - the presentation data that
-			 * used to be mutated into $response->woocommerce (label_url,
-			 * order_note, return) travels in the typed
-			 * SS_Shipping_Label_Entry third argument instead.
+			 * Deliberate v9 breaking change (#139, #170): the raw API
+			 * booking response is no longer passed - it is API-version
+			 * shaped and stays out of the public hook contract. Listeners
+			 * receive the typed SS_Shipping_Label_Entry (label URL, order
+			 * note HTML, return flag) as the second argument.
 			 *
-			 * @param int                    $order_id The WooCommerce order id.
-			 * @param object                 $response The raw API booking response.
-			 * @param SS_Shipping_Label_Entry $entry    The created label: label URL, order note HTML, return flag, response.
+			 * @param int                     $order_id The WooCommerce order id.
+			 * @param SS_Shipping_Label_Entry $entry    The created label: label URL, order note HTML, return flag.
 			 */
 			do_action(
 				'smart_send_shipping_label_created',
 				$order_id,
-				$response,
-				new SS_Shipping_Label_Entry( $order_id, $is_return, $label_url, $order_note_html, $response )
+				new SS_Shipping_Label_Entry( $order_id, $is_return, $label_url, $order_note_html )
 			);
 
 			// The legacy AJAX/bulk response entry keeps the frozen shape

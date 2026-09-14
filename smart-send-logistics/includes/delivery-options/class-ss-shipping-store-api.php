@@ -192,7 +192,7 @@ if ( ! class_exists( 'SS_Shipping_Store_Api' ) ) :
 
 				foreach ( $found as $pickup_point ) {
 					$pickup_points[] = array(
-						'agent_no' => (string) $pickup_point->agent_no,
+						'agent_no' => (string) $pickup_point->get_agent_no(),
 						'label'    => $this->pickup_point_formatter->dropdown_label( $pickup_point ),
 					);
 				}
@@ -436,7 +436,7 @@ if ( ! class_exists( 'SS_Shipping_Store_Api' ) ) :
 		protected function no_pickup_points_were_available(): bool {
 			$cached = $this->pickup_point_lookup->get_session_pickup_points();
 
-			return is_array( $cached ) && array() === $cached;
+			return array() === $cached;
 		}
 
 		/**
@@ -567,7 +567,7 @@ if ( ! class_exists( 'SS_Shipping_Store_Api' ) ) :
 		 *
 		 * @param string $carrier Unique carrier code (e.g. 'postnord').
 		 *
-		 * @return array{0: object[], 1: string} [pickup points (possibly empty), PICKUP_POINT_STATUS_* slug]
+		 * @return array{0: SS_Shipping_Pickup_Point[], 1: string} [pickup points (possibly empty), PICKUP_POINT_STATUS_* slug]
 		 */
 		protected function lookup_pickup_points_for_customer( $carrier ): array {
 			$customer = WC()->customer;
