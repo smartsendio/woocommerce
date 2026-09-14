@@ -43,7 +43,7 @@ CI runs Integration and Browser (`.github/workflows/browser-tests.yml` and `inte
 
 `composer.json` requires `squizlabs/php_codesniffer` + `wp-coding-standards/wpcs` as dev dependencies (no ruleset file committed); run `composer install` then `vendor/bin/phpcs --standard=WordPress smart-send-logistics` if linting is needed.
 
-To point the plugin at Smart Send's sandbox API instead of production, use the `smart_send_api_endpoint` filter (see README "Sandbox environment"). Minimum PHP is 5.6 — avoid newer PHP syntax in plugin code.
+To point the plugin at Smart Send's sandbox API instead of production, use the `smart_send_api_endpoint` filter — it carries the host only; the client appends the API version path (see README "Using the Smart Send sandbox instead"). Minimum PHP is 7.4 — no PHP 8-only syntax in plugin code.
 
 ## Architecture
 
@@ -66,7 +66,7 @@ Single-entry WordPress plugin. `smart-send-logistics/smart-send-logistics.php` i
 2. **Fulfillment domain** in `includes/fulfillment/` — the label fulfillment workflow around a booking:
    - `SS_Shipping_Fulfillment_Service` — the stateless label fulfillment workflow: persists submitted delivery overrides through the repository, books via the booking service, then label PDF save, shipment id meta, order note, tracking push, status update, `smart_send_shipping_label_created`; owns the auto-generate-return-label decision. Called outside admin by Phase 7's async processing.
    - `SS_Shipping_Fulfillment_Result` — serializable outcome; `to_legacy_response_array()` keeps the frozen AJAX JSON shape until #116.
-   - `SS_Shipping_Label_Entry` — typed created-label data for `smart_send_shipping_label_created` listeners.
+   - `SS_Shipping_Label_Entry` — typed created-label data for `smart_send_shipping_label_created` listeners (order id, return flag, label URL, order note HTML); the action passes `($order_id, $entry)` and no raw API response (#170).
    - `SS_Shipping_Shipment_Ids` — booked shipment id accessor; booking OUTCOMES, deliberately outside the delivery-details repository (`shipment_ids()`).
 
 3. **Delivery-details domain** in `includes/delivery/` — what Smart Send knows about how an order ships (the data model; the checkout-facing services around it live in `includes/delivery-options/`):
@@ -77,7 +77,7 @@ Single-entry WordPress plugin. `smart-send-logistics/smart-send-logistics.php` i
 4. **Delivery-options surface** in `includes/delivery-options/` — the checkout/admin-facing services around delivery options (today that is pickup point selection; future options like delivery time windows join here). They consume the delivery data model; kept in `includes/` rather than `public/` because the validator and formatter also serve admin surfaces:
    - `SS_Shipping_Checkout_Options` — decides which delivery-option sections the checkout renders for a shipping method and owns the pickup point section's status vocabulary (`PICKUP_POINT_STATUS_*` + customer-facing text), shared by the classic and block checkouts so the two surfaces cannot drift apart.
    - `SS_Shipping_Pickup_Point_Formatter` — the single place a pickup point becomes display text: checkout drop-down labels, order-details block, meta box block, settings option labels (`pickup_point_formatter()`).
-   - `SS_Shipping_Pickup_Point_Lookup` — headless closest-pickup-points lookup: API call, lookup filters, failure reporting, session cache; the seam Phase 6's Checkout Block support builds on (`pickup_point_lookup()`).
+   - `SS_Shipping_Pickup_Point_Lookup` — headless closest-pickup-points lookup: API call, lookup filters, failure reporting, session cache; the seam Phase 6's Checkout Block support builds on (`pickup_point_lookup()`). It maps the raw API objects into `SS_Shipping_Pickup_Point` value objects at the API boundary, before the `smart_send_pickup_points_found` filter and the session cache (which stores the plain `to_object()` form, never class instances), so every consumer downstream sees the DTO only (#170).
    - `SS_Shipping_Pickup_Point_Validator` — agent-number validation on the order screen's Custom Fields box, covering both legacy meta hooks and the HPOS edit seams (`pickup_point_validator()`).
    - `SS_Shipping_Store_Api` — the Checkout Block's Store API twin (see Frontend below): cart extension data down, checkout `agent_no` persistence + session update callback up.
 
@@ -129,7 +129,7 @@ Keep messages concise and greppable; put structured data (order id, agent no, sh
 
 Everything else — any WP or WC core API our floors guarantee — is called directly, with **no** guard: a guard on an impossible state silently swallows real bugs. Every kept guard carries a one-line comment naming why existence varies. Exactly one bootstrap-level WooCommerce-active check lives in `smart-send-logistics.php` (`init()`'s `WOOCOMMERCE_VERSION` gate — belt-and-braces for WP < 6.5, where `Requires Plugins: woocommerce` is not enforced); everything downstream assumes WooCommerce is present.
 
-Extension points are `smart_send_*` filters/actions (e.g. `smart_send_api_endpoint`, `smart_send_delivery_details`, `smart_send_shipping_label_created`, `smart_send_tracking_url`, `smart_send_order_note`). Preserve these when refactoring — merchants rely on them via code snippets. (The pre-9.0 `smart_send_shipping_label_args`, `smart_send_order_pickup_point`, `smart_send_order_parcels`, `smart_send_parcel_weight` and `smart_send_payload_parcels` filters were removed in #139, replaced by `smart_send_delivery_details`.)
+Extension points are `smart_send_*` filters/actions (e.g. `smart_send_api_endpoint`, `smart_send_delivery_details`, `smart_send_shipping_label_created`, `smart_send_tracking_url`, `smart_send_order_note`). Preserve these when refactoring — merchants rely on them via code snippets. **The stable contract passes typed value objects, never raw API request/response shapes** (#170): `smart_send_shipping_label_created` passes `($order_id, SS_Shipping_Label_Entry)`, the pickup point filters pass `SS_Shipping_Pickup_Point[]`, `smart_send_delivery_details` passes `SS_Shipping_Delivery_Details`, and `smart_send_api_endpoint` carries the host only (the client appends `/api/v1/`) — so the 9.2 API v2 swap can ship as a minor. Plain arrays are reserved for the API-version-dependent payload filters that return with API v2 (#175). (The pre-9.0 `smart_send_shipping_label_args`, `smart_send_order_pickup_point`, `smart_send_order_parcels`, `smart_send_parcel_weight` and `smart_send_payload_parcels` filters were removed in #139, replaced by `smart_send_delivery_details`; the never-released `smart_send_payload_receiver`/`_items`/`_totals` were removed in #170.)
 
 ## Releasing
 

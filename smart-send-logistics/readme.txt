@@ -119,7 +119,7 @@ The plugin implements a formal extension API of `smart_send_*` hooks: filters fo
 = API connection =
 
 * **smart_send_api_endpoint**
-    A filter to change the API endpoint the plugin talks to, e.g. to point at the Smart Send sandbox environment
+    A filter to change the Smart Send host the plugin talks to, e.g. to point at the Smart Send sandbox environment. Since 9.0.0 it receives and must return the host only (e.g. `https://app.smartsend.dev`) - the plugin appends the API version path itself, so a sandbox override keeps working when the plugin moves to a newer API version. A returned value that still ends in `/api/v1/` is stripped to the host with a warning in the WooCommerce log
 * **smart_send_sslverify**
     A filter to disable SSL certificate verification for API requests (only for local development)
 * **smart_send_pickup_point_timeout**
@@ -130,20 +130,28 @@ The plugin implements a formal extension API of `smart_send_*` hooks: filters fo
 * **smart_send_pickup_point_search_params** (since 9.0.0)
     A filter on the search parameters (carrier, country, postal_code, city, street) used to look up the closest pickup points, before the API call is made
 * **smart_send_pickup_points_found** (since 9.0.0)
-    A filter on the list of pickup points returned by the lookup, before it is cached in the session and rendered - return fewer entries to limit the choices, or re-order them
+    A filter on the list of pickup points returned by the lookup, before it is cached in the session and rendered - return fewer entries to limit the choices, or re-order them. The list holds `SS_Shipping_Pickup_Point` value objects (never raw API objects): `get_agent_no()`, `get_company()`, `get_address_line1()`, `get_postal_code()`, `get_city()`, `get_country()`, `get_distance()`, `get_carrier()`, `get_latitude()`/`get_longitude()`, `get_opening_hours()` and more, with `to_object()`/`to_array()` for array-minded snippets; return only such objects
 * **smart_send_pickup_point_option_label** (since 9.0.0)
-    A filter on the label shown for each pickup point in the checkout drop-down
+    A filter on the label shown for each pickup point in the checkout drop-down; receives the label and the `SS_Shipping_Pickup_Point`
 * **smart_send_default_selected_pickup_point** (since 9.0.0)
-    A filter on which pickup point is pre-selected in the checkout drop-down - return the agent_no of one of the found pickup points
+    A filter on which pickup point is pre-selected in the checkout drop-down - receives the `SS_Shipping_Pickup_Point` list and returns the agent_no of one of them
 
-Example: show at most 5 pickup points and pre-select the closest one:
+Example: show at most 5 pickup points, and pre-select the closest one that is open on Saturdays:
 
-    add_filter('smart_send_pickup_points_found', function ($pickup_points, $search_params) {
+    add_filter('smart_send_pickup_points_found', function (array $pickup_points, array $search_params) {
         return array_slice($pickup_points, 0, 5);
     }, 10, 2);
 
-    add_filter('smart_send_default_selected_pickup_point', function ($default_pickup_point_no, $pickup_points) {
-        return $pickup_points ? $pickup_points[0]->agent_no : $default_pickup_point_no;
+    add_filter('smart_send_default_selected_pickup_point', function ($default_pickup_point_no, array $pickup_points) {
+        foreach ($pickup_points as $pickup_point) {
+            foreach ($pickup_point->get_opening_hours() as $interval) {
+                if ($interval['day'] === 'saturday') {
+                    return $pickup_point->get_agent_no();
+                }
+            }
+        }
+
+        return $default_pickup_point_no;
     }, 10, 2);
 
 = Shipping label creation =
@@ -154,12 +162,6 @@ Example: show at most 5 pickup points and pre-select the closest one:
     A filter to change the receiver address that is used for shipping labels
 * **smart_send_receiver_phone** (since 9.0.0)
     A filter to change the receiver phone number used for the shipping label and the SMS notification
-* **smart_send_payload_receiver** (since 9.0.0)
-    A filter on the receiver section (array) of the booking request
-* **smart_send_payload_items** (since 9.0.0)
-    A filter on the item lines (array) of the booking request
-* **smart_send_payload_totals** (since 9.0.0)
-    A filter on the totals section (array) of the booking request
 * **smart_send_order_note**
     A filter to change the freetext that is inserted on shipping labels
 
@@ -176,7 +178,15 @@ Example: ship every order in two parcels of fixed size and weight, with no item 
 = After the shipping label is created =
 
 * **smart_send_shipping_label_created**
-    An action which is called once a shipping label has been created for an order. Since 9.0.0 it receives the order id, the raw (unmutated) API booking response and a typed `SS_Shipping_Label_Entry` (label URL, order note HTML, return flag)
+    An action which is called once a shipping label has been created for an order. Since 9.0.0 it receives the order id and a typed `SS_Shipping_Label_Entry` (`get_order_id()`, `is_return()`, `get_label_url()`, `get_order_note()`) - the raw API booking response is not passed
+
+Example:
+
+    add_action('smart_send_shipping_label_created', function ($order_id, SS_Shipping_Label_Entry $entry) {
+        if (!$entry->is_return()) {
+            my_system_register_label($order_id, $entry->get_label_url());
+        }
+    }, 10, 2);
 * **smart_send_shipping_label_comment**
     A filter to modify the order comment that is added once a shipping label is created
 * **smart_send_tracking_url**
@@ -273,7 +283,10 @@ No - this is by design. Neither deactivating nor uninstalling the plugin deletes
 * Breaking change: the minimum required WooCommerce version is raised from 4.7 to 5.0 (sites on older WooCommerce should stay on the 8.x series)
 * Breaking change: the weight table now defines which cart weights the Smart Send shipping method is available for at all. Free shipping (the flat-rate threshold) only zeroes the price of an otherwise-available rate and can no longer make the method available for a cart weight outside the configured weight table - see the "9.0.0" entry under Upgrade Notice
 * Breaking change: the filters smart_send_shipping_label_args, smart_send_order_pickup_point, smart_send_order_parcels, smart_send_parcel_weight and smart_send_payload_parcels are removed, replaced by the single typed smart_send_delivery_details filter - see the "9.0.0" entry under Upgrade Notice
-* Breaking change: the smart_send_shipping_label_created action no longer mutates the API response with a ->woocommerce presentation array; listeners receive a typed SS_Shipping_Label_Entry third argument instead - see the "9.0.0" entry under Upgrade Notice
+* Breaking change: the smart_send_shipping_label_created action now passes only the order id and a typed SS_Shipping_Label_Entry (label URL, order note, return flag); the raw API response is no longer passed and the entry no longer exposes it - see the "9.0.0" entry under Upgrade Notice
+* Breaking change: the smart_send_api_endpoint filter now receives and returns the Smart Send host only (e.g. https://app.smartsend.dev); the plugin appends the API version path itself. A sandbox override returning a full /api/v1/ URL must be changed to the host - see the "9.0.0" entry under Upgrade Notice
+* Change: the smart_send_pickup_points_found, smart_send_default_selected_pickup_point and smart_send_pickup_point_option_label filters (all new in 9.0.0) pass SS_Shipping_Pickup_Point value objects instead of raw API objects; the value object gained carrier, name lines, coordinates, opening hours and to_array()
+* The unreleased smart_send_payload_receiver, smart_send_payload_items and smart_send_payload_totals filters are removed before release (they exposed API-version-dependent request arrays); use smart_send_order_receiver, smart_send_receiver_phone, smart_send_order_note and smart_send_delivery_details instead
 * Fix: hand-editing the pickup point number (ss_shipping_order_agent_no) in the order screen's Custom Fields box is now validated against the Smart Send API on stores using High-Performance Order Storage too (previously the validation silently never ran on HPOS stores)
 * Fix: with the "save shipping labels in uploads" setting enabled, the label link in the order note and label response now points at the saved uploads copy (previously the computed uploads URL was discarded and the Smart Send API link was always used)
 * Breaking change: the "Smart Send - Generate Labels" / "Generate Return Labels" bulk actions on the Orders screen now process a single selected order (previously up to 5 orders with a combined-PDF download). Selecting more than one order shows a message and books nothing. Bulk printing of multiple orders is not available in 9.0.0 - we are building a much better version, and it is coming soon. If you need the old bulk printing, downgrade to version 8.x - see the "9.0.0" entry under Upgrade Notice
@@ -627,7 +640,11 @@ No - this is by design. Neither deactivating nor uninstalling the plugin deletes
 
 * The shipping-label filter surface is rebuilt around one typed extension point. The filters `smart_send_shipping_label_args` (the `$ss_args` array of carrier/method/agent/parcels), `smart_send_order_pickup_point`, `smart_send_order_parcels`, `smart_send_parcel_weight` and the unreleased `smart_send_payload_parcels` are removed and no longer fire. Their replacement is the single `smart_send_delivery_details` filter, which receives the merged `SS_Shipping_Delivery_Details` value object (plus the `WC_Order` and an is-return flag) before booking: use `set_shipping_method()` to override the method (was: `$ss_args['ss_carrier']`/`$ss_args['ss_type']`), `set_pickup_point()` with a `SS_Shipping_Pickup_Point` (or `null`) to replace or clear the pickup point (was: `smart_send_order_pickup_point`), and `set_parcel_plan()` with a `SS_Shipping_Parcel_Plan` of `SS_Shipping_Parcel_Spec` rows to control the parcel split (was: `smart_send_order_parcels`) - a spec's explicit `set_weight()` replaces `smart_send_parcel_weight`, and specs may declare dimensions and weight with no item allocations at all. Snippets registering the removed filters must be rewritten; see the Developers section for an example.
 
-* Listeners of the `smart_send_shipping_label_created` action now receive different data. The raw API response (second argument) is no longer mutated with a `->woocommerce` array - snippets reading `$response->woocommerce['label_url']`, `['order_note']` or `['return']` must switch to the new typed third argument, an `SS_Shipping_Label_Entry` with `get_label_url()`, `get_order_note()` and `is_return()`. Register the action with `add_action('smart_send_shipping_label_created', $callback, 10, 3)` to receive it.
+* Listeners of the `smart_send_shipping_label_created` action now receive different data. The action passes two arguments, the order id and a typed `SS_Shipping_Label_Entry`; the raw API booking response is no longer passed at all. Snippets reading `$response->woocommerce['label_url']`, `['order_note']` or `['return']` must switch to the entry's `get_label_url()`, `get_order_note()` and `is_return()`; snippets reading other properties of the response (`$response->shipment_id`, `$response->parcels[...]->tracking_code`, ...) can read the shipment id from the order meta (`_ss_shipping_label_id` / `_ss_shipping_return_label_id`) and the tracking numbers from the order note for now - a richer typed booking-result object is planned for a later release. Register the action with `add_action('smart_send_shipping_label_created', $callback, 10, 2)`.
+
+* The `smart_send_api_endpoint` filter changes meaning: it now receives and must return the Smart Send host only (for example `https://app.smartsend.dev`), and the plugin appends the API version path (`/api/v1/`) itself. A snippet pointing the plugin at the sandbox by returning `https://app.smartsend.dev/api/v1/` must be changed to return `https://app.smartsend.dev`. Until it is, the plugin strips the trailing `/api/v1/` and writes a warning to the WooCommerce log on every request, so nothing breaks - but the override should be updated, because the stripping is a courtesy for the old shape only.
+
+* The checkout pickup point filters added in 9.0.0 - `smart_send_pickup_points_found`, `smart_send_default_selected_pickup_point` and `smart_send_pickup_point_option_label` - pass `SS_Shipping_Pickup_Point` value objects instead of the raw API objects. Read `$pickup_point->get_agent_no()` instead of `$pickup_point->agent_no` (or use `to_object()`/`to_array()`), and return only `SS_Shipping_Pickup_Point` instances from `smart_send_pickup_points_found`; other entries are dropped with a warning in the log.
 
 * With the "Save shipping labels in uploads folder" setting enabled, the label link placed in the order note and the label response now points at the saved uploads copy instead of the Smart Send API link (the historic behaviour computed the uploads URL and then discarded it). Sites relying on the API link while the setting is enabled should disable the setting or read the link from the API response.
 
