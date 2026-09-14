@@ -177,16 +177,30 @@ Example: ship every order in two parcels of fixed size and weight, with no item 
 
 = After the shipping label is created =
 
-* **smart_send_shipping_label_created**
-    An action which is called once a shipping label has been created for an order. Since 9.0.0 it receives the order id and a typed `SS_Shipping_Label_Entry` (`get_order_id()`, `is_return()`, `get_label_url()`, `get_order_note()`) - the raw API booking response is not passed
+* **smart_send_shipment_booked** (since 9.0.0)
+    An action which is called once a shipment has been booked for an order and WooCommerce is updated (order meta, order note, tracking, status). It receives the order id, the typed `SS_Shipping_Booked_Shipment` and the `SS_Shipping_Fulfillment_Result` of the whole run. The shipment carries `get_shipment_id()`, `get_carrier()`, `get_service_code()`, `is_return()`, `get_state()`, `get_booked_at()`, shipment-level `get_tracking_code()`/`get_tracking_url()`, `parcels()` (`SS_Shipping_Booked_Parcel`: parcel id, tracking code and URL), `documents()` (`SS_Shipping_Shipment_Document`: type such as `label` or `customs_declaration`, format such as `pdf` or `zpl`, layout, URL, and `get_local_url()`/`get_local_path()` when the "save shipping labels in uploads" setting stored a copy; `download_url()` prefers that copy) and `codes()` (`SS_Shipping_Shipment_Code`: type such as `qr_code`, value, image URL, expiry, instructions). Documents and codes belong to the shipment, not to a parcel. The result offers `get_order_note($shipment)` (the HTML order note), `shipments()`, `get_outbound_shipment()` and `get_return_shipment()`. The action fires once per booked shipment, after the whole run (so an auto-generated return label is visible to the outbound listener via the result). No raw API response is passed and the shipment has `to_array()`/`from_array()` for storing it
+* **smart_send_shipping_label_created** (deprecated since 9.0.0)
+    Deprecated alias of `smart_send_shipment_booked`: keeps firing with the same three arguments throughout the 9.x series, and raises the standard WordPress deprecated-hook notice when a listener is registered. Move listeners to `smart_send_shipment_booked`
 
 Example:
 
-    add_action('smart_send_shipping_label_created', function ($order_id, SS_Shipping_Label_Entry $entry) {
-        if (!$entry->is_return()) {
-            my_system_register_label($order_id, $entry->get_label_url());
+    add_action('smart_send_shipment_booked', function ($order_id, SS_Shipping_Booked_Shipment $shipment, SS_Shipping_Fulfillment_Result $result) {
+        if ($shipment->is_return()) {
+            return;
         }
-    }, 10, 2);
+
+        $label = $shipment->label_document(); // null when the booking produced no label document (e.g. a QR code only)
+        my_system_register_shipment(
+            $order_id,
+            $shipment->get_shipment_id(),
+            $shipment->get_tracking_code(),
+            $label ? $label->download_url() : null
+        );
+
+        foreach ($shipment->codes() as $code) {
+            my_system_show_code($order_id, $code->get_type(), $code->get_value(), $code->get_image_url());
+        }
+    }, 10, 3);
 * **smart_send_shipping_label_comment**
     A filter to modify the order comment that is added once a shipping label is created
 * **smart_send_tracking_url**
@@ -283,7 +297,8 @@ No - this is by design. Neither deactivating nor uninstalling the plugin deletes
 * Breaking change: the minimum required WooCommerce version is raised from 4.7 to 5.0 (sites on older WooCommerce should stay on the 8.x series)
 * Breaking change: the weight table now defines which cart weights the Smart Send shipping method is available for at all. Free shipping (the flat-rate threshold) only zeroes the price of an otherwise-available rate and can no longer make the method available for a cart weight outside the configured weight table - see the "9.0.0" entry under Upgrade Notice
 * Breaking change: the filters smart_send_shipping_label_args, smart_send_order_pickup_point, smart_send_order_parcels, smart_send_parcel_weight and smart_send_payload_parcels are removed, replaced by the single typed smart_send_delivery_details filter - see the "9.0.0" entry under Upgrade Notice
-* Breaking change: the smart_send_shipping_label_created action now passes only the order id and a typed SS_Shipping_Label_Entry (label URL, order note, return flag); the raw API response is no longer passed and the entry no longer exposes it - see the "9.0.0" entry under Upgrade Notice
+* Breaking change: the smart_send_shipping_label_created action is replaced by smart_send_shipment_booked, which passes the order id, a typed SS_Shipping_Booked_Shipment (shipment id, carrier, method, tracking, parcels, documents, codes) and the SS_Shipping_Fulfillment_Result; the raw API response is no longer passed. smart_send_shipping_label_created keeps firing with the same arguments as a deprecated alias - see the "9.0.0" entry under Upgrade Notice
+* Change: the order screen and the bulk action notice now show every document and every code a booking produced (today one PDF label per shipment; API v2 will add QR codes, label codes and ZPL/customs documents); the order note lists them the same way
 * Breaking change: the smart_send_api_endpoint filter now receives and returns the Smart Send host only (e.g. https://app.smartsend.dev); the plugin appends the API version path itself. A sandbox override returning a full /api/v1/ URL must be changed to the host - see the "9.0.0" entry under Upgrade Notice
 * Change: the smart_send_pickup_points_found, smart_send_default_selected_pickup_point and smart_send_pickup_point_option_label filters (all new in 9.0.0) pass SS_Shipping_Pickup_Point value objects instead of raw API objects; the value object gained carrier, name lines, coordinates, opening hours and to_array()
 * The unreleased smart_send_payload_receiver, smart_send_payload_items and smart_send_payload_totals filters are removed before release (they exposed API-version-dependent request arrays); use smart_send_order_receiver, smart_send_receiver_phone, smart_send_order_note and smart_send_delivery_details instead
@@ -640,7 +655,7 @@ No - this is by design. Neither deactivating nor uninstalling the plugin deletes
 
 * The shipping-label filter surface is rebuilt around one typed extension point. The filters `smart_send_shipping_label_args` (the `$ss_args` array of carrier/method/agent/parcels), `smart_send_order_pickup_point`, `smart_send_order_parcels`, `smart_send_parcel_weight` and the unreleased `smart_send_payload_parcels` are removed and no longer fire. Their replacement is the single `smart_send_delivery_details` filter, which receives the merged `SS_Shipping_Delivery_Details` value object (plus the `WC_Order` and an is-return flag) before booking: use `set_shipping_method()` to override the method (was: `$ss_args['ss_carrier']`/`$ss_args['ss_type']`), `set_pickup_point()` with a `SS_Shipping_Pickup_Point` (or `null`) to replace or clear the pickup point (was: `smart_send_order_pickup_point`), and `set_parcel_plan()` with a `SS_Shipping_Parcel_Plan` of `SS_Shipping_Parcel_Spec` rows to control the parcel split (was: `smart_send_order_parcels`) - a spec's explicit `set_weight()` replaces `smart_send_parcel_weight`, and specs may declare dimensions and weight with no item allocations at all. Snippets registering the removed filters must be rewritten; see the Developers section for an example.
 
-* Listeners of the `smart_send_shipping_label_created` action now receive different data. The action passes two arguments, the order id and a typed `SS_Shipping_Label_Entry`; the raw API booking response is no longer passed at all. Snippets reading `$response->woocommerce['label_url']`, `['order_note']` or `['return']` must switch to the entry's `get_label_url()`, `get_order_note()` and `is_return()`; snippets reading other properties of the response (`$response->shipment_id`, `$response->parcels[...]->tracking_code`, ...) can read the shipment id from the order meta (`_ss_shipping_label_id` / `_ss_shipping_return_label_id`) and the tracking numbers from the order note for now - a richer typed booking-result object is planned for a later release. Register the action with `add_action('smart_send_shipping_label_created', $callback, 10, 2)`.
+* The `smart_send_shipping_label_created` action is replaced by `smart_send_shipment_booked`, and listeners receive different data. The new action passes three arguments: the order id, a typed `SS_Shipping_Booked_Shipment` and the `SS_Shipping_Fulfillment_Result` of the run; the raw API booking response is no longer passed at all. Snippets reading `$response->shipment_id` switch to `$shipment->get_shipment_id()`, `$response->parcels[...]->tracking_code` / `tracking_link` to `$shipment->parcels()[...]->get_tracking_code()` / `get_tracking_url()` (or the shipment-level `get_tracking_code()`), `$response->carrier_name` to `$shipment->get_carrier()` (the carrier code), `$response->pdf->link` to `$shipment->label_document()->get_url()` (and `download_url()` for the uploads copy when that setting is on), `$response->woocommerce['label_url']` to `$shipment->label_document()->download_url()`, `['order_note']` to `$result->get_order_note($shipment)` and `['return']` to `$shipment->is_return()`. Documents and codes are lists on the shipment - do not assume one PDF. `smart_send_shipping_label_created` keeps firing with the same three arguments as a deprecated alias throughout 9.x (with WordPress' deprecated-hook notice when WP_DEBUG is on), but a snippet still expecting the old arguments will break: register the new action with `add_action('smart_send_shipment_booked', $callback, 10, 3)`. The `SS_Shipping_Label_Entry` class that a 9.0.0 pre-release briefly introduced no longer exists.
 
 * The `smart_send_api_endpoint` filter changes meaning: it now receives and must return the Smart Send host only (for example `https://app.smartsend.dev`), and the plugin appends the API version path (`/api/v1/`) itself. A snippet pointing the plugin at the sandbox by returning `https://app.smartsend.dev/api/v1/` must be changed to return `https://app.smartsend.dev`. Until it is, the plugin strips the trailing `/api/v1/` and writes a warning to the WooCommerce log on every request, so nothing breaks - but the override should be updated, because the stripping is a courtesy for the old shape only.
 
