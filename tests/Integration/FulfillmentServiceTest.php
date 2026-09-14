@@ -36,7 +36,7 @@ function capture_label_created_action(): object
         public array $order_ids = [];
     };
 
-    $listener = function ($order_id, $response) use ($fired): void {
+    $listener = function ($order_id, SS_Shipping_Label_Entry $entry) use ($fired): void {
         $fired->order_ids[] = $order_id;
     };
     add_action('smart_send_shipping_label_created', $listener, 10, 2);
@@ -80,46 +80,78 @@ it('runs the full workflow on a successful outbound fulfillment', function () {
         ->toContain('TRACK-1234');
 });
 
-it('passes listeners a pristine response and a typed entry (v9 fix: clean action payload)', function () {
-    // Deliberate v9 breaking change (#139): the raw API response handed to
-    // smart_send_shipping_label_created is no longer mutated with the
-    // ->woocommerce presentation array; that data travels in the typed
-    // SS_Shipping_Label_Entry third argument instead.
-    $order = create_fulfillable_order();
-    mock_smart_send_api(function () {
-        return ss_api_response(200, ['data' => ss_api_shipment_data(['shipment_id' => 'shipment-clean'])]);
-    });
-
+/**
+ * Capture the raw argument list of every smart_send_shipping_label_created
+ * firing, so a test can assert exactly what the action passes.
+ */
+function capture_label_created_args(): object
+{
     $captured = new class {
-        public array $args = [];
+        public array $calls = [];
     };
-    $listener = function ($order_id, $response, $entry) use ($captured): void {
-        $captured->args = [$order_id, $response, $entry];
+    $listener = function (...$args) use ($captured): void {
+        $captured->calls[] = $args;
     };
-    add_action('smart_send_shipping_label_created', $listener, 10, 3);
+    add_action('smart_send_shipping_label_created', $listener, 10, 10);
     remember_cleanup_callback(function () use ($listener): void {
         remove_action('smart_send_shipping_label_created', $listener, 10);
     });
 
+    return $captured;
+}
+
+it('passes listeners only the order id and a typed entry - no raw API response (#170)', function () {
+    // Deliberate v9 breaking change (#139, #170): smart_send_shipping_label_created
+    // hands listeners ($order_id, SS_Shipping_Label_Entry) and nothing else.
+    // The raw API booking response is API-version shaped and is kept out of
+    // the hook; the entry no longer exposes it either.
+    $order = create_fulfillable_order();
+    mock_smart_send_api(function () {
+        return ss_api_response(200, ['data' => ss_api_shipment_data(['shipment_id' => 'shipment-clean'])]);
+    });
+    $captured = capture_label_created_args();
+
     $result = fulfillment_service()->fulfill_outbound($order->get_id());
 
-    expect($result->is_successful())->toBeTrue();
+    expect($result->is_successful())->toBeTrue()
+        ->and($captured->calls)->toHaveCount(1)
+        ->and($captured->calls[0])->toHaveCount(2);
 
-    [$order_id, $response, $entry] = $captured->args;
+    [$order_id, $entry] = $captured->calls[0];
     expect($order_id)->toBe($order->get_id())
-        ->and(property_exists($response, 'woocommerce'))->toBeFalse()
-        ->and($response->shipment_id)->toBe('shipment-clean')
         ->and($entry)->toBeInstanceOf(SS_Shipping_Label_Entry::class)
+        ->and(method_exists($entry, 'get_response'))->toBeFalse()
         ->and($entry->get_order_id())->toBe($order->get_id())
         ->and($entry->is_return())->toBeFalse()
         ->and($entry->get_label_url())->toBe('https://api.example.test/labels/label.pdf')
         ->and($entry->get_order_note())->toContain('TRACK-1234')
-        ->and($entry->get_response())->toBe($response);
+        ->and($entry->get_order_note())->toContain('https://api.example.test/labels/label.pdf');
+
+    // The entry is a plain serializable DTO.
+    expect(unserialize(serialize($entry))->get_label_url())->toBe('https://api.example.test/labels/label.pdf');
 
     // The legacy AJAX entry keeps the frozen woocommerce.* shape.
     $legacy = $result->to_legacy_response_array()[0]['success'];
     expect($legacy->woocommerce['label_url'])->toBe('https://api.example.test/labels/label.pdf')
         ->and($legacy->woocommerce['return'])->toBeFalse();
+});
+
+it('fires the action once per label with the return entry flagged as return (#170)', function () {
+    $order = create_fulfillable_order(['auto_return' => 'yes']);
+    mock_smart_send_api();
+    $captured = capture_label_created_args();
+
+    $result = fulfillment_service()->fulfill_outbound($order->get_id());
+
+    expect($result->is_successful())->toBeTrue()
+        ->and($captured->calls)->toHaveCount(2);
+
+    [$outbound, $return] = [$captured->calls[0][1], $captured->calls[1][1]];
+    expect($outbound->is_return())->toBeFalse()
+        ->and($outbound->get_order_note())->toContain('Download shipping label')
+        ->and($return->is_return())->toBeTrue()
+        ->and($return->get_order_note())->toContain('Return shipping label')
+        ->and($return->get_order_id())->toBe($order->get_id());
 });
 
 it('links the uploads copy of the label when saving labels in uploads is enabled (v9 fix)', function () {

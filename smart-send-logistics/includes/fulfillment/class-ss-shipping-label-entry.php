@@ -19,7 +19,15 @@ if ( ! class_exists( 'SS_Shipping_Label_Entry' ) ) :
 	 * smart_send_shipping_label_created listeners (#139): the WooCommerce
 	 * presentation data (label URL, order note HTML, return flag) that
 	 * used to be mutated INTO the raw API response object's ->woocommerce
-	 * property now travels here, typed, alongside the pristine response.
+	 * property travels here, typed.
+	 *
+	 * The entry deliberately carries no API response (#170): the raw
+	 * booking response is API-version shaped and is kept out of the
+	 * public hook contract, so the plugin can move to a newer Smart Send
+	 * API version without this contract changing. A richer booking-result
+	 * DTO (shipment id, tracking numbers, carrier) is a separate issue.
+	 * The entry is a serializable value object with no live WC_Order
+	 * dependency.
 	 */
 	class SS_Shipping_Label_Entry {
 
@@ -54,27 +62,18 @@ if ( ! class_exists( 'SS_Shipping_Label_Entry' ) ) :
 		protected string $order_note;
 
 		/**
-		 * The raw (unmutated) API booking response.
-		 *
-		 * @var object
-		 */
-		protected $response;
-
-		/**
 		 * Constructor.
 		 *
 		 * @param int     $order_id   The WooCommerce order id.
 		 * @param boolean $is_return  Whether the label is a return label.
 		 * @param string  $label_url  The label download URL.
 		 * @param string  $order_note The HTML order note with label link and tracking.
-		 * @param object  $response   The raw API booking response.
 		 */
-		public function __construct( $order_id, $is_return, $label_url, $order_note, $response ) {
+		public function __construct( $order_id, $is_return, $label_url, $order_note ) {
 			$this->order_id   = (int) $order_id;
 			$this->is_return  = (bool) $is_return;
 			$this->label_url  = (string) $label_url;
 			$this->order_note = (string) $order_note;
-			$this->response   = $response;
 		}
 
 		/**
@@ -111,15 +110,6 @@ if ( ! class_exists( 'SS_Shipping_Label_Entry' ) ) :
 		 */
 		public function get_order_note(): string {
 			return $this->order_note;
-		}
-
-		/**
-		 * Get the raw (unmutated) API booking response.
-		 *
-		 * @return object
-		 */
-		public function get_response() {
-			return $this->response;
 		}
 	}
 
