@@ -1,388 +1,212 @@
-# WooCommerce
-The Smart Send plugin for WooCommerce
+# Smart Send for WooCommerce
 
+The Smart Send shipping plugin for WooCommerce. This README is for **developers of the plugin**: how to get a local shop running, how to test the plugin by hand without touching the Smart Send API, and how the automated tests work.
+
+The plugin itself lives entirely in [`smart-send-logistics/`](smart-send-logistics/) — that folder is what ships to WordPress.org. Everything else in the repository is development tooling around it.
+
+- [Quick start](#quick-start)
+- [The local dev store](#the-local-dev-store)
+- [Manual testing without the Smart Send API (demo mode)](#manual-testing-without-the-smart-send-api-demo-mode)
+- [Automated tests](#automated-tests)
+- [Coding standards and the JS build](#coding-standards-and-the-js-build)
 - [Repository structure](#repository-structure)
-- [Setup](#setup-locally)
-  - [Quick start (setup script)](#quick-start-setup-script)
-  - [Install WP CLI](#install-wp-cli)
-  - [Install WordPress](#install-wordpress)
-  - [Install WooCommerce](#install-woocommerce)
-  - [Install Storefront theme](#install-storefront-theme)
-  - [Import Sample data](#import-sample-data)
-  - [Install plugin](#install-plugin)
-  - [Setup WooCommerce](#setup-woocommerce)
-  - [Go to admin](#go-to-admin)
-- [Development](#development)
-  - [Coding standards](#coding-standards)
-  - [Browser tests](#browser-tests)
-  - [SVN](#svn)
-  - [Release a new version](#release-a-new-version)
-  - [Exporting to a zip file](#exporting-to-a-zip-file)
-  - [Sandbox environment](#sandbox-environment)
+- [Releasing](#releasing)
 
-## Repository structure
+## Quick start
 
-The plugin shipped to WordPress.org lives entirely in `smart-send-logistics/`; everything else in the repository is development tooling around it.
-
-```
-.
-├── smart-send-logistics/         # THE PLUGIN — the only folder shipped to WordPress.org
-│   ├── smart-send-logistics.php  # Thin plugin entry file (header, constant, bootstrap)
-│   ├── readme.txt                # WordPress.org readme (stable tag, changelog)
-│   ├── includes/                 # Composition root (class-ss-shipping-wc.php) + domain code
-│   │   ├── booking/              # Order → booked label: payload building and booking
-│   │   ├── fulfillment/          # Label fulfillment workflow around a booking (PDF, meta, tracking)
-│   │   ├── delivery/             # Delivery-details data model: value objects, order meta, resolution
-│   │   ├── delivery-options/     # Checkout/admin services around delivery options (pickup points today)
-│   │   ├── shipping-method/      # The WooCommerce shipping method: rates, settings, weight table
-│   │   ├── support/              # Settings reader, API factory, logger, credentials, notices
-│   │   └── lib/Smartsend/        # PSR-style Smart Send API client (namespace Smartsend)
-│   ├── admin/                    # Admin controllers + UI (order meta box, bulk actions) + css/js
-│   ├── public/                   # Frontend: pickup point selection, Checkout Block integration
-│   ├── build/                    # Compiled checkout-block JS — committed, built from /src
-│   └── lang/                     # Translations
-├── src/                          # Checkout-block JS source (npm run build → plugin's build/)
-├── tests/
-│   ├── Integration/              # WP + WooCommerce loaded in-process; scenario coverage
-│   ├── Browser/                  # Playwright end-to-end tests against a running store
-│   │   └── Support/              # Store seeding/cleanup + API mock (shared with demo mode)
-│   ├── Docs/                     # Headed Playwright flows capturing documentation screenshots
-│   ├── Support/                  # Helpers shared between suites
-│   ├── bootstrap.php             # Loads WP + WC in-process for the Integration suite
-│   └── Pest.php                  # Pest configuration for all suites
-├── bin/                          # Dev tooling scripts
-│   ├── setup-local-dev.sh        # Builds a complete local dev store (composer setup)
-│   ├── run-tests.sh              # Rebuilds the testing store, runs the suites (composer test:*)
-│   ├── demo-store.sh             # Demo mode: seeded store + mocked API (composer demo:*)
-│   ├── import-sample-products.php
-│   ├── configure-checkout-page.php
-│   ├── update-sample-data.sh     # Refreshes sample-data/ from the WooCommerce source
-│   └── svn-deploy.sh             # Release deploy to the WordPress.org SVN repository
-├── sample-data/                  # Vendored sample catalog: products.csv, images, branding
-├── docs/screenshots/             # Generated documentation screenshots (output of tests/Docs)
-├── .github/workflows/            # CI: integration/browser tests, phpcs, JS build drift, docs
-├── local-dev/                    # Git-ignored: default disposable testing store location
-├── .env                          # Git-ignored: your persistent dev store (path, URL, knobs)
-├── .env.testing                  # Git-ignored: the disposable testing store used by the suites
-├── .env.example                  # Version-controlled reference documenting the env entries
-├── composer.json                 # Dev tooling: setup/test/demo scripts, phpcs, Pest
-├── package.json                  # JS build toolchain (@wordpress/scripts; Node pinned in .nvmrc)
-├── webpack.config.js             # Checkout-block build configuration
-├── phpunit.xml.dist              # Test suite definitions (Integration / Browser / Docs)
-├── phpcs.xml.dist                # Coding-standards ruleset (+ phpcs.compat.xml.dist, baseline)
-├── CLAUDE.md                     # Instructions for AI agents working in this repository
-└── README.md                     # This file
-```
-
-## Setup locally
-
-[WP CLI]([url](https://make.wordpress.org/cli/)) and [WooCommerce CLI]([url](https://developer.woocommerce.com/docs/category/wc-cli/)) can be used to setup a fresh WooCommerce installation for testing.
-
-### Quick start (setup script)
-
-The manual steps below are automated by [bin/setup-local-dev.sh](bin/setup-local-dev.sh), which sets up a complete local development store — WordPress + WooCommerce with the plugin from this repository symlinked in and activated, the [Storefront](https://wordpress.org/themes/storefront/) theme active, configured with a Danish store origin, DKK currency and metric units (kg/cm), plus a realistic sample catalog with images (see [sample-data/](sample-data/)), a Storefront homepage + menu, and a Denmark shipping zone:
+Requirements: PHP 8.3 for the dev tooling (the plugin itself stays PHP 5.6 compatible), Composer, Node (version in [`.nvmrc`](.nvmrc)). No database server is needed — the store runs on SQLite by default.
 
 ```bash
-composer setup            # shorthand for bin/setup-local-dev.sh
+composer install && npm install && npx playwright install chromium
+composer setup      # builds a complete local WooCommerce store with the plugin activated
+composer demo:on    # fakes the Smart Send API + seeds a shipping method, product and checkout pages
 ```
 
-Extra options pass through after `--`, e.g. `composer setup -- --force`.
-
-By default it installs the latest WordPress and WooCommerce into `./local-dev/wordpress` using SQLite (via the official [SQLite Database Integration](https://github.com/WordPress/sqlite-database-integration) plugin), so no database server is required. Everything is configurable:
+That is it. `composer setup` prints the store URL and admin credentials (default `admin` / `password`); `composer demo:on` prints them again together with the checkout URLs. Open the shop, buy the sample product, pick a pick-up point at checkout, then open the order in admin and create a label — all without a Smart Send account or API token.
 
 ```bash
-bin/setup-local-dev.sh \
-  --path ~/Sites/smartsend-dev \
-  --wp-version 6.8 \
-  --wc-version 9.8.5 \
-  --db-engine mysql --db-name wp_dev --db-user root --db-pass secret --db-host 127.0.0.1
+composer demo:off   # back to a plain store talking to the real API
 ```
 
-Run `bin/setup-local-dev.sh --help` for all options. The script is idempotent — re-running re-applies configuration without reinstalling; use `--force` to start over. When it finishes it prints the admin credentials and how to reach the store.
+## The local dev store
 
-#### Store locations: `.env` and `.env.testing`
+`composer setup` (shorthand for [`bin/setup-local-dev.sh`](bin/setup-local-dev.sh)) installs the latest WordPress and WooCommerce, symlinks `smart-send-logistics/` into `wp-content/plugins/` and activates it, activates the Storefront theme, configures a Danish store (DKK, kg/cm, 25% VAT, a Denmark shipping zone) and seeds a realistic product catalog with images from [`sample-data/`](sample-data/). It is idempotent: re-running re-applies configuration without reinstalling; `composer setup -- --force` starts over. `bin/setup-local-dev.sh --help` lists every option (WordPress/WooCommerce versions, MySQL instead of SQLite, admin credentials, and so on).
 
-Two git-ignored env files at the repo root pin the store locations (`WP_PATH`, resolved relative to the repo root, and `WP_URL`); [.env.example](.env.example) is the version-controlled reference documenting every supported entry:
+### Two stores: `.env` and `.env.testing`
 
-- **`.env` — your persistent dev store**, for manual testing and demo mode. On the first interactive run with no `.env`, the setup script asks where to put it (default: `../../playground/smart-send-woocommerce` at `http://smart-send-woocommerce.test`) and writes the file. Point it at a directory served by [Laravel Herd](https://herd.laravel.com) (parked or `herd link`ed) and no manual web server is needed — use plain `http://`, not `herd secure`.
-- **`.env.testing` — the disposable testing store** used by the test suites. Created automatically with defaults matching CI (`./local-dev/wordpress`, `http://127.0.0.1:8181`) and **rebuilt from scratch by every `composer test:*` run** (see Testing below), so tests never suffer drift from demo mode, earlier runs or manual clicking.
+Two git-ignored files at the repo root pin where the stores live (`WP_PATH`, relative to the repo root) and their URL (`WP_URL`). [`.env.example`](.env.example) documents every entry.
 
-Explicit `--path`/`--url` flags always override the env files (this is what CI does), and the legacy `WP_DEV_PATH`/`WP_BASE_URL` environment variables still work as overrides everywhere.
+| File | Store | Used by |
+|---|---|---|
+| `.env` | **Your persistent dev store** for manual testing and demo mode. | `composer setup`, `composer demo:*` |
+| `.env.testing` | **A disposable testing store**, rebuilt from scratch by every `composer test:*` run. Defaults match CI (`./local-dev/wordpress` at `http://127.0.0.1:8181`). | `composer test:*` |
 
-Two more knobs configure how the store behaves, resolved as flag > exported environment variable > env file entry > default:
+The first interactive `composer setup` asks where to put the dev store and writes `.env`. Point `WP_URL` at a directory served by [Laravel Herd](https://herd.laravel.com) (parked or `herd link`ed, plain `http://`) and you never have to start a web server; with a localhost URL the test runner starts a PHP built-in server itself, and for manual testing you start one yourself from the store directory with `wp server --host=127.0.0.1 --port=8181` (or with `--path=<WP_PATH>` from anywhere).
 
-- **Checkout type** — `--checkout classic|block` / `WP_CHECKOUT` (default `block`): whether the store's checkout page carries the classic `[woocommerce_checkout]` shortcode or the WooCommerce Checkout block.
-- **Price entry tax mode** — `--prices-tax include|exclude` / `WP_PRICES_TAX` (default `include`): WooCommerce's "Prices entered with tax" setting. Dev stores are also seeded with a standard 25% Danish VAT rate so the setting takes effect; the disposable testing store stays tax-rate-free (the characterization suites pin behaviour against untaxed fixtures).
+Two knobs change how the store behaves, resolved as flag > exported environment variable > env file entry > default:
 
-One-off runs work without editing the env file, e.g. `WP_CHECKOUT=classic WP_PRICES_TAX=exclude composer setup`.
+- `--checkout classic|block` / `WP_CHECKOUT` (default `block`) — whether the checkout page uses the WooCommerce Checkout block or the classic `[woocommerce_checkout]` shortcode. The plugin supports both, so test both.
+- `--prices-tax include|exclude` / `WP_PRICES_TAX` (default `include`) — WooCommerce's "Prices entered with tax".
 
-Note: SQLite is convenient for development but is not what production stores run; use `--db-engine mysql` when database parity matters (e.g. debugging SQL-level issues).
+Example: `WP_CHECKOUT=classic composer setup`.
 
-### Install WP CLI
+## Manual testing without the Smart Send API (demo mode)
 
-Either as a [global composer package]([url](https://make.wordpress.org/cli/handbook/guides/installing/#installing-via-composer)):
+### How the fake API works
 
-```bash
-composer global require "wp-cli/wp-cli-bundle:*"
+The plugin talks to Smart Send through WordPress' HTTP layer (`wp_remote_*`). WordPress runs the `pre_http_request` filter before every such request, and a small must-use plugin, [`tests/Browser/Support/ApiMockMuPlugin.php`](tests/Browser/Support/ApiMockMuPlugin.php), hooks into it: every request to `smartsend.io` is short-circuited and answered with a canned response in the shape the real API produces. The plugin code is untouched and cannot tell it is being faked — the whole real client, including request logging, runs as in production. Any API token, even an empty one, is accepted because the token validation endpoint is faked too.
+
+The mock is controlled by one WordPress option, `ss_test_api`:
+
+```php
+array(
+    'enabled'   => true,
+    'scenarios' => array( 'booking' => '500', 'pickup-points' => 'empty' ),
+)
 ```
 
-or by [Downloading the Phar file](https://wp-cli.org/#installing) (recommended in eg CI/CD pipelines):
+Every faked endpoint returns its success response unless `scenarios` overrides it. The endpoints are `authenticate`, `pickup-points`, `booking`, `labels-combine` and `agent-lookup`. A case is either a named case (`authenticate=401`, `pickup-points=empty`, `booking=422-wrong-zip`) or any three-digit HTTP status code, which yields a generic error body with that status. Overrides are per endpoint, so failures compose: authentication can succeed while the pick-up point lookup 403s and booking 500s. An unknown case name produces a 500 with an explanatory message rather than silently passing. The canonical endpoint/case list is in the mock file's header.
+
+The same mock file is used by the Browser and Docs test suites, so demo mode always matches exactly what the tests exercise.
+
+### Demo mode on the dev store
 
 ```bash
-curl -O https://raw.githubusercontent.com/wp-cli/builds/gh-pages/phar/wp-cli.phar
-php wp-cli.phar --info
+composer demo:on          # install the mock + seed the store; prints URLs and admin credentials
+composer demo:off         # remove the mock and the demo fixtures again
+composer demo:scenario    # show the active scenarios and the valid endpoint/case names
 ```
 
-Note there is also a [Github Actio]([url](https://github.com/marketplace/actions/setup-wp-cli)) for installing WP CLI.
+`demo:on` copies the mock into the dev store's `wp-content/mu-plugins/`, enables it, and seeds what a checkout-to-label walk-through needs: a Denmark zone with a Smart Send pick-up point method, a sample product, and both a classic and a block checkout page. It stays on until `demo:off`, which removes only what `demo:on` created — zones, products, pages and orders you built on top are left alone. Both commands are idempotent.
 
-### Install WordPress
-
-```bash
-# Download wordpress
-wp core download --path=wordpress
-
-# Go to new installation
-cd wordpress
-
-# Generate a config file
-wp config create --dbhost="127.0.0.1" --dbname=wordpress --dbuser=root --dbpass=""
-
-# Remove any previous database if needed
-# wp db drop --yes
-
-# Create the database
-wp db create
-
-# Reset DB if ever needed
-# wp db reset --yes
-
-# Install WordPress
-wp core install --url=wordpress.test --title="WordPress Demo" --admin_user=wp --admin_password=wp --admin_email=wp@smartsend.io
-
-# Install admin command
-wp package install wp-cli/admin-command
-
-# Update all plugins
-wp plugin update --all
-````
-
-### Install WooCommerce
-
-[WooCommerce CLI](https://developer.woocommerce.com/docs/category/wc-cli/) is part of WooCommerce since version 3, so simply install WooCommerce using WP Cli:
+Simulate failures per endpoint:
 
 ```bash
-wp plugin install woocommerce --activate
+composer demo:scenario -- booking=422-wrong-zip          # label booking fails with a realistic validation error
+composer demo:scenario -- pickup-points=empty            # no pick-up points near the address
+composer demo:scenario -- authenticate=401               # "Invalid API token provided"
+composer demo:scenario -- booking=500 pickup-points=403  # any status code; overrides compose
+composer demo:scenario -- booking=success                # drop one override, keep the rest
+composer demo:scenario -- reset                          # everything back to success
 ```
 
-### Install Storefront theme
+Demo mode targets the store in `.env` (never the testing store, so demo state cannot leak into test runs) and refuses to run against a production environment or any site URL that is not localhost, 127.0.0.1 or `*.test`.
 
-The official [storefront theme](https://wordpress.org/themes/storefront/) should be used for development and testing:
+### The fake API on any other WordPress site
 
-```bash
-wp theme install storefront --activate
-```
+The mock is a single dependency-free PHP file, so it also works on a store that was not created by this repository:
 
-### Import Sample data
-
-The setup script seeds the store from [sample-data/](sample-data/) — a vendored, enriched copy of the [WooCommerce Sample Data](https://woocommerce.com/document/importing-woocommerce-sample-data/) (metric weights/dimensions, DKK prices, product images committed locally so seeding is offline and deterministic). To seed manually:
+1. Copy `tests/Browser/Support/ApiMockMuPlugin.php` into the site's `wp-content/mu-plugins/`. Must-use plugins are active immediately; nothing needs enabling in admin.
+2. Turn it on, for example with WP-CLI:
 
 ```bash
-# Import the product images into the media library, then the products
-wp media import sample-data/images/*.jpg --user=admin
-wp eval-file bin/import-sample-products.php sample-data/products.csv --user=admin
+wp option update ss_test_api '{"enabled":true,"scenarios":{}}' --format=json
 ```
 
-To refresh `sample-data/` from the WooCommerce source, run `bin/update-sample-data.sh` and commit the result (see [sample-data/README.md](sample-data/README.md)).
+Set scenarios in the same option, e.g. `{"enabled":true,"scenarios":{"booking":"500"}}`. Delete the file and the option to turn it off. You only get the mock this way, not the seeding — the store needs its own shipping zone with a Smart Send method.
 
-### Install plugin
+### Using the Smart Send sandbox instead
 
-During development then it makes sense symlinking the working plugin folder `./smart-send-logistics` into the wordpress pluigns folder `wp-content/plugins`:
+When you want real API behaviour against Smart Send's sandbox (or a locally running Smart Send app), point the plugin there with the `smart_send_api_endpoint` filter, for example from a [Code Snippets](https://wordpress.org/plugins/code-snippets/) snippet set to run everywhere:
+
+```php
+add_filter( 'smart_send_api_endpoint', function ( $endpoint ) {
+    return 'https://app.smartsend.dev/api/v1/';
+} );
+```
+
+## Automated tests
+
+Tests are written with [Pest](https://pestphp.com) and live in [`tests/`](tests/). There are three suites:
+
+| Suite | What it is | How it runs |
+|---|---|---|
+| **Integration** (`tests/Integration`) | The bulk of the coverage. WordPress + WooCommerce are loaded **in-process** by `tests/bootstrap.php` from the testing store; tests build orders, carts and settings directly and assert on payloads, rates, order meta, label generation, frontend output. Fixtures come from the factories in `tests/Integration/Helpers.php`, which delete everything they created after each test. | No web server needed. |
+| **Browser** (`tests/Browser`) | Few, slow end-to-end Playwright tests against a **running** store over HTTP: activation, settings, shipping method setup, classic and block checkout, label generation. They seed the store and install the API mock through WP-CLI (`tests/Browser/Support/`). `DevStoreTest.php` checks the store itself (theme, pages, no JS errors) without any Smart Send seeding — run it first when the store misbehaves. | Needs the store served; the runner handles that for localhost URLs. |
+| **Docs** (`tests/Docs`) | Not a correctness suite. Drives real admin UI flows and saves named screenshots to `docs/screenshots/` for the documentation. Runs headed (visible browser) locally so you can watch; headless in CI or with `SS_DOCS_HEADLESS=1`. `SS_DOCS_SLOWMO=1500` pauses at each screenshot state. | Same as Browser. |
+
+### Running them
 
 ```bash
-# Assuming that the repo is stored locally inside the folder ~/github.com/smartsendio/woocommerce
-ln -s ~/github.com/smartsendio/woocommerce/smart-send-logistics "wp-content/plugins/smart-send-logistics" 
+composer test:integration   # fresh testing store, then the Integration suite
+composer test:browser       # fresh testing store + managed web server, then the Browser suite
+composer test               # Integration + Browser (what CI runs on every pull request)
+composer test:docs          # regenerate documentation screenshots (opens a browser window)
 ```
 
-After which the plugin can be activated
+Every `composer test:*` command goes through [`bin/run-tests.sh`](bin/run-tests.sh), which **rebuilds the testing store (`.env.testing`) from scratch first**, so runs never drift from earlier runs, demo mode or manual clicking. WP-CLI caches the downloads, so the rebuild takes well under a minute; a full suite finishes in under two. If a run takes much longer, something is wrong (store unreachable, wrong `WP_URL`, a hung Playwright session) — kill it and investigate.
+
+For fast iteration against the *existing* testing store, call Pest directly and skip the rebuild:
 
 ```bash
-wp plugin activate smart-send-logistics
+vendor/bin/pest --testsuite=Integration
+vendor/bin/pest tests/Integration/RateCalculationTest.php
+vendor/bin/pest --testsuite=Browser      # you serve the store yourself in this case
 ```
 
-### Setup WooCommerce
+### Rules for tests
 
-A few modifications must be made to the default WooCommerce setup
+- **No refactor merges without tests covering the moved behaviour.** The Integration suite contains characterization tests that pin the current behaviour of the core flows (shipment payload golden tests, rate calculation, order meta on legacy and HPOS storage, label generation, pick-up point display). Keep them green and extend them in the same PR for any code you move that is not yet covered.
+- Tests assert *current* behaviour, including known oddities marked `v8 oddity` in the test files. Changing such an expectation is a deliberate behaviour change and must be called out in the PR.
+- Create all test data through the factories in `tests/Integration/Helpers.php` so it is cleaned up.
 
-#### Finishing Setup Wizard
+### CI
 
-We have not found a way to finish the Setup Wizard through CLI yet. This Wizard sets a few settings like vat settings.
+`.github/workflows/integration-tests.yml` and `browser-tests.yml` run on every pull request and on pushes to `main` and `develop`; browser failure screenshots are uploaded as workflow artifacts. `coding-standards.yml` runs phpcs and `js-build.yml` fails if the committed `build/` output drifts from `src/`. `docs-screenshots.yml` is manual only (`workflow_dispatch`): it uploads the screenshots as an artifact for a human to review and commit.
 
-#### Add shipping zones
+## Coding standards and the JS build
+
+The plugin follows the [WordPress Coding Standards](https://github.com/WordPress/WordPress-Coding-Standards); the ruleset is [`phpcs.xml.dist`](phpcs.xml.dist). Plugin code must stay PHP 5.6 compatible (`composer phpcs:compat`).
 
 ```bash
-wp wc shipping_zone create --user=wp --name="Denmark"
-wp wc shipping_zone create --user=wp --name="Nordics"
-wp wc shipping_zone create --user=wp --name="EU"
+composer phpcs       # check
+composer phpcs:fix   # auto-fix what can be fixed
 ```
 
-configuring the countries for each shipping zone [cannot be done via CLI](https://github.com/woocommerce/woocommerce/issues/28576#issuecomment-1279203299), so doing via DB Query:
-
-```bash
-wp db query "INSERT INTO wp_woocommerce_shipping_zone_locations (zone_id, location_code, location_type) VALUES (1, 'DK', 'country')"
-wp db query "INSERT INTO wp_woocommerce_shipping_zone_locations (zone_id, location_code, location_type) VALUES (2, 'SE', 'country')"
-wp db query "INSERT INTO wp_woocommerce_shipping_zone_locations (zone_id, location_code, location_type) VALUES (3, 'EU', 'continent')"
-```
-
-Adding Smart Send shipping methods
-
-```bash
-wp wc shipping_zone_method create 1 --enabled=true --settings='{"title":"Smart Send Demo"}' --method_id=smart_send_shipping --user=wp
-```
-
-#### Enable payments
-
-```bash
-wp wc payment_gateway update bacs --user=wp --enabled=true
-wp wc payment_gateway update cod --user=wp --enabled=true
-```
-
-### Go to admin
-
-```bash
-wp admin --user=wp
-```
-
-## Development
-
-### Coding standards
-
-The plugin is checked against the [WordPress Coding Standards](https://github.com/WordPress/WordPress-Coding-Standards) with [PHP_CodeSniffer](https://github.com/PHPCSStandards/PHP_CodeSniffer). The ruleset lives in [phpcs.xml.dist](phpcs.xml.dist) and runs in CI on every pull request.
-
-```bash
-composer install
-composer phpcs
-```
-
-Auto-fix what can be fixed automatically with:
-
-```bash
-composer phpcs:fix
-```
-
-Pre-existing violations are recorded in [phpcs.baseline.xml](phpcs.baseline.xml) so they do not fail CI, while new violations do. When you fix a baselined violation, regenerate the baseline so it shrinks over time:
+Pre-existing violations are recorded in `phpcs.baseline.xml` so only new ones fail CI. When you fix a baselined violation, regenerate the baseline so it shrinks:
 
 ```bash
 vendor/bin/phpcs --report=\\DR\\CodeSnifferBaseline\\Reports\\Baseline --report-file=phpcs.baseline.xml
 ```
 
-### Test safety net (v9 rule)
+The checkout-block scripts are the only compiled assets. Source is in [`src/`](src/); `npm run build` compiles into `smart-send-logistics/build/`, which is **committed** so the plugin works without Node. After changing anything under `src/`, run the build and commit the output.
 
-The `tests/Integration` suite contains characterization tests that pin down the current behaviour of the core flows (shipment payload "golden" tests, rate calculation, order meta accessors on legacy and HPOS storage, label generation with a mocked API, frontend pick-up point display). **No refactor PR merges without tests covering the moved behaviour**: keep these suites green, and extend them in the same PR for any code you move that is not yet covered. Both CI workflows run on every pull request and on pushes to `main` and `develop`.
+## Repository structure
 
-### Browser tests
-
-End-to-end browser tests are written with [Pest](https://pestphp.com/docs/browser-testing) (backed by Playwright) and run against the testing store (`.env.testing`). Locally:
-
-```bash
-composer install
-npm install
-npx playwright install chromium
-
-# Run the tests - provisions a FRESH testing store first (bin/run-tests.sh),
-# and manages the store's web server for the duration of the run
-composer test
+```
+.
+├── smart-send-logistics/     # THE PLUGIN — the only folder shipped to WordPress.org
+│   ├── includes/             # Composition root + domain code (booking, fulfillment, delivery,
+│   │                         #   delivery-options, shipping-method, support, lib/Smartsend API client)
+│   ├── admin/ public/        # Admin and frontend controllers + UI
+│   ├── build/                # Compiled checkout-block JS (committed, built from /src)
+│   └── readme.txt            # WordPress.org readme (stable tag, changelog)
+├── src/                      # Checkout-block JS source
+├── tests/                    # Integration, Browser and Docs suites (see above)
+│   └── Browser/Support/      # Store seeding + the Smart Send API mock, shared with demo mode
+├── bin/                      # setup-local-dev.sh, run-tests.sh, demo-store.sh, svn-deploy.sh, ...
+├── sample-data/              # Vendored sample catalog used to seed stores (never edit by hand;
+│                             #   refresh with bin/update-sample-data.sh)
+├── docs/screenshots/         # Documentation screenshots produced by the Docs suite
+├── .github/workflows/        # CI
+├── .env / .env.testing       # Git-ignored store locations (see .env.example)
+└── CLAUDE.md                 # Architecture notes and instructions for AI agents
 ```
 
-Every `composer test:*` run rebuilds the testing store from scratch to eliminate drift; for quick iteration against the existing testing store, call Pest directly (`vendor/bin/pest --testsuite=Browser`) — with a localhost `WP_URL` you then need the store server running yourself. The tests read the store location from `.env.testing` (`WP_URL`; the `WP_BASE_URL`, `WP_ADMIN_USER` and `WP_ADMIN_PASS` env vars still override, defaulting to `http://127.0.0.1:8181`, `admin` / `password`). The same flow runs in CI via the Browser Tests workflow, which provisions the store with explicit `bin/setup-local-dev.sh` flags on every pull request. Failure screenshots are saved to `tests/Browser/Screenshots/` and uploaded as workflow artifacts.
+The architecture of the plugin itself (domains, hook conventions, logging policy, extension points) is documented in [CLAUDE.md](CLAUDE.md).
 
-### Manual testing (demo mode)
+## Releasing
 
-Demo mode puts the local development store into the same state the Browser suite runs against — a mu-plugin that mocks the Smart Send API, a Denmark shipping zone with a Smart Send pick-up point method, a sample product, and both a classic and a block checkout page — and leaves it on until you turn it off. Useful for clicking through checkout and label generation by hand without a real API token.
-
-```bash
-composer demo:on          # seed the store + install the API mock; prints URLs + admin creds
-composer demo:off         # remove the mock and the demo fixtures again
-composer demo:scenario    # show the active scenarios + the valid endpoint/case list
-```
-
-Scenarios are **per endpoint**, so failures compose: authentication can succeed while the pick-up point lookup 403s and booking 500s. Every endpoint defaults to a success response; `composer demo:scenario -- <endpoint>=<case>...` overrides individual endpoints. A case is either one of the named cases below or any three-digit HTTP status code (a generic error body with that status):
-
-```bash
-composer demo:scenario -- authenticate=401        # invalid API token ("Invalid API token provided")
-composer demo:scenario -- pickup-points=empty     # the pick-up point lookup finds nothing (valid empty response)
-composer demo:scenario -- booking=422-wrong-zip   # label booking fails with a realistic validation error
-composer demo:scenario -- pickup-points=500       # any endpoint + any HTTP status code: generic error body
-composer demo:scenario -- booking=500 pickup-points=403   # multiple overrides compose in one command
-composer demo:scenario -- booking=success         # remove a single override (unmentioned endpoints keep theirs)
-composer demo:scenario -- reset                   # every endpoint back to success
-```
-
-The overridable endpoints are `authenticate`, `pickup-points`, `booking`, `labels-combine` and `agent-lookup`; the canonical endpoint/case list lives in the mock's header (`tests/Browser/Support/ApiMockMuPlugin.php`) and is what `demo:scenario` validates against and prints. All mock state lives in the single `ss_test_api` option (`enabled` + the `scenarios` map), so it can also be flipped from a code snippet or `wp option` directly.
-
-The commands target the dev store from `.env`'s `WP_PATH` (default `./local-dev/wordpress`; the `WP_DEV_PATH` env var still overrides) — deliberately *not* the disposable testing store, so demo state never leaks into test runs. Both commands are idempotent, and `demo:off` only removes what `demo:on` created — zones, products, pages and orders you built on top are left alone. The mock and seeding logic are shared with the Browser suite (`tests/Browser/Support/`), so demo mode always matches what the tests exercise. Demo mode is a local-only tool: it refuses to run against a production environment or any site URL that is not localhost/127.0.0.1/`*.test`.
-
-### SVN
-
-Wordpress Plugin releases are managed by [SVN](https://developer.wordpress.org/plugins/wordpress-org/how-to-use-subversion/#starting-a-new-plugin) and to sync the plugin to a local folder run:
-
-```bash
-svn co https://plugins.svn.wordpress.org/smart-send-logistics smart-send-logistics
-```
-
-#### Seeing a status of version controlled files
-
-Note that the following command can be used to check which files are modified/added/deleted:
-
-```bash
-svn stat
-```
-
-#### Reverting local changes
-
-Simply run the command from within the svn folder to revert all local changes:
-
-```bash
-svn revert -R .
-```
-
-### Release a new version
-
-The easiest way to release a new version of the plugin is by running the deploy script in the root of the repository:
+Releases go to the WordPress.org SVN repository, not GitHub:
 
 ```bash
 sh bin/svn-deploy.sh
 ```
 
-Alternative do this manually by following these steps:
+The script is interactive: it copies `smart-send-logistics/` into an SVN checkout's trunk, tags the version and commits. Before running it, bump the version in three places in lockstep — the `Version:` header and the `$version` property in `smart-send-logistics/smart-send-logistics.php`, and `Stable tag:` in `smart-send-logistics/readme.txt` — and add a changelog entry under `== Changelog ==` in `readme.txt`.
 
-1. Update all mentions of the `Version` in the following files:
-  - `smart-send-logistics/smart-send-logistics.php`: Header
-  - `smart-send-logistics/smart-send-logistics.php`: private property `$version`
-  - `smart-send-logistics/readme.txt`: _Stable tag_-tag
-2. Add changelog entry in `smart-send-logistics/readme.txt`
-3. Copy folder `smart-send-logistics` to the `trunk` svn folder
-4. Copy the `trunk` folder content to a new tagged release using the command `svn cp trunk tags/8.0.0` (replace `8.0.0` with the new version number)
-5. Commit the work using the command `svn ci -m "tagging version 8.0.0"`
-
-### Exporting to a zip file
-
-To create a plugin zip file of a given branch/tag use:
+To export a given branch or tag as a plugin zip:
 
 ```bash
-git archive v8.1.0b4 --output="smart-send-shipping-woocommerce-v810b4.zip" "smart-send-logistics"
+git archive v9.0.0 --output="smart-send-logistics-v9.0.0.zip" smart-send-logistics
 ```
-
-### Sandbox environment
-When developing then it can sometimes be relevant to use Smart Send's _sandbox_ environment or a local server. This is done by implementing the following [filter](https://developer.wordpress.org/reference/functions/add_filter/):
-
-```php
-function smart_send_api_endpoint_callback( $endpoint ) {
-  	if ($endpoint == 'https://app.smartsend.io/api/v1/') {
-	  $endpoint = 'https://app.smartsend.dev/api/v1/';
-	}
-    return $endpoint;
-}
-add_filter( 'smart_send_api_endpoint', 'smart_send_api_endpoint_callback' );
-```
-
-An easy way to implement this is using the [Code Snippets plugin](https://wordpress.org/plugins/code-snippets/) and select _Run snippet everywhere_
