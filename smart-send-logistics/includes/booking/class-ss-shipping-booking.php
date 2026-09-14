@@ -16,11 +16,17 @@ if ( ! class_exists( 'SS_Shipping_Booking' ) ) :
 
 	/**
 	 * Wraps the outcome of a SS_Shipping_Booking_Service::book_outbound()/
-	 * book_return() attempt: either the raw API response data (unchanged
-	 * pass-through of Smartsend\Response::data()'s dynamic stdClass shape -
-	 * remodelling that shape is out of scope here, see #112) and the
-	 * translated v1 wire shipment model, or an error message when the
-	 * booking failed (config error or API error).
+	 * book_return() attempt: either the typed SS_Shipping_Booked_Shipment
+	 * the API produced, or an error message when the booking failed
+	 * (config error or API error).
+	 *
+	 * Nothing API-version shaped is exposed (#177): the raw response and
+	 * the v1 wire request model stay inside SS_Shipping_Booking_Service
+	 * and the Smartsend lib. The one v1 bridge is get_document_content():
+	 * API v1 delivers the label PDF inline (base64) next to its URL, and
+	 * the fulfillment workflow needs those bytes to store the uploads
+	 * copy. The bytes are keyed by document index, kept off the DTO
+	 * (never persisted or queued) and gone once API v2 delivers URLs only.
 	 */
 	class SS_Shipping_Booking {
 
@@ -39,34 +45,34 @@ if ( ! class_exists( 'SS_Shipping_Booking' ) ) :
 		protected ?string $error_message;
 
 		/**
-		 * The raw API response data, set only when the booking succeeded.
+		 * The booked shipment, set only when the booking succeeded.
 		 *
-		 * @var object|null
+		 * @var SS_Shipping_Booked_Shipment|null
 		 */
-		protected ?object $data;
+		protected ?SS_Shipping_Booked_Shipment $shipment;
 
 		/**
-		 * The v1 wire shipment model translated from the
-		 * SS_Shipping_Shipment representation, or null when no shipment
-		 * could be built (e.g. no return method configured).
+		 * Inline document contents the API delivered next to the document
+		 * URLs, base64-encoded, keyed by the document's index in
+		 * $shipment->documents().
 		 *
-		 * @var \Smartsend\Models\Shipment|null
+		 * @var string[]
 		 */
-		protected ?\Smartsend\Models\Shipment $wire_shipment;
+		protected array $document_contents;
 
 		/**
 		 * Constructor.
 		 *
-		 * @param boolean                          $successful    Whether the booking succeeded.
-		 * @param string|null                      $error_message The error message, set only when the booking failed.
-		 * @param object|null                      $data          The raw API response data, set only when the booking succeeded.
-		 * @param \Smartsend\Models\Shipment|null   $wire_shipment The v1 wire shipment model, if one was built.
+		 * @param boolean                          $successful        Whether the booking succeeded.
+		 * @param string|null                      $error_message     The error message, set only when the booking failed.
+		 * @param SS_Shipping_Booked_Shipment|null $shipment          The booked shipment, set only when the booking succeeded.
+		 * @param string[]                         $document_contents Inline base64 document contents keyed by document index.
 		 */
-		public function __construct( bool $successful, ?string $error_message, ?object $data, ?\Smartsend\Models\Shipment $wire_shipment ) {
-			$this->successful    = $successful;
-			$this->error_message = $error_message;
-			$this->data          = $data;
-			$this->wire_shipment = $wire_shipment;
+		public function __construct( bool $successful, ?string $error_message, ?SS_Shipping_Booked_Shipment $shipment, array $document_contents = array() ) {
+			$this->successful        = $successful;
+			$this->error_message     = $error_message;
+			$this->shipment          = $shipment;
+			$this->document_contents = $document_contents;
 		}
 
 		/**
@@ -88,26 +94,24 @@ if ( ! class_exists( 'SS_Shipping_Booking' ) ) :
 		}
 
 		/**
-		 * Get the raw API response data, if the booking succeeded.
+		 * Get the booked shipment, if the booking succeeded.
 		 *
-		 * Same dynamic stdClass shape Smartsend\Response::data() returns
-		 * today: shipment_id, pdf->base_64_encoded, pdf->link, carrier_name,
-		 * parcels[]->tracking_code/tracking_link, woocommerce, etc.
-		 *
-		 * @return object|null
+		 * @return SS_Shipping_Booked_Shipment|null
 		 */
-		public function get_data(): ?object {
-			return $this->data;
+		public function shipment(): ?SS_Shipping_Booked_Shipment {
+			return $this->shipment;
 		}
 
 		/**
-		 * Get the v1 wire shipment model translated from the shipment
-		 * representation, if one was built.
+		 * Get the inline base64 content the API delivered for a document,
+		 * if any (API v1 sends the label PDF inline; see the class docblock).
 		 *
-		 * @return \Smartsend\Models\Shipment|null
+		 * @param int $document_index The document's index in shipment()->documents().
+		 *
+		 * @return string|null
 		 */
-		public function get_wire_shipment(): ?\Smartsend\Models\Shipment {
-			return $this->wire_shipment;
+		public function get_document_content( int $document_index ): ?string {
+			return isset( $this->document_contents[ $document_index ] ) ? $this->document_contents[ $document_index ] : null;
 		}
 	}
 

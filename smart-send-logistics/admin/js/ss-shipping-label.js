@@ -70,9 +70,14 @@ jQuery(function ($) {
                          $('#ss-shipping-label-form').append('<div id="ss-shipping-error" class="error ss-meta-message">' + value.error + '</div>'); 
 
                     } else if (value.success.woocommerce) {
-                        
-                        // If return label, place correct link
-                        if( value.success.woocommerce.return ) {
+
+                        // Show every document (download link) and every code the
+                        // booking produced, rendered server-side from the booked
+                        // shipment (woocommerce.outputs_html). The single label
+                        // link is the fallback for a response without it.
+                        if (value.success.woocommerce.outputs_html) {
+                            $('#ss-shipping-label-form').append('<div id="ss-label-created" class="updated ss-meta-message">' + value.success.woocommerce.outputs_html + '</div>');
+                        } else if( value.success.woocommerce.return ) {
                             $('#ss-shipping-label-form').append('<div id="ss-label-created" class="updated ss-meta-message"><a href="' + value.success.woocommerce.label_url + '" target="_blank">' + ss_label_data.download_return_label + '</a></div>');
                         } else {
                             $('#ss-shipping-label-form').append('<div id="ss-label-created" class="updated ss-meta-message"><a href="' + value.success.woocommerce.label_url + '" target="_blank">' + ss_label_data.download_label + '</a></div>');
