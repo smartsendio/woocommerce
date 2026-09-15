@@ -139,7 +139,7 @@ it('order-status-after-label setting changes the order status', function () {
     try {
         login_as_admin()
             ->navigate(base_url(ss_browser_order_edit_path($order_id)))
-            ->assertSee('Smart Send Shipping')
+            ->assertSeeIn('#woocommerce-ss-shipping-label .hndle', 'Smart Send')
             ->click('[data-ss-action="create-label"]')
             ->assertSeeIn('[data-ss-section="outbound_shipment"]', 'Booked');
 

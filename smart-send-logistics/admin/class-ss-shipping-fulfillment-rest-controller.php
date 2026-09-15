@@ -7,7 +7,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 /**
  * Smart Send fulfillment REST controller.
  *
- * The transport of the order screen's "Smart Send Shipping" meta box (#182):
+ * The transport of the order screen's "Smart Send" meta box (#182):
  * WP REST under the smart-send/v1 namespace, three routes below
  * orders/{id} -
  *

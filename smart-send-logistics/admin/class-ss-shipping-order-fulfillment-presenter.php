@@ -9,7 +9,7 @@ use Automattic\WooCommerce\Internal\DataStores\Orders\CustomOrdersTableControlle
 /**
  * Smart Send order fulfillment presenter.
  *
- * Builds the one STATE object the order screen's "Smart Send Shipping"
+ * Builds the one STATE object the order screen's "Smart Send"
  * meta box renders from (#182): the same array is inlined at first render
  * (window.smartSendOrderFulfillment), returned by the GET fulfillment
  * route and sent back after every POST, so the server-rendered form and
@@ -405,7 +405,7 @@ if ( ! class_exists( 'SS_Shipping_Order_Fulfillment_Presenter' ) ) :
 				$html .= $this->render_notice(
 					'info',
 					'no_method',
-					esc_html__( 'This order was not placed with a Smart Send shipping method. Choose one to book anyway.', 'smart-send-logistics' )
+					esc_html__( 'This order has no Smart Send shipping method. Choose the method to ship it with.', 'smart-send-logistics' )
 				);
 			}
 
@@ -597,7 +597,8 @@ if ( ! class_exists( 'SS_Shipping_Order_Fulfillment_Presenter' ) ) :
 		/**
 		 * The "Also create return label" row: the checkbox defaulting from
 		 * the method's auto-generate-return-label setting, disabled with a
-		 * hint when no return method is configured.
+		 * hint plus a return method select when no return method is
+		 * configured (the select serves the return-only action too).
 		 *
 		 * @param array $state The state.
 		 *
@@ -616,12 +617,35 @@ if ( ! class_exists( 'SS_Shipping_Order_Fulfillment_Presenter' ) ) :
 			}
 
 			$html  = '<div class="smart-send-fulfillment__row" data-ss-section="return">';
-			$html .= '<label><input type="checkbox" name="smart_send[with_return]" value="1" data-ss-field="with_return" autocomplete="off"' . checked( $available && $state['return']['auto_default'], true, false ) . disabled( $available, false, false ) . '> ' . $label . '</label>';
+			$html .= '<label><input type="checkbox" name="smart_send[with_return]" value="1" data-ss-field="with_return" autocomplete="off"' . checked( $available && $state['return']['auto_default'], true, false ) . '> ' . $label . '</label>';
 
 			if ( ! $available ) {
-				$html .= '<p class="description" data-ss-hint="no_return_method">' . esc_html__( 'No return method configured on the shipping method - set one under WooCommerce → Shipping → the zone method.', 'smart-send-logistics' ) . '</p>';
+				$html .= $this->render_return_method_select( $state );
 			}
 
+			$html .= '</div>';
+
+			return $html;
+		}
+
+		/**
+		 * The return method choice for an order without a configured return
+		 * method (state B, or a zone method without one): a hint plus the
+		 * grouped return method select. The chosen method serves both the
+		 * combined outbound + return run and the return-only action.
+		 *
+		 * @param array $state The state.
+		 *
+		 * @return string HTML
+		 */
+		protected function render_return_method_select( array $state ): string {
+			$html  = '<p class="description" data-ss-hint="no_return_method">' . esc_html__( 'No return method configured on the shipping method - choose one here, or set one under WooCommerce → Shipping → the zone method.', 'smart-send-logistics' ) . '</p>';
+			$html .= '<div class="smart-send-fulfillment__inline-form">';
+			$html .= '<label for="smart-send-return-method">' . esc_html__( 'Return method', 'smart-send-logistics' ) . '</label>';
+			$html .= '<select id="smart-send-return-method" class="smart-send-fulfillment__select" name="smart_send[return_method]" data-ss-field="return_method" autocomplete="off">';
+			$html .= '<option value="" selected=\'selected\'>' . esc_html__( 'Select a method…', 'smart-send-logistics' ) . '</option>';
+			$html .= $this->render_method_options( $state['methods']['return'], null );
+			$html .= '</select>';
 			$html .= '</div>';
 
 			return $html;
@@ -654,8 +678,11 @@ if ( ! class_exists( 'SS_Shipping_Order_Fulfillment_Presenter' ) ) :
 			if ( null !== $state['return_shipment'] ) {
 				$html .= $this->render_booked_block( $state, true );
 			} else {
-				$html .= '<p class="smart-send-fulfillment__row" data-ss-section="return_shipment"><strong>' . esc_html__( 'Return label', 'smart-send-logistics' ) . '</strong> ' . esc_html__( 'not created', 'smart-send-logistics' ) . '</p>';
-				$html .= '<p class="smart-send-fulfillment__actions">' . $this->render_button( 'return', $state, false ) . '</p>';
+				$html .= '<div class="smart-send-fulfillment__row" data-ss-section="return_shipment"><p><strong>' . esc_html__( 'Return label', 'smart-send-logistics' ) . '</strong> ' . esc_html__( 'not created', 'smart-send-logistics' ) . '</p>';
+				if ( null === $state['return']['method'] ) {
+					$html .= $this->render_return_method_select( $state );
+				}
+				$html .= '<p class="smart-send-fulfillment__actions">' . $this->render_button( 'return', $state, false ) . '</p></div>';
 			}
 
 			return $html;

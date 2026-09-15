@@ -1,7 +1,7 @@
 /** @jsxRuntime classic */
 /** @jsx createElement */
 /**
- * Entry of the order screen "Smart Send Shipping" meta box app (#182).
+ * Entry of the order screen "Smart Send" meta box app (#182).
  *
  * Mounts App on the server-rendered <fieldset id="smart-send-fulfillment">
  * (SS_Shipping_Order_Fulfillment_Presenter::render_form()) and hydrates it

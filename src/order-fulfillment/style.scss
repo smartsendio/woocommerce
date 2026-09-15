@@ -1,5 +1,5 @@
 /**
- * Order screen "Smart Send Shipping" meta box (#182): the server-rendered
+ * Order screen "Smart Send" meta box (#182): the server-rendered
  * first paint (SS_Shipping_Order_Fulfillment_Presenter::render_form()) and
  * the React app share these class names. Built into
  * build/order-fulfillment/style-index.css, enqueued by
@@ -133,8 +133,12 @@
 		}
 	}
 
+	// The primary "Create shipping label" and the secondary "Create return
+	// label" side by side, wrapping onto a second line in the narrow side
+	// column (without the wrap the secondary action is pushed out of view).
 	&__actions {
 		display: flex;
+		flex-wrap: wrap;
 		align-items: center;
 		gap: 8px;
 		margin: 12px 0 4px;

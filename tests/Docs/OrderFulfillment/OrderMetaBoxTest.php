@@ -5,7 +5,7 @@
 | Guides -> Orders -> Create shipping labels from the order screen
 |--------------------------------------------------------------------------
 |
-| Screenshots of the "Smart Send Shipping" meta box on the WooCommerce
+| Screenshots of the "Smart Send" meta box on the WooCommerce
 | order screen (#182), one per state of the issue's section 1.2: the
 | not-yet-booked box, the parcel editor, changing the pickup point and the
 | shipping method, a booked outbound label, outbound + return booked in one
@@ -75,9 +75,12 @@ it('shows the not-yet-booked box', function () {
         ->assertPathContains('wp-admin')
         ->navigate(docs_order_url(0));
 
-    $page->assertSee('Smart Send Shipping')
+    $page->assertSeeIn('#woocommerce-ss-shipping-label .hndle', 'Smart Send')
         ->assertSeeIn('[data-ss-section="pickup_point"]', 'Browser Test Shop')
-        ->assertEnabled('[data-ss-action="create-label"]');
+        // Both actions: the primary "Create shipping label" and the
+        // secondary "Create return label".
+        ->assertEnabled('[data-ss-action="create-label"]')
+        ->assertEnabled('[data-ss-action="create-return-label"]');
 
     highlight_element($page, '#smart-send-fulfillment');
 
@@ -92,7 +95,7 @@ it('shows the parcel editor with a unit moved to a second box', function () {
         ->assertPathContains('wp-admin')
         ->navigate(docs_order_url(1));
 
-    $page->assertSee('Smart Send Shipping')
+    $page->assertSeeIn('#woocommerce-ss-shipping-label .hndle', 'Smart Send')
         ->click('[data-ss-action="edit-parcels"]')
         ->click('[data-ss-action="add-box"]')
         ->select('[data-ss-field="parcel_plan.units[2].box"]', '1')
@@ -111,7 +114,7 @@ it('shows a pickup point looked up by its agent number', function () {
         ->assertPathContains('wp-admin')
         ->navigate(docs_order_url(0));
 
-    $page->assertSee('Smart Send Shipping')
+    $page->assertSeeIn('#woocommerce-ss-shipping-label .hndle', 'Smart Send')
         ->click('[data-ss-action="change-pickup-point"]')
         ->fill('[data-ss-field="pickup_point.agent_no"]', '5678')
         ->click('[data-ss-action="lookup-pickup-point"]')
@@ -130,7 +133,7 @@ it('shows the shipping method select', function () {
         ->assertPathContains('wp-admin')
         ->navigate(docs_order_url(0));
 
-    $page->assertSee('Smart Send Shipping')
+    $page->assertSeeIn('#woocommerce-ss-shipping-label .hndle', 'Smart Send')
         ->click('[data-ss-action="change-method"]')
         ->assertPresent('[data-ss-field="shipping_method"]');
 
@@ -147,7 +150,7 @@ it('shows a booked shipping label with its documents and tracking', function () 
         ->assertPathContains('wp-admin')
         ->navigate(docs_order_url(2));
 
-    $page->assertSee('Smart Send Shipping')
+    $page->assertSeeIn('#woocommerce-ss-shipping-label .hndle', 'Smart Send')
         ->click('[data-ss-action="create-label"]')
         ->assertSeeIn('[data-ss-section="outbound_shipment"]', 'Booked')
         ->assertSeeIn('[data-ss-section="documents"]', 'Download shipping label (PDF)');
@@ -165,7 +168,7 @@ it('shows outbound and return labels booked in one run', function () {
         ->assertPathContains('wp-admin')
         ->navigate(docs_order_url(3));
 
-    $page->assertSee('Smart Send Shipping')
+    $page->assertSeeIn('#woocommerce-ss-shipping-label .hndle', 'Smart Send')
         ->assertChecked('[data-ss-field="with_return"]')
         ->click('[data-ss-action="create-label"]')
         ->assertSeeIn('[data-ss-section="outbound_shipment"]', 'Booked')
@@ -187,7 +190,7 @@ it('shows a booking failure on the field it belongs to', function () {
             ->assertPathContains('wp-admin')
             ->navigate(docs_order_url(4));
 
-        $page->assertSee('Smart Send Shipping')
+        $page->assertSeeIn('#woocommerce-ss-shipping-label .hndle', 'Smart Send')
             ->click('[data-ss-action="create-label"]')
             ->assertPresent('[data-ss-error="pickup_point.agent_no"]');
 
@@ -207,8 +210,8 @@ it('shows the method choice for an order placed without a Smart Send method', fu
         ->assertPathContains('wp-admin')
         ->navigate(docs_order_url(5));
 
-    $page->assertSee('Smart Send Shipping')
-        ->assertSeeIn('[data-ss-notice="no_method"]', 'Choose one to book anyway');
+    $page->assertSeeIn('#woocommerce-ss-shipping-label .hndle', 'Smart Send')
+        ->assertSeeIn('[data-ss-notice="no_method"]', 'Choose the method to ship it with');
 
     highlight_element($page, '[data-ss-field="shipping_method"]');
 
@@ -227,7 +230,7 @@ it('shows the not-connected notice when no API token is configured', function ()
             ->assertPathContains('wp-admin')
             ->navigate(docs_order_url(6));
 
-        $page->assertSee('Smart Send Shipping')
+        $page->assertSeeIn('#woocommerce-ss-shipping-label .hndle', 'Smart Send')
             ->assertSeeIn('[data-ss-notice="not_connected"]', 'Smart Send is not connected');
 
         highlight_element($page, '[data-ss-notice="not_connected"]');

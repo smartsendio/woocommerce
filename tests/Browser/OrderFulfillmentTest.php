@@ -1,12 +1,14 @@
 <?php
 
 /*
- * The merchant fulfillment journey on the order screen: the "Smart Send
- * Shipping" meta box rewritten on the fulfillment contract (#182) - a React
+ * The merchant fulfillment journey on the order screen: the "Smart Send" meta
+ * box rewritten on the fulfillment contract (#182) - a React
  * app talking to the smart-send/v1 REST routes, no page reload. One test
  * per UX state of the issue's section 1.2: create the outbound label, the
  * return checkbox defaulting from the method setting (books both), a return
- * label on its own, a validation failure shown on the field it belongs to
+ * label on its own from the secondary action (with a configured return
+ * method, and from state B with a chosen one), a validation failure shown
+ * on the field it belongs to
  * (and the general notice for one outside the box), the parcel editor
  * (units moved between boxes, an empty box with an explicit weight - the
  * booking request carries three parcels), a pickup point override through
@@ -39,6 +41,7 @@ beforeAll(function (): void {
         [],                       // 7: book again requires a confirm
         ['flat_rate' => true],    // 8: state B - no Smart Send method
         ['return_method' => ''],  // 9: no return method configured
+        ['flat_rate' => true],    // 10: state B - return label only
     ]]);
 });
 
@@ -77,7 +80,7 @@ function ss_browser_open_order(int $order_id)
 {
     return login_as_admin()
         ->navigate(base_url(ss_browser_order_edit_path($order_id)))
-        ->assertSee('Smart Send Shipping');
+        ->assertSeeIn('#woocommerce-ss-shipping-label .hndle', 'Smart Send');
 }
 
 it('creates a shipping label from the meta box without a page reload and prepends the order note', function () {
@@ -129,15 +132,51 @@ it('pre-ticks the return checkbox from the method setting and books both labels 
         ->and($meta['return_label_id'])->toStartWith('browser-shipment-');
 });
 
-it('creates only a return label from the separate action', function () {
+it('creates only a return label from the secondary action before any outbound label exists', function () {
     $order_id = ss_browser_state()['orders'][1];
+    ss_browser_reset_api_requests();
 
     ss_browser_open_order($order_id)
+        // Both actions are offered in the not-yet-booked state: the primary
+        // outbound one and the secondary return-only one.
+        ->assertAttributeContains('[data-ss-action="create-label"]', 'class', 'is-primary')
+        ->assertAttributeContains('[data-ss-action="create-return-label"]', 'class', 'is-secondary')
         ->click('[data-ss-action="create-return-label"]')
         ->assertSeeIn('[data-ss-section="return_shipment"]', 'Booked')
         ->assertSeeIn('[data-ss-section="return_shipment"]', 'Download return label (PDF)')
         // The outbound side is still the form.
         ->assertPresent('[data-ss-action="create-label"]');
+
+    $meta = ss_browser_shipment_ids($order_id);
+    expect($meta['return_label_id'])->toStartWith('browser-shipment-')
+        ->and($meta['label_id'])->toBe('');
+
+    // One booking only: the configured return method, no outbound leg.
+    $requests = ss_browser_api_requests('booking');
+    expect($requests)->toHaveCount(1)
+        ->and($requests[0]['body']['shipping_method'])->toBe('returndropoff');
+});
+
+it('creates only a return label for an order placed without a Smart Send method once a return method is chosen', function () {
+    $order_id = ss_browser_state()['orders'][10];
+    ss_browser_reset_api_requests();
+
+    ss_browser_open_order($order_id)
+        ->assertSeeIn('[data-ss-notice="no_method"]', 'This order has no Smart Send shipping method.')
+        // No return method to fall back on: the secondary action waits for
+        // the return method select (shown without ticking the checkbox).
+        ->assertNotChecked('[data-ss-field="with_return"]')
+        ->assertDisabled('[data-ss-action="create-return-label"]')
+        ->select('[data-ss-field="return_method"]', 'postnord_returndropoff')
+        ->click('[data-ss-action="create-return-label"]')
+        ->assertSeeIn('[data-ss-section="return_shipment"]', 'Booked')
+        // The outbound side is still the form (method select, primary action).
+        ->assertPresent('[data-ss-field="shipping_method"]')
+        ->assertPresent('[data-ss-action="create-label"]');
+
+    $requests = ss_browser_api_requests('booking');
+    expect($requests)->toHaveCount(1)
+        ->and($requests[0]['body']['shipping_method'])->toBe('returndropoff');
 
     $meta = ss_browser_shipment_ids($order_id);
     expect($meta['return_label_id'])->toStartWith('browser-shipment-')
@@ -305,7 +344,7 @@ it('books an order placed without a Smart Send method once a method and a return
     ss_browser_reset_api_requests();
 
     ss_browser_open_order($order_id)
-        ->assertSeeIn('[data-ss-notice="no_method"]', 'This order was not placed with a Smart Send shipping method. Choose one to book anyway.')
+        ->assertSeeIn('[data-ss-notice="no_method"]', 'This order has no Smart Send shipping method. Choose the method to ship it with.')
         ->assertSeeIn('[data-ss-hint="no_return_method"]', 'No return method configured')
         ->select('[data-ss-field="shipping_method"]', 'postnord_homedelivery')
         ->check('[data-ss-field="with_return"]')
@@ -324,12 +363,18 @@ it('books an order placed without a Smart Send method once a method and a return
         ->and($meta['return_label_id'])->toStartWith('browser-shipment-');
 });
 
-it('explains a missing return method and lets the merchant choose one for the run', function () {
+it('explains a missing return method and offers the return method select for both actions', function () {
     $order_id = ss_browser_state()['orders'][9];
 
     ss_browser_open_order($order_id)
         ->assertSeeIn('[data-ss-hint="no_return_method"]', 'No return method configured on the shipping method')
         ->assertNotChecked('[data-ss-field="with_return"]')
+        // The select is there right away - the return-only action needs it
+        // without the checkbox - and the return action waits for a choice.
+        ->assertPresent('[data-ss-field="return_method"]')
+        ->assertDisabled('[data-ss-action="create-return-label"]')
+        ->select('[data-ss-field="return_method"]', 'postnord_returndropoff')
+        ->assertEnabled('[data-ss-action="create-return-label"]')
         ->check('[data-ss-field="with_return"]')
-        ->assertPresent('[data-ss-field="return_method"]');
+        ->assertEnabled('[data-ss-action="create-label"]');
 });

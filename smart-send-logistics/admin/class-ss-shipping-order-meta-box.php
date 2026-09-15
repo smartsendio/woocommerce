@@ -9,7 +9,7 @@ use Automattic\WooCommerce\Internal\DataStores\Orders\CustomOrdersTableControlle
 /**
  * Smart Send order screen meta box.
  *
- * Registers and renders the "Smart Send Shipping" meta box on the
+ * Registers and renders the "Smart Send" meta box on the
  * WooCommerce order edit screen (legacy post-based and HPOS). The box is
  * rendered from the one state object SS_Shipping_Order_Fulfillment_Presenter
  * builds (#182): the presenter renders the server-side first paint and the
@@ -85,7 +85,7 @@ if ( ! class_exists( 'SS_Shipping_Order_Meta_Box' ) ) :
 
 			add_meta_box(
 				self::META_BOX_ID,
-				__( 'Smart Send Shipping', 'smart-send-logistics' ),
+				__( 'Smart Send', 'smart-send-logistics' ),
 				array( $this, 'render_smart_send_order_meta_box' ),
 				$screen,
 				'side',

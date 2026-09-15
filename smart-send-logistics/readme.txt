@@ -338,7 +338,7 @@ This box appears when a "Select Pickup Point" shipping method is selected, but n
 This box appears when a "Select Pickup Point" shipping method is selected, but no shipping address is entered. Enter a valid shipping address so that the plugin can search for nearby pickup points.
 
 = Can I create a label for an order placed with another shipping method? =
-Yes. Open the order and use the Smart Send Shipping box: when the order was not placed with a Smart Send shipping method (for example a Flat rate order), the box says so and offers a shipping method drop-down. Choose the Smart Send method to ship with and create the label - the method applies to that label only and is not stored on the order.
+Yes. Open the order and use the Smart Send box: when the order has no Smart Send shipping method (for example a Flat rate order), the box says so and offers a shipping method drop-down. Choose the Smart Send method to ship with and create the label - the method applies to that label only and is not stored on the order.
 
 = Does the plugin work with the WooCommerce Checkout Block and HPOS? =
 Yes. Pickup point selection works in both the classic checkout and the WooCommerce Checkout Block, and the plugin is compatible with High-Performance Order Storage (HPOS).

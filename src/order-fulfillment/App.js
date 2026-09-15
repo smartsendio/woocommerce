@@ -8,8 +8,10 @@
  *
  *   A not connected      notice + "Open settings", everything disabled
  *   B no Smart Send method   notice + method select (+ return method select
- *                            for a combined run); the order is bookable
- *   C not yet booked     method / pickup point / parcels rows, return toggle
+ *                            used by both actions); the order is bookable
+ *   C not yet booked     method / pickup point / parcels rows, return toggle,
+ *                        "Create shipping label" (primary) next to "Create
+ *                        return label" (secondary, books a return leg only)
  *   D parcel editor      opened from C's "Edit"
  *   E/F booked           the full documents/codes/tracking block right after
  *                        booking (from the POST response); after a reload the
@@ -334,8 +336,11 @@ export default function App( { initialState, mount } ) {
 			{ withActions && (
 				<p className="smart-send-fulfillment__actions">
 					{ createButton( 'outbound', true, extraDisabled || ! form.shippingMethod || ( withReturnToggle && form.withReturn && ! state.return.method && ! form.returnMethod ) ) }
-					{ /* The separate return-only action (a return method is
-					     needed: the configured one, or the one chosen above). */ }
+					{ /* Both actions are always offered before booking: the
+					     primary outbound action and, as the secondary one, the
+					     return-only action (flow: return) - it needs a return
+					     method: the configured one, or the one chosen in the
+					     return row (state B / no configured return method). */ }
 					{ withReturnToggle && createButton( 'return', false, extraDisabled || ( ! state.return.method && ! form.returnMethod ) ) }
 					{ submitting !== null && <Spinner /> }
 				</p>
@@ -464,7 +469,7 @@ export default function App( { initialState, mount } ) {
 			{ current === STATE_NO_METHOD && (
 				<div className="smart-send-fulfillment__notice" data-ss-notice="no_method">
 					<Notice status="info" isDismissible={ false }>
-						{ __( 'This order was not placed with a Smart Send shipping method. Choose one to book anyway.', 'smart-send-logistics' ) }
+						{ __( 'This order has no Smart Send shipping method. Choose the method to ship it with.', 'smart-send-logistics' ) }
 					</Notice>
 				</div>
 			) }

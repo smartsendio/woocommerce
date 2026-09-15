@@ -1,7 +1,7 @@
 <?php
 
 /*
- * Tests for the order screen "Smart Send Shipping" meta box (#182,
+ * Tests for the order screen "Smart Send" meta box (#182,
  * SS_Shipping_Order_Meta_Box + SS_Shipping_Order_Fulfillment_Presenter::render_form()):
  * registration on the legacy and the HPOS order screen, the server-rendered
  * first paint per state of section 1.2 of the issue - not connected, no
@@ -87,7 +87,7 @@ it('registers the meta box on the HPOS order screen when HPOS is enabled', funct
     SS_SHIPPING_WC()->meta_box()->add_smart_send_order_meta_box();
 
     expect($wp_meta_boxes[$screen]['side']['default'])->toHaveKey('woocommerce-ss-shipping-label')
-        ->and($wp_meta_boxes[$screen]['side']['default']['woocommerce-ss-shipping-label']['title'])->toBe('Smart Send Shipping');
+        ->and($wp_meta_boxes[$screen]['side']['default']['woocommerce-ss-shipping-label']['title'])->toBe('Smart Send');
 });
 
 it('registers the meta box on the legacy shop_order screen when HPOS is disabled', function () {
@@ -128,10 +128,12 @@ it('renders the not-yet-booked form with the state inlined as JSON', function ()
         ->toContain('name="smart_send[with_return]" value="1" data-ss-field="with_return" autocomplete="off" checked=\'checked\'>')
         ->toContain('PostNord: Return from pickup point (Return Drop Off)')
         ->not->toContain('data-ss-hint="no_return_method"')
-        // Both actions.
-        ->toContain('data-ss-action="create-label"')
+        // Both actions, always: the primary "Create shipping label" and the
+        // secondary "Create return label" (a return leg on its own).
+        ->toContain('class="button button-primary" name="smart_send[flow]" value="outbound" data-ss-action="create-label"')
         ->toContain('DEMO MODE: Create shipping label')
-        ->toContain('data-ss-action="create-return-label"')
+        ->toContain('class="button" name="smart_send[flow]" value="return" data-ss-action="create-return-label"')
+        ->toContain('DEMO MODE: Create return label')
         // Rendered disabled: the app enables the fieldset once mounted
         // (submission is JS-only, #182) - nothing of the AJAX bridge is left.
         ->toContain('data-ss-order-id="' . $order->get_id() . '" disabled>')
@@ -184,14 +186,21 @@ it('enqueues the built app from the render callback only, with every dependency 
     expect(inlined_meta_box_state()['order_id'])->toBe($order->get_id());
 });
 
-it('disables the return checkbox with a hint when no return method is configured', function () {
+it('keeps the return checkbox usable and offers a return method select when no return method is configured', function () {
     $order = create_meta_box_order(['return_method' => '']);
 
     $html = render_meta_box($order);
 
-    expect($html)->toContain('data-ss-field="with_return" autocomplete="off" disabled=\'disabled\'>')
+    // The select serves both the combined run and the return-only action,
+    // so it is rendered right away (not behind the checkbox).
+    expect($html)->toContain('data-ss-field="with_return" autocomplete="off">')
+        ->not->toContain('disabled=\'disabled\'')
         ->toContain('data-ss-hint="no_return_method"')
-        ->toContain('No return method configured on the shipping method');
+        ->toContain('No return method configured on the shipping method - choose one here')
+        ->toContain('name="smart_send[return_method]" data-ss-field="return_method"')
+        ->toContain('<option value="postnord_returndropoff">')
+        ->toContain('data-ss-action="create-label"')
+        ->toContain('data-ss-action="create-return-label"');
 });
 
 it('renders the not-connected notice with the form disabled when no API token is configured and demo mode is off', function () {
@@ -220,13 +229,17 @@ it('offers the method select for an order without a Smart Send shipping method',
 
     expect($html)->toContain('data-ss-state="no_method"')
         ->toContain('data-ss-notice="no_method"')
-        ->toContain('This order was not placed with a Smart Send shipping method. Choose one to book anyway.')
+        ->toContain('This order has no Smart Send shipping method. Choose the method to ship it with.')
         ->toContain('name="smart_send[delivery_details][shipping_method]"')
         ->toContain('<option value="" selected=\'selected\'>Select a method…</option>')
-        // No method, so no pickup point row; the return checkbox is disabled.
+        // No method, so no pickup point row; no return method either, so the
+        // return method select (for both actions) is rendered.
         ->not->toContain('data-ss-section="pickup_point"')
         ->toContain('data-ss-hint="no_return_method"')
-        ->toContain('data-ss-action="create-label"');
+        ->toContain('name="smart_send[return_method]" data-ss-field="return_method"')
+        // Both actions: the primary outbound one and the secondary return one.
+        ->toContain('class="button button-primary" name="smart_send[flow]" value="outbound" data-ss-action="create-label"')
+        ->toContain('class="button" name="smart_send[flow]" value="return" data-ss-action="create-return-label"');
 
     expect(inlined_meta_box_state()['delivery_details']['shipping_method'])->toBeNull();
 });
