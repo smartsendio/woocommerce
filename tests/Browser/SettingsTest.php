@@ -110,12 +110,12 @@ PHP);
 it('demo mode relabels the label buttons', function () {
     $state = ss_browser_state();
 
-    // Demo mode on (the seeded default): the meta box button carries the
+    // Demo mode on (the seeded default): the meta box buttons carry the
     // DEMO MODE prefix.
     login_as_admin()
         ->navigate(base_url(ss_browser_order_edit_path($state['orders'][0])))
-        ->assertSee('DEMO MODE: Generate label')
-        ->assertSee('DEMO MODE: Generate return label');
+        ->assertSee('DEMO MODE: Create shipping label')
+        ->assertSee('DEMO MODE: Create return label');
 
     // Demo mode off: the plain button text.
     ss_browser_update_plugin_setting('demo', 'no');
@@ -123,8 +123,8 @@ it('demo mode relabels the label buttons', function () {
     try {
         login_as_admin()
             ->navigate(base_url(ss_browser_order_edit_path($state['orders'][0])))
-            ->assertDontSee('DEMO MODE: Generate label')
-            ->assertSee('Generate label');
+            ->assertDontSee('DEMO MODE: Create shipping label')
+            ->assertSee('Create shipping label');
     } finally {
         ss_browser_update_plugin_setting('demo', 'yes');
     }

@@ -81,11 +81,27 @@ if ( ! class_exists( 'SS_Shipping_WC' ) ) :
 		protected ?SS_Shipping_Fulfillment_Service $fulfillment_service = null;
 
 		/**
-		 * AJAX label-generation controller.
+		 * AJAX label-generation controller (the historic bridge the order
+		 * meta box's JS still posts to; replaced by the REST controller's
+		 * client in #182 PR 3).
 		 *
 		 * @var SS_Shipping_Label_Creator|null
 		 */
 		protected ?SS_Shipping_Label_Creator $label_creator = null;
+
+		/**
+		 * The order meta box presenter (state + server-rendered form).
+		 *
+		 * @var SS_Shipping_Order_Fulfillment_Presenter|null
+		 */
+		protected ?SS_Shipping_Order_Fulfillment_Presenter $fulfillment_presenter = null;
+
+		/**
+		 * The fulfillment REST controller (smart-send/v1).
+		 *
+		 * @var SS_Shipping_Fulfillment_Rest_Controller|null
+		 */
+		protected ?SS_Shipping_Fulfillment_Rest_Controller $fulfillment_controller = null;
 
 		/**
 		 * Bulk actions component.
@@ -327,7 +343,9 @@ if ( ! class_exists( 'SS_Shipping_WC' ) ) :
 
 			// Admin entry-point controllers and UI.
 			require_once SS_SHIPPING_PLUGIN_DIR_PATH . '/admin/class-ss-plugins-screen-updates.php';
+			require_once SS_SHIPPING_PLUGIN_DIR_PATH . '/admin/class-ss-shipping-order-fulfillment-presenter.php';
 			require_once SS_SHIPPING_PLUGIN_DIR_PATH . '/admin/class-ss-shipping-order-meta-box.php';
+			require_once SS_SHIPPING_PLUGIN_DIR_PATH . '/admin/class-ss-shipping-fulfillment-rest-controller.php';
 			require_once SS_SHIPPING_PLUGIN_DIR_PATH . '/admin/class-ss-shipping-label-creator.php';
 			require_once SS_SHIPPING_PLUGIN_DIR_PATH . '/admin/class-ss-shipping-order-bulk-actions.php';
 			require_once SS_SHIPPING_PLUGIN_DIR_PATH . '/admin/class-ss-shipping-wc-product.php';
@@ -399,7 +417,8 @@ if ( ! class_exists( 'SS_Shipping_WC' ) ) :
 				$this->method_resolver        = new SS_Shipping_Method_Resolver( $this->settings );
 				$this->shipment_ids           = new SS_Shipping_Shipment_Ids();
 				$this->pickup_point_validator = new SS_Shipping_Pickup_Point_Validator( $this->order_meta, $this->method_resolver, $this->pickup_point_lookup );
-				$this->meta_box               = new SS_Shipping_Order_Meta_Box( $this->order_meta, $this->method_resolver, $this->pickup_point_formatter, $this->settings );
+				$this->fulfillment_presenter  = new SS_Shipping_Order_Fulfillment_Presenter( $this->order_meta, $this->method_resolver, $this->shipment_ids, $this->pickup_point_formatter, $this->settings );
+				$this->meta_box               = new SS_Shipping_Order_Meta_Box( $this->fulfillment_presenter );
 				$this->fulfillment_service    = new SS_Shipping_Fulfillment_Service(
 					$this->order_meta,
 					$this->method_resolver,
@@ -407,6 +426,15 @@ if ( ! class_exists( 'SS_Shipping_WC' ) ) :
 					new SS_Shipping_Booking_Service(),
 					$this->settings,
 					$this->pickup_point_lookup
+				);
+				$this->fulfillment_controller = new SS_Shipping_Fulfillment_Rest_Controller(
+					$this->fulfillment_service,
+					$this->fulfillment_presenter,
+					$this->shipment_ids,
+					$this->method_resolver,
+					$this->pickup_point_lookup,
+					$this->order_meta,
+					$this->settings
 				);
 				$this->label_creator          = new SS_Shipping_Label_Creator( $this->fulfillment_service );
 				$this->test_connection        = new SS_Shipping_Test_Connection( new SS_Shipping_Api_Factory( $this->settings ) );
@@ -441,6 +469,7 @@ if ( ! class_exists( 'SS_Shipping_WC' ) ) :
 			$this->admin_notices->register_hooks();
 			$this->pickup_point_validator->register_hooks();
 			$this->meta_box->register_hooks();
+			$this->fulfillment_controller->register_hooks();
 			$this->label_creator->register_hooks();
 			$this->test_connection->register_hooks();
 			$this->rate_sorter->register_hooks();
@@ -618,6 +647,24 @@ if ( ! class_exists( 'SS_Shipping_WC' ) ) :
 		 */
 		public function meta_box(): SS_Shipping_Order_Meta_Box {
 			return $this->meta_box;
+		}
+
+		/**
+		 * Get the order meta box presenter (state + server-rendered form).
+		 *
+		 * @return SS_Shipping_Order_Fulfillment_Presenter
+		 */
+		public function fulfillment_presenter(): SS_Shipping_Order_Fulfillment_Presenter {
+			return $this->fulfillment_presenter;
+		}
+
+		/**
+		 * Get the fulfillment REST controller (smart-send/v1).
+		 *
+		 * @return SS_Shipping_Fulfillment_Rest_Controller
+		 */
+		public function fulfillment_controller(): SS_Shipping_Fulfillment_Rest_Controller {
+			return $this->fulfillment_controller;
 		}
 
 		/**
