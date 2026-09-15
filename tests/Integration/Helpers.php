@@ -132,9 +132,10 @@ function mock_smart_send_api(?callable $responder = null): object
         }
 
         $capture->requests[] = [
-            'url'    => $url,
-            'method' => $args['method'] ?? null,
-            'body'   => $args['body'] ?? null,
+            'url'     => $url,
+            'method'  => $args['method'] ?? null,
+            'body'    => $args['body'] ?? null,
+            'timeout' => $args['timeout'] ?? null,
         ];
 
         return $responder($url, $args);
@@ -151,12 +152,20 @@ function mock_smart_send_api(?callable $responder = null): object
 
 /**
  * Build a wp_remote_request-shaped response array with a JSON body.
+ * Pass a Response-ID value via $response_id to simulate the API's
+ * response-tracing header.
  */
-function ss_api_response(int $status, array $body): array
+function ss_api_response(int $status, array $body, ?string $response_id = null): array
 {
+    $headers = ['content-type' => 'application/json'];
+
+    if ($response_id !== null) {
+        $headers['response-id'] = $response_id;
+    }
+
     return [
         'response' => ['code' => $status, 'message' => $status === 200 ? 'OK' : 'Error'],
-        'headers'  => ['content-type' => 'application/json'],
+        'headers'  => $headers,
         'body'     => json_encode($body),
         'cookies'  => [],
         'filename' => null,
@@ -187,21 +196,44 @@ function ss_api_shipment_data(array $overrides = []): array
 }
 
 /**
- * An error response body in the shape the Smart Send API produces.
+ * An error response body in the shape the Smart Send API produces. Only
+ * "message" and "errors" are read by the plugin (the response id travels
+ * in the Response-ID header - see ss_api_response()).
  */
 function ss_api_error_body(string $message = 'The given data was invalid.'): array
 {
     return [
-        'links'   => ['about' => 'https://app.smartsend.io/help/errors/ValidationException'],
-        'id'      => 'test-error-id',
-        'code'    => 'ValidationException',
         'message' => $message,
         'errors'  => ['receiver.postal_code' => ['The postal code is invalid.']],
     ];
 }
 
 /**
- * A pick-up point agent object as the plugin stores it in order meta.
+ * Store a pickup point selection on an order through the repository
+ * (SS_Shipping_Order_Meta::write()), the way checkout does.
+ */
+function save_order_pickup_point(int $order_id, object $agent): void
+{
+    $details = new SS_Shipping_Delivery_Details();
+    $details->set_pickup_point(SS_Shipping_Pickup_Point::from_object($agent));
+
+    SS_SHIPPING_WC()->order_meta()->write($order_id, $details);
+}
+
+/**
+ * Store a parcel split on an order through the repository, from rows in
+ * the frozen id/name/value meta shape.
+ */
+function save_order_parcels(int $order_id, array $rows): void
+{
+    $details = new SS_Shipping_Delivery_Details();
+    $details->set_parcel_plan(SS_Shipping_Parcel_Plan::from_box_rows($rows));
+
+    SS_SHIPPING_WC()->order_meta()->write($order_id, $details);
+}
+
+/**
+ * A pickup point agent object as the plugin stores it in order meta.
  */
 function sample_agent(array $overrides = []): object
 {
@@ -434,4 +466,44 @@ function create_order(array $args = []): WC_Order
     $order->save();
 
     return $order;
+}
+
+if (! function_exists('wc_st_add_tracking_number')) {
+    /**
+     * Stand-in for the optional WooCommerce Shipment Tracking plugin: records
+     * every tracking push the fulfillment workflow makes.
+     */
+    function wc_st_add_tracking_number($order_id, $tracking_number, $provider, $date_shipped, $tracking_url): void
+    {
+        $GLOBALS['ss_test_shipment_tracking_calls'][] = [$order_id, $tracking_number, $provider, $date_shipped, $tracking_url];
+    }
+}
+
+/**
+ * Reset the recorded Shipment Tracking pushes and return the log by reference.
+ */
+function &shipment_tracking_calls(): array
+{
+    $GLOBALS['ss_test_shipment_tracking_calls'] = [];
+
+    return $GLOBALS['ss_test_shipment_tracking_calls'];
+}
+
+/**
+ * The cost string the shipping method's debug bar summary and log trace
+ * interpolate for a calculated rate: WC_Shipping_Rate::get_cost() verbatim.
+ * WooCommerce formats it differently across the supported range ("49.00"
+ * on WooCommerce 8.2, "49" on current releases), so expectations build the
+ * trace text from the rate instead of a literal. The numeric value is
+ * pinned here so a wrong cost cannot hide behind the indirection.
+ */
+function ss_rate_cost_as_traced(WC_Shipping_Method $method, string $rate_id, float $expected): string
+{
+    expect($method->rates)->toHaveKey($rate_id);
+
+    $cost = $method->rates[$rate_id]->get_cost();
+
+    expect((float) $cost)->toBe($expected);
+
+    return (string) $cost;
 }

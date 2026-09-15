@@ -3,8 +3,14 @@
 /*
  * Characterization tests for SS_Shipping_WC_Method rate calculation: the
  * weight-bracket table, the free-shipping rules and the availability
- * options. These capture the CURRENT v8 semantics; #16 will change the
- * free-shipping behaviour deliberately and must update these tests.
+ * options.
+ *
+ * v9 (#16): the weight table now defines which cart weights the method is
+ * available for at all - free shipping only zeroes the price of an
+ * otherwise-available rate, it can no longer overrule the weight table (a
+ * behaviour change from v8, where the flat-rate threshold skipped the
+ * weight table entirely). See the "weight table takes precedence over free
+ * shipping" block below.
  */
 
 /**
@@ -206,6 +212,74 @@ it('grants free shipping for a valid free-shipping coupon when required', functi
         'requires'     => 'coupon',
         'flatfee_cost' => '0',
         'cost_weight'  => [['ss_min_weight' => '1', 'ss_max_weight' => '5', 'ss_cost_weight' => '49']],
+    ]);
+    $method->calculate_shipping($package);
+
+    expect($method->rates)->toHaveCount(1)
+        ->and((float) current($method->rates)->get_cost())->toBe(0.0);
+});
+
+// v9 (#16): the weight table takes precedence over free shipping - free
+// shipping only ever zeroes the price of a rate the weight table already
+// allows; it can no longer make the method available for a weight the table
+// excludes.
+
+it('uses the weight table price when the free-shipping threshold is not met', function () {
+    $product = create_simple_product(['price' => 300, 'weight' => 0.4]);
+    $package = cart_package([$product]);
+
+    $method = create_ss_method([
+        'requires'     => 'min_amount',
+        'min_amount'   => '500',
+        'flatfee_cost' => '0',
+        'cost_weight'  => [['ss_min_weight' => '0', 'ss_max_weight' => '1', 'ss_cost_weight' => '49']],
+    ]);
+    $method->calculate_shipping($package);
+
+    expect($method->rates)->toHaveCount(1)
+        ->and((float) current($method->rates)->get_cost())->toBe(49.0);
+});
+
+it('grants free shipping when the threshold is met and the weight falls inside the table', function () {
+    $product = create_simple_product(['price' => 600, 'weight' => 0.4]);
+    $package = cart_package([$product]);
+
+    $method = create_ss_method([
+        'requires'     => 'min_amount',
+        'min_amount'   => '500',
+        'flatfee_cost' => '0',
+        'cost_weight'  => [['ss_min_weight' => '0', 'ss_max_weight' => '1', 'ss_cost_weight' => '49']],
+    ]);
+    $method->calculate_shipping($package);
+
+    expect($method->rates)->toHaveCount(1)
+        ->and((float) current($method->rates)->get_cost())->toBe(0.0);
+});
+
+it('does not offer the method at all when the weight exceeds the table, even if the free-shipping threshold is met', function () {
+    $product = create_simple_product(['price' => 600, 'weight' => 2]);
+    $package = cart_package([$product]);
+
+    $method = create_ss_method([
+        'requires'     => 'min_amount',
+        'min_amount'   => '500',
+        'flatfee_cost' => '0',
+        'cost_weight'  => [['ss_min_weight' => '0', 'ss_max_weight' => '1', 'ss_cost_weight' => '49']],
+    ]);
+    $method->calculate_shipping($package);
+
+    expect($method->rates)->toHaveCount(0);
+});
+
+it('treats an empty weight table as valid for every weight, so free shipping still applies', function () {
+    $product = create_simple_product(['price' => 600, 'weight' => 25]);
+    $package = cart_package([$product]);
+
+    $method = create_ss_method([
+        'requires'     => 'min_amount',
+        'min_amount'   => '500',
+        'flatfee_cost' => '0',
+        'cost_weight'  => [],
     ]);
     $method->calculate_shipping($package);
 

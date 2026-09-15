@@ -6,6 +6,8 @@
 
     <!-- The bundled Smart Send PHP API client follows PSR conventions, not WPCS. -->
     <exclude-pattern>smart-send-logistics/includes/lib/*</exclude-pattern>
+    <!-- Generated build output (wp-scripts; includes machine-written *.asset.php). -->
+    <exclude-pattern>smart-send-logistics/build/*</exclude-pattern>
     <exclude-pattern>*/vendor/*</exclude-pattern>
     <exclude-pattern>*/local-dev/*</exclude-pattern>
     <exclude-pattern>*.js</exclude-pattern>

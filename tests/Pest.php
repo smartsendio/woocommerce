@@ -1,5 +1,7 @@
 <?php
 
+use Pest\Browser\Playwright\Playwright;
+
 /*
 |--------------------------------------------------------------------------
 | Pest configuration
@@ -14,6 +16,52 @@
 // Bound every browser operation so a broken page fails the test instead of
 // hanging the suite (observed in CI after an fpm worker crash).
 pest()->browser()->timeout(15_000);
+
+/*
+|--------------------------------------------------------------------------
+| Docs suite
+|--------------------------------------------------------------------------
+|
+| Drives Playwright through real admin UI flows and captures named
+| screenshots for documentation - see tests/Docs/Support/Screenshots.php.
+|
+| This bootstrap lives here rather than in a tests/Docs/Pest.php: Pest does
+| not load a directory-level Pest.php for test files that sit in a
+| subdirectory of it (confirmed the hard way - see the ShippingMethod test's
+| git history), so a Pest.php any deeper than tests/ itself is silently
+| never executed. Everything Docs-specific is registered here instead, with
+| the headed-mode switch scoped to the Docs directory via uses()->in() so it
+| does not affect the Browser suite.
+|
+*/
+
+require __DIR__ . '/Docs/Support/Screenshots.php';
+
+/*
+|--------------------------------------------------------------------------
+| Shared support helpers
+|--------------------------------------------------------------------------
+|
+| Store-management helpers for the Browser suite (WP-CLI seeding, the API
+| mock) and the shipping-method admin UI steps shared between the Browser
+| and Docs suites. Loaded here because Pest loads every test file into one
+| process - a helper function defined in two test files would collide.
+|
+*/
+
+require __DIR__ . '/Browser/Support/SmartSendStore.php';
+require __DIR__ . '/Support/ShippingMethodSteps.php';
+
+uses()->beforeEach(function (): void {
+    if (! getenv('CI') && ! getenv('SS_DOCS_HEADLESS')) {
+        Playwright::headed();
+    }
+})->afterEach(function (): void {
+    // In slow-motion mode (SS_DOCS_SLOWMO), also pause AFTER the last
+    // assertion of each test - the final UI state is usually the one worth
+    // seeing, and without this the browser closes the moment it is reached.
+    docs_slowmo_pause();
+})->in('Docs');
 
 /*
 |--------------------------------------------------------------------------
@@ -35,7 +83,9 @@ uses()->afterEach(function (): void {
 
 function base_url(string $path = '/'): string
 {
-    $base = getenv('WP_BASE_URL') ?: 'http://127.0.0.1:8181';
+    // WP_URL comes from .env.testing (loaded by tests/bootstrap.php); the
+    // legacy WP_BASE_URL name is still honoured.
+    $base = getenv('WP_URL') ?: getenv('WP_BASE_URL') ?: 'http://127.0.0.1:8181';
 
     return rtrim($base, '/') . $path;
 }

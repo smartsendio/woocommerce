@@ -1,0 +1,60 @@
+# Guarantees the committed smart-send-logistics/build/ output matches src/.
+#
+# The build output is committed (contributors without Node still get a
+# working plugin and the SVN deploy stays copy-only), so this job rebuilds
+# from src/ and fails on any drift. Scoped to the paths that can change the
+# build so unrelated PRs skip it.
+name: JS Build
+
+on:
+  push:
+    branches: [main, develop]
+    paths:
+      - 'src/**'
+      - 'package.json'
+      - 'package-lock.json'
+      - 'webpack.config.js'
+      - '.nvmrc'
+      - 'smart-send-logistics/build/**'
+      - '.github/workflows/js-build.yml'
+  pull_request:
+    paths:
+      - 'src/**'
+      - 'package.json'
+      - 'package-lock.json'
+      - 'webpack.config.js'
+      - '.nvmrc'
+      - 'smart-send-logistics/build/**'
+      - '.github/workflows/js-build.yml'
+
+jobs:
+  build:
+    name: Committed build matches src
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: '.nvmrc'
+          cache: npm
+
+      - name: Install npm dependencies
+        run: npm ci
+
+      - name: Build
+        run: npm run build
+
+      - name: Fail if the committed build output is stale
+        # git status --porcelain also catches new untracked build files,
+        # which git diff alone would miss.
+        run: |
+          if [ -n "$(git status --porcelain smart-send-logistics/build)" ]; then
+            echo "::error::smart-send-logistics/build/ does not match src/. Run 'npm run build' and commit the result."
+            git status --porcelain smart-send-logistics/build
+            git diff smart-send-logistics/build
+            exit 1
+          fi

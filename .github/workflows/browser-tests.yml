@@ -4,10 +4,13 @@ on:
   push:
     branches: [main, develop]
   pull_request:
+  # Manual runs, e.g. to repeat the matrix on a branch when checking the
+  # fpm stability (#79) without pushing empty commits.
+  workflow_dispatch:
 
 jobs:
   pest:
-    name: Pest browser tests (PHP ${{ matrix.php-version }} / WP ${{ matrix.wp-version }} / WC ${{ matrix.wc-version }})
+    name: Pest browser tests (PHP ${{ matrix.php-version }} / WP ${{ matrix.wp-version }} / WC ${{ matrix.wc-version }})${{ matrix.canary && ' [canary]' || '' }}
     runs-on: ubuntu-latest
     timeout-minutes: 15
     strategy:
@@ -17,17 +20,42 @@ jobs:
         # the matrix PHP version. Pest itself always runs on PHP 8.4 (see the
         # tooling setup below) since its dependencies require it.
         #
-        # PHP 7.4 is the floor for the latest WooCommerce; testing the plugin's
-        # older declared support (PHP 5.6+) would require pinning older
-        # WP/WC versions via extra include entries.
-        # PHP 8.1 and 8.2 are temporarily removed: since 2026-08-11 ~20:00 UTC
-        # the runner environment deterministically segfaults php-fpm workers
-        # on those versions while rendering stock wp-admin pages (SIGSEGV in
-        # pool www, "recv() failed (104)" in nginx), on code that was green
-        # the same morning. Re-add once the environment recovers — see #79.
-        php-version: ['7.4', '8.0', '8.3', '8.4']
+        # Supported range (readme.txt): PHP 7.4+, WordPress 6.5+,
+        # WooCommerce 8.2+. Every PHP version in that range runs against the
+        # latest WP/WC (the `latest` legs), and one `floor` leg (below) runs
+        # the oldest supported PHP against the oldest supported WP/WC - the
+        # two ends of the promise; intermediate WP/WC versions are not
+        # tested.
+        #
+        # History of the PHP legs (#79): 8.1/8.2 (2026-08-11, PR #80) and
+        # 8.4 (2026-08-20, PR #169) were each dropped for a while because
+        # php-fpm workers segfaulted deterministically on those versions.
+        # The core dump captured in run 32321244780 put the crash inside
+        # opcache.so: shivammathur/setup-php appends its JIT config
+        # (opcache.enable=1, opcache.jit=1235, opcache.jit_buffer_size=256M)
+        # to 99-pecl.ini and symlinks that file into the fpm scan dir, where
+        # it sorts AFTER this workflow's previous 99-ci-stability.ini - so
+        # the intended opcache override never applied and every PHP 8.x fpm
+        # pool ran the tracing JIT. The stability ini now loads last and
+        # the "Start the store" step asserts the effective worker settings,
+        # so a setup-php change cannot silently re-enable the JIT again.
+        php-version: ['7.4', '8.0', '8.1', '8.2', '8.3', '8.4', '8.5']
         wp-version: ['latest']
         wc-version: ['latest']
+        include:
+          # The floor leg: oldest supported PHP on the oldest supported
+          # WordPress + WooCommerce (latest patch release of each; verify
+          # the zips exist on wordpress.org before bumping). Its first run
+          # caught #183 (the Checkout block did not render on WordPress
+          # 6.5 - the block bundles' react-jsx-runtime dependency) and the
+          # WooCommerce 8.2 rate-refetch timing in BlockCheckoutFlowTest.
+          - php-version: '7.4'
+            wp-version: '6.5.10'
+            wc-version: '8.2.5'
+    # Set `canary: true` on a matrix entry to let it report without failing
+    # the workflow - only with a comment naming the issue that makes it
+    # strict again.
+    continue-on-error: ${{ matrix.canary == true }}
 
     steps:
       - uses: actions/checkout@v4
@@ -122,18 +150,48 @@ jobs:
             -e 's/^listen\.group = .*/listen.group = runner/' \
             "/etc/php/$PHPV/fpm/pool.d/www.conf"
 
-          # PCRE JIT causes intermittent SIGSEGV in fpm workers rendering
-          # WooCommerce pages on some PHP versions; opcache is disabled too
-          # since compile speed is irrelevant for a short-lived test store.
-          printf 'pcre.jit=0\nopcache.enable=0\n' | \
-            sudo tee "/etc/php/$PHPV/fpm/conf.d/99-ci-stability.ini" > /dev/null
+          # Worker stability settings (#79). Keep opcache itself on (the
+          # suite's timings assume compiled pages) but turn the opcache JIT
+          # off: the fpm SIGSEGVs on PHP 8.1/8.2/8.4 resolved to opcache.so
+          # in the captured core dump, and the pool was running the tracing
+          # JIT (opcache.jit=1235, 256M buffer) that shivammathur/setup-php
+          # appends to its 99-pecl.ini for every PHP 8.x - a file it symlinks
+          # into the fpm scan dir. PCRE JIT stays off for the same class of
+          # worker crash on older versions.
+          #
+          # The file name must sort after setup-php's 99-pecl.ini (PHP loads
+          # the scan dir alphabetically, last value wins): the previous
+          # 99-ci-stability.ini sorted before it, so its opcache override was
+          # silently discarded. The probe below asserts the settings a worker
+          # actually runs with, so this cannot regress unnoticed.
+          printf 'pcre.jit=0\nopcache.enable=1\nopcache.jit=0\nopcache.jit_buffer_size=0\n' | \
+            sudo tee "/etc/php/$PHPV/fpm/conf.d/99-zz-ci-stability.ini" > /dev/null
+
+          # Keep core dumps from crashed fpm workers so the next SIGSEGV is
+          # diagnosable to a stack frame (#79). The runner's default
+          # core_pattern pipes into apport, which discards cores from the
+          # PPA-built php-fpm, so point it at a plain directory instead.
+          sudo mkdir -p /var/crash-ci
+          sudo chmod 1777 /var/crash-ci
+          sudo sysctl -q -w kernel.core_pattern='/var/crash-ci/core.%e.%p.%t'
 
           # Use a static pool: workers forked mid-run under load have been
           # observed to crash within seconds; a fixed pool avoids forking
           # while requests are in flight.
+          #
+          # pm.max_requests recycles each worker after 50 requests: the
+          # 2026-08-12 PHP 8.4 flakes all struck long-lived workers (SIGSEGV
+          # or a stuck-request hard-timeout _exit(124) after 9-50s of worker
+          # life, on arbitrary stock pages), pointing at worker-state
+          # corruption that accumulates with age (#79).
+          #
+          # rlimit_core lets a crashing worker actually write the core dump
+          # captured above (#79).
           sudo tee -a "/etc/php/$PHPV/fpm/pool.d/www.conf" > /dev/null <<'POOL'
           pm = static
           pm.max_children = 8
+          pm.max_requests = 50
+          rlimit_core = unlimited
           POOL
 
           sudo service "php$PHPV-fpm" restart
@@ -146,6 +204,38 @@ jobs:
           curl -sf -o /dev/null http://127.0.0.1:8181/shop/ || true
           curl -sf -o /dev/null http://127.0.0.1:8181/wp-login.php || true
 
+          # Assert the settings an actual fpm worker runs with (served through
+          # nginx, not `php -i`, so SAPI and scan-dir ordering are the real
+          # ones): PCRE JIT off, opcache on, opcache JIT off (#79). Note that
+          # GitHub echoes this whole script at the top of the step log, so
+          # the "::error::" line below appears there even when the check
+          # passes - the verdict is the "Effective fpm worker settings" line.
+          PROBE="$DOCROOT/ci-ini-probe.php"
+          cat > "$PROBE" <<'PHP'
+          <?php
+          $status = function_exists( 'opcache_get_status' ) ? opcache_get_status( false ) : false;
+          echo json_encode( array(
+              'php'                     => PHP_VERSION,
+              'pcre.jit'                => ini_get( 'pcre.jit' ),
+              'opcache.enable'          => ini_get( 'opcache.enable' ),
+              'opcache.jit'             => ini_get( 'opcache.jit' ),
+              'opcache.jit_buffer_size' => ini_get( 'opcache.jit_buffer_size' ),
+              'opcache_enabled'         => is_array( $status ) && ! empty( $status['opcache_enabled'] ),
+              'jit_enabled'             => is_array( $status ) && ! empty( $status['jit']['enabled'] ),
+              'jit_on'                  => is_array( $status ) && ! empty( $status['jit']['on'] ),
+          ) );
+          PHP
+          INI_JSON="$(curl -sf http://127.0.0.1:8181/ci-ini-probe.php)"
+          rm -f "$PROBE"
+          echo "Effective fpm worker settings: $INI_JSON"
+          echo "$INI_JSON" | jq -e '
+            .["pcre.jit"] == "0" and .opcache_enabled == true
+            and .jit_enabled == false and .jit_on == false
+          ' > /dev/null || {
+            echo "::error::php-fpm workers are not running with the CI stability settings (PCRE JIT off, opcache on, opcache JIT off) - see #79"
+            exit 1
+          }
+
       - name: Run Pest browser tests
         timeout-minutes: 10
         env:
@@ -154,12 +244,18 @@ jobs:
         # rare fpm worker crashes; persistent failures still fail both runs.
         # Restart php-fpm before the retry: a crashed worker can leave the
         # pool wedged, making the retry hang until the step timeout (#79).
+        #
+        # Each attempt is bounded with timeout(1): a green suite finishes in
+        # about a minute, but a single wedged request has been observed to
+        # hang an attempt until the 10-minute step timeout, so an unbounded
+        # first attempt (or retry) costs the whole job (#79, run
+        # 31552508461). 270s x 2 attempts still fits inside the step timeout.
         run: |
-          vendor/bin/pest --testsuite=Browser || {
+          timeout -k 15 270 vendor/bin/pest --testsuite=Browser || {
             echo "::warning::Browser test run failed - restarting php-fpm and retrying once"
             sudo service "php${{ matrix.php-version }}-fpm" restart
             sleep 2
-            vendor/bin/pest --testsuite=Browser
+            timeout -k 15 270 vendor/bin/pest --testsuite=Browser
           }
 
       - name: Show server and WordPress logs
@@ -173,6 +269,27 @@ jobs:
           echo "::endgroup::"
           echo "::group::wp-content/debug.log"
           tail -n 200 ./local-dev/wordpress/wp-content/debug.log || true
+          echo "::endgroup::"
+          # Backtrace any fpm worker core dumps captured via the
+          # core_pattern/rlimit_core setup above, so a SIGSEGV resolves to a
+          # stack frame instead of just "signal 11" in the fpm log (#79).
+          echo "::group::php-fpm core dump backtraces"
+          # Debug symbols are best-effort: the ondrej PPA ships -dbgsym
+          # packages for some builds; without them gdb still names the
+          # faulting shared object and offsets.
+          command -v gdb > /dev/null || \
+            sudo apt-get install -y --no-install-recommends gdb > /dev/null || true
+          sudo apt-get install -y --no-install-recommends \
+            "php${{ matrix.php-version }}-fpm-dbgsym" > /dev/null 2>&1 || true
+          for core in /var/crash-ci/core.*; do
+            [ -e "$core" ] || continue
+            echo "--- $core"
+            sudo gdb --batch \
+              -ex 'set pagination off' \
+              -ex 'bt' \
+              -ex 'info sharedlibrary' \
+              "/usr/sbin/php-fpm${{ matrix.php-version }}" "$core" || true
+          done
           echo "::endgroup::"
 
       - name: Upload failure screenshots
