@@ -1,8 +1,8 @@
 <?php
 /**
- * Plugin Name: Smart Send for WooCommerce
+ * Plugin Name: Smart Send
  * Plugin URI: https://wordpress.org/plugins/smart-send-logistics/
- * Description: Smart Send for WooCommerce
+ * Description: Shipping methods, pickup points and shipping labels for many carriers, like PostNord, GLS, DAO, Burd, Budbee and Bring, directly in WooCommerce.
  * Author: Smart Send ApS
  * Author URI: https://www.smartsend.io
  * Text Domain: smart-send-logistics

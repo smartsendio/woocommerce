@@ -1,4 +1,4 @@
-=== Smart Send Logistics ===
+=== Smart Send ===
 Contributors: SmartSend
 Donate link: https://smartsend.io/
 Author: SmartSend
@@ -20,7 +20,7 @@ Shipping methods, pickup points and shipping labels for many carriers, like Post
 
 == Description ==
 
-Smart Send for WooCommerce is a complete shipping solution for many carriers, like PostNord, GLS, DAO, Budbee, Burd and Bring. Set up shipping methods with rates based on shipping address, weight, subtotal, shipping class and user role, let the customer choose a pickup point at checkout, and create shipping labels with one click from the WooCommerce order screen. Everything runs inside your WooCommerce store; the plugin talks to Smart Send in the background.
+Smart Send is a complete shipping solution for WooCommerce and many carriers, like PostNord, GLS, DAO, Budbee, Burd and Bring. Set up shipping methods with rates based on shipping address, weight, subtotal, shipping class and user role, let the customer choose a pickup point at checkout, and create shipping labels with one click from the WooCommerce order screen. Everything runs inside your WooCommerce store; the plugin talks to Smart Send in the background.
 
 Works with both the classic checkout and the WooCommerce Checkout Block, and with High-Performance Order Storage (HPOS).
 
@@ -364,6 +364,7 @@ No - this is by design. Neither deactivating nor uninstalling the plugin deletes
 * Minimum required WooCommerce version raised from 4.7 to 5.0
 * Minimum required PHP version is 7.4 (unchanged since 8.2.0)
 * Tested with WordPress 7.1 and WooCommerce 11.1
+* The plugin is renamed from "Smart Send Logistics" to "Smart Send" (the plugin slug smart-send-logistics is unchanged, so updates arrive as before)
 
 = 8.2.0 =
 * Tested with WordPress 7.0
