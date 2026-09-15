@@ -185,6 +185,60 @@ export function planFromBoxes( units, boxes, assignment ) {
 }
 
 /**
+ * The product lines of a box: one row per product id that has units in
+ * the box, with the count in the box and the line's total on the order
+ * (the editor shows "× count / of total"). Order of first appearance in
+ * the units list.
+ *
+ * @param {Array}    units      The order's units.
+ * @param {number[]} assignment Per unit index, its box index.
+ * @param {number}   boxIndex   The box.
+ * @return {Array} [{ id, name, sku, count, total }].
+ */
+export function boxLines( units, assignment, boxIndex ) {
+	const lines = [];
+
+	units.forEach( ( unit, unitIndex ) => {
+		const id = String( unit.id );
+		let line = lines.find( ( other ) => other.id === id );
+
+		if ( ! line ) {
+			line = { id, name: unit.name, sku: unit.sku || '', count: 0, total: 0 };
+			lines.push( line );
+		}
+
+		line.total += 1;
+		if ( assignment[ unitIndex ] === boxIndex ) {
+			line.count += 1;
+		}
+	} );
+
+	return lines.filter( ( line ) => line.count > 0 );
+}
+
+/**
+ * Move one unit of a product line from one box to another: the first
+ * unit of that id sitting in the source box is reassigned. Returns the
+ * assignment unchanged when the source box holds none.
+ *
+ * @param {Array}    units      The order's units.
+ * @param {number[]} assignment Per unit index, its box index.
+ * @param {string}   id         The product id.
+ * @param {number}   from       The source box index.
+ * @param {number}   to         The target box index.
+ * @return {number[]} The new assignment.
+ */
+export function moveOneUnit( units, assignment, id, from, to ) {
+	const unitIndex = units.findIndex( ( unit, index ) => String( unit.id ) === String( id ) && assignment[ index ] === from );
+
+	if ( unitIndex === -1 ) {
+		return assignment;
+	}
+
+	return assignment.map( ( current, index ) => ( index === unitIndex ? to : current ) );
+}
+
+/**
  * The computed weight of a box: the sum of its units' weights (what the
  * server books with when no explicit weight is entered, before the
  * smart_send_parcel_default_weight filter).

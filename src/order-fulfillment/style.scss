@@ -133,6 +133,70 @@
 		}
 	}
 
+	// One row per product line in a box: name + SKU on the left (each on
+	// its own line, truncated with an ellipsis - the full text sits in a
+	// title attribute), the "× count / of total" pair and the ▲▼ arrows on
+	// the right, which never wrap or shrink.
+	&__lines {
+		margin: 6px 0 0;
+		list-style: none;
+		padding: 0;
+	}
+
+	&__line {
+		display: flex;
+		align-items: center;
+		gap: 8px;
+		margin: 0 0 4px;
+		min-width: 0;
+	}
+
+	&__line-text {
+		flex: 1 1 auto;
+		min-width: 0;
+		display: flex;
+		flex-direction: column;
+
+		> span {
+			display: block;
+			white-space: nowrap;
+			overflow: hidden;
+			text-overflow: ellipsis;
+		}
+	}
+
+	&__line-sku {
+		font-size: 11px;
+		color: #50575e;
+	}
+
+	&__line-quantity {
+		flex: 0 0 auto;
+		display: flex;
+		flex-direction: column;
+		align-items: flex-end;
+		white-space: nowrap;
+		line-height: 1.3;
+
+		.description {
+			font-size: 11px;
+		}
+	}
+
+	&__line-move {
+		flex: 0 0 auto;
+		display: flex;
+		flex-direction: column;
+		gap: 2px;
+
+		.button {
+			min-height: 0;
+			line-height: 1;
+			padding: 1px 4px;
+			font-size: 9px;
+		}
+	}
+
 	// The primary "Create shipping label" and the secondary "Create return
 	// label" side by side, wrapping onto a second line in the narrow side
 	// column (without the wrap the secondary action is pushed out of view).

@@ -871,6 +871,7 @@ if ( ! class_exists( 'SS_Shipping_Order_Fulfillment_Presenter' ) ) :
 					$units[] = array(
 						'id'          => (int) $product_id,
 						'name'        => (string) $item->get_name(),
+						'sku'         => $product ? (string) $product->get_sku() : '',
 						'unit_weight' => $weight,
 					);
 				}

@@ -195,6 +195,7 @@ it('returns the state on GET, matching the presenter', function () {
         ->and($state['order']['shipping_country'])->toBe('DK')
         ->and($state['order']['units'])->toHaveCount(1)
         ->and($state['order']['units'][0]['unit_weight'])->toBe(1.0)
+        ->and($state['order']['units'][0])->toHaveKey('sku')
         ->and($state['delivery_details']['shipping_method'])->toBe('postnord_agent')
         ->and($state['delivery_details']['pickup_point']['agent_no'])->toBe('1234')
         ->and($state['delivery_details']['pickup_point']['display_html'])->toContain('Corner Shop')

@@ -10,8 +10,9 @@
  * method, and from state B with a chosen one), a validation failure shown
  * on the field it belongs to
  * (and the general notice for one outside the box), the parcel editor
- * (units moved between boxes, an empty box with an explicit weight - the
- * booking request carries three parcels), a pickup point override through
+ * (a line split across boxes one unit at a time with the ▲▼ arrows, an
+ * empty box with an explicit weight - the booking request carries three
+ * parcels), a pickup point override through
  * the lookup route, a method override to a non-agent method (no pickup
  * point), booking again behind a confirm, and an order placed without a
  * Smart Send method booked with a chosen method (+ a chosen return method).
@@ -212,22 +213,52 @@ it('shows a validation failure on the field it belongs to, and the rest as a gen
     expect(ss_browser_shipment_ids($order_id)['label_id'])->toBe('');
 });
 
-it('books three parcels from the parcel editor: a unit moved to box 2 and an empty box with an explicit weight', function () {
+it('splits a line across boxes with the arrows and books three parcels, one empty with an explicit weight', function () {
     $order_id = ss_browser_state()['orders'][4];
     ss_browser_reset_api_requests();
 
-    ss_browser_open_order($order_id)
+    $line = '[data-ss-line]';
+    $count = fn (int $box) => "[data-ss-box=\"{$box}\"] {$line} [data-ss-value=\"line.count\"]";
+
+    $page = ss_browser_open_order($order_id)
         ->assertSeeIn('[data-ss-section="parcel_plan"]', '1 parcel · 3.00 kg')
         ->click('[data-ss-action="edit-parcels"]')
-        // Box 2 for the third unit (select values are box indexes).
-        ->click('[data-ss-action="add-box"]')
-        ->select('[data-ss-field="parcel_plan.units[2].box"]', '1')
-        // Box 3 stays empty and carries an explicit weight; the placeholder of
-        // a box shows its computed weight.
-        ->click('[data-ss-action="add-box"]')
+        // One row per product line: name + SKU (full text in title attributes),
+        // the count in this box over the line's total, ▲ disabled in box 1.
+        ->assertSeeIn($count(1), '× 3')
+        ->assertSeeIn('[data-ss-box="1"] [data-ss-value="line.total"]', 'of 3')
+        ->assertSeeIn('[data-ss-box="1"] [data-ss-value="line.sku"]', 'SKU: SS-BROWSER-TEST')
+        ->assertAttribute('[data-ss-box="1"] [data-ss-value="line.name"]', 'title', 'SS Browser Test Product')
+        ->assertAttribute('[data-ss-box="1"] [data-ss-value="line.sku"]', 'title', 'SS-BROWSER-TEST')
+        ->assertAttribute('[data-ss-box="1"] [data-ss-action="move-down"]', 'aria-label', 'Move one unit to the box below')
+        ->assertDisabled('[data-ss-box="1"] [data-ss-action="move-up"]')
+        ->assertNotPresent('[data-ss-box="2"]')
+        // ▼ below the last box creates box 2 with the moved unit: 2 / 1.
+        ->click('[data-ss-box="1"] [data-ss-action="move-down"]')
+        ->assertSeeIn($count(1), '× 2')
+        ->assertSeeIn($count(2), '× 1')
+        ->assertSeeIn('[data-ss-section="parcel_plan"]', '2 parcels · 3.00 kg')
+        // ▼ again on box 1's row: 1 / 2.
+        ->click('[data-ss-box="1"] [data-ss-action="move-down"]')
+        ->assertSeeIn($count(1), '× 1')
+        ->assertSeeIn($count(2), '× 2')
+        // ▲ on box 2's row: back to 2 / 1.
+        ->click('[data-ss-box="2"] [data-ss-action="move-up"]')
+        ->assertSeeIn($count(1), '× 2')
+        ->assertSeeIn($count(2), '× 1')
+        // ▼ on the last box's row creates box 3; box 2 is emptied (its row
+        // disappears), stays, and offers "Remove box" - box 1 never does.
+        ->click('[data-ss-box="2"] [data-ss-action="move-down"]')
+        ->assertNotPresent($count(2))
+        ->assertSeeIn('[data-ss-box="2"]', '(empty)')
+        ->assertPresent('[data-ss-box="2"] [data-ss-action="remove-box"]')
+        ->assertNotPresent('[data-ss-box="1"] [data-ss-action="remove-box"]')
+        ->assertSeeIn($count(3), '× 1')
+        // The empty box carries an explicit weight; the placeholder of a box
+        // shows its computed weight.
         ->assertAttribute('[data-ss-field="parcel_plan.specs[0].weight"]', 'placeholder', '2.00')
-        ->assertAttribute('[data-ss-field="parcel_plan.specs[2].weight"]', 'placeholder', '0.00')
-        ->fill('[data-ss-field="parcel_plan.specs[2].weight"]', '2.5')
+        ->assertAttribute('[data-ss-field="parcel_plan.specs[1].weight"]', 'placeholder', '0.00')
+        ->fill('[data-ss-field="parcel_plan.specs[1].weight"]', '2.5')
         ->assertSeeIn('[data-ss-section="parcel_plan"]', '3 parcels · 5.50 kg')
         ->click('[data-ss-action="parcels-done"]')
         ->click('[data-ss-action="create-label"]')
@@ -242,15 +273,15 @@ it('books three parcels from the parcel editor: a unit moved to box 2 and an emp
     $parcels = $requests[0]['body']['parcels'];
     expect($parcels)->toHaveCount(3)
         ->and($parcels[0]['items'])->toHaveCount(2)
-        ->and($parcels[1]['items'])->toHaveCount(1)
-        ->and($parcels[2]['items'])->toBeEmpty()
-        ->and($parcels[2]['weight'])->toEqual(2.5);
+        ->and($parcels[1]['items'])->toBeEmpty()
+        ->and($parcels[1]['weight'])->toEqual(2.5)
+        ->and($parcels[2]['items'])->toHaveCount(1);
 
     // ...and the split was persisted after the successful booking (item rows
     // only: the empty box has none to store).
     $meta = ss_browser_shipment_ids($order_id);
     expect($meta['label_id'])->toStartWith('browser-shipment-')
-        ->and(array_column($meta['parcels'], 'value'))->toBe(['1', '1', '2']);
+        ->and(array_column($meta['parcels'], 'value'))->toBe(['1', '1', '3']);
 });
 
 it('overrides the pickup point through the lookup and reports an unknown agent number on the field', function () {

@@ -4,16 +4,20 @@
  * The parcels row (section 1.2-D): a summary ("2 parcels · 1.20 kg") with
  * an "Edit" action, and the editor - one block per box with an OPTIONAL
  * weight (placeholder: the computed sum of its units, what the server
- * books with when left empty) and optional L×W×H, every order unit in
- * exactly one box (moved between boxes with a select), boxes added and
- * removed (empty boxes are allowed - a box may carry only an explicit
- * weight), and "Reset to one parcel", which clears a stored split.
+ * books with when left empty) and optional L×W×H, and every order unit in
+ * exactly one box. A box lists one row per product line with units in it
+ * (name + SKU, "× count / of total") and two arrows: ▲ moves one unit of
+ * that line to the box above, ▼ one unit to the box below - creating a
+ * new box when there is none - so a line can be split across boxes in
+ * any proportion. An emptied box stays (it may carry an explicit weight)
+ * with a "Remove box" control (never the first box); "Reset to one
+ * parcel" clears a stored split.
  */
 import { createElement } from '@wordpress/element';
 import { Button } from '@wordpress/components';
 import { __, _n, sprintf } from '@wordpress/i18n';
 
-import { computedBoxWeight, emptyBox, formatWeight, totalWeight } from './model';
+import { boxLines, computedBoxWeight, emptyBox, formatWeight, moveOneUnit, totalWeight } from './model';
 import { FieldError } from './ErrorNotice';
 
 const DIMENSIONS = [
@@ -30,9 +34,17 @@ export default function ParcelEditor( { units, boxes, assignment, editing, onEdi
 		update( nextBoxes, assignment );
 	};
 
-	const moveUnit = ( unitIndex, boxIndex ) => {
-		const nextAssignment = assignment.map( ( current, index ) => ( index === unitIndex ? boxIndex : current ) );
-		update( boxes, nextAssignment );
+	const moveUp = ( id, boxIndex ) => {
+		if ( boxIndex === 0 ) {
+			return;
+		}
+		update( boxes, moveOneUnit( units, assignment, id, boxIndex, boxIndex - 1 ) );
+	};
+
+	// Below the last box a new one is created for the moved unit.
+	const moveDown = ( id, boxIndex ) => {
+		const nextBoxes = boxIndex === boxes.length - 1 ? [ ...boxes, emptyBox() ] : boxes;
+		update( nextBoxes, moveOneUnit( units, assignment, id, boxIndex, boxIndex + 1 ) );
 	};
 
 	const addBox = () => update( [ ...boxes, emptyBox() ], assignment );
@@ -82,7 +94,7 @@ export default function ParcelEditor( { units, boxes, assignment, editing, onEdi
 				<div className="smart-send-fulfillment__boxes" data-ss-section="parcel_editor">
 					{ boxes.map( ( box, boxIndex ) => {
 						const computed = computedBoxWeight( units, assignment, boxIndex );
-						const unitIndexes = units.map( ( unit, index ) => index ).filter( ( index ) => assignment[ index ] === boxIndex );
+						const lines = boxLines( units, assignment, boxIndex );
 
 						return (
 							<div className="smart-send-fulfillment__box" data-ss-box={ boxIndex + 1 } key={ boxIndex }>
@@ -93,10 +105,11 @@ export default function ParcelEditor( { units, boxes, assignment, editing, onEdi
 											sprintf( __( 'Box %d', 'smart-send-logistics' ), boxIndex + 1 )
 										}
 									</strong>
-									{ unitIndexes.length === 0 && <span className="description">{ __( '(empty)', 'smart-send-logistics' ) }</span> }
-									{ boxes.length > 1 && (
+									{ lines.length === 0 && <span className="description">{ __( '(empty)', 'smart-send-logistics' ) }</span> }
+									{ /* An emptied box stays until removed explicitly; the first box never goes. */ }
+									{ lines.length === 0 && boxIndex > 0 && (
 										<Button variant="link" size="small" isDestructive data-ss-action="remove-box" onClick={ () => removeBox( boxIndex ) } disabled={ disabled }>
-											{ __( 'Remove', 'smart-send-logistics' ) }
+											{ __( 'Remove box', 'smart-send-logistics' ) }
 										</Button>
 									) }
 								</div>
@@ -135,27 +148,54 @@ export default function ParcelEditor( { units, boxes, assignment, editing, onEdi
 								) ) }
 								<FieldError field={ `parcel_plan.specs[${ boxIndex }]` } errors={ errors } />
 
-								{ unitIndexes.length > 0 && (
-									<ul className="smart-send-fulfillment__units">
-										{ unitIndexes.map( ( unitIndex ) => (
-											<li key={ unitIndex } data-ss-unit={ units[ unitIndex ].id }>
-												<span>{ units[ unitIndex ].name }</span>
-												<select
-													data-ss-field={ `parcel_plan.units[${ unitIndex }].box` }
-													value={ assignment[ unitIndex ] }
-													onChange={ ( event ) => moveUnit( unitIndex, parseInt( event.target.value, 10 ) ) }
-													disabled={ disabled }
-													autoComplete="off"
-												>
-													{ boxes.map( ( other, otherIndex ) => (
-														<option key={ otherIndex } value={ otherIndex }>
+								{ lines.length > 0 && (
+									<ul className="smart-send-fulfillment__lines">
+										{ lines.map( ( line ) => (
+											<li className="smart-send-fulfillment__line" key={ line.id } data-ss-line={ line.id }>
+												<span className="smart-send-fulfillment__line-text">
+													<span className="smart-send-fulfillment__line-name" title={ line.name } data-ss-value="line.name">{ line.name }</span>
+													{ line.sku && (
+														<span className="smart-send-fulfillment__line-sku" title={ line.sku } data-ss-value="line.sku">
 															{
-																/* translators: %d: box number. */
-																sprintf( __( 'Box %d', 'smart-send-logistics' ), otherIndex + 1 )
+																/* translators: %s: the product SKU. */
+																sprintf( __( 'SKU: %s', 'smart-send-logistics' ), line.sku )
 															}
-														</option>
-													) ) }
-												</select>
+														</span>
+													) }
+												</span>
+												<span className="smart-send-fulfillment__line-quantity">
+													<span data-ss-value="line.count">{ '× ' + line.count }</span>
+													<span className="description" data-ss-value="line.total">
+														{
+															/* translators: %d: the line's total number of units on the order. */
+															sprintf( __( 'of %d', 'smart-send-logistics' ), line.total )
+														}
+													</span>
+												</span>
+												<span className="smart-send-fulfillment__line-move">
+													<button
+														type="button"
+														className="button"
+														data-ss-action="move-up"
+														aria-label={ __( 'Move one unit to the box above', 'smart-send-logistics' ) }
+														title={ __( 'Move one unit to the box above', 'smart-send-logistics' ) }
+														onClick={ () => moveUp( line.id, boxIndex ) }
+														disabled={ disabled || boxIndex === 0 }
+													>
+														▲
+													</button>
+													<button
+														type="button"
+														className="button"
+														data-ss-action="move-down"
+														aria-label={ __( 'Move one unit to the box below', 'smart-send-logistics' ) }
+														title={ __( 'Move one unit to the box below', 'smart-send-logistics' ) }
+														onClick={ () => moveDown( line.id, boxIndex ) }
+														disabled={ disabled }
+													>
+														▼
+													</button>
+												</span>
 											</li>
 										) ) }
 									</ul>

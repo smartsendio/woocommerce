@@ -87,7 +87,7 @@ it('shows the not-yet-booked box', function () {
     capture_doc_screenshot($page, 'OrderFulfillment', 'not-booked', false);
 });
 
-it('shows the parcel editor with a unit moved to a second box', function () {
+it('shows the parcel editor with a line split across two boxes', function () {
     $page = visit(base_url('/wp-login.php'))
         ->fill('#user_login', admin_username())
         ->fill('#user_pass', admin_password())
@@ -97,8 +97,8 @@ it('shows the parcel editor with a unit moved to a second box', function () {
 
     $page->assertSeeIn('#woocommerce-ss-shipping-label .hndle', 'Smart Send')
         ->click('[data-ss-action="edit-parcels"]')
-        ->click('[data-ss-action="add-box"]')
-        ->select('[data-ss-field="parcel_plan.units[2].box"]', '1')
+        // ▼ below the last box creates box 2 with one unit of the line.
+        ->click('[data-ss-box="1"] [data-ss-action="move-down"]')
         ->assertSeeIn('[data-ss-section="parcel_plan"]', '2 parcels');
 
     highlight_element($page, '[data-ss-section="parcel_editor"]');
