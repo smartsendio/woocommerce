@@ -308,6 +308,34 @@ if ( ! class_exists( 'SS_Shipping_Pickup_Point' ) ) :
 		}
 
 		/**
+		 * Whether the pickup point is a bare reference - an agent number
+		 * and nothing else (e.g. array( 'agent_no' => '1234' ) submitted
+		 * from the order meta box) - that still has to be resolved into the
+		 * full pickup point through a lookup (#182).
+		 *
+		 * @return boolean
+		 */
+		public function is_agent_no_only(): bool {
+			if ( null === $this->agent_no || '' === $this->agent_no || array() !== $this->extra ) {
+				return false;
+			}
+
+			foreach ( self::field_map() as $field ) {
+				if ( 'agent_no' === $field || 'coordinates' === $field ) {
+					continue;
+				}
+
+				$value = 'opening_hours' === $field ? $this->opening_hours : $this->{$field};
+
+				if ( null !== $value && '' !== $value && array() !== $value ) {
+					return false;
+				}
+			}
+
+			return null === $this->latitude && null === $this->longitude;
+		}
+
+		/**
 		 * Get the pickup point number.
 		 *
 		 * @return string|null
