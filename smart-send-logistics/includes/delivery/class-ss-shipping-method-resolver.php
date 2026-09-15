@@ -87,7 +87,7 @@ if ( ! class_exists( 'SS_Shipping_Method_Resolver' ) ) :
 
 			if ( is_array( $resolved ) ) {
 				if ( empty( $resolved['smart_send_return_method'] ) ) {
-					// phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- the exception message is caught by SS_Shipping_Booking_Service and surfaced via SS_Shipping_Booking::get_error_message(), never echoed directly; escaping is not applicable here.
+					// phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- the exception message is caught by SS_Shipping_Fulfillment_Service and recorded on the SS_Shipping_Fulfillment_Result as data, never echoed directly; escaping is not applicable here.
 					throw new SS_Shipping_Booking_Exception( __( 'No return method set', 'smart-send-logistics' ) );
 				}
 

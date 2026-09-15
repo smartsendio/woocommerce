@@ -10,27 +10,6 @@
  * handles any number of documents and codes - never one assumed PDF.
  */
 
-if (! function_exists('wc_st_add_tracking_number')) {
-    /**
-     * Stand-in for the optional WooCommerce Shipment Tracking plugin: records
-     * every tracking push the fulfillment workflow makes.
-     */
-    function wc_st_add_tracking_number($order_id, $tracking_number, $provider, $date_shipped, $tracking_url): void
-    {
-        $GLOBALS['ss_test_shipment_tracking_calls'][] = [$order_id, $tracking_number, $provider, $date_shipped, $tracking_url];
-    }
-}
-
-/**
- * Reset the recorded Shipment Tracking pushes and return the log by reference.
- */
-function &shipment_tracking_calls(): array
-{
-    $GLOBALS['ss_test_shipment_tracking_calls'] = [];
-
-    return $GLOBALS['ss_test_shipment_tracking_calls'];
-}
-
 /**
  * An order that can have a label generated for it.
  */
@@ -47,7 +26,18 @@ function create_bookable_order(array $args = []): WC_Order
 
 function booking_service(): SS_Shipping_Booking_Service
 {
-    return new SS_Shipping_Booking_Service(new SS_Shipping_Order_Meta(), new SS_Shipping_Method_Resolver());
+    return new SS_Shipping_Booking_Service();
+}
+
+/**
+ * Book the order through SS_Shipping_Booking_Service::book() with the
+ * delivery details the fulfillment service would decide on.
+ */
+function book_order(WC_Order $order, bool $is_return = false, ?SS_Shipping_Booking_Service $service = null): SS_Shipping_Booked_Shipment
+{
+    $details = SS_SHIPPING_WC()->fulfillment()->resolve_delivery_details($order, $is_return);
+
+    return ($service ?? booking_service())->book($order, $details, $is_return);
 }
 
 /**
@@ -87,12 +77,8 @@ it('maps a single-parcel v1 response into the booked shipment', function () {
         return ss_api_response(200, ['data' => ss_api_shipment_data(['shipment_id' => 'shipment-single'])]);
     });
 
-    $booking = booking_service()->book_outbound($order);
+    $shipment = book_order($order);
 
-    expect($booking->is_successful())->toBeTrue()
-        ->and($booking->get_error_message())->toBeNull();
-
-    $shipment = $booking->shipment();
     expect($shipment)->toBeInstanceOf(SS_Shipping_Booked_Shipment::class)
         ->and($shipment->get_shipment_id())->toBe('shipment-single')
         ->and($shipment->get_carrier())->toBe('postnord')
@@ -117,10 +103,15 @@ it('maps a single-parcel v1 response into the booked shipment', function () {
         ->and($shipment->label_document())->toBe($shipment->documents()[0])
         ->and($shipment->codes())->toBe([]);
 
-    // The inline PDF bytes v1 delivers stay on the booking, off the DTO.
-    expect($booking->get_document_content(0))->toBe(base64_encode('%PDF-fake'))
-        ->and($booking->get_document_content(1))->toBeNull()
-        ->and($shipment->to_array())->not->toHaveKey('pdf');
+    // The inline PDF bytes v1 delivers ride on the document as the
+    // transient v1 bridge: never in to_array(), never serialized.
+    $label = $shipment->documents()[0];
+    expect($label->get_inline_content())->toBe(base64_encode('%PDF-fake'))
+        ->and($label->to_array())->not->toHaveKey('inline_content')
+        ->and($shipment->to_array())->not->toHaveKey('pdf')
+        ->and(unserialize(serialize($label))->get_inline_content())->toBeNull()
+        ->and(unserialize(serialize($label))->to_array())->toBe($label->to_array())
+        ->and(SS_Shipping_Shipment_Document::from_array($label->to_array())->get_inline_content())->toBeNull();
 });
 
 it('maps every parcel of a multi-parcel v1 response and keeps the outputs on the shipment', function () {
@@ -136,7 +127,7 @@ it('maps every parcel of a multi-parcel v1 response and keeps the outputs on the
         ])]);
     });
 
-    $shipment = booking_service()->book_outbound($order)->shipment();
+    $shipment = book_order($order);
 
     expect($shipment->parcels())->toHaveCount(3)
         ->and(array_map(fn (SS_Shipping_Booked_Parcel $p) => $p->get_parcel_id(), $shipment->parcels()))->toBe(['11', '12', '13'])
@@ -172,19 +163,19 @@ it('maps missing tracking to nulls and prefers shipment-level tracking when the 
 
     $service = booking_service();
 
-    $no_tracking = $service->book_outbound($order)->shipment();
+    $no_tracking = book_order($order, false, $service);
     expect($no_tracking->parcels())->toHaveCount(1)
         ->and($no_tracking->parcels()[0]->get_tracking_code())->toBeNull()
         ->and($no_tracking->parcels()[0]->get_tracking_url())->toBeNull()
         ->and($no_tracking->get_tracking_code())->toBeNull()
         ->and($no_tracking->get_tracking_url())->toBeNull();
 
-    $level = $service->book_outbound($order)->shipment();
+    $level = book_order($order, false, $service);
     expect($level->get_tracking_code())->toBe('LEVEL-1')
         ->and($level->get_tracking_url())->toBe('https://tracking.example.test/LEVEL-1')
         ->and($level->parcels()[0]->get_tracking_code())->toBe('PARCEL-1');
 
-    $no_parcels = $service->book_outbound($order)->shipment();
+    $no_parcels = book_order($order, false, $service);
     expect($no_parcels->parcels())->toBe([])
         ->and($no_parcels->get_tracking_code())->toBeNull();
 });
@@ -199,7 +190,7 @@ it('maps a return booking with the return flag and the return method, falling ba
         return ss_api_response(200, ['data' => $data]);
     });
 
-    $shipment = booking_service()->book_return($order)->shipment();
+    $shipment = book_order($order, true);
 
     expect($shipment->get_shipment_id())->toBe('shipment-return')
         ->and($shipment->is_return())->toBeTrue()

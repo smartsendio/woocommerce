@@ -28,7 +28,11 @@ if ( ! class_exists( 'SS_Shipping_Shipment_Document' ) ) :
 	 * by the fulfillment workflow, not by the booking.
 	 *
 	 * Serializable value object with no WordPress dependency (Phase 7
-	 * queues booked shipments).
+	 * queues booked shipments). The one exception is inline_content, the
+	 * API v1 bridge: v1 delivers the label PDF base64-encoded inline next
+	 * to its URL, and the uploads copy is written from those bytes. The
+	 * bytes are transient - excluded from to_array() and from PHP
+	 * serialization - and gone once API v2 delivers a fetchable URL only.
 	 */
 	class SS_Shipping_Shipment_Document {
 
@@ -86,6 +90,15 @@ if ( ! class_exists( 'SS_Shipping_Shipment_Document' ) ) :
 		protected ?string $local_url = null;
 
 		/**
+		 * The document bytes, base64-encoded, when the API delivered them
+		 * inline (API v1 bridge - see the class docblock). Never
+		 * serialized.
+		 *
+		 * @var string|null
+		 */
+		protected ?string $inline_content = null;
+
+		/**
 		 * Constructor.
 		 *
 		 * @param string      $type   Document type (TYPE_* constant).
@@ -126,7 +139,17 @@ if ( ! class_exists( 'SS_Shipping_Shipment_Document' ) ) :
 		}
 
 		/**
-		 * The serializable array form.
+		 * Keep the inline document bytes out of PHP serialization: they
+		 * are the transient v1 bridge, never persisted or queued.
+		 *
+		 * @return string[]
+		 */
+		public function __sleep() {
+			return array( 'type', 'format', 'layout', 'url', 'local_path', 'local_url' );
+		}
+
+		/**
+		 * The serializable array form (inline_content excluded).
 		 *
 		 * @return array
 		 */
@@ -208,6 +231,30 @@ if ( ! class_exists( 'SS_Shipping_Shipment_Document' ) ) :
 		 */
 		public function get_local_url(): ?string {
 			return $this->local_url;
+		}
+
+		/**
+		 * Record the document bytes the API delivered inline (base64),
+		 * the API v1 bridge the uploads copy is written from.
+		 *
+		 * @param string|null $inline_content The base64-encoded bytes, or null.
+		 *
+		 * @return self
+		 */
+		public function set_inline_content( ?string $inline_content ): self {
+			$this->inline_content = $inline_content;
+
+			return $this;
+		}
+
+		/**
+		 * The base64-encoded document bytes, when the API delivered them
+		 * inline (API v1 only). Null after serialization.
+		 *
+		 * @return string|null
+		 */
+		public function get_inline_content(): ?string {
+			return $this->inline_content;
 		}
 
 		/**

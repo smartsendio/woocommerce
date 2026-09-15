@@ -313,12 +313,18 @@ if ( ! class_exists( 'SS_Shipping_Order_Reader' ) ) :
 			}
 
 			/*
-			 * Filter the order note which can be printed as freetext on the shipping label.
+			 * Filter the freetext printed on the shipping label (the
+			 * customer's order comment when the "include order comment"
+			 * setting is on, null otherwise). Not to be confused with the
+			 * WooCommerce order note the plugin adds after fulfillment -
+			 * that is smart_send_fulfillment_order_note.
 			 *
-			 * @param string   $order_note The customer note of the order.
-			 * @param WC_Order $order      The WooCommerce order.
+			 * @since 9.0.0 Renamed from smart_send_order_note.
+			 *
+			 * @param string|null $order_note The freetext for the label.
+			 * @param WC_Order    $order      The WooCommerce order.
 			 */
-			return apply_filters( 'smart_send_order_note', $order_note, $this->order );
+			return apply_filters( 'smart_send_shipment_freetext', $order_note, $this->order );
 		}
 
 		/**

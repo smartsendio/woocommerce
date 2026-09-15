@@ -306,7 +306,6 @@ if ( ! class_exists( 'SS_Shipping_WC' ) ) :
 			require_once SS_SHIPPING_PLUGIN_DIR_PATH . '/includes/booking/class-ss-shipping-shipment-code.php';
 			require_once SS_SHIPPING_PLUGIN_DIR_PATH . '/includes/booking/class-ss-shipping-booked-parcel.php';
 			require_once SS_SHIPPING_PLUGIN_DIR_PATH . '/includes/booking/class-ss-shipping-booked-shipment.php';
-			require_once SS_SHIPPING_PLUGIN_DIR_PATH . '/includes/booking/class-ss-shipping-booking.php';
 			require_once SS_SHIPPING_PLUGIN_DIR_PATH . '/includes/booking/class-ss-shipping-booking-service.php';
 
 			// Fulfillment domain: the label fulfillment workflow around a
@@ -407,7 +406,7 @@ if ( ! class_exists( 'SS_Shipping_WC' ) ) :
 					$this->order_meta,
 					$this->method_resolver,
 					$this->shipment_ids,
-					new SS_Shipping_Booking_Service( $this->order_meta, $this->method_resolver ),
+					new SS_Shipping_Booking_Service(),
 					$this->settings
 				);
 				$this->label_creator          = new SS_Shipping_Label_Creator( $this->fulfillment_service );

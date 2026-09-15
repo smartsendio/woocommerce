@@ -14,15 +14,16 @@
 
 /**
  * Build the internal shipment representation for an order the same way
- * SS_Shipping_Booking_Service does, without going through the (mocked) API
- * call.
+ * the fulfillment + booking services do - the fulfillment service decides
+ * the delivery details, the builder turns them into the representation -
+ * without going through the (mocked) API call.
  */
 function build_shipment_representation(WC_Order $order, bool $return = false): SS_Shipping_Shipment
 {
-    $order_reader = new SS_Shipping_Order_Reader($order);
-    $builder      = new SS_Shipping_Shipment_Builder($order, $order_reader, new SS_Shipping_Order_Meta(), new SS_Shipping_Method_Resolver());
+    $details = SS_SHIPPING_WC()->fulfillment()->resolve_delivery_details($order, $return);
+    $builder = new SS_Shipping_Shipment_Builder($order, new SS_Shipping_Order_Reader($order));
 
-    return $return ? $builder->build_return() : $builder->build_outbound();
+    return $builder->build($details);
 }
 
 /**
@@ -178,7 +179,7 @@ it('reconciles item-line totals with the order subtotal for a fixed-product coup
         ->and($item_sum)->toEqual(85.0);
 });
 
-it('diverges shipping-method/agent selection between build_outbound() and build_return()', function () {
+it('diverges shipping-method/agent selection between the outbound and return delivery details', function () {
     $product = create_simple_product(['price' => 100, 'weight' => 1]);
     $order   = create_order([
         'products'        => [$product],
@@ -201,7 +202,7 @@ it('diverges shipping-method/agent selection between build_outbound() and build_
         ->and($return->get_pickup_point())->toBeNull();
 });
 
-it('throws a SS_Shipping_Booking_Exception from build_return() when no return method is configured', function () {
+it('throws a SS_Shipping_Booking_Exception when resolving return delivery details with no return method configured', function () {
     $product = create_simple_product(['price' => 100, 'weight' => 1]);
     $order   = create_order([
         'products'        => [$product],

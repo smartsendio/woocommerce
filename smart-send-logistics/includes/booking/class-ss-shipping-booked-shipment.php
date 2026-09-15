@@ -16,8 +16,8 @@ if ( ! class_exists( 'SS_Shipping_Booked_Shipment' ) ) :
 
 	/**
 	 * What a booking produced (#177): the one typed representation of a
-	 * booked shipment the plugin hands to its own workflow steps and to
-	 * smart_send_shipment_booked listeners.
+	 * booked shipment the plugin hands to its own fulfillment steps and to
+	 * smart_send_booking_completed / smart_send_order_fulfilled listeners.
 	 *
 	 * Shaped for the concepts API v2 returns (smartsendio/dumbledore#2099)
 	 * and populated from API v1 today by SS_Shipping_Booking_Service, so

@@ -13,17 +13,19 @@
  */
 
 /**
- * Send the order through SS_Shipping_Booking_Service against a mocked API
- * and return the decoded JSON payload of the createShipmentAndLabels
- * request.
+ * Send the order through the fulfillment service (which decides the
+ * delivery details, runs smart_send_delivery_details and calls
+ * SS_Shipping_Booking_Service::book()) against a mocked API and return the
+ * decoded JSON payload of the createShipmentAndLabels request.
  */
 function capture_shipment_payload(WC_Order $order, bool $return = false): array
 {
     $capture = mock_smart_send_api();
 
-    $booking_service = new SS_Shipping_Booking_Service(new SS_Shipping_Order_Meta(), new SS_Shipping_Method_Resolver());
-    $booking         = $return ? $booking_service->book_return($order) : $booking_service->book_outbound($order);
-    expect($booking->is_successful())->toBeTrue();
+    $fulfillment = SS_SHIPPING_WC()->fulfillment();
+    $result      = $return ? $fulfillment->fulfill_return($order, false) : $fulfillment->fulfill_outbound($order, false);
+    expect($result->get_error_messages())->toBe([])
+        ->and($result->is_successful())->toBeTrue();
 
     $request = end($capture->requests);
     expect($request['url'])->toContain('shipments/labels');
@@ -804,7 +806,7 @@ it('lets the smart_send_order_receiver filter adjust the shipping address', func
     expect($payload['receiver']['city'])->toBe('Aarhus');
 });
 
-it('lets the smart_send_order_note filter rewrite the parcel freetext', function () {
+it('lets the smart_send_shipment_freetext filter rewrite the parcel freetext', function () {
     with_ss_settings(['include_order_comment' => 'yes']);
 
     $product = create_simple_product(['price' => 100, 'weight' => 1]);
@@ -820,9 +822,9 @@ it('lets the smart_send_order_note filter rewrite the parcel freetext', function
 
         return 'Filtered note';
     };
-    add_filter('smart_send_order_note', $filter, 10, 2);
+    add_filter('smart_send_shipment_freetext', $filter, 10, 2);
     remember_cleanup_callback(function () use ($filter): void {
-        remove_filter('smart_send_order_note', $filter, 10);
+        remove_filter('smart_send_shipment_freetext', $filter, 10);
     });
 
     $payload = capture_shipment_payload($order);

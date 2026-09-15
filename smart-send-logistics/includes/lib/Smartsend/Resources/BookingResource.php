@@ -44,7 +44,7 @@ use Smartsend\Models\Shipment\Services;
  * and that class itself makes no WordPress calls - the dependency points
  * from WP-side code down into this PSR-style lib, never the other way
  * around. It must never construct or return a WP-side type such as
- * SS_Shipping_Booking; that wrapping is SS_Shipping_Booking_Service's job.
+ * SS_Shipping_Booked_Shipment; that mapping is SS_Shipping_Booking_Service's job.
  */
 class BookingResource
 {

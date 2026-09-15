@@ -17,37 +17,29 @@ if ( ! class_exists( 'SS_Shipping_Shipment_Builder' ) ) :
 	/**
 	 * Assembles the internal shipment representation (#113), a typed
 	 * SS_Shipping_Shipment value object, from SS_Shipping_Order_Reader's
-	 * output (the WC-native data) plus the order's delivery details (#139):
-	 * the merged SS_Shipping_Delivery_Details from the repository and the
-	 * method resolver, passed through the smart_send_delivery_details
-	 * filter, with its parcel plan resolved into typed SS_Shipping_Parcel
-	 * rows. The representation is shaped close to the Smart Send v2 API
-	 * schema: a single net amount + tax amount per level (shipment/parcel/
-	 * item), no excl/incl redundancy, and a pickup-point section named
-	 * after v2's PickupParty.service_point_code rather than v1's
-	 * agent_no/agent.
+	 * output (the WC-native data) plus the SS_Shipping_Delivery_Details
+	 * fulfillment decided on (#139, #177): the shipping method, the
+	 * pickup point and the parcel plan, resolved here into typed
+	 * SS_Shipping_Parcel rows. The representation is shaped close to the
+	 * Smart Send v2 API schema: a single net amount + tax amount per level
+	 * (shipment/parcel/item), no excl/incl redundancy, and a pickup-point
+	 * section named after v2's PickupParty.service_point_code rather than
+	 * v1's agent_no/agent.
+	 *
+	 * The builder is booking-side and knows nothing about where the
+	 * delivery details come from: it never reads order meta, never
+	 * resolves the shipping method from the order and runs no filter -
+	 * SS_Shipping_Fulfillment_Service reads the stored configuration,
+	 * resolves the method and applies smart_send_delivery_details before
+	 * booking is called; SS_Shipping_Booking_Service runs
+	 * smart_send_booking_request on the built representation. The
+	 * details therefore arrive complete: build() throws
+	 * SS_Shipping_Booking_Exception when they carry no shipping method.
 	 *
 	 * This class does not talk to the API and does not know about the v1
 	 * wire format - translating the representation into the v1 request
 	 * body is \Smartsend\Resources\BookingResource::fromShipment()'s job
-	 * (#112). Nothing below the smart_send_delivery_details filter touches
-	 * raw meta or $_POST.
-	 *
-	 * Outbound and return bookings are two separate entry points -
-	 * build_outbound() and build_return() - rather than a single build()
-	 * taking an is_return boolean: they are expected to grow different
-	 * do_action() calls and different business logic over time, and a
-	 * boolean flag silently branching inside one method would hide that.
-	 * Both share assemble_shipment() for the parts that don't differ
-	 * (item/parcel/totals assembly) - only the shipping-method/pickup-point
-	 * selection differs between the two.
-	 *
-	 * build_return() throws SS_Shipping_Booking_Exception when it cannot
-	 * produce a valid shipment (no return method configured, raised by
-	 * SS_Shipping_Method_Resolver::resolve_return()) - it is
-	 * SS_Shipping_Booking_Service's job to catch that and convert it into
-	 * a failed SS_Shipping_Booking; this class never returns an error
-	 * array/value.
+	 * (#112).
 	 *
 	 * Gift card exclusion (#128) is NOT implemented here: WooCommerce
 	 * Gift Cards redemptions are not order items (confirmed against the
@@ -83,115 +75,35 @@ if ( ! class_exists( 'SS_Shipping_Shipment_Builder' ) ) :
 		protected SS_Shipping_Order_Reader $order_reader;
 
 		/**
-		 * Order meta repository.
-		 *
-		 * @var SS_Shipping_Order_Meta
-		 */
-		protected SS_Shipping_Order_Meta $order_meta;
-
-		/**
-		 * Shipping method resolver.
-		 *
-		 * @var SS_Shipping_Method_Resolver
-		 */
-		protected SS_Shipping_Method_Resolver $method_resolver;
-
-		/**
 		 * Constructor.
 		 *
-		 * @param WC_Order                    $order           The WooCommerce order.
-		 * @param SS_Shipping_Order_Reader    $order_reader    Order data access utility for the same order.
-		 * @param SS_Shipping_Order_Meta      $order_meta      Order meta repository.
-		 * @param SS_Shipping_Method_Resolver $method_resolver Shipping method resolver.
+		 * @param WC_Order                 $order        The WooCommerce order.
+		 * @param SS_Shipping_Order_Reader $order_reader Order data access utility for the same order.
 		 */
-		public function __construct( WC_Order $order, SS_Shipping_Order_Reader $order_reader, SS_Shipping_Order_Meta $order_meta, SS_Shipping_Method_Resolver $method_resolver ) {
-			$this->order           = $order;
-			$this->order_reader    = $order_reader;
-			$this->order_meta      = $order_meta;
-			$this->method_resolver = $method_resolver;
+		public function __construct( WC_Order $order, SS_Shipping_Order_Reader $order_reader ) {
+			$this->order        = $order;
+			$this->order_reader = $order_reader;
 		}
 
 		/**
-		 * Build the internal shipment representation for an outbound
-		 * (normal) shipping label: the shipping method comes from the
-		 * order's Smart Send shipping method, and the stored pickup point
-		 * is selected when one is stored on the order.
+		 * Build the internal shipment representation from the delivery
+		 * details: derive carrier/type from the shipping method, resolve
+		 * the parcel plan into typed parcels, and combine with the
+		 * receiver, item lines and totals from the order reader.
+		 *
+		 * @param SS_Shipping_Delivery_Details $details The delivery details to ship with (method set, pickup point and parcel plan as decided).
+		 *
+		 * @throws SS_Shipping_Booking_Exception When the details carry no shipping method.
 		 *
 		 * @return SS_Shipping_Shipment
 		 */
-		public function build_outbound(): SS_Shipping_Shipment {
-			$details = $this->order_meta->read( $this->order_reader->get_order_id() );
-			$details->set_shipping_method( $this->method_resolver->resolve_outbound( $this->order ) );
-
-			return $this->assemble_shipment( $details, false );
-		}
-
-		/**
-		 * Build the internal shipment representation for a return label:
-		 * the shipping method comes from the order's configured return
-		 * method, and no pickup point is selected - unless the return
-		 * method could not be resolved to the dedicated
-		 * smart_send_return_method meta (free-shipping/vConnect orders,
-		 * see SS_Shipping_Method_Resolver::return_uses_stored_pickup_point()),
-		 * in which case the stored pickup point selection applies like on
-		 * an outbound label.
-		 *
-		 * @throws SS_Shipping_Booking_Exception When no return method is configured.
-		 *
-		 * @return SS_Shipping_Shipment
-		 */
-		public function build_return(): SS_Shipping_Shipment {
-			$return_method = $this->method_resolver->resolve_return( $this->order );
-
-			$details = $this->order_meta->read( $this->order_reader->get_order_id() );
-			$details->set_shipping_method( $return_method );
-
-			if ( ! $this->method_resolver->return_uses_stored_pickup_point( $this->order ) ) {
-				$details->set_pickup_point( null );
-			}
-
-			return $this->assemble_shipment( $details, true );
-		}
-
-		/**
-		 * Assemble the shipment representation shared by build_outbound()
-		 * and build_return(): run the smart_send_delivery_details filter,
-		 * derive carrier/type, resolve the parcel plan into typed parcels,
-		 * and combine with the receiver, item lines and totals from the
-		 * order reader.
-		 *
-		 * @param SS_Shipping_Delivery_Details $details   The merged delivery details (method resolved, stored pickup point/plan applied).
-		 * @param boolean                      $is_return Whether this is a return label.
-		 *
-		 * @return SS_Shipping_Shipment
-		 */
-		protected function assemble_shipment( SS_Shipping_Delivery_Details $details, $is_return ): SS_Shipping_Shipment {
+		public function build( SS_Shipping_Delivery_Details $details ): SS_Shipping_Shipment {
 			$order_id = $this->order_reader->get_order_id();
 
-			/*
-			 * Filter the delivery details used to book a shipping label,
-			 * after the stored configuration and derived method have been
-			 * merged and before the shipment representation is assembled.
-			 * One typed extension point for everything Smart Send knows
-			 * about how the order ships: override the shipping method,
-			 * clear or replace the pickup point (SS_Shipping_Pickup_Point),
-			 * or declare a parcel plan (SS_Shipping_Parcel_Plan of
-			 * SS_Shipping_Parcel_Spec rows - specs may carry dimensions and
-			 * an explicit weight with no item allocations at all).
-			 *
-			 * Replaces the removed smart_send_shipping_label_args,
-			 * smart_send_order_parcels, smart_send_order_pickup_point and
-			 * smart_send_parcel_weight filters (v9).
-			 *
-			 * @since 9.0.0
-			 *
-			 * @param SS_Shipping_Delivery_Details $details   The merged delivery details.
-			 * @param WC_Order                     $order     The WooCommerce order.
-			 * @param boolean                      $is_return Whether the label is a return label.
-			 *
-			 * @return SS_Shipping_Delivery_Details The delivery details to book with.
-			 */
-			$details = apply_filters( 'smart_send_delivery_details', $details, $this->order, $is_return );
+			if ( empty( $details->get_shipping_method() ) ) {
+				// phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- caught by SS_Shipping_Fulfillment_Service and recorded on the result as data, never echoed directly.
+				throw new SS_Shipping_Booking_Exception( __( 'No shipping method set', 'smart-send-logistics' ) );
+			}
 
 			// Determine shipping method and carrier.
 			$method_code = new SS_Shipping_Method_Code( $details->get_shipping_method() );
