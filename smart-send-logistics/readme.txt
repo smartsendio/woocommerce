@@ -12,7 +12,7 @@ Stable tag: 9.0.0
 License: GNU General Public License v3.0
 License URI: http://www.gnu.org/licenses/gpl-3.0.html
 Requires Plugins: woocommerce
-WC requires at least: 5.0.0
+WC requires at least: 8.2.0
 WC tested up to: 11.1
 Requires PHP: 7.4
 
@@ -361,7 +361,7 @@ No - this is by design. Neither deactivating nor uninstalling the plugin deletes
 * Support for the WooCommerce Checkout Block: pickup point selection now works in the block-based checkout as well as the classic checkout
 * Support for High-Performance Order Storage (HPOS)
 * Minimum required WordPress version raised to 6.5
-* Minimum required WooCommerce version raised from 4.7 to 5.0
+* Minimum required WooCommerce version raised from 4.7 to 8.2
 * Minimum required PHP version is 7.4 (unchanged since 8.2.0)
 * Tested with WordPress 7.1 and WooCommerce 11.1
 * The plugin is renamed from "Smart Send Logistics" to "Smart Send" (the plugin slug smart-send-logistics is unchanged, so updates arrive as before)
@@ -712,7 +712,7 @@ No - this is by design. Neither deactivating nor uninstalling the plugin deletes
 Version 9 is a complete rewrite of the plugin. Make a full site backup and [review update best practices](https://woocommerce.com/document/how-to-update-your-site/) before upgrading from 8.x. Existing settings, shipping methods and order data are kept.
 
 * If your site uses Smart Send hooks or filters (custom code, a Code Snippets plugin or a theme), that code must be updated: the version 8 hooks and filters no longer fire, and the new hook API passes typed objects instead of raw data. The Developers section lists every hook, its arguments and examples. Test your snippets on a staging site before upgrading production.
-* Requires WordPress 6.5, WooCommerce 5.0 and PHP 7.4 or newer. Sites on older versions should stay on the 8.x series.
+* Requires WordPress 6.5, WooCommerce 8.2 and PHP 7.4 or newer. Sites on older versions should stay on the 8.x series.
 * Free shipping no longer makes a shipping method available for a cart weight outside the configured weight table; the weight table alone decides when the method is offered, and free shipping only zeroes the price. Check your weight tables if you relied on the free-shipping threshold to cover heavy carts.
 * The bulk label actions on the Orders screen process one selected order at a time. Bulk printing of several orders returns in a later 9.x release; if you need it now, stay on version 8.x.
 

@@ -209,11 +209,8 @@ if ( ! class_exists( 'SS_Shipping_WC' ) ) :
 		}
 
 		public function declaring_hpos_compatibility() {
-			// FeaturesUtil exists since WC 6.5; the plugin's WC floor is 5.0.
-			if ( class_exists( \Automattic\WooCommerce\Utilities\FeaturesUtil::class ) ) {
-				\Automattic\WooCommerce\Utilities\FeaturesUtil::declare_compatibility( 'custom_order_tables', SS_SHIPPING_PLUGIN_FILE, true );
-				\Automattic\WooCommerce\Utilities\FeaturesUtil::declare_compatibility( 'cart_checkout_blocks', SS_SHIPPING_PLUGIN_FILE, true );
-			}
+			\Automattic\WooCommerce\Utilities\FeaturesUtil::declare_compatibility( 'custom_order_tables', SS_SHIPPING_PLUGIN_FILE, true );
+			\Automattic\WooCommerce\Utilities\FeaturesUtil::declare_compatibility( 'cart_checkout_blocks', SS_SHIPPING_PLUGIN_FILE, true );
 		}
 
         /**
@@ -356,7 +353,7 @@ if ( ! class_exists( 'SS_Shipping_WC' ) ) :
 		 * Load the Checkout Block integration class.
 		 *
 		 * SS_Shipping_Block_Checkout implements the WC Blocks
-		 * IntegrationInterface (guaranteed by the WC 5.0 floor), so like
+		 * IntegrationInterface (guaranteed by the WC 8.2 floor), so like
 		 * SS_Shipping_WC_Method its file can only be loaded once WooCommerce
 		 * is available - this plugin loads before WooCommerce. Called from
 		 * init() behind the bootstrap WooCommerce gate.
