@@ -13,6 +13,14 @@
  * only actually clicking through.)
  */
 
+function ss_dev_trace(string $message): void //DBG
+{ //DBG
+    fwrite(STDERR, '[trace ' . date('H:i:s') . '] ' . $message . PHP_EOL); //DBG
+} //DBG
+beforeAll(function (): void { ss_dev_trace('DevStoreTest file start'); }); //DBG
+beforeEach(function (): void { ss_dev_trace('test start'); }); //DBG
+afterEach(function (): void { ss_dev_trace('test end'); }); //DBG
+
 it('loads the store home page without javascript errors', function () {
     visit(base_url('/'))
         ->assertSee('Smart Send')
@@ -50,11 +58,18 @@ it('lists the sample products in the shop', function () {
  */
 function ss_dev_store_add_beanie_and_open_cart()
 {
-    return visit(base_url('/product/beanie/'))
-        ->assertSee('Add to cart')
-        ->click('form.cart button.single_add_to_cart_button')
-        ->assertSee('has been added to your cart')
-        ->navigate(base_url('/cart/'));
+    ss_dev_trace('visit product page'); //DBG
+    $page = visit(base_url('/product/beanie/'));
+    ss_dev_trace('assert add to cart'); //DBG
+    $page->assertSee('Add to cart');
+    ss_dev_trace('click add to cart'); //DBG
+    $page->click('form.cart button.single_add_to_cart_button');
+    ss_dev_trace('assert notice'); //DBG
+    $page->assertSee('has been added to your cart');
+    ss_dev_trace('navigate cart'); //DBG
+    $page->navigate(base_url('/cart/'));
+    ss_dev_trace('on cart page'); //DBG
+    return $page;
 }
 
 it('calculates flat rate shipping for the Danish store address in the cart', function () {
