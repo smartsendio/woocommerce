@@ -98,6 +98,77 @@ it('initialize() registers the built scripts with their asset metadata', functio
     }
 });
 
+it('leaves no built-script dependency unregistered after initialize()', function () {
+    // WooCommerce Blocks merges every integration's script handles into the
+    // Checkout block's own frontend script dependencies, so ONE unmet
+    // dependency of ours keeps the entire Checkout block from loading - the
+    // WordPress 6.5 blank-checkout bug (#183): the bundles depend on
+    // react-jsx-runtime, which core registers from 6.6 only.
+    $integration = SS_SHIPPING_WC()->block_checkout();
+
+    $integration->initialize();
+
+    remember_cleanup_callback(function (): void {
+        wp_deregister_script(SS_Shipping_Block_Checkout::HANDLE_FRONTEND);
+        wp_deregister_script(SS_Shipping_Block_Checkout::HANDLE_EDITOR);
+    });
+
+    foreach ([SS_Shipping_Block_Checkout::HANDLE_FRONTEND, SS_Shipping_Block_Checkout::HANDLE_EDITOR] as $handle) {
+        foreach (wp_scripts()->registered[$handle]->deps as $dependency) {
+            expect(wp_script_is($dependency, 'registered'))
+                ->toBeTrue("Dependency '{$dependency}' of {$handle} is not a registered script on this WordPress");
+        }
+    }
+});
+
+it('registers a react-jsx-runtime fallback when WordPress has not', function () {
+    // Simulate WordPress < 6.6, where the handle does not exist, and make
+    // sure whatever core had registered comes back afterwards.
+    $core = wp_scripts()->registered['react-jsx-runtime'] ?? null;
+    wp_deregister_script('react-jsx-runtime');
+    remember_cleanup_callback(function () use ($core): void {
+        wp_deregister_script('react-jsx-runtime');
+        wp_deregister_script(SS_Shipping_Block_Checkout::HANDLE_FRONTEND);
+        wp_deregister_script(SS_Shipping_Block_Checkout::HANDLE_EDITOR);
+        if ($core) {
+            wp_scripts()->registered['react-jsx-runtime'] = $core;
+        }
+    });
+
+    expect(wp_script_is('react-jsx-runtime', 'registered'))->toBeFalse();
+
+    SS_SHIPPING_WC()->block_checkout()->initialize();
+
+    expect(wp_script_is('react-jsx-runtime', 'registered'))->toBeTrue();
+
+    $fallback = wp_scripts()->registered['react-jsx-runtime'];
+
+    expect($fallback->src)->toContain('/smart-send-logistics/public/js/react-jsx-runtime.js')
+        ->and($fallback->deps)->toBe(['react'])
+        ->and(file_exists(SS_SHIPPING_PLUGIN_DIR_PATH . '/public/js/react-jsx-runtime.js'))->toBeTrue();
+});
+
+it('keeps the core react-jsx-runtime script when WordPress registers it', function () {
+    // On WordPress 6.6+ the fallback must stay out of the way of core's
+    // real runtime script. (Do not key this on wp_script_is(): on 6.5 the
+    // handle is registered too - by the fallback itself, at bootstrap.)
+    if (version_compare(get_bloginfo('version'), '6.6', '<')) {
+        $this->markTestSkipped('This WordPress does not register react-jsx-runtime itself (pre-6.6).');
+    }
+
+    $core = wp_scripts()->registered['react-jsx-runtime'];
+
+    SS_SHIPPING_WC()->block_checkout()->initialize();
+
+    remember_cleanup_callback(function (): void {
+        wp_deregister_script(SS_Shipping_Block_Checkout::HANDLE_FRONTEND);
+        wp_deregister_script(SS_Shipping_Block_Checkout::HANDLE_EDITOR);
+    });
+
+    expect(wp_scripts()->registered['react-jsx-runtime'])->toBe($core)
+        ->and($core->src)->not->toContain('smart-send-logistics');
+});
+
 it('opts the pickup point block into the Blocks data-attribute pass', function () {
     // WooCommerce's render_block filter only adds data-block-name (and the
     // saved attributes as data-* attributes) to woocommerce/* blocks by

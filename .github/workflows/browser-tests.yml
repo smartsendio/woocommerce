@@ -4,10 +4,13 @@ on:
   push:
     branches: [main, develop]
   pull_request:
+  # Manual runs, e.g. to repeat the matrix on a branch when checking the
+  # fpm stability (#79) without pushing empty commits.
+  workflow_dispatch:
 
 jobs:
   pest:
-    name: Pest browser tests (PHP ${{ matrix.php-version }} / WP ${{ matrix.wp-version }} / WC ${{ matrix.wc-version }} / ${{ matrix.order-storage }} orders)
+    name: Pest browser tests (PHP ${{ matrix.php-version }} / WP ${{ matrix.wp-version }} / WC ${{ matrix.wc-version }} / ${{ matrix.order-storage }} orders)${{ matrix.canary && ' [canary]' || '' }}
     runs-on: ubuntu-latest
     timeout-minutes: 15
     strategy:
@@ -17,21 +20,26 @@ jobs:
         # the matrix PHP version. Pest itself always runs on PHP 8.4 (see the
         # tooling setup below) since its dependencies require it.
         #
-        # PHP 7.4 is the floor for the latest WooCommerce; testing the plugin's
-        # older declared support (PHP 5.6+) would require pinning older
-        # WP/WC versions via extra include entries.
-        # PHP 8.1 and 8.2 were temporarily removed on 2026-08-11 (PR #80)
-        # when the runner environment deterministically segfaulted php-fpm
-        # workers on those versions. Restored as a canary together with the
-        # #79 hardening (worker recycling, core-dump capture) — if they go
-        # deterministically red again with the same environment signature,
-        # drop them again and record it on #79.
-        # PHP 8.4 was temporarily removed on 2026-08-20 after going
-        # deterministically red the same way (5 of 6 attempts across PRs
-        # #167/#168, fpm SIGSEGV consistently striking the block checkout's
-        # /wp-json/wc/store/v1/batch render; the in-job fpm-restart retry no
-        # longer rescues it). Evidence and the canary reminder live on #79.
-        php-version: ['7.4', '8.0', '8.1', '8.2', '8.3']
+        # Supported range (readme.txt): PHP 7.4+, WordPress 6.5+,
+        # WooCommerce 8.2+. Every PHP version in that range runs against the
+        # latest WP/WC (the `latest` legs), and one `floor` leg (below) runs
+        # the oldest supported PHP against the oldest supported WP/WC - the
+        # two ends of the promise; intermediate WP/WC versions are not
+        # tested.
+        #
+        # History of the PHP legs (#79): 8.1/8.2 (2026-08-11, PR #80) and
+        # 8.4 (2026-08-20, PR #169) were each dropped for a while because
+        # php-fpm workers segfaulted deterministically on those versions.
+        # The core dump captured in run 32321244780 put the crash inside
+        # opcache.so: shivammathur/setup-php appends its JIT config
+        # (opcache.enable=1, opcache.jit=1235, opcache.jit_buffer_size=256M)
+        # to 99-pecl.ini and symlinks that file into the fpm scan dir, where
+        # it sorts AFTER this workflow's previous 99-ci-stability.ini - so
+        # the intended opcache override never applied and every PHP 8.x fpm
+        # pool ran the tracing JIT. The stability ini now loads last and
+        # the "Start the store" step asserts the effective worker settings,
+        # so a setup-php change cannot silently re-enable the JIT again.
+        php-version: ['7.4', '8.0', '8.1', '8.2', '8.3', '8.4', '8.5']
         wp-version: ['latest']
         wc-version: ['latest']
         # Order storage of the store: the default legs run WooCommerce's
@@ -43,6 +51,20 @@ jobs:
             wp-version: 'latest'
             wc-version: 'latest'
             order-storage: 'posts'
+          # The floor leg: oldest supported PHP on the oldest supported
+          # WordPress + WooCommerce (latest patch release of each; verify
+          # the zips exist on wordpress.org before bumping). Its first run
+          # caught #183 (the Checkout block did not render on WordPress
+          # 6.5 - the block bundles' react-jsx-runtime dependency) and the
+          # WooCommerce 8.2 rate-refetch timing in BlockCheckoutFlowTest.
+          - php-version: '7.4'
+            wp-version: '6.5.10'
+            wc-version: '8.2.5'
+            order-storage: 'hpos'
+    # Set `canary: true` on a matrix entry to let it report without failing
+    # the workflow - only with a comment naming the issue that makes it
+    # strict again.
+    continue-on-error: ${{ matrix.canary == true }}
 
     steps:
       - uses: actions/checkout@v4
@@ -138,11 +160,22 @@ jobs:
             -e 's/^listen\.group = .*/listen.group = runner/' \
             "/etc/php/$PHPV/fpm/pool.d/www.conf"
 
-          # PCRE JIT causes intermittent SIGSEGV in fpm workers rendering
-          # WooCommerce pages on some PHP versions; opcache is disabled too
-          # since compile speed is irrelevant for a short-lived test store.
-          printf 'pcre.jit=0\nopcache.enable=0\n' | \
-            sudo tee "/etc/php/$PHPV/fpm/conf.d/99-ci-stability.ini" > /dev/null
+          # Worker stability settings (#79). Keep opcache itself on (the
+          # suite's timings assume compiled pages) but turn the opcache JIT
+          # off: the fpm SIGSEGVs on PHP 8.1/8.2/8.4 resolved to opcache.so
+          # in the captured core dump, and the pool was running the tracing
+          # JIT (opcache.jit=1235, 256M buffer) that shivammathur/setup-php
+          # appends to its 99-pecl.ini for every PHP 8.x - a file it symlinks
+          # into the fpm scan dir. PCRE JIT stays off for the same class of
+          # worker crash on older versions.
+          #
+          # The file name must sort after setup-php's 99-pecl.ini (PHP loads
+          # the scan dir alphabetically, last value wins): the previous
+          # 99-ci-stability.ini sorted before it, so its opcache override was
+          # silently discarded. The probe below asserts the settings a worker
+          # actually runs with, so this cannot regress unnoticed.
+          printf 'pcre.jit=0\nopcache.enable=1\nopcache.jit=0\nopcache.jit_buffer_size=0\n' | \
+            sudo tee "/etc/php/$PHPV/fpm/conf.d/99-zz-ci-stability.ini" > /dev/null
 
           # Keep core dumps from crashed fpm workers so the next SIGSEGV is
           # diagnosable to a stack frame (#79). The runner's default
@@ -180,6 +213,38 @@ jobs:
           # timeout on a cold stack).
           curl -sf -o /dev/null http://127.0.0.1:8181/shop/ || true
           curl -sf -o /dev/null http://127.0.0.1:8181/wp-login.php || true
+
+          # Assert the settings an actual fpm worker runs with (served through
+          # nginx, not `php -i`, so SAPI and scan-dir ordering are the real
+          # ones): PCRE JIT off, opcache on, opcache JIT off (#79). Note that
+          # GitHub echoes this whole script at the top of the step log, so
+          # the "::error::" line below appears there even when the check
+          # passes - the verdict is the "Effective fpm worker settings" line.
+          PROBE="$DOCROOT/ci-ini-probe.php"
+          cat > "$PROBE" <<'PHP'
+          <?php
+          $status = function_exists( 'opcache_get_status' ) ? opcache_get_status( false ) : false;
+          echo json_encode( array(
+              'php'                     => PHP_VERSION,
+              'pcre.jit'                => ini_get( 'pcre.jit' ),
+              'opcache.enable'          => ini_get( 'opcache.enable' ),
+              'opcache.jit'             => ini_get( 'opcache.jit' ),
+              'opcache.jit_buffer_size' => ini_get( 'opcache.jit_buffer_size' ),
+              'opcache_enabled'         => is_array( $status ) && ! empty( $status['opcache_enabled'] ),
+              'jit_enabled'             => is_array( $status ) && ! empty( $status['jit']['enabled'] ),
+              'jit_on'                  => is_array( $status ) && ! empty( $status['jit']['on'] ),
+          ) );
+          PHP
+          INI_JSON="$(curl -sf http://127.0.0.1:8181/ci-ini-probe.php)"
+          rm -f "$PROBE"
+          echo "Effective fpm worker settings: $INI_JSON"
+          echo "$INI_JSON" | jq -e '
+            .["pcre.jit"] == "0" and .opcache_enabled == true
+            and .jit_enabled == false and .jit_on == false
+          ' > /dev/null || {
+            echo "::error::php-fpm workers are not running with the CI stability settings (PCRE JIT off, opcache on, opcache JIT off) - see #79"
+            exit 1
+          }
 
       - name: Run Pest browser tests
         timeout-minutes: 10

@@ -38,7 +38,95 @@ function ss_block_checkout_reach_shipping_options()
         ->assertSee('Flat rate')
         ->assertSee('Smart Send Pickup Point');
 
+    // The address entry above triggers a (debounced) cart update that
+    // re-fetches the shipping rates. While that request is in flight the
+    // rate radios are disabled - noticeably long on older WooCommerce
+    // (8.2 on the CI floor leg), where a click landing in that window was
+    // silently dropped and the flat rate stayed selected. Wait until the
+    // cart has absorbed the address and is idle before choosing a rate.
+    ss_block_checkout_wait_for_cart_idle($page, '2300');
+
     return $page;
+}
+
+/**
+ * Block until the Checkout block's cart store has the server-confirmed
+ * shipping destination at the given postcode and has been quiet (no
+ * customer-data / rate-selection request in flight) for longer than the
+ * block's debounce, so the next click on a shipping rate is not swallowed
+ * by a re-render. Every filled field schedules its own debounced cart
+ * update, so a single idle sample is not enough - the last one (the phone)
+ * may not have started yet. Polls the wc/store/cart selectors (stable
+ * across the supported WooCommerce range) rather than any version-specific
+ * wording in the order summary.
+ */
+function ss_block_checkout_wait_for_cart_idle($page, string $postcode, int $timeoutSeconds = 20): void
+{
+    $deadline = microtime(true) + $timeoutSeconds;
+    $quietFor = 2.0; // seconds; the block debounces address pushes by ~1s
+    $probe = <<<JS
+        (() => {
+            const store = window.wp && wp.data && wp.data.select('wc/store/cart');
+            if (!store) { return false; }
+            const packages = store.getShippingRates();
+            const destination = packages.length ? packages[0].destination : null;
+            return !!destination
+                && destination.postcode === '$postcode'
+                && !store.isCustomerDataUpdating()
+                && !store.isShippingRateBeingSelected()
+                && !store.isCartDataStale();
+        })()
+    JS;
+
+    $quietSince = null;
+
+    do {
+        if ($page->script($probe) === true) {
+            $quietSince = $quietSince ?? microtime(true);
+            if (microtime(true) - $quietSince >= $quietFor) {
+                return;
+            }
+        } else {
+            $quietSince = null;
+        }
+        usleep(250000);
+    } while (microtime(true) < $deadline);
+
+    throw new RuntimeException("The block checkout cart did not settle on postcode $postcode within {$timeoutSeconds}s.");
+}
+
+/**
+ * Choose the Smart Send agent rate and make sure the cart store registered
+ * it. A click that lands while the Checkout block has the rate radios
+ * disabled (a cart update in flight - long on WooCommerce 8.2) is dropped
+ * silently, so verify the selection through wc/store/cart and click again
+ * when it did not take.
+ */
+function ss_block_checkout_select_agent_rate($page, string $rateId)
+{
+    $selectedProbe = <<<JS
+        (() => {
+            const store = window.wp && wp.data && wp.data.select('wc/store/cart');
+            if (!store) { return false; }
+            const packages = store.getShippingRates();
+            return packages.length > 0
+                && packages[0].shipping_rates.some((rate) => rate.selected && rate.rate_id === '$rateId');
+        })()
+    JS;
+
+    for ($attempt = 1; $attempt <= 3; $attempt++) {
+        $page->click('input[value="' . $rateId . '"]');
+
+        $deadline = microtime(true) + 5;
+        do {
+            if ($page->script($selectedProbe) === true) {
+                return $page;
+            }
+            usleep(250000);
+        } while (microtime(true) < $deadline);
+    }
+
+    throw new RuntimeException("The shipping rate $rateId was not selected after 3 clicks.");
 }
 
 /**
@@ -51,7 +139,7 @@ function ss_block_checkout_reach_pickup_selector()
 
     $page = ss_block_checkout_reach_shipping_options();
 
-    $page->click('input[value="smart_send_shipping:' . $state['instance_id'] . '"]')
+    ss_block_checkout_select_agent_rate($page, 'smart_send_shipping:' . $state['instance_id'])
         // The selector element renders as soon as the agent rate is chosen,
         // but its options arrive with the next Store API cart response - so
         // wait on the component's observable state (data-status flips to
@@ -162,7 +250,7 @@ it('shows the none-found state and places the order without a selection when no 
         // checkout), no selector, and NO client-side validation error. Wait
         // on the component's own data-status affordance ("empty" once the
         // none-found cart response is in).
-        $page->click('input[value="smart_send_shipping:' . $state['instance_id'] . '"]')
+        ss_block_checkout_select_agent_rate($page, 'smart_send_shipping:' . $state['instance_id'])
             ->assertPresent('.ss-pickup-point-block[data-status="empty"]')
             ->assertSee('We could not find available pickup points')
             ->assertMissing('#ss-pickup-point-select');
