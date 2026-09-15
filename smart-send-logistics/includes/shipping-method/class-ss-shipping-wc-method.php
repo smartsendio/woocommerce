@@ -366,7 +366,7 @@ if ( ! class_exists( 'SS_Shipping_WC_Method' ) ) :
 			// Log-file developer trace: the outcome of the cost calculation.
 			if ( isset( $this->rates[ $rate['id'] ] ) ) {
 				SS_Shipping_Logger::debug(
-					sprintf( 'Calculated shipping cost for shipping rate %1$s: %2$s', $rate['id'], $this->format_trace_cost( $this->rates[ $rate['id'] ]->get_cost() ) ),
+					sprintf( 'Calculated shipping cost for shipping rate %1$s: %2$s', $rate['id'], $this->rates[ $rate['id'] ]->get_cost() ),
 					array(
 						'rate_id' => $rate['id'],
 						'cost'    => $this->rates[ $rate['id'] ]->get_cost(),
@@ -407,22 +407,6 @@ if ( ! class_exists( 'SS_Shipping_WC_Method' ) ) :
 		}
 
 		/**
-		 * Format a rate cost for the debug bar / log trace lines.
-		 *
-		 * WC_Shipping_Rate::get_cost() hands the cost back as WooCommerce
-		 * stored it, and that differs across the supported range (WooCommerce
-		 * 8.2 yields "49.00" where current WooCommerce yields "49"), so the
-		 * trace normalises it - no rounding, trailing zeros trimmed - to read
-		 * the same on every version.
-		 *
-		 * @param mixed $cost The rate cost as returned by WooCommerce.
-		 * @return string
-		 */
-		protected function format_trace_cost( $cost ) {
-			return wc_format_decimal( $cost, false, true );
-		}
-
-		/**
 		 * Show the one-line evaluation summary of this method in the checkout
 		 * shipping debug bar: whether the rate ended up available for the
 		 * package (with the evaluated total and cart weight) and, when it did,
@@ -452,7 +436,7 @@ if ( ! class_exists( 'SS_Shipping_WC_Method' ) ) :
 				return;
 			}
 
-			$cost = $this->format_trace_cost( $this->rates[ $rate['id'] ]->get_cost() );
+			$cost = $this->rates[ $rate['id'] ]->get_cost();
 
 			if ( 'flat_fee' === $cost_derivation['type'] ) {
 				SS_Shipping_Checkout_Debug::add_notice(
