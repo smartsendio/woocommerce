@@ -36,30 +36,24 @@ it('lists the sample products in the shop', function () {
 });
 
 /**
- * Put the Beanie in the cart and land on the cart page.
+ * Put the Beanie in the cart from its product page and land on the cart
+ * page.
  *
- * The product page is still visited (it must render with its add-to-cart
- * form), but the add itself goes through WooCommerce's ?add-to-cart=<id>
- * URL - the same path every other Browser journey uses - rather than a
- * click on the product form's submit button. On the WooCommerce 8.2 floor
- * leg (classic shortcode cart rendered server-side) the session written by
- * that form POST was not seen by the next navigation of the Playwright
- * context and the cart page rendered empty, while the same POST replayed
- * with curl or in a real Chrome showed the item; the GET path is reliable
- * on every supported version, and the store wiring under test (cart page,
- * flat rate, Proceed to Checkout) is the same either way.
+ * The click targets the product form's own submit button by selector. A
+ * text click ('Add to cart') resolves to the first of several matches on
+ * a Storefront product page - the related products' AJAX "Add to cart"
+ * links and the sticky add-to-cart bar carry the same text - so on the
+ * WooCommerce 8.2 floor leg it added a related product instead and the
+ * cart page had no Beanie. The form POST reloads the product page with
+ * WooCommerce's "added to your cart" notice; wait for it before opening
+ * the cart so the navigation does not cut the POST short.
  */
 function ss_dev_store_add_beanie_and_open_cart()
 {
-    $page = visit(base_url('/product/beanie/'))
-        ->assertSee('Add to cart');
-
-    $productId = (int) $page->script(
-        "(function () { var input = document.querySelector('form.cart [name=\"add-to-cart\"]'); return input ? input.value : 0; })()"
-    );
-    expect($productId)->toBeGreaterThan(0);
-
-    return $page->navigate(base_url('/?add-to-cart=' . $productId))
+    return visit(base_url('/product/beanie/'))
+        ->assertSee('Add to cart')
+        ->click('form.cart button.single_add_to_cart_button')
+        ->assertSee('has been added to your cart')
         ->navigate(base_url('/cart/'));
 }
 
