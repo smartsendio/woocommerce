@@ -226,8 +226,11 @@ it('logs a debug trace when the meta box is rendered for a non Smart Send order'
     SS_SHIPPING_WC()->meta_box()->render_smart_send_order_meta_box($order);
     $output = ob_get_clean();
 
-    expect($output)->toContain('Order placed with a shipping method that is not from the Smart Send plugin')
-        ->and(implode("\n", ss_policy_logged($spy, 'debug')))->toContain('No Smart Send shipping method on order - skipping meta box content');
+    // Deliberate behaviour change (#182, state B): the box no longer dead-ends
+    // on such an order - it offers the method choice - and the debug trace
+    // says so.
+    expect($output)->toContain('This order was not placed with a Smart Send shipping method. Choose one to book anyway.')
+        ->and(implode("\n", ss_policy_logged($spy, 'debug')))->toContain('No Smart Send shipping method on order - the meta box offers a method choice');
 });
 
 it('logs which Smart Send rates ended up offered for the package, without a debug bar notice', function () {

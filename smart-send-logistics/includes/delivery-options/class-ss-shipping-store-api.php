@@ -437,7 +437,8 @@ if ( ! class_exists( 'SS_Shipping_Store_Api' ) ) :
 		 * Re-resolve a submitted agent number into the server-side pickup
 		 * point: the session-cached lookup results first (cheap, already
 		 * validated - the same cache the classic checkout resolves
-		 * against), the findByAgentNo API call as fallback.
+		 * against), the shared find_by_agent_no() API lookup (#182) as
+		 * fallback.
 		 *
 		 * @param string   $carrier  Unique carrier code (e.g. 'postnord').
 		 * @param WC_Order $order    The order being placed.
@@ -452,18 +453,12 @@ if ( ! class_exists( 'SS_Shipping_Store_Api' ) ) :
 				return $cached;
 			}
 
-			$country = $order->get_shipping_country();
-
 			// The request and response (incl. HTTP status code and endpoint)
 			// are logged by the client's request logger.
 			try {
-				$response = SS_SHIPPING_WC()->get_api_handle()->pickupPoints()->findByAgentNo( $carrier, $country, $agent_no );
-
-				if ( is_object( $response->data() ) ) {
-					return SS_Shipping_Pickup_Point::from_object( $response->data() );
-				}
-			} catch ( \Smartsend\Exceptions\HttpClientException $e ) {
-				unset( $e ); // A failed lookup means the agent number cannot be resolved - fall through to the rejection below.
+				return $this->pickup_point_lookup->find_by_agent_no( $carrier, (string) $order->get_shipping_country(), $agent_no );
+			} catch ( SS_Shipping_Pickup_Point_Not_Found_Exception $e ) {
+				unset( $e ); // The agent number cannot be resolved - fall through to the rejection below.
 			}
 
 			SS_Shipping_Logger::warning(
