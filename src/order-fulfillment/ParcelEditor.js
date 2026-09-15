@@ -1,8 +1,12 @@
 /** @jsxRuntime classic */
 /** @jsx createElement */
 /**
- * The parcels row (section 1.2-D): a summary ("2 parcels · 1.20 kg") with
- * an "Edit" action, and the editor - one block per box with an OPTIONAL
+ * The parcels section (section 1.2-D): collapsed by default to one header
+ * line - "Parcels", the summary ("2 parcels · 1.20 kg"), a help icon and
+ * an "Edit" link; "Edit" expands the editor under the same header (with
+ * a "Done" button in place of Edit, which collapses it again keeping the
+ * edited plan - it is submitted with the booking). The editor is one
+ * grey card per box with an OPTIONAL
  * weight (placeholder: the computed sum of its units, what the server
  * books with when left empty) and optional L×W×H, and every order unit in
  * exactly one box. A box lists one row per product line with units in it
@@ -21,6 +25,9 @@ import { __, _n, sprintf } from '@wordpress/i18n';
 
 import { boxLines, computedBoxWeight, dropBoxIfEmpty, emptyBox, formatWeight, moveOneUnit, totalWeight } from './model';
 import { FieldError } from './ErrorNotice';
+import DetailRow from './Row';
+
+export const PARCELS_HELP = __( 'Move items between boxes with the arrows. Weight is calculated from the items unless you enter one.', 'smart-send-logistics' );
 
 const DIMENSIONS = [
 	[ 'length', 'L' ],
@@ -28,7 +35,7 @@ const DIMENSIONS = [
 	[ 'height', 'H' ],
 ];
 
-export default function ParcelEditor( { units, boxes, assignment, editing, onEdit, onDone, onChange, errors, disabled } ) {
+export default function ParcelEditor( { units, boxes, assignment, editing, editable = true, onEdit, onDone, onChange, errors, disabled } ) {
 	const update = ( nextBoxes, nextAssignment ) => onChange( nextBoxes, nextAssignment );
 
 	const setBoxValue = ( boxIndex, key, value ) => {
@@ -70,20 +77,22 @@ export default function ParcelEditor( { units, boxes, assignment, editing, onEdi
 	);
 
 	return (
-		<div className="smart-send-fulfillment__row" data-ss-section="parcel_plan">
-			<div className="smart-send-fulfillment__inline-actions">
-				<strong>{ __( 'Parcels', 'smart-send-logistics' ) }</strong>
-				<span data-ss-value="parcel_plan.summary">{ summary }</span>
-				{ editing ? (
-					<Button variant="secondary" size="small" data-ss-action="parcels-done" onClick={ onDone } disabled={ disabled }>
-						{ __( 'Done', 'smart-send-logistics' ) }
-					</Button>
-				) : (
-					<Button variant="link" size="small" data-ss-action="edit-parcels" onClick={ onEdit } disabled={ disabled }>
-						{ __( 'Edit', 'smart-send-logistics' ) }
-					</Button>
-				) }
-			</div>
+		<DetailRow
+			className="smart-send-fulfillment__section"
+			section="parcel_plan"
+			label={ __( 'Parcels', 'smart-send-logistics' ) }
+			help={ PARCELS_HELP }
+			summary={ <span className="smart-send-fulfillment__summary" data-ss-value="parcel_plan.summary">{ summary }</span> }
+			action="edit-parcels"
+			editable={ editable }
+			editing={ editing }
+			onEdit={ onEdit }
+			control={ editing && (
+				<Button variant="secondary" size="small" className="smart-send-fulfillment__done" data-ss-action="done-parcels" onClick={ onDone } disabled={ disabled }>
+					{ __( 'Done', 'smart-send-logistics' ) }
+				</Button>
+			) }
+		>
 			<FieldError field="parcel_plan" errors={ errors } />
 
 			{ editing && (
@@ -195,13 +204,11 @@ export default function ParcelEditor( { units, boxes, assignment, editing, onEdi
 						);
 					} ) }
 
-					<div className="smart-send-fulfillment__inline-actions">
-						<Button variant="tertiary" size="small" data-ss-action="reset-parcels" onClick={ reset } disabled={ disabled }>
-							{ __( 'Reset to one parcel', 'smart-send-logistics' ) }
-						</Button>
-					</div>
+					<button type="button" className="button-link smart-send-fulfillment__reset" data-ss-action="reset-parcels" onClick={ reset } disabled={ disabled }>
+						{ __( 'Reset to one parcel', 'smart-send-logistics' ) }
+					</button>
 				</div>
 			) }
-		</div>
+		</DetailRow>
 	);
 }

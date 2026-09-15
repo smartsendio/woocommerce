@@ -7,9 +7,11 @@
 |
 | Screenshots of the "Smart Send" meta box on the WooCommerce
 | order screen (#182), one per state of the issue's section 1.2: the
-| not-yet-booked box, the parcel editor, changing the pickup point and the
-| shipping method, a booked outbound label, outbound + return booked in one
-| run, a booking failure shown on the field it belongs to, an order placed
+| not-yet-booked box (the sectioned Option A layout), the parcels section
+| collapsed to its summary and expanded into the editor, the pickup point
+| row in its edit state and with a looked-up point, the shipping method
+| select, a booked outbound label, outbound + return booked in one run, a
+| booking failure shown on the field it belongs to, an order placed
 | without a Smart Send method, and the not-connected notice.
 |
 | One test per UI state, each producing its own named screenshot under
@@ -87,6 +89,23 @@ it('shows the not-yet-booked box', function () {
     capture_doc_screenshot($page, 'OrderFulfillment', 'not-booked', false);
 });
 
+it('shows the parcels section collapsed to its summary line', function () {
+    $page = visit(base_url('/wp-login.php'))
+        ->fill('#user_login', admin_username())
+        ->fill('#user_pass', admin_password())
+        ->click('#wp-submit')
+        ->assertPathContains('wp-admin')
+        ->navigate(docs_order_url(1));
+
+    $page->assertSeeIn('#woocommerce-ss-shipping-label .hndle', 'Smart Send')
+        ->assertSeeIn('[data-ss-section="parcel_plan"]', '1 parcel · 3.00 kg')
+        ->assertPresent('[data-ss-action="edit-parcels"]');
+
+    highlight_element($page, '[data-ss-section="parcel_plan"]');
+
+    capture_doc_screenshot($page, 'OrderFulfillment', 'parcels-collapsed', false);
+});
+
 it('shows the parcel editor with a line split across two boxes', function () {
     $page = visit(base_url('/wp-login.php'))
         ->fill('#user_login', admin_username())
@@ -106,6 +125,24 @@ it('shows the parcel editor with a line split across two boxes', function () {
     capture_doc_screenshot($page, 'OrderFulfillment', 'parcel-editor', false);
 });
 
+it('shows the pickup point row in its edit state', function () {
+    $page = visit(base_url('/wp-login.php'))
+        ->fill('#user_login', admin_username())
+        ->fill('#user_pass', admin_password())
+        ->click('#wp-submit')
+        ->assertPathContains('wp-admin')
+        ->navigate(docs_order_url(0));
+
+    $page->assertSeeIn('#woocommerce-ss-shipping-label .hndle', 'Smart Send')
+        ->click('[data-ss-action="edit-pickup-point"]')
+        ->assertPresent('[data-ss-field="pickup_point.agent_no"]')
+        ->assertSeeIn('[data-ss-section="pickup_point"]', 'Browser Test Shop');
+
+    highlight_element($page, '[data-ss-section="pickup_point"]');
+
+    capture_doc_screenshot($page, 'OrderFulfillment', 'pickup-point-edit', false);
+});
+
 it('shows a pickup point looked up by its agent number', function () {
     $page = visit(base_url('/wp-login.php'))
         ->fill('#user_login', admin_username())
@@ -115,7 +152,7 @@ it('shows a pickup point looked up by its agent number', function () {
         ->navigate(docs_order_url(0));
 
     $page->assertSeeIn('#woocommerce-ss-shipping-label .hndle', 'Smart Send')
-        ->click('[data-ss-action="change-pickup-point"]')
+        ->click('[data-ss-action="edit-pickup-point"]')
         ->fill('[data-ss-field="pickup_point.agent_no"]', '5678')
         ->click('[data-ss-action="lookup-pickup-point"]')
         ->assertSeeIn('[data-ss-section="pickup_point"]', 'Second Test Shop');
@@ -134,7 +171,7 @@ it('shows the shipping method select', function () {
         ->navigate(docs_order_url(0));
 
     $page->assertSeeIn('#woocommerce-ss-shipping-label .hndle', 'Smart Send')
-        ->click('[data-ss-action="change-method"]')
+        ->click('[data-ss-action="edit-method"]')
         ->assertPresent('[data-ss-field="shipping_method"]');
 
     highlight_element($page, '[data-ss-field="shipping_method"]');
@@ -211,9 +248,12 @@ it('shows the method choice for an order placed without a Smart Send method', fu
         ->navigate(docs_order_url(5));
 
     $page->assertSeeIn('#woocommerce-ss-shipping-label .hndle', 'Smart Send')
-        ->assertSeeIn('[data-ss-notice="no_method"]', 'Choose the method to ship it with');
+        ->assertSeeIn('[data-ss-notice="no_method"]', 'Choose the method to ship it with')
+        ->assertSeeIn('[data-ss-value="shipping_method"]', 'None')
+        ->click('[data-ss-action="edit-method"]')
+        ->assertPresent('[data-ss-field="shipping_method"]');
 
-    highlight_element($page, '[data-ss-field="shipping_method"]');
+    highlight_element($page, '[data-ss-section="shipping_method"]');
 
     capture_doc_screenshot($page, 'OrderFulfillment', 'no-smart-send-method', false);
 });
