@@ -71,12 +71,12 @@ it('creates a label, saves the shipment id and adds an order note on success', f
     });
 
     $fired = [];
-    $listener = function ($order_id, SS_Shipping_Booked_Shipment $shipment, SS_Shipping_Fulfillment_Result $result) use (&$fired): void {
-        $fired[] = $order_id;
+    $listener = function (WC_Order $fulfilled_order, SS_Shipping_Fulfillment_Result $result) use (&$fired): void {
+        $fired[] = $fulfilled_order->get_id();
     };
-    add_action('smart_send_shipment_booked', $listener, 10, 3);
+    add_action('smart_send_order_fulfilled', $listener, 10, 2);
     remember_cleanup_callback(function () use ($listener): void {
-        remove_action('smart_send_shipment_booked', $listener, 10);
+        remove_action('smart_send_order_fulfilled', $listener, 10);
     });
 
     $response = create_labels_for($order->get_id());

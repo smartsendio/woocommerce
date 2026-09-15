@@ -15,25 +15,44 @@ if ( ! defined( 'ABSPATH' ) ) {
 if ( ! class_exists( 'SS_Shipping_Fulfillment_Service' ) ) :
 
 	/**
-	 * Owns the post-booking fulfillment workflow for a single order:
-	 * book the label via SS_Shipping_Booking_Service, then - on success -
-	 * save the label document to uploads (setting-gated), store the
-	 * shipment id in order meta, write the order note
-	 * (smart_send_shipping_label_comment filter), push tracking numbers
-	 * to the optional Shipment Tracking plugin (outbound only), update
-	 * the order status when configured (outbound only) and, once the
-	 * whole run is complete, fire smart_send_shipment_booked (plus its
-	 * deprecated alias smart_send_shipping_label_created) once per
-	 * booked shipment. On a failed booking nothing is written.
+	 * The fulfillment stage (#177): owns the WooCommerce order and decides
+	 * WHAT ships and HOW, hands that decision to the booking stage, and
+	 * writes the outcome back onto the order.
+	 *
+	 * Two flows, because they genuinely differ (what ships, the
+	 * auto-return decision, order status and tracking push are
+	 * outbound-only, the meta keys differ):
+	 *
+	 *   fulfill_outbound( $order, ... ) - the outbound label, plus the
+	 *     return label when the order's shipping method has the
+	 *     auto-generate-return-label setting enabled;
+	 *   fulfill_return( $order, ... )   - a return label on its own.
+	 *
+	 * Each leg runs the same steps:
+	 *
+	 *   1. Delivery details = the stored order configuration (repository)
+	 *      + the method resolved from the order's shipping item (+ the
+	 *      overrides submitted with the request, persisted first), passed
+	 *      through the smart_send_delivery_details filter.
+	 *   2. SS_Shipping_Booking_Service::book() - ONE operation for both
+	 *      directions - returns the SS_Shipping_Booked_Shipment or throws
+	 *      SS_Shipping_Booking_Exception, which is caught here and
+	 *      recorded on the result (rendered as HTML for the merchant by
+	 *      format_booking_error()).
+	 *   3. Side effects on the order, one step each, each with a filter:
+	 *      shipment id in meta (no filter), local copy of the documents
+	 *      (smart_send_fulfillment_save_documents), order note
+	 *      (smart_send_fulfillment_order_note), tracking push
+	 *      (smart_send_fulfillment_tracking), order status
+	 *      (smart_send_fulfillment_order_status).
+	 *
+	 * Once every leg is done, smart_send_order_fulfilled fires once with
+	 * the order and the complete SS_Shipping_Fulfillment_Result.
 	 *
 	 * Every step reads the typed SS_Shipping_Booked_Shipment the booking
-	 * service produced (#177) - documents, codes and parcels - never an
-	 * API response, so the rendering never assumes "one PDF": every
-	 * document gets a download link and every code is shown.
-	 *
-	 * fulfill_outbound() also runs the return fulfillment when the order's
-	 * shipping method has the auto-generate-return-label setting enabled -
-	 * that workflow decision lives here, not in the AJAX controller.
+	 * produced - documents, codes and parcels - never an API response, so
+	 * the rendering never assumes "one PDF": every document gets a
+	 * download link and every code is shown.
 	 *
 	 * The service is stateless and long-lived: constructed once, no
 	 * per-order state on properties, safe to call for many orders
@@ -104,11 +123,11 @@ if ( ! class_exists( 'SS_Shipping_Fulfillment_Service' ) ) :
 		/**
 		 * Fulfill an outbound (normal) shipping label for the order, and -
 		 * when the order's shipping method has the auto-generate-return-label
-		 * setting enabled and the outbound fulfillment succeeded - the return
+		 * setting enabled and the outbound booking succeeded - the return
 		 * label too.
 		 *
-		 * @param int|WC_Order                      $order             Order id or order object.
-		 * @param boolean                           $save_order_note   Whether to save an order note with information about the label.
+		 * @param int|WC_Order                      $order              Order id or order object.
+		 * @param boolean                           $save_order_note    Whether to save an order note with information about the label.
 		 * @param SS_Shipping_Delivery_Details|null $delivery_overrides Partial delivery details submitted with the request (e.g. the meta box parcel split), persisted through the repository before booking.
 		 *
 		 * @return SS_Shipping_Fulfillment_Result
@@ -117,36 +136,31 @@ if ( ! class_exists( 'SS_Shipping_Fulfillment_Service' ) ) :
 			$order = $this->resolve_order( $order );
 
 			if ( ! $order instanceof WC_Order ) {
-				return new SS_Shipping_Fulfillment_Result( null, null, array( $order ) );
+				return new SS_Shipping_Fulfillment_Result( array( $order ) );
 			}
 
 			$this->apply_delivery_overrides( $order, $delivery_overrides );
 
-			$outbound_booking = $this->booking_service->book_outbound( $order );
-
 			$entries   = array();
-			$entries[] = $this->complete_fulfillment( $order, $outbound_booking, false, $save_order_note );
-
-			$return_booking = null;
+			$entries[] = $this->fulfill_leg( $order, false, $save_order_note, $outbound_booked );
 
 			// We're only creating the return label if the outbound BOOKING succeeded.
 			// Deliberate behaviour change from the historic flow, which gated on the
 			// whole outbound entry: a successful API booking whose local PDF save
 			// failed used to silently skip the configured auto-return label; now the
 			// return label is still attempted and both outcomes are reported.
-			if ( $outbound_booking->is_successful() && $this->is_auto_return_enabled( $order ) ) {
-				$return_booking = $this->booking_service->book_return( $order );
-				$entries[]      = $this->complete_fulfillment( $order, $return_booking, true, $save_order_note );
+			if ( $outbound_booked && $this->method_resolver->is_auto_return_enabled( $order ) ) {
+				$entries[] = $this->fulfill_leg( $order, true, $save_order_note, $return_booked );
 			}
 
-			return $this->finish( $order, new SS_Shipping_Fulfillment_Result( $outbound_booking, $return_booking, $entries ) );
+			return $this->finish( $order, new SS_Shipping_Fulfillment_Result( $entries ) );
 		}
 
 		/**
 		 * Fulfill a return shipping label for the order.
 		 *
-		 * @param int|WC_Order                      $order             Order id or order object.
-		 * @param boolean                           $save_order_note   Whether to save an order note with information about the label.
+		 * @param int|WC_Order                      $order              Order id or order object.
+		 * @param boolean                           $save_order_note    Whether to save an order note with information about the label.
 		 * @param SS_Shipping_Delivery_Details|null $delivery_overrides Partial delivery details submitted with the request, persisted through the repository before booking.
 		 *
 		 * @return SS_Shipping_Fulfillment_Result
@@ -155,16 +169,53 @@ if ( ! class_exists( 'SS_Shipping_Fulfillment_Service' ) ) :
 			$order = $this->resolve_order( $order );
 
 			if ( ! $order instanceof WC_Order ) {
-				return new SS_Shipping_Fulfillment_Result( null, null, array( $order ) );
+				return new SS_Shipping_Fulfillment_Result( array( $order ) );
 			}
 
 			$this->apply_delivery_overrides( $order, $delivery_overrides );
 
-			$return_booking = $this->booking_service->book_return( $order );
+			$entries = array( $this->fulfill_leg( $order, true, $save_order_note, $return_booked ) );
 
-			$entries = array( $this->complete_fulfillment( $order, $return_booking, true, $save_order_note ) );
+			return $this->finish( $order, new SS_Shipping_Fulfillment_Result( $entries ) );
+		}
 
-			return $this->finish( $order, new SS_Shipping_Fulfillment_Result( null, $return_booking, $entries ) );
+		/**
+		 * The delivery details a label for the order ships with, before
+		 * the smart_send_delivery_details filter: the stored order
+		 * configuration (pickup point, parcel plan) with the shipping
+		 * method resolved from the order's shipping item. An outbound
+		 * label uses the order's Smart Send shipping method and keeps the
+		 * stored pickup point; a return label uses the configured return
+		 * method and drops the pickup point - unless the return method
+		 * could not be resolved to the dedicated smart_send_return_method
+		 * meta (free-shipping/vConnect orders, see
+		 * SS_Shipping_Method_Resolver::return_uses_stored_pickup_point()),
+		 * in which case the stored selection applies like on an outbound
+		 * label.
+		 *
+		 * Public so Phase 7 can queue "order id + details" (#116).
+		 *
+		 * @param WC_Order $order     The WooCommerce order.
+		 * @param boolean  $is_return Whether the label is a return label.
+		 *
+		 * @throws SS_Shipping_Booking_Exception When no return method is configured (from the resolver).
+		 *
+		 * @return SS_Shipping_Delivery_Details
+		 */
+		public function resolve_delivery_details( WC_Order $order, bool $is_return ): SS_Shipping_Delivery_Details {
+			$details = $this->order_meta->read( $order->get_id() );
+
+			if ( $is_return ) {
+				$details->set_shipping_method( $this->method_resolver->resolve_return( $order ) );
+
+				if ( ! $this->method_resolver->return_uses_stored_pickup_point( $order ) ) {
+					$details->set_pickup_point( null );
+				}
+			} else {
+				$details->set_shipping_method( $this->method_resolver->resolve_outbound( $order ) );
+			}
+
+			return $details;
 		}
 
 		/**
@@ -203,34 +254,23 @@ if ( ! class_exists( 'SS_Shipping_Fulfillment_Service' ) ) :
 				return $loaded;
 			}
 
-			return array(
-				'is_return' => false,
-				'error'     => sprintf(
+			return SS_Shipping_Fulfillment_Result::failed_entry(
+				false,
+				sprintf(
 					/* translators: %s: WooCommerce order id. */
 					__( 'Order #%s: The order could not be found', 'smart-send-logistics' ),
 					$order
-				),
+				)
 			);
 		}
 
 		/**
-		 * Whether the order's Smart Send shipping method has the
-		 * auto-generate-return-label setting enabled.
-		 *
-		 * @param WC_Order $order The WooCommerce order.
-		 *
-		 * @return boolean
-		 */
-		protected function is_auto_return_enabled( WC_Order $order ): bool {
-			return $this->method_resolver->is_auto_return_enabled( $order );
-		}
-
-		/**
-		 * Fire the booked-shipment actions for a completed run, once per
-		 * booked shipment in run order (outbound first, then the
-		 * auto-generated return label). The actions fire after the whole
-		 * run - every write, tracking push and status update of both
-		 * labels is done - so listeners see the complete result.
+		 * Announce a completed run: smart_send_order_fulfilled fires once,
+		 * after every write, tracking push and status update of both
+		 * labels is done, when at least one shipment was fulfilled - so
+		 * listeners see the complete result (both labels when a return
+		 * label was auto-generated). A run that fulfilled nothing is not
+		 * announced; its errors are on the result for the caller.
 		 *
 		 * @param WC_Order                       $order  The WooCommerce order.
 		 * @param SS_Shipping_Fulfillment_Result $result The completed run.
@@ -238,91 +278,126 @@ if ( ! class_exists( 'SS_Shipping_Fulfillment_Service' ) ) :
 		 * @return SS_Shipping_Fulfillment_Result The same result, for chaining.
 		 */
 		protected function finish( WC_Order $order, SS_Shipping_Fulfillment_Result $result ): SS_Shipping_Fulfillment_Result {
-			$order_id = $order->get_id();
-
-			foreach ( $result->shipments() as $shipment ) {
+			if ( array() !== $result->shipments() ) {
 				/*
-				 * Action when a shipment has been booked and the WooCommerce
-				 * side (order meta, order note, tracking, status) is updated.
+				 * Action when an order has been fulfilled: at least one
+				 * shipment was booked and the WooCommerce side (order
+				 * meta, documents, order note, tracking, status) is
+				 * updated. Fires once per run with the complete result -
+				 * shipments(), get_outbound_shipment(),
+				 * get_return_shipment(), get_order_note( $shipment ),
+				 * get_steps( $shipment ) and the errors of a failed leg.
 				 *
-				 * Since 9.0.0 (#177). Replaces smart_send_shipping_label_created,
-				 * which keeps firing with the same arguments as a deprecated
-				 * alias for the 9.x series. Nothing API-version shaped is
-				 * passed: the shipment is the typed SS_Shipping_Booked_Shipment
-				 * (shipment id, carrier, tracking, parcels, documents, codes)
-				 * and the result carries the WooCommerce-side derivations
-				 * (order note HTML via get_order_note(), the uploads copy on
-				 * the label document's local_url).
+				 * @since 9.0.0
 				 *
-				 * @param int                            $order_id The WooCommerce order id.
-				 * @param SS_Shipping_Booked_Shipment    $shipment The booked shipment.
-				 * @param SS_Shipping_Fulfillment_Result $result   The whole fulfillment run (outbound and, when auto-generated, return).
+				 * @param WC_Order                       $order  The WooCommerce order.
+				 * @param SS_Shipping_Fulfillment_Result $result The whole fulfillment run.
 				 */
-				do_action( 'smart_send_shipment_booked', $order_id, $shipment, $result );
-
-				/*
-				 * Deprecated alias of smart_send_shipment_booked, same
-				 * arguments. Fires only when a listener is registered and
-				 * emits the standard WordPress deprecated-hook notice.
-				 */
-				do_action_deprecated(
-					'smart_send_shipping_label_created',
-					array( $order_id, $shipment, $result ),
-					'9.0.0',
-					'smart_send_shipment_booked'
-				);
+				do_action( 'smart_send_order_fulfilled', $order, $result );
 			}
 
 			return $result;
 		}
 
 		/**
-		 * Run the post-booking workflow for one booked shipment and produce
-		 * the run entry. The order of operations is deliberate and
-		 * unchanged from the historic create_label_for_single_order(): label
-		 * file, order meta, order note, tracking, THEN the status update -
-		 * the status change must come after meta and tracking so both are
-		 * included in the email sent via Shipment Tracking.
+		 * Run one leg - decide the delivery details, book, apply the side
+		 * effects - and produce the run entry. The order of operations is
+		 * deliberate and unchanged from the historic
+		 * create_label_for_single_order(): documents, order meta, order
+		 * note, tracking, THEN the status update - the status change must
+		 * come after meta and tracking so both are included in the email
+		 * sent via Shipment Tracking.
 		 *
 		 * On a failed booking nothing is written and a failed entry is
-		 * returned.
+		 * returned; $booked reports whether the API booked the shipment
+		 * (the auto-return gate), independent of the side effects.
 		 *
-		 * @param WC_Order            $order           The WooCommerce order.
-		 * @param SS_Shipping_Booking $booking         The booking outcome.
-		 * @param boolean             $is_return       Whether the label is a return label.
-		 * @param boolean             $save_order_note Whether to save an order note with information about the label.
+		 * @param WC_Order $order           The WooCommerce order.
+		 * @param boolean  $is_return       Whether the label is a return label.
+		 * @param boolean  $save_order_note Whether to save an order note with information about the label.
+		 * @param boolean  $booked          Set to whether the booking itself succeeded.
 		 *
 		 * @return array A run entry in the shape SS_Shipping_Fulfillment_Result documents.
 		 */
-		protected function complete_fulfillment( WC_Order $order, SS_Shipping_Booking $booking, $is_return, $save_order_note ) {
-			$is_return = (bool) $is_return;
+		protected function fulfill_leg( WC_Order $order, bool $is_return, $save_order_note, &$booked = null ): array {
+			$booked = false;
 
-			if ( ! $booking->is_successful() ) {
-				// Something failed. Let's return the error, so it can be shown to the user
-				return array(
-					'is_return' => $is_return,
-					'error'     => $booking->get_error_message(),
-				);
+			try {
+				$details = $this->resolve_delivery_details( $order, $is_return );
+
+				/*
+				 * Filter the delivery details a shipping label is booked
+				 * with, after the stored configuration and the resolved
+				 * method have been merged and before booking is called.
+				 * One typed extension point for everything Smart Send knows
+				 * about how the order ships: override the shipping method,
+				 * clear or replace the pickup point (SS_Shipping_Pickup_Point),
+				 * or declare a parcel plan (SS_Shipping_Parcel_Plan of
+				 * SS_Shipping_Parcel_Spec rows - specs may carry dimensions
+				 * and an explicit weight with no item allocations at all).
+				 *
+				 * Replaces the removed smart_send_shipping_label_args,
+				 * smart_send_order_parcels, smart_send_order_pickup_point and
+				 * smart_send_parcel_weight filters (v9).
+				 *
+				 * @since 9.0.0
+				 *
+				 * @param SS_Shipping_Delivery_Details $details   The merged delivery details.
+				 * @param WC_Order                     $order     The WooCommerce order.
+				 * @param boolean                      $is_return Whether the label is a return label.
+				 *
+				 * @return SS_Shipping_Delivery_Details The delivery details to book with.
+				 */
+				$details = apply_filters( 'smart_send_delivery_details', $details, $order, $is_return );
+
+				$shipment = $this->booking_service->book( $order, $details, $is_return );
+			} catch ( SS_Shipping_Booking_Exception $e ) {
+				// The booking failed. Record the error, so it can be shown to the user.
+				return SS_Shipping_Fulfillment_Result::failed_entry( $is_return, $this->format_booking_error( $e ), $e->errors() );
 			}
 
+			$booked = true;
+
+			return $this->apply_side_effects( $order, $shipment, $save_order_note );
+		}
+
+		/**
+		 * Write a booked shipment onto the order, one step at a time.
+		 *
+		 * @param WC_Order                    $order           The WooCommerce order.
+		 * @param SS_Shipping_Booked_Shipment $shipment        The booked shipment.
+		 * @param boolean                     $save_order_note Whether the caller wants the order note saved (the AJAX flow adds it client-side instead).
+		 *
+		 * @return array A run entry in the shape SS_Shipping_Fulfillment_Result documents.
+		 */
+		protected function apply_side_effects( WC_Order $order, SS_Shipping_Booked_Shipment $shipment, $save_order_note ): array {
 			$order_id     = $order->get_id();
-			$shipment     = $booking->shipment();
+			$is_return    = $shipment->is_return();
 			$carrier_name = $this->get_carrier_display_name( $shipment );
 
-			// The request was successful, lets update WooCommerce.
-			if ( $this->settings->save_labels_in_uploads() ) {
+			/*
+			 * Filter whether a local copy of the shipment's documents is
+			 * saved in the uploads folder. Defaults to the "save shipping
+			 * labels in uploads" setting.
+			 *
+			 * @since 9.0.0
+			 *
+			 * @param boolean                     $save_documents Whether to store the local copy.
+			 * @param SS_Shipping_Booked_Shipment $shipment       The booked shipment.
+			 * @param WC_Order                    $order          The WooCommerce order.
+			 */
+			$save_documents = (bool) apply_filters( 'smart_send_fulfillment_save_documents', $this->settings->save_labels_in_uploads(), $shipment, $order );
+
+			if ( $save_documents ) {
 				try {
 					// Save the label document(s) and link the local copy.
 					// Deliberate v9 fix (#139): the computed uploads URL used
 					// to be discarded (unconditionally overwritten with the
 					// API link); with the setting enabled, the note/response
 					// now actually link the uploads copy.
-					$this->store_uploads_copies( $booking );
+					$this->store_uploads_copies( $shipment );
 				} catch ( Exception $e ) {
-					return array(
-						'is_return' => $is_return,
-						'error'     => $e->getMessage(),
-					);
+					return SS_Shipping_Fulfillment_Result::failed_entry( $is_return, $e->getMessage() );
 				}
 			}
 
@@ -338,32 +413,48 @@ if ( ! class_exists( 'SS_Shipping_Fulfillment_Service' ) ) :
 				)
 			);
 
-			// Get formatted order comment
-			$order_note_html = $this->get_formatted_order_note_with_label_and_tracking( $shipment );
+			/*
+			 * Filter the order note (HTML) added to the order once a
+			 * shipment is booked: the document links, codes and tracking
+			 * numbers. Return an empty string to add no note.
+			 *
+			 * @since 9.0.0 Renamed from smart_send_shipping_label_comment; the
+			 *              order argument is now the WC_Order and the shipment
+			 *              is passed instead of the is-return flag.
+			 *
+			 * @param string                      $order_note The order note HTML.
+			 * @param SS_Shipping_Booked_Shipment $shipment   The booked shipment.
+			 * @param WC_Order                    $order      The WooCommerce order.
+			 */
+			$order_note = (string) apply_filters(
+				'smart_send_fulfillment_order_note',
+				$this->get_formatted_order_note_with_label_and_tracking( $shipment ),
+				$shipment,
+				$order
+			);
 
-			// Save order note
-			if ( $save_order_note ) {
-				/*
-				 * Filter the order comment that is saved. The order comment can be seen in the WooCommerce backend
-				 *
-				 * @param string order note containing tracking link and link to pdf label
-				 * @param WC_Order object
-				 * @param boolean $is_return Whether or not the label is return (true) or normal (false)
-				 */
-				$order_note = apply_filters(
-					'smart_send_shipping_label_comment',
-					$order_note_html,
-					$order,
-					$is_return
-				);
+			$note_added = false;
+			if ( $save_order_note && '' !== $order_note ) {
 				$order->add_order_note( $order_note, 0, true );
+				$note_added = true;
 
 				SS_Shipping_Logger::info( 'Order note with label and tracking added', array( 'order_id' => $order_id ) );
 			}
 
-			// Add tracking info to "WooCommerce Shipment Tracking" plugin.
-			// Only for non-return parcels.
-			if ( ! $is_return ) {
+			/*
+			 * Filter whether the parcels' tracking numbers are pushed to the
+			 * WooCommerce Shipment Tracking plugin. Defaults to true for an
+			 * outbound shipment and false for a return shipment.
+			 *
+			 * @since 9.0.0
+			 *
+			 * @param boolean                     $push_tracking Whether to push tracking.
+			 * @param SS_Shipping_Booked_Shipment $shipment      The booked shipment.
+			 * @param WC_Order                    $order         The WooCommerce order.
+			 */
+			$push_tracking = (bool) apply_filters( 'smart_send_fulfillment_tracking', ! $is_return, $shipment, $order );
+
+			if ( $push_tracking ) {
 				foreach ( $shipment->parcels() as $parcel ) {
 					$this->save_tracking_in_shipment_tracking(
 						$order_id,
@@ -384,18 +475,60 @@ if ( ! class_exists( 'SS_Shipping_Fulfillment_Service' ) ) :
 				}
 			}
 
-			// Set order status after label generation
-			// Important to update AFTER saving meta fields and tracking information (otherwise not included in email via Shipment Tracking)
-			if ( ! $is_return ) {
-				$this->set_order_status_after_label_generated( $order );
+			/*
+			 * Filter the order status the order is set to once the
+			 * shipment is booked, or false to leave the status alone.
+			 * Defaults to the "order status after label" setting for an
+			 * outbound shipment and false for a return shipment.
+			 *
+			 * Important to update AFTER saving meta fields and tracking
+			 * information (otherwise not included in the email sent via
+			 * Shipment Tracking).
+			 *
+			 * @since 9.0.0
+			 *
+			 * @param string|false                $order_status The status to set (e.g. 'wc-completed'), or false.
+			 * @param SS_Shipping_Booked_Shipment $shipment     The booked shipment.
+			 * @param WC_Order                    $order        The WooCommerce order.
+			 */
+			$order_status = apply_filters( 'smart_send_fulfillment_order_status', $this->default_order_status( $is_return ), $shipment, $order );
+
+			if ( is_string( $order_status ) && '' !== $order_status ) {
+				$order->update_status( $order_status );
+			} else {
+				$order_status = false;
 			}
 
-			return array(
-				'is_return'    => $is_return,
-				'shipment'     => $shipment,
-				'order_note'   => $order_note_html,
-				'outputs_html' => $this->get_shipment_outputs_html( $shipment ),
+			return SS_Shipping_Fulfillment_Result::fulfilled_entry(
+				$shipment,
+				$order_note,
+				$this->get_shipment_outputs_html( $shipment ),
+				array(
+					'save_documents' => $save_documents,
+					'order_note'     => $note_added,
+					'tracking'       => $push_tracking,
+					'order_status'   => $order_status,
+				)
 			);
+		}
+
+		/**
+		 * The status an order is set to after a label is booked, before
+		 * the smart_send_fulfillment_order_status filter: the configured
+		 * setting for an outbound label, never for a return label.
+		 *
+		 * @param boolean $is_return Whether the label is a return label.
+		 *
+		 * @return string|false
+		 */
+		protected function default_order_status( bool $is_return ) {
+			if ( $is_return ) {
+				return false;
+			}
+
+			$order_status = $this->settings->order_status_after_label();
+
+			return null === $order_status ? false : $order_status;
 		}
 
 		/**
@@ -404,15 +537,13 @@ if ( ! class_exists( 'SS_Shipping_Fulfillment_Service' ) ) :
 		 * whose bytes the API delivered inline are copied - API v1 sends
 		 * the label PDF inline next to its link.
 		 *
-		 * @param SS_Shipping_Booking $booking The successful booking.
+		 * @param SS_Shipping_Booked_Shipment $shipment The booked shipment.
 		 *
 		 * @throws Exception When a label document cannot be saved.
 		 *
 		 * @return void
 		 */
-		protected function store_uploads_copies( SS_Shipping_Booking $booking ) {
-			$shipment = $booking->shipment();
-
+		protected function store_uploads_copies( SS_Shipping_Booked_Shipment $shipment ) {
 			foreach ( $shipment->documents() as $index => $document ) {
 				if ( SS_Shipping_Shipment_Document::TYPE_LABEL !== $document->get_type() ) {
 					continue;
@@ -420,7 +551,7 @@ if ( ! class_exists( 'SS_Shipping_Fulfillment_Service' ) ) :
 
 				$copy = $this->save_label_copy(
 					$shipment->get_shipment_id(),
-					$booking->get_document_content( $index ),
+					$document->get_inline_content(),
 					$document->get_format(),
 					0 === $index ? '' : '-' . $index
 				);
@@ -430,16 +561,37 @@ if ( ! class_exists( 'SS_Shipping_Fulfillment_Service' ) ) :
 		}
 
 		/**
-		 * If set to change order after order generated, update order status
+		 * Render a booking failure as the human-readable (HTML) error
+		 * string shown to the merchant: the message, each field's
+		 * validation errors and the API's Response-ID for support
+		 * reference.
 		 *
-		 * @param WC_Order $order The WooCommerce order.
+		 * @param SS_Shipping_Booking_Exception $e The failure.
+		 *
+		 * @return string
 		 */
-		protected function set_order_status_after_label_generated( $order ) {
-			$order_status = $this->settings->order_status_after_label();
+		protected function format_booking_error( SS_Shipping_Booking_Exception $e ): string {
+			$delimiter    = '<br>';
+			$error_string = $e->getMessage();
 
-			if ( null !== $order_status ) {
-				$order->update_status( $order_status );
+			foreach ( $e->errors() as $error_field => $error_details ) {
+				if ( count( $error_details ) > 1 ) {
+					$error_string .= $delimiter . $error_field . ':';
+					foreach ( $error_details as $error_description ) {
+						$error_string .= $delimiter . '- ' . $error_description;
+					}
+				} else {
+					foreach ( $error_details as $error_description ) {
+						$error_string .= $delimiter . '- ' . $error_field . ': ' . $error_description;
+					}
+				}
 			}
+
+			if ( null !== $e->response_id() ) {
+				$error_string .= $delimiter . 'Response ID: ' . $e->response_id();
+			}
+
+			return $error_string;
 		}
 
 		/**

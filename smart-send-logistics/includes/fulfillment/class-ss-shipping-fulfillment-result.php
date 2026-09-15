@@ -15,47 +15,35 @@ if ( ! defined( 'ABSPATH' ) ) {
 if ( ! class_exists( 'SS_Shipping_Fulfillment_Result' ) ) :
 
 	/**
-	 * Wraps the outcome of a SS_Shipping_Fulfillment_Service::fulfill_outbound()/
-	 * fulfill_return() run: the outbound booking (when one was attempted), the
-	 * auto-generated return booking (when the shipping method has the
-	 * auto-generate-return-label setting enabled), every booked
-	 * SS_Shipping_Booked_Shipment, and the WooCommerce-side derivations
-	 * the workflow produced for each of them (#177): the order note HTML
-	 * (get_order_note()) and the rendered outputs. The uploads copy of a
-	 * label lives on the shipment's label document (local_path/local_url).
+	 * The outcome of a SS_Shipping_Fulfillment_Service::fulfill_outbound()/
+	 * fulfill_return() run (#177): per attempted shipment (outbound first,
+	 * then the auto-generated return label) either the booked
+	 * SS_Shipping_Booked_Shipment with the WooCommerce-side outcomes the
+	 * workflow produced for it - the order note HTML (get_order_note()),
+	 * the rendered outputs (get_outputs_html()) and which side-effect steps
+	 * ran (get_steps()) - or the failure: the error shown to the merchant
+	 * and, for an API validation failure, the per-field errors. The
+	 * uploads copy of a label lives on the shipment's label document
+	 * (local_path/local_url).
 	 *
-	 * This is the third argument of smart_send_shipment_booked, so a
+	 * This is the second argument of smart_send_order_fulfilled, so a
 	 * listener sees the whole run - both labels when a return label was
-	 * auto-generated - next to the shipment the action fires for.
+	 * auto-generated, and a failed return leg next to a booked outbound.
 	 *
 	 * Deliberately holds NO live WC_Order reference so the result stays
 	 * serializable for the Phase 7 async processing (#116).
 	 *
-	 * Each run entry is a plain array, one per attempted label in run
-	 * order: array( 'is_return' => bool, 'error' => string ) for a failed
-	 * label, or array( 'is_return' => bool, 'shipment' =>
-	 * SS_Shipping_Booked_Shipment, 'order_note' => string, 'outputs_html'
-	 * => string ) for a booked one. to_legacy_response_array() derives the
-	 * response shape admin/js/ss-shipping-label.js parses from them
+	 * Each run entry is a plain array, one per attempted shipment in run
+	 * order: array( 'is_return' => bool, 'error' => string, 'errors' =>
+	 * array ) for a failed one, or array( 'is_return' => bool, 'shipment'
+	 * => SS_Shipping_Booked_Shipment, 'order_note' => string,
+	 * 'outputs_html' => string, 'steps' => array ) for a booked one.
+	 * to_legacy_response_array() derives the response shape
+	 * admin/js/ss-shipping-label.js parses from them
 	 * (value.success.woocommerce.* / value.error); redesigning the
 	 * request/response boundary is deferred to Phase 7 (#116).
 	 */
 	class SS_Shipping_Fulfillment_Result {
-
-		/**
-		 * The outbound booking, or null when no outbound label was attempted
-		 * (return-only fulfillment, or the order could not be loaded).
-		 *
-		 * @var SS_Shipping_Booking|null
-		 */
-		protected ?SS_Shipping_Booking $outbound_booking;
-
-		/**
-		 * The return booking, or null when no return label was attempted.
-		 *
-		 * @var SS_Shipping_Booking|null
-		 */
-		protected ?SS_Shipping_Booking $return_booking;
 
 		/**
 		 * The run entries, in the order the fulfillments ran (outbound
@@ -68,14 +56,47 @@ if ( ! class_exists( 'SS_Shipping_Fulfillment_Result' ) ) :
 		/**
 		 * Constructor.
 		 *
-		 * @param SS_Shipping_Booking|null $outbound_booking The outbound booking, if one was attempted.
-		 * @param SS_Shipping_Booking|null $return_booking   The return booking, if one was attempted.
-		 * @param array[]                  $entries          The run entries (see the class docblock).
+		 * @param array[] $entries The run entries (see the class docblock).
 		 */
-		public function __construct( ?SS_Shipping_Booking $outbound_booking, ?SS_Shipping_Booking $return_booking, array $entries ) {
-			$this->outbound_booking = $outbound_booking;
-			$this->return_booking   = $return_booking;
-			$this->entries          = $entries;
+		public function __construct( array $entries ) {
+			$this->entries = $entries;
+		}
+
+		/**
+		 * A failed run entry.
+		 *
+		 * @param boolean $is_return Whether the failed shipment was a return shipment.
+		 * @param string  $error     The error message shown to the merchant (HTML).
+		 * @param array   $errors    Per-field validation errors from the API, field => list of messages.
+		 *
+		 * @return array
+		 */
+		public static function failed_entry( bool $is_return, string $error, array $errors = array() ): array {
+			return array(
+				'is_return' => $is_return,
+				'error'     => $error,
+				'errors'    => $errors,
+			);
+		}
+
+		/**
+		 * A fulfilled run entry.
+		 *
+		 * @param SS_Shipping_Booked_Shipment $shipment     The booked shipment.
+		 * @param string                      $order_note   The order note HTML (after the smart_send_fulfillment_order_note filter).
+		 * @param string                      $outputs_html The rendered outputs (document links and codes).
+		 * @param array                       $steps        Which side-effect steps ran (see get_steps()).
+		 *
+		 * @return array
+		 */
+		public static function fulfilled_entry( SS_Shipping_Booked_Shipment $shipment, string $order_note, string $outputs_html, array $steps ): array {
+			return array(
+				'is_return'    => $shipment->is_return(),
+				'shipment'     => $shipment,
+				'order_note'   => $order_note,
+				'outputs_html' => $outputs_html,
+				'steps'        => $steps,
+			);
 		}
 
 		/**
@@ -122,21 +143,42 @@ if ( ! class_exists( 'SS_Shipping_Fulfillment_Result' ) ) :
 		}
 
 		/**
-		 * Get the outbound booking, if one was attempted.
+		 * The error of the outbound leg, or null when it was not attempted
+		 * or was fulfilled.
 		 *
-		 * @return SS_Shipping_Booking|null
+		 * @return string|null
 		 */
-		public function get_outbound_booking(): ?SS_Shipping_Booking {
-			return $this->outbound_booking;
+		public function get_outbound_error(): ?string {
+			return $this->find_error( false );
 		}
 
 		/**
-		 * Get the return booking, if one was attempted.
+		 * The error of the return leg, or null when it was not attempted
+		 * or was fulfilled.
 		 *
-		 * @return SS_Shipping_Booking|null
+		 * @return string|null
 		 */
-		public function get_return_booking(): ?SS_Shipping_Booking {
-			return $this->return_booking;
+		public function get_return_error(): ?string {
+			return $this->find_error( true );
+		}
+
+		/**
+		 * The per-field validation errors the API reported for a leg
+		 * (field => list of messages), empty when the leg was not
+		 * attempted, was fulfilled, or failed for another reason.
+		 *
+		 * @param boolean $is_return Which leg.
+		 *
+		 * @return array<string, string[]>
+		 */
+		public function get_validation_errors( bool $is_return ): array {
+			foreach ( $this->entries as $entry ) {
+				if ( isset( $entry['error'] ) && $entry['is_return'] === $is_return ) {
+					return isset( $entry['errors'] ) ? $entry['errors'] : array();
+				}
+			}
+
+			return array();
 		}
 
 		/**
@@ -192,8 +234,9 @@ if ( ! class_exists( 'SS_Shipping_Fulfillment_Result' ) ) :
 		/**
 		 * The HTML order note the workflow produced for a fulfilled
 		 * shipment (label and document links, codes, tracking numbers),
-		 * before the smart_send_shipping_label_comment filter. Null when
-		 * the shipment is not part of this run.
+		 * after the smart_send_fulfillment_order_note filter - an empty
+		 * string when the filter suppressed the note. Null when the
+		 * shipment is not part of this run.
 		 *
 		 * @param SS_Shipping_Booked_Shipment $shipment One of shipments().
 		 *
@@ -218,6 +261,24 @@ if ( ! class_exists( 'SS_Shipping_Fulfillment_Result' ) ) :
 			$entry = $this->find_entry( $shipment );
 
 			return null === $entry ? null : $entry['outputs_html'];
+		}
+
+		/**
+		 * Which side-effect steps ran for a fulfilled shipment:
+		 * 'save_documents' (bool - a local copy of the documents was
+		 * stored), 'order_note' (bool - the note was added to the order),
+		 * 'tracking' (bool - tracking was pushed to Shipment Tracking) and
+		 * 'order_status' (the status the order was set to, or false). Null
+		 * when the shipment is not part of this run.
+		 *
+		 * @param SS_Shipping_Booked_Shipment $shipment One of shipments().
+		 *
+		 * @return array|null
+		 */
+		public function get_steps( SS_Shipping_Booked_Shipment $shipment ): ?array {
+			$entry = $this->find_entry( $shipment );
+
+			return null === $entry ? null : $entry['steps'];
 		}
 
 		/**
@@ -259,6 +320,23 @@ if ( ! class_exists( 'SS_Shipping_Fulfillment_Result' ) ) :
 			}
 
 			return $legacy;
+		}
+
+		/**
+		 * The error message of a leg, or null.
+		 *
+		 * @param boolean $is_return Which leg.
+		 *
+		 * @return string|null
+		 */
+		protected function find_error( bool $is_return ): ?string {
+			foreach ( $this->entries as $entry ) {
+				if ( isset( $entry['error'] ) && $entry['is_return'] === $is_return ) {
+					return $entry['error'];
+				}
+			}
+
+			return null;
 		}
 
 		/**
