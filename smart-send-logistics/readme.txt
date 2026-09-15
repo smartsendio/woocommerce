@@ -16,15 +16,15 @@ WC requires at least: 5.0.0
 WC tested up to: 11.1
 Requires PHP: 7.4
 
-Shipping methods, pickup points and shipping labels for PostNord, GLS, DAO, Burd, Budbee and Bring, directly in WooCommerce.
+Shipping methods, pickup points and shipping labels for many carriers, like PostNord, GLS, DAO, Burd, Budbee and Bring, directly in WooCommerce.
 
 == Description ==
 
-Smart Send for WooCommerce is a complete shipping solution for PostNord, GLS, DAO, Budbee, Burd and Bring. Set up shipping methods with rates based on shipping address, weight, subtotal, shipping class and user role, let the customer choose a pickup point at checkout, and create shipping labels with one click from the WooCommerce order screen. Everything runs inside your WooCommerce store; the plugin talks to Smart Send in the background.
+Smart Send for WooCommerce is a complete shipping solution for many carriers, like PostNord, GLS, DAO, Budbee, Burd and Bring. Set up shipping methods with rates based on shipping address, weight, subtotal, shipping class and user role, let the customer choose a pickup point at checkout, and create shipping labels with one click from the WooCommerce order screen. Everything runs inside your WooCommerce store; the plugin talks to Smart Send in the background.
 
 Works with both the classic checkout and the WooCommerce Checkout Block, and with High-Performance Order Storage (HPOS).
 
-Supported carriers:
+Supported carriers include:
 
 * PostNord (Posten / Post Danmark)
 * GLS (YourGLS)
@@ -32,6 +32,8 @@ Supported carriers:
 * DAO
 * Burd
 * Budbee
+
+See the full list of carriers on [smartsend.io](https://smartsend.io/).
 
 Supports worldwide shipping from these countries:
 
