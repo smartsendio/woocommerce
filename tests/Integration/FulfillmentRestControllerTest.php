@@ -115,7 +115,7 @@ it('pins that every request-schema property round-trips through the delivery det
     $schema = SS_SHIPPING_WC()->fulfillment_controller()->request_schema();
 
     // Top-level request shape (section 3.1).
-    expect(array_keys($schema))->toBe(['flow', 'with_return', 'confirm_rebook', 'delivery_details'])
+    expect(array_keys($schema))->toBe(['flow', 'with_return', 'return_method', 'confirm_rebook', 'delivery_details'])
         ->and($schema['flow']['enum'])->toBe(['outbound', 'return']);
 
     $details_properties = $schema['delivery_details']['properties'];
@@ -195,6 +195,7 @@ it('returns the state on GET, matching the presenter', function () {
         ->and($state['order']['shipping_country'])->toBe('DK')
         ->and($state['order']['units'])->toHaveCount(1)
         ->and($state['order']['units'][0]['unit_weight'])->toBe(1.0)
+        ->and($state['order']['units'][0])->toHaveKey('sku')
         ->and($state['delivery_details']['shipping_method'])->toBe('postnord_agent')
         ->and($state['delivery_details']['pickup_point']['agent_no'])->toBe('1234')
         ->and($state['delivery_details']['pickup_point']['display_html'])->toContain('Corner Shop')
@@ -212,7 +213,7 @@ it('returns the state on GET, matching the presenter', function () {
     expect($state)->toBe(SS_SHIPPING_WC()->fulfillment_presenter()->state(wc_get_order($order->get_id())));
 });
 
-it('rejects a bad flow, a non-numeric weight and an item id not on the order with 400 rest_invalid_param', function () {
+it('rejects a bad flow, a non-numeric weight, a parcel without items and an item id not on the order with 400 rest_invalid_param', function () {
     $order = create_rest_order();
     as_rest_user();
     $capture = mock_smart_send_api();
@@ -230,6 +231,20 @@ it('rejects a bad flow, a non-numeric weight and an item id not on the order wit
         ->and($bad_weight->get_data()['code'])->toBe('rest_invalid_param')
         ->and($bad_weight->get_data()['data']['params'])->toHaveKey('delivery_details')
         ->and($bad_weight->get_data()['data']['params']['delivery_details'])->toContain('weight');
+
+    // A parcel without items: the meta box can no longer produce one (an
+    // emptied box is removed), so the schema path rejects it - the DTO and
+    // the smart_send_delivery_details filter path still allow box-only specs.
+    $no_items = fulfillment_post($order->get_id(), [
+        'flow'             => 'outbound',
+        'delivery_details' => ['parcel_plan' => ['specs' => [
+            ['weight' => 1.5, 'items' => [['id' => $order->get_items()[array_key_first($order->get_items())]->get_product_id(), 'quantity' => 1]]],
+            ['weight' => 2.5, 'items' => []],
+        ]]],
+    ]);
+    expect($no_items->get_status())->toBe(400)
+        ->and($no_items->get_data()['code'])->toBe('rest_invalid_param')
+        ->and($no_items->get_data()['data']['params']['delivery_details'])->toContain('parcel_plan.specs[1].items: A parcel must contain at least one item.');
 
     $unknown_item = fulfillment_post($order->get_id(), [
         'flow'             => 'outbound',
@@ -582,6 +597,46 @@ it('books an order without a Smart Send method when the request submits one (sta
     $payload = json_decode($capture->requests[0]['body'], true);
     expect($payload['shipping_carrier'])->toBe('gls')
         ->and($payload['shipping_method'])->toBe('homedelivery');
+});
+
+it('books outbound and return in one run for an order without a Smart Send method when a return method is submitted', function () {
+    $product = create_simple_product(['price' => 100, 'weight' => 1]);
+    $order   = create_order(['products' => [$product]]);
+    as_rest_user();
+    $capture = mock_smart_send_api();
+
+    // Without a return method the explicit return request is a 409...
+    $refused = fulfillment_post($order->get_id(), [
+        'flow'             => 'outbound',
+        'with_return'      => true,
+        'delivery_details' => ['shipping_method' => 'gls_homedelivery'],
+    ]);
+
+    expect($refused->get_status())->toBe(409)
+        ->and($refused->get_data()['code'])->toBe('smart_send_no_return_method')
+        ->and($capture->requests)->toBe([]);
+
+    // ...with one, both legs book in the same run, the return leg with it.
+    $response = fulfillment_post($order->get_id(), [
+        'flow'             => 'outbound',
+        'with_return'      => true,
+        'return_method'    => 'gls_returndropoff',
+        'delivery_details' => ['shipping_method' => 'gls_homedelivery'],
+    ]);
+
+    expect($response->get_status())->toBe(200)
+        ->and($response->get_data()['success'])->toBeTrue()
+        ->and($response->get_data()['shipments'])->toHaveCount(2)
+        ->and($response->get_data()['shipments'][1]['direction'])->toBe('return')
+        ->and($capture->requests)->toHaveCount(2);
+
+    $return_payload = json_decode($capture->requests[1]['body'], true);
+    expect($return_payload['shipping_carrier'])->toBe('gls')
+        ->and($return_payload['shipping_method'])->toBe('returndropoff');
+
+    $fresh = wc_get_order($order->get_id());
+    expect($fresh->get_meta('_ss_shipping_label_id', true))->not->toBe('')
+        ->and($fresh->get_meta('_ss_shipping_return_label_id', true))->not->toBe('');
 });
 
 it('maps API v1 field names onto form fields in one place', function () {

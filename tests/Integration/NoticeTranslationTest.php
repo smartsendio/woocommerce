@@ -86,10 +86,11 @@ it('renders the checkout debug notice through the translation functions while th
     $method->calculate_shipping($package);
 
     $unit = get_option('woocommerce_weight_unit');
+    $cost = ss_rate_cost_as_traced($method, 'smart_send_shipping:99962', 49);
 
     // The merchant-facing debug bar notice is translated ...
     expect(ss_policy_notices())->toContain(
-        'OVERSAT: metode "SS Policy Method" (smart_send_shipping:99962) tilgaengelig (total=100, vaegt=2 ' . $unit . '). Vaegtraekke 1-5 ' . $unit . ', pris 49.'
+        'OVERSAT: metode "SS Policy Method" (smart_send_shipping:99962) tilgaengelig (total=100, vaegt=2 ' . $unit . '). Vaegtraekke 1-5 ' . $unit . ', pris ' . $cost . '.'
     );
 
     // ... while the log keeps the greppable English step trace, untouched

@@ -1,15 +1,3 @@
-.ss-meta-message {
-	margin-top: 15px !important;
-}
-
-.error .ss-meta-message {
-	list-style-type: disc;
-}
-
-.error .ss-meta-message, li {
-	margin-left: 10px;
-}
-
 .ss-connection {
 	display: inline-block;
 	margin-top: 5px !important;
@@ -18,40 +6,4 @@
 
 #smart-send-logistics-update .dummy {
 	display: none;
-}
-/* Order meta box (#182): the server-rendered fulfillment form. */
-.smart-send-fulfillment__form {
-	border: 0;
-	margin: 0;
-	padding: 0;
-	min-width: 0;
-}
-
-.smart-send-fulfillment__notice {
-	margin: 0 0 10px !important;
-}
-
-.smart-send-fulfillment__row {
-	margin: 0 0 10px;
-}
-
-.smart-send-fulfillment__row h4 {
-	margin: 0 0 4px;
-}
-
-.smart-send-fulfillment__row select,
-.smart-send-fulfillment__row input[type="text"] {
-	width: 100%;
-}
-
-.smart-send-fulfillment__row table select {
-	width: auto;
-}
-
-.smart-send-fulfillment__booked details {
-	margin-top: 8px;
-}
-
-.smart-send-fulfillment__booked summary {
-	cursor: pointer;
 }

@@ -1,0 +1,413 @@
+/**
+ * Order screen "Smart Send" meta box (#182): the server-rendered
+ * first paint (SS_Shipping_Order_Fulfillment_Presenter::render_form()) and
+ * the React app share these class names. Built into
+ * build/order-fulfillment/style-index.css, enqueued by
+ * SS_Shipping_Order_Meta_Box next to WordPress' wp-components stylesheet.
+ *
+ * Layout (Option A): the box is a stack of sections separated by 1px
+ * dividers running edge to edge - the postbox's own .inside padding is
+ * removed and each section pads 12px instead. WordPress admin values
+ * only: the 13px system font, #1d2327 / #50575e text, #dcdcde dividers,
+ * #f6f7f7 grey, #2271b1 links and buttons.
+ */
+
+// The sections' dividers run edge to edge: the postbox's own inner
+// padding moves onto the sections.
+#woocommerce-ss-shipping-label .inside {
+	margin: 0;
+	padding: 0;
+}
+
+.smart-send-fulfillment {
+	&__form {
+		border: 0;
+		margin: 0;
+		padding: 0;
+		min-width: 0;
+	}
+
+	&__section {
+		padding: 12px;
+		border-top: 1px solid #dcdcde;
+
+		&:first-child {
+			border-top: 0;
+		}
+
+		&--settings {
+			background: #f6f7f7;
+		}
+
+		// The parcels row is a section of its own.
+		&.smart-send-fulfillment__row {
+			margin: 0;
+		}
+	}
+
+	// The row's label line: the bold label, an optional summary and help
+	// icon, the "Edit" link (or the parcels' "Done" button) at the right.
+	&__row-head {
+		display: flex;
+		align-items: center;
+		gap: 6px;
+		margin-bottom: 2px;
+		min-width: 0;
+	}
+
+	&__label {
+		font-weight: 600;
+	}
+
+	&__summary,
+	&__hint,
+	&__none,
+	&__address {
+		color: #50575e;
+	}
+
+	&__summary,
+	&__hint,
+	&__address {
+		font-size: 12px;
+	}
+
+	&__hint {
+		display: block;
+		margin: 2px 0 0;
+	}
+
+	&__help {
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		width: 16px;
+		height: 16px;
+		color: #646970;
+		cursor: help;
+		vertical-align: middle;
+
+		svg {
+			display: block;
+		}
+	}
+
+	&__edit,
+	&__done {
+		margin-left: auto;
+	}
+
+	&__edit,
+	&__reset {
+		&.button-link {
+			font-size: 12px;
+			text-decoration: none;
+			line-height: 1.4;
+			padding: 0;
+			min-height: 0;
+			height: auto;
+
+			&:hover,
+			&:focus {
+				text-decoration: underline;
+			}
+		}
+	}
+
+	&__reset.button-link {
+		font-size: 13px;
+	}
+
+	&__done.components-button.is-small {
+		min-height: 26px;
+		line-height: 1.8;
+	}
+
+	// A pickup point: the pin in front, "#agent no company" over the
+	// street and "postal code city" in grey.
+	&__pickup-point {
+		display: flex;
+		align-items: flex-start;
+		gap: 6px;
+		min-width: 0;
+	}
+
+	&__pin {
+		flex: 0 0 auto;
+		margin-top: 1px;
+		color: #50575e;
+	}
+
+	&__pickup-point-text {
+		min-width: 0;
+	}
+
+	&__address span {
+		display: block;
+	}
+
+	// The agent number input and "Look up" on one line: the input shrinks
+	// (its intrinsic size would otherwise push the button onto a new line
+	// in the narrow side column).
+	&__lookup {
+		flex-wrap: nowrap;
+		margin-bottom: 6px;
+
+		input[type="text"] {
+			flex: 1 1 60px;
+			min-width: 0;
+		}
+	}
+
+	// The settings checkbox with its grey hint under the label.
+	&__check {
+		display: flex;
+		align-items: flex-start;
+		gap: 6px;
+
+		input[type="checkbox"] {
+			flex: 0 0 auto;
+			margin: 1px 0 0;
+		}
+	}
+
+	&__check-text {
+		min-width: 0;
+	}
+
+	&__notice {
+		margin: 0 0 10px;
+
+		.components-notice {
+			margin: 0;
+		}
+
+		p {
+			margin: 0 0 6px;
+		}
+
+		p:last-child {
+			margin-bottom: 0;
+		}
+
+		ul {
+			margin: 4px 0 6px 16px;
+			list-style: disc;
+		}
+	}
+
+	&__row {
+		margin: 0 0 10px;
+
+		&:last-child {
+			margin-bottom: 0;
+		}
+
+		select,
+		input[type="text"] {
+			width: 100%;
+			max-width: 100%;
+		}
+	}
+
+	&__value {
+		margin: 0;
+	}
+
+	&__inline-form {
+		margin-top: 6px;
+
+		label {
+			display: block;
+			margin-bottom: 2px;
+		}
+	}
+
+	&__inline-actions {
+		display: flex;
+		flex-wrap: wrap;
+		align-items: center;
+		gap: 6px;
+
+		input[type="text"] {
+			flex: 1 1 100px;
+			width: auto;
+		}
+	}
+
+	&__field-error {
+		color: #d63638;
+		margin: 2px 0 6px;
+	}
+
+	&__boxes {
+		margin-top: 8px;
+	}
+
+	&__box {
+		border: 1px solid #dcdcde;
+		border-radius: 2px;
+		padding: 8px;
+		margin: 0 0 8px;
+		background: #f6f7f7;
+	}
+
+	&__measures {
+		display: grid;
+		grid-template-columns: 1.4fr 1fr 1fr 1fr;
+		gap: 6px;
+		margin: 6px 0;
+
+		label span {
+			display: block;
+			font-size: 11px;
+			color: #50575e;
+		}
+
+		input[type="text"] {
+			width: 100%;
+		}
+	}
+
+	// One row per product line in a box: name + SKU on the left (each on
+	// its own line, truncated with an ellipsis - the full text sits in a
+	// title attribute), the "× count / of total" pair and the ▲▼ arrows on
+	// the right, which never wrap or shrink.
+	&__lines {
+		margin: 6px 0 0;
+		list-style: none;
+		padding: 0;
+	}
+
+	&__line {
+		display: flex;
+		align-items: center;
+		gap: 8px;
+		margin: 0 0 4px;
+		min-width: 0;
+	}
+
+	&__line-text {
+		flex: 1 1 auto;
+		min-width: 0;
+		display: flex;
+		flex-direction: column;
+
+		> span {
+			display: block;
+			white-space: nowrap;
+			overflow: hidden;
+			text-overflow: ellipsis;
+		}
+	}
+
+	&__line-sku {
+		font-size: 11px;
+		color: #50575e;
+	}
+
+	&__line-quantity {
+		flex: 0 0 auto;
+		display: flex;
+		flex-direction: column;
+		align-items: flex-end;
+		white-space: nowrap;
+		line-height: 1.3;
+
+		.description {
+			font-size: 11px;
+		}
+	}
+
+	&__line-move {
+		flex: 0 0 auto;
+		display: flex;
+		flex-direction: column;
+		gap: 2px;
+
+		.button {
+			min-height: 0;
+			line-height: 1;
+			padding: 1px 4px;
+			font-size: 9px;
+		}
+	}
+
+	// The primary "Create shipping label" over the secondary "Create return
+	// label", each the full width of the (narrow) side column.
+	&__actions {
+		display: flex;
+		flex-direction: column;
+		gap: 8px;
+		margin: 0;
+	}
+
+	&__action.components-button,
+	&__action.button {
+		width: 100%;
+		box-sizing: border-box;
+		justify-content: center;
+		text-align: center;
+	}
+
+	&__booked + &__actions,
+	&__row + &__actions {
+		margin-top: 10px;
+	}
+
+	&__booked {
+		margin: 0 0 8px;
+
+		p {
+			margin: 0 0 6px;
+		}
+	}
+
+	&__outputs {
+		margin: 0 0 8px;
+
+		dt {
+			font-weight: 600;
+			margin: 6px 0 2px;
+		}
+
+		dd {
+			margin: 0 0 4px;
+		}
+	}
+
+	&__code-image {
+		display: block;
+		max-width: 160px;
+		margin: 4px 0;
+	}
+
+	&__rebook {
+		margin-top: 8px;
+	}
+
+	&__rebook-panel {
+		margin-top: 8px;
+		padding-top: 8px;
+		border-top: 1px dashed #dcdcde;
+
+		// The form's sections nested inside the disclosure keep their
+		// dividers but not the horizontal padding.
+		.smart-send-fulfillment__section {
+			padding: 10px 0;
+
+			&:first-child {
+				border-top: 0;
+				padding-top: 0;
+			}
+
+			&--settings {
+				padding: 10px 8px;
+			}
+		}
+	}
+}
+
+#smart-send-fulfillment[disabled] .components-button {
+	pointer-events: none;
+}

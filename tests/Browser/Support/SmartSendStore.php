@@ -218,6 +218,37 @@ PHP);
 }
 
 /**
+ * The requests the API mock recorded (see the mock source's header:
+ * booking requests, newest last, each { endpoint, url, method, body }),
+ * optionally filtered to one endpoint. Reset by ss_browser_seed_store().
+ */
+function ss_browser_api_requests(?string $endpoint = null): array
+{
+    $encoded = var_export($endpoint, true);
+
+    return ss_browser_wp_eval(<<<PHP
+\$requests = get_option('ss_test_api_requests', array());
+\$requests = is_array(\$requests) ? array_values(\$requests) : array();
+\$endpoint = {$encoded};
+if (\$endpoint !== null) {
+    \$requests = array_values(array_filter(\$requests, function (\$request) use (\$endpoint) {
+        return isset(\$request['endpoint']) && \$request['endpoint'] === \$endpoint;
+    }));
+}
+echo json_encode(array('requests' => \$requests));
+PHP)['requests'];
+}
+
+/**
+ * Forget the requests the API mock recorded so far, so a test asserts on
+ * the requests of its own actions only.
+ */
+function ss_browser_reset_api_requests(): void
+{
+    ss_browser_wp_eval("delete_option('ss_test_api_requests'); echo json_encode(array('ok' => true));");
+}
+
+/**
  * The fixture state created by ss_browser_seed_store() (ids of the zone
  * method, checkout page, product and admin-test orders).
  */

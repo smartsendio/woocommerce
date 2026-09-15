@@ -22,7 +22,13 @@
  *  - 'settings' (array)  merged over the default plugin settings
  *  - 'orders'   (array)  a list of order specs; each spec may set
  *                        'auto_return' => true to enable the method's
- *                        auto-generate-return-label flag on the order.
+ *                        auto-generate-return-label flag on the order,
+ *                        'quantity' => N for N units of the test product
+ *                        (default 1), 'return_method' => '' to leave the
+ *                        shipping item without a return method, and
+ *                        'flat_rate' => true for an order placed with a
+ *                        plain WooCommerce Flat rate (no Smart Send method,
+ *                        no pickup point - state B of #182).
  *                        Created order ids come back in state 'orders'.
  */
 
@@ -57,6 +63,7 @@ update_option('woocommerce_smart_send_shipping_settings', array_merge(array(
     'default_select_agent' => 'no', 'order_status' => '0',
 ), $config['settings']));
 update_option('ss_test_api', array('enabled' => true, 'scenarios' => array()));
+delete_option('ss_test_api_requests');
 // Legacy single-scenario mock options (pre per-endpoint rework) - remove if left behind.
 delete_option('ss_test_api_mock');
 delete_option('ss_test_api_scenario');
@@ -165,8 +172,9 @@ if (!$product_id) {
 // Orders for the admin label tests, built like checkout would build them.
 $make_order = function ($spec) use ($product_id) {
     $auto_return = !empty($spec['auto_return']);
+    $quantity = isset($spec['quantity']) ? max(1, (int) $spec['quantity']) : 1;
     $order = wc_create_order(array('status' => 'processing', 'created_via' => 'ss-browser-test'));
-    $order->add_product(wc_get_product($product_id), 1);
+    $order->add_product(wc_get_product($product_id), $quantity);
     $address = array(
         'first_name' => 'Browser', 'last_name' => 'Test', 'address_1' => 'Islands Brygge 39',
         'city' => 'Copenhagen', 'postcode' => '2300', 'country' => 'DK',
@@ -174,12 +182,24 @@ $make_order = function ($spec) use ($product_id) {
     $order->set_address(array_merge($address, array('email' => 'ss-browser-test@smartsend.io', 'phone' => '+4512345678')), 'billing');
     $order->set_address($address, 'shipping');
     $item = new WC_Order_Item_Shipping();
+    if (!empty($spec['flat_rate'])) {
+        // A plain WooCommerce Flat rate order: no Smart Send method, no
+        // pickup point (state B of #182).
+        $item->set_method_title('Flat rate');
+        $item->set_method_id('flat_rate');
+        $item->set_instance_id(1);
+        $item->set_total('39');
+        $order->add_item($item);
+        $order->calculate_totals();
+        $order->save();
+        return $order->get_id();
+    }
     $item->set_method_title('Smart Send Pickup Point');
     $item->set_method_id('smart_send_shipping');
     $item->set_instance_id(1);
     $item->set_total('29');
     $item->add_meta_data('smart_send_shipping_method', 'postnord_agent', true);
-    $item->add_meta_data('smart_send_return_method', 'postnord_returndropoff', true);
+    $item->add_meta_data('smart_send_return_method', array_key_exists('return_method', $spec) ? (string) $spec['return_method'] : 'postnord_returndropoff', true);
     $item->add_meta_data('smart_send_auto_generate_return_label', $auto_return ? 'yes' : 'no', true);
     $order->add_item($item);
     $order->calculate_totals();

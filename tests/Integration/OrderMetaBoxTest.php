@@ -1,13 +1,18 @@
 <?php
 
 /*
- * Tests for the order screen "Smart Send Shipping" meta box (#182 PR 2,
+ * Tests for the order screen "Smart Send" meta box (#182,
  * SS_Shipping_Order_Meta_Box + SS_Shipping_Order_Fulfillment_Presenter::render_form()):
- * registration on the legacy and the HPOS order screen, and the rendered
- * form per state of section 1.2 of the issue - not connected, no Smart
- * Send method (method select offered), not yet booked, booked from a
- * stored shipment id - with the state inlined as JSON and every value
- * escaped.
+ * registration on the legacy and the HPOS order screen, the server-rendered
+ * first paint per state of section 1.2 of the issue - not connected (the
+ * callout over the read-only sections, no Edit links), no Smart Send
+ * method ("None" + Edit), not yet booked (the sectioned Option A layout:
+ * read values with Edit links, the parcels collapsed to their summary,
+ * the stacked actions, the grey settings section), booked from a stored
+ * shipment id - with the state inlined as JSON and every value escaped, and the built React app (build/order-fulfillment/) enqueued
+ * from the render callback only, with every script dependency registered
+ * on the running WordPress (the WP 6.5 floor has no react-jsx-runtime
+ * handle, #183 - the app is built with the classic JSX runtime).
  */
 
 /**
@@ -65,8 +70,11 @@ function create_meta_box_order(array $args = []): WC_Order
 beforeEach(function (): void {
     with_ss_settings();
 
-    // Every render re-adds the inline state; start each test without one.
+    // Every render re-adds the inline state; start each test without one,
+    // and without the app enqueued (wp_scripts() persists across tests).
     wp_scripts()->add_data(SS_Shipping_Order_Meta_Box::STATE_SCRIPT_HANDLE, 'before', []);
+    wp_dequeue_script(SS_Shipping_Order_Meta_Box::STATE_SCRIPT_HANDLE);
+    wp_dequeue_style(SS_Shipping_Order_Meta_Box::STYLE_HANDLE);
 });
 
 it('registers the meta box on the HPOS order screen when HPOS is enabled', function () {
@@ -81,7 +89,7 @@ it('registers the meta box on the HPOS order screen when HPOS is enabled', funct
     SS_SHIPPING_WC()->meta_box()->add_smart_send_order_meta_box();
 
     expect($wp_meta_boxes[$screen]['side']['default'])->toHaveKey('woocommerce-ss-shipping-label')
-        ->and($wp_meta_boxes[$screen]['side']['default']['woocommerce-ss-shipping-label']['title'])->toBe('Smart Send Shipping');
+        ->and($wp_meta_boxes[$screen]['side']['default']['woocommerce-ss-shipping-label']['title'])->toBe('Smart Send');
 });
 
 it('registers the meta box on the legacy shop_order screen when HPOS is disabled', function () {
@@ -104,33 +112,52 @@ it('renders the not-yet-booked form with the state inlined as JSON', function ()
     expect($html)->toContain('<fieldset id="smart-send-fulfillment"')
         ->toContain('data-ss-state="ready"')
         ->toContain('data-ss-order-id="' . $order->get_id() . '"')
-        // The shipping method select, pre-selected with the order's method.
-        ->toContain('name="smart_send[delivery_details][shipping_method]"')
-        ->toContain('<option value="postnord_agent" selected=\'selected\'>')
-        ->toContain('<optgroup label="GLS">')
-        ->toContain('Weight: 1.00 kg')
-        // The pickup point row for an agent method: stored point + override input.
+        // The sectioned layout: the shipping section (read values, an Edit
+        // link per row), the parcels section, the actions, the grey settings.
+        ->toContain('<div class="smart-send-fulfillment__section" data-ss-section="details">')
+        ->toContain('<div class="smart-send-fulfillment__section smart-send-fulfillment__row" data-ss-section="parcel_plan">')
+        ->toContain('<div class="smart-send-fulfillment__section smart-send-fulfillment__section--actions" data-ss-section="actions">')
+        ->toContain('<div class="smart-send-fulfillment__section smart-send-fulfillment__section--settings" data-ss-section="settings">')
+        // The shipping method as a read value with its help icon and Edit
+        // link - no select until Edit (the app's).
+        ->toContain('<span data-ss-value="shipping_method">PostNord: Select pickup point (MyPack Collect)</span>')
+        ->toContain('title="Taken from the order. Choose another method to ship it differently; the order is not changed."')
+        ->toContain('data-ss-action="edit-method"')
+        ->not->toContain('data-ss-field="shipping_method"')
+        // The pickup point row for an agent method: the pin, "#agent no
+        // company" over the address, an Edit link.
         ->toContain('data-ss-section="pickup_point"')
-        ->toContain('Agent No.: 1234')
-        ->toContain('Corner Shop')
-        ->toContain('name="smart_send[delivery_details][pickup_point][agent_no]" value="1234"')
-        // The parcels row: one box select per unit.
-        ->toContain('data-ss-section="parcel_plan"')
-        ->toContain('name="smart_send[delivery_details][parcel_plan][split]"')
-        ->toContain('data-ss-field="parcel_plan.units[0].box"')
-        // The return checkbox defaults from the auto-return setting and names the return method.
-        ->toContain('name="smart_send[with_return]" value="1" data-ss-field="with_return" autocomplete="off" checked=\'checked\'>')
-        ->toContain('PostNord: Return from pickup point (Return Drop Off)')
+        ->toContain('<svg class="smart-send-fulfillment__pin"')
+        ->toContain('<span data-ss-value="pickup_point.agent_no">#1234</span> Corner Shop')
+        ->toContain('<div class="smart-send-fulfillment__address"><span>Main Street 1</span><span>2300 Copenhagen</span></div>')
+        ->toContain('data-ss-action="edit-pickup-point"')
+        ->not->toContain('data-ss-field="pickup_point.agent_no"')
+        // The return method row: the configured method, Edit, no select/hint.
+        ->toContain('<span data-ss-value="return_method">PostNord: Return from pickup point (Return Drop Off)</span>')
+        ->toContain('data-ss-action="edit-return-method"')
+        ->not->toContain('data-ss-field="return_method"')
         ->not->toContain('data-ss-hint="no_return_method"')
-        // Both actions.
-        ->toContain('data-ss-action="create-label"')
+        // The parcels section collapsed to its summary line with Edit.
+        ->toContain('<span class="smart-send-fulfillment__summary" data-ss-value="parcel_plan.summary">1 parcel · 1.00 kg</span>')
+        ->toContain('data-ss-action="edit-parcels"')
+        ->not->toContain('data-ss-section="parcel_editor"')
+        ->not->toContain('Weight: 1.00 kg')
+        // The return checkbox defaults from the auto-return setting, with
+        // its hint under the label.
+        ->toContain('name="smart_send[with_return]" value="1" data-ss-field="with_return" autocomplete="off" checked=\'checked\'>')
+        ->toContain('Default from the shipping method settings')
+        // Both actions, always: the primary "Create shipping label" over the
+        // secondary "Create return label" (a return leg on its own).
+        ->toContain('class="button button-primary smart-send-fulfillment__action" name="smart_send[flow]" value="outbound" data-ss-action="create-label"')
         ->toContain('DEMO MODE: Create shipping label')
-        ->toContain('data-ss-action="create-return-label"')
-        // The historic AJAX bridge ids stay wired.
-        ->toContain('id="ss-shipping-label-form"')
-        ->toContain('id="ss-shipping-label-button"')
-        ->toContain('id="ss-shipping-return-label-button"')
-        ->toContain('id="ss_shipping_label_nonce"')
+        ->toContain('class="button smart-send-fulfillment__action" name="smart_send[flow]" value="return" data-ss-action="create-return-label"')
+        ->toContain('DEMO MODE: Create return label')
+        // Rendered disabled: the app enables the fieldset once mounted
+        // (submission is JS-only, #182) - nothing of the AJAX bridge is left.
+        ->toContain('data-ss-order-id="' . $order->get_id() . '" disabled>')
+        ->not->toContain('ss-shipping-label-button')
+        ->not->toContain('ss_shipping_label_nonce')
+        ->not->toContain('ss_shipping_box_no')
         ->not->toContain('data-ss-notice=');
 
     $state = inlined_meta_box_state();
@@ -141,21 +168,64 @@ it('renders the not-yet-booked form with the state inlined as JSON', function ()
         // toEqual: JSON decoding turns a whole-number float (1.0) into an int.
         ->and($state)->toEqual(SS_SHIPPING_WC()->fulfillment_presenter()->state(wc_get_order($order->get_id())));
 
-    expect(wp_script_is('ss-shipping-label-js', 'enqueued'))->toBeTrue()
-        ->and(wp_style_is('ss-shipping-admin-css', 'enqueued'))->toBeTrue();
+    expect(wp_script_is('ss-shipping-label-js', 'enqueued'))->toBeFalse();
 });
 
-it('disables the return checkbox with a hint when no return method is configured', function () {
+it('enqueues the built app from the render callback only, with every dependency registered on this WordPress', function () {
+    $order = create_meta_box_order();
+
+    expect(wp_script_is(SS_Shipping_Order_Meta_Box::STATE_SCRIPT_HANDLE, 'enqueued'))->toBeFalse()
+        ->and(wp_style_is(SS_Shipping_Order_Meta_Box::STYLE_HANDLE, 'enqueued'))->toBeFalse();
+
+    render_meta_box($order);
+
+    $asset = require SS_SHIPPING_PLUGIN_DIR_PATH . '/build/order-fulfillment/index.asset.php';
+    $script = wp_scripts()->query(SS_Shipping_Order_Meta_Box::STATE_SCRIPT_HANDLE);
+
+    expect(wp_script_is(SS_Shipping_Order_Meta_Box::STATE_SCRIPT_HANDLE, 'enqueued'))->toBeTrue()
+        ->and($script->src)->toEndWith('/build/order-fulfillment/index.js')
+        ->and($script->ver)->toBe($asset['version'])
+        ->and($script->deps)->toBe($asset['dependencies'])
+        ->and($asset['dependencies'])->toContain('wp-api-fetch', 'wp-components', 'wp-element', 'wp-i18n', 'wp-url')
+        // The classic JSX runtime: no dependency on the react-jsx-runtime
+        // handle WordPress registers only from 6.6 (#183).
+        ->and($asset['dependencies'])->not->toContain('react-jsx-runtime')
+        ->and($script->textdomain)->toBe('smart-send-logistics');
+
+    foreach ($asset['dependencies'] as $dependency) {
+        expect(wp_script_is($dependency, 'registered'))->toBeTrue("Script dependency {$dependency} is not registered on this WordPress");
+    }
+
+    expect(wp_style_is(SS_Shipping_Order_Meta_Box::STYLE_HANDLE, 'enqueued'))->toBeTrue()
+        ->and(wp_styles()->query(SS_Shipping_Order_Meta_Box::STYLE_HANDLE)->src)->toEndWith('/build/order-fulfillment/style-index.css')
+        ->and(wp_style_is('wp-components', 'enqueued'))->toBeTrue();
+
+    // The inline state rides before the bundle.
+    expect(inlined_meta_box_state()['order_id'])->toBe($order->get_id());
+});
+
+it('keeps the return checkbox usable and offers a return method select when no return method is configured', function () {
     $order = create_meta_box_order(['return_method' => '']);
 
     $html = render_meta_box($order);
 
-    expect($html)->toContain('data-ss-field="with_return" autocomplete="off" disabled=\'disabled\'>')
+    // The select serves both the combined run and the return-only action,
+    // so the return method row shows it right away (no Edit link, no
+    // read value) under the hint.
+    expect($html)->toContain('data-ss-field="with_return" autocomplete="off">')
+        ->not->toContain('disabled=\'disabled\'')
+        ->toContain('data-ss-section="return_method"')
         ->toContain('data-ss-hint="no_return_method"')
-        ->toContain('No return method configured on the shipping method');
+        ->toContain('No return method configured on the shipping method - choose one here')
+        ->toContain('name="smart_send[return_method]" data-ss-field="return_method"')
+        ->toContain('<option value="postnord_returndropoff">')
+        ->not->toContain('data-ss-action="edit-return-method"')
+        ->not->toContain('data-ss-value="return_method"')
+        ->toContain('data-ss-action="create-label"')
+        ->toContain('data-ss-action="create-return-label"');
 });
 
-it('renders the not-connected notice with the form disabled when no API token is configured and demo mode is off', function () {
+it('renders the not-connected callout over the read-only sections, without Edit links, when no API token is configured and demo mode is off', function () {
     with_ss_settings(['api_token' => '', 'demo' => 'no']);
     $order = create_meta_box_order();
 
@@ -168,12 +238,18 @@ it('renders the not-connected notice with the form disabled when no API token is
         ->toContain('Smart Send is not connected.')
         ->toContain('data-ss-action="open-settings"')
         ->toContain('section=smart_send_shipping')
-        ->not->toContain('data-ss-action="create-label"');
+        // The callout sits in the first section's padding, over the rows.
+        ->toContain('data-ss-notice="not_connected"><p>Smart Send is not connected.')
+        ->toContain('<span data-ss-value="shipping_method">PostNord: Select pickup point (MyPack Collect)</span>')
+        ->toContain('data-ss-value="parcel_plan.summary">1 parcel · 1.00 kg</span>')
+        ->toContain('data-ss-action="create-label"')
+        // Read-only: nothing to edit while not connected.
+        ->not->toContain('data-ss-action="edit-');
 
     expect(inlined_meta_box_state()['connected'])->toBeFalse();
 });
 
-it('offers the method select for an order without a Smart Send shipping method', function () {
+it('reads "None" with an Edit link for an order without a Smart Send shipping method', function () {
     $product = create_simple_product(['price' => 100, 'weight' => 1]);
     $order   = create_order(['products' => [$product]]);
 
@@ -181,13 +257,21 @@ it('offers the method select for an order without a Smart Send shipping method',
 
     expect($html)->toContain('data-ss-state="no_method"')
         ->toContain('data-ss-notice="no_method"')
-        ->toContain('This order was not placed with a Smart Send shipping method. Choose one to book anyway.')
-        ->toContain('name="smart_send[delivery_details][shipping_method]"')
-        ->toContain('<option value="" selected=\'selected\'>Select a method…</option>')
-        // No method, so no pickup point row; the return checkbox is disabled.
+        ->toContain('This order has no Smart Send shipping method. Choose the method to ship it with.')
+        // The callout is inside the first section, over the method row,
+        // which reads "None" with its Edit link (the select is the app's).
+        ->toContain('data-ss-section="details"><div class="notice notice-info inline smart-send-fulfillment__notice" data-ss-notice="no_method">')
+        ->toContain('<span class="smart-send-fulfillment__none" data-ss-value="shipping_method">None</span>')
+        ->toContain('data-ss-action="edit-method"')
+        ->not->toContain('data-ss-field="shipping_method"')
+        // No method, so no pickup point row; no return method either, so the
+        // return method select (for both actions) is rendered right away.
         ->not->toContain('data-ss-section="pickup_point"')
         ->toContain('data-ss-hint="no_return_method"')
-        ->toContain('data-ss-action="create-label"');
+        ->toContain('name="smart_send[return_method]" data-ss-field="return_method"')
+        // Both actions: the primary outbound one and the secondary return one.
+        ->toContain('class="button button-primary smart-send-fulfillment__action" name="smart_send[flow]" value="outbound" data-ss-action="create-label"')
+        ->toContain('class="button smart-send-fulfillment__action" name="smart_send[flow]" value="return" data-ss-action="create-return-label"');
 
     expect(inlined_meta_box_state()['delivery_details']['shipping_method'])->toBeNull();
 });
@@ -206,11 +290,18 @@ it('renders the booked block from a stored shipment id with the book-again discl
         ->toContain('A shipping label already exists for this order.')
         ->toContain('name="smart_send[confirm_rebook]" value="1"')
         ->toContain('data-ss-action="create-label"')
-        // No return yet: the separate action.
+        // No return yet: the separate action in its own section, with the
+        // return method row (the configured one, editable).
+        ->toContain('<div class="smart-send-fulfillment__section" data-ss-section="return">')
         ->toContain('data-ss-section="return_shipment"')
         ->toContain('not created')
+        ->toContain('<span data-ss-value="return_method">PostNord: Return from pickup point (Return Drop Off)</span>')
+        ->toContain('data-ss-action="edit-return-method"')
         ->toContain('data-ss-action="create-return-label"')
-        ->not->toContain('data-ss-section="rebook_return"');
+        ->not->toContain('data-ss-section="rebook_return"')
+        // The disclosure re-opens the form's sections inside its panel.
+        ->toContain('<div class="smart-send-fulfillment__rebook-panel">')
+        ->toContain('data-ss-value="parcel_plan.summary">1 parcel · 1.00 kg</span>');
 
     expect(inlined_meta_box_state()['outbound_shipment'])->toBe(['shipment_id' => 'shipment-old', 'legacy' => true]);
 
@@ -224,7 +315,7 @@ it('renders the booked block from a stored shipment id with the book-again discl
         ->not->toContain('not created');
 });
 
-it('renders the stored parcel split into the per-unit box selects', function () {
+it('renders the stored parcel split as the collapsed parcels summary, an explicit box weight winning over the computed one', function () {
     $product_a = create_simple_product(['name' => 'Split A', 'price' => 100, 'weight' => 1]);
     $product_b = create_simple_product(['name' => 'Split B', 'price' => 50, 'weight' => 2]);
     $order     = create_order([
@@ -239,19 +330,26 @@ it('renders the stored parcel split into the per-unit box selects', function () 
 
     $html = render_meta_box($order);
 
-    expect($html)->toContain('data-ss-field="parcel_plan.split" autocomplete="off" checked=\'checked\'>')
-        ->toContain('<div id="ss-shipping-order-items" class="">');
+    // Two boxes: 1.00 kg (one unit of A) and 3.00 kg (A + B) - the same
+    // figure the app's totalWeight() computes, so nothing jumps on mount.
+    expect($html)->toContain('data-ss-value="parcel_plan.summary">2 parcels · 4.00 kg</span>')
+        ->not->toContain('data-ss-section="parcel_editor"')
+        ->not->toContain('parcel_plan.units[');
 
-    preg_match_all('/data-ss-field="parcel_plan\.units\[\d\]\.box" autocomplete="off">(.*?)<\/select>/s', $html, $selects);
-    expect($selects[1])->toHaveCount(3)
-        ->and($selects[1][0])->toContain('<option value="1" selected=\'selected\'>')
-        ->and($selects[1][1])->toContain('<option value="2" selected=\'selected\'>')
-        ->and($selects[1][2])->toContain('<option value="2" selected=\'selected\'>');
+    $state = inlined_meta_box_state();
+    expect($state['delivery_details']['parcel_plan']['specs'])->toHaveCount(2);
 
-    expect(inlined_meta_box_state()['delivery_details']['parcel_plan']['specs'])->toHaveCount(2);
+    // An explicit weight on a box replaces its computed one (the stored
+    // item rows carry none; the state shape allows one).
+    $state['delivery_details']['parcel_plan']['specs'][1]['weight'] = 2.5;
+    expect(SS_SHIPPING_WC()->fulfillment_presenter()->parcel_summary($state))->toBe('2 parcels · 3.50 kg');
+
+    // No plan: everything in one parcel.
+    $state['delivery_details']['parcel_plan'] = null;
+    expect(SS_SHIPPING_WC()->fulfillment_presenter()->parcel_summary($state))->toBe('1 parcel · 4.00 kg');
 });
 
-it('escapes every value it renders, including product names and the pickup point', function () {
+it('escapes every value it renders, including the pickup point, and inlines a state that cannot close the script element', function () {
     $product = create_simple_product(['name' => 'Evil <script>alert(1)</script> "Hoodie"', 'price' => 100, 'weight' => 1]);
     $order   = create_order(['products' => [$product], 'shipping_method' => 'postnord_agent']);
     save_order_pickup_point($order->get_id(), sample_agent(['company' => 'Shop <img src=x onerror=alert(1)>']));
@@ -259,9 +357,8 @@ it('escapes every value it renders, including product names and the pickup point
     $html = render_meta_box($order);
 
     expect($html)->not->toContain('<script>alert(1)</script>')
-        ->toContain('Evil &lt;script&gt;alert(1)&lt;/script&gt; &quot;Hoodie&quot;')
-        ->not->toContain('onerror=')
-        ->toContain('Shop <img src="x">');
+        ->not->toContain('<img src=x')
+        ->toContain('Shop &lt;img src=x onerror=alert(1)&gt;');
 
     // The inline JSON cannot close the script element either.
     $inline = inlined_meta_box_script();

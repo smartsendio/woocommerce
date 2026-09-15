@@ -35,7 +35,13 @@
 set -euo pipefail
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-ENV_WP_PATH="$(sed -n 's/^WP_PATH=//p' "$REPO_ROOT/.env" 2>/dev/null | tail -1)"
+# Tolerate a missing .env: under `set -euo pipefail` a bare `$(sed ... | tail)`
+# assignment inherits sed's exit 2 and silently kills the script (same fix as
+# in bin/setup-local-dev.sh).
+ENV_WP_PATH=""
+if [[ -f "$REPO_ROOT/.env" ]]; then
+    ENV_WP_PATH="$(sed -n 's/^WP_PATH=//p' "$REPO_ROOT/.env" | tail -1)"
+fi
 if [[ -n "$ENV_WP_PATH" && "$ENV_WP_PATH" != /* ]]; then
     ENV_WP_PATH="$REPO_ROOT/$ENV_WP_PATH"
 fi
@@ -57,8 +63,10 @@ Demo mode for manual testing: the browser-suite store state (Smart Send API
 mock, Denmark zone with a Smart Send agent method, sample product, classic +
 block checkout pages), left on until turned off.
 
-  on                 Seed the store and install the API mock; prints URLs and
-                     admin credentials. Idempotent.
+  on                 Seed the store and install the API mock; prints URLs,
+                     admin credentials and the active mock state. Idempotent:
+                     on an already-seeded store it refreshes the mu-plugin
+                     and re-enables the mock (ss_test_api enabled => true).
   off                Remove the mock and the demo fixtures, restore what
                      demo:on changed. Idempotent.
   scenario           Show the active per-endpoint scenarios and the valid
@@ -152,6 +160,37 @@ install_mock() {
     cp "$MOCK_SRC" "$MU_PLUGIN_PATH"
 }
 
+# The mu-plugin only intercepts while the ss_test_api option says
+# enabled => true; (re)write that unconditionally - seed-store.php sets it
+# on a fresh seed, but an already-seeded store may have lost it (a partial
+# cleanup, a wiped option) and would then hit the real API with the demo
+# credentials. Active scenarios are kept.
+enable_mock() {
+    wp eval '
+$config = get_option("ss_test_api", array());
+$config = is_array($config) ? $config : array();
+$config["enabled"] = true;
+if (!isset($config["scenarios"]) || !is_array($config["scenarios"])) {
+    $config["scenarios"] = array();
+}
+update_option("ss_test_api", $config);
+' >/dev/null
+}
+
+# "enabled"/"DISABLED" per the two things the mock needs: the mu-plugin
+# file and the option flag.
+mock_status() {
+    local flag
+    flag="$(wp eval '$c = get_option("ss_test_api"); echo empty($c["enabled"]) ? "off" : "on";' 2>/dev/null || echo off)"
+    if [[ -f "$MU_PLUGIN_PATH" && "$flag" == "on" ]]; then
+        echo "enabled (mu-plugin installed, ss_test_api enabled)"
+    elif [[ -f "$MU_PLUGIN_PATH" ]]; then
+        echo "DISABLED - mu-plugin installed but the ss_test_api option is not enabled; requests reach the real API"
+    else
+        echo "DISABLED - mu-plugin not installed; requests reach the real API"
+    fi
+}
+
 page_url() {
     wp post list --post_type=page --post__in="$1" --field=url
 }
@@ -175,6 +214,7 @@ Demo mode is ON - the store now runs against a FAKE Smart Send API.
   Block checkout:   $(page_url "$(state_value block_checkout_page_id)")
   Admin:            $site_url/wp-admin (${WP_ADMIN_USER:-admin} / ${WP_ADMIN_PASS:-password})
 
+  API mock:         $(mock_status)
   $(print_current_scenarios | sed '2,$s/^/  /')
                     switch:  composer demo:scenario -- <endpoint>=<case>...
                     reset:   composer demo:scenario -- reset
@@ -191,8 +231,9 @@ EOF
 
 cmd_on() {
     if demo_is_on; then
-        log "Demo mode is already on - refreshing the API mock mu-plugin only."
+        log "Demo mode is already on - refreshing the API mock mu-plugin and re-enabling the mock."
         install_mock
+        enable_mock
         print_info
         return
     fi
@@ -202,6 +243,8 @@ cmd_on() {
     wp eval-file "$SNIPPETS_DIR/seed-store.php" '{}' "$STATE_OPTION" >/dev/null
     log "Creating the block checkout page"
     wp eval-file "$SNIPPETS_DIR/create-block-checkout-page.php" "$STATE_OPTION" >/dev/null
+    # Belt and braces: the seed wrote it, but the mock must never be left off.
+    enable_mock
     print_info
 }
 

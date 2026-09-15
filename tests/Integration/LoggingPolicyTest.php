@@ -229,7 +229,7 @@ it('logs a debug trace when the meta box is rendered for a non Smart Send order'
     // Deliberate behaviour change (#182, state B): the box no longer dead-ends
     // on such an order - it offers the method choice - and the debug trace
     // says so.
-    expect($output)->toContain('This order was not placed with a Smart Send shipping method. Choose one to book anyway.')
+    expect($output)->toContain('This order has no Smart Send shipping method. Choose the method to ship it with.')
         ->and(implode("\n", ss_policy_logged($spy, 'debug')))->toContain('No Smart Send shipping method on order - the meta box offers a method choice');
 });
 
@@ -322,11 +322,12 @@ it('logs the rate calculation start and cost outcome as a debug trace', function
     ], 99955);
     $method->calculate_shipping($package);
 
+    $cost   = ss_rate_cost_as_traced($method, 'smart_send_shipping:99955', 49);
     $debugs = implode("\n", ss_policy_logged($spy, 'debug'));
     expect($debugs)->toContain('Calculating shipping cost for shipping rate smart_send_shipping:99955')
-        ->and($debugs)->toContain('Calculated shipping cost for shipping rate smart_send_shipping:99955: 49');
+        ->and($debugs)->toContain('Calculated shipping cost for shipping rate smart_send_shipping:99955: ' . $cost);
 
-    $outcome = ss_policy_entry($spy, 'Calculated shipping cost for shipping rate smart_send_shipping:99955: 49');
+    $outcome = ss_policy_entry($spy, 'Calculated shipping cost for shipping rate smart_send_shipping:99955: ' . $cost);
     expect($outcome)->not->toBeNull()
         ->and($outcome['context']['rate_id'])->toBe('smart_send_shipping:99955');
 });
