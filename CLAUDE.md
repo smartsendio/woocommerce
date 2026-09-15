@@ -136,7 +136,8 @@ Extension points are `smart_send_*` filters/actions, organised by the three stag
 Releases go to the WordPress.org SVN repo, not GitHub. Use `sh bin/svn-deploy.sh` (interactive; copies `smart-send-logistics/` into an SVN checkout's trunk, tags, commits).
 
 A version bump must update **three places in lockstep**:
-- `smart-send-logistics/smart-send-logistics.php`: the `Version:` header and the private `$version` property
+- `smart-send-logistics/smart-send-logistics.php`: the `Version:` header
+- `smart-send-logistics/includes/class-ss-shipping-wc.php`: the private `$version` property
 - `smart-send-logistics/readme.txt`: the `Stable tag:`
 
 Also add a changelog entry under `== Changelog ==` in `readme.txt` (WordPress.org readme format, not Keep a Changelog). When compatibility is verified against newer versions, bump `Tested up to:` / `WC tested up to:` in both files.
