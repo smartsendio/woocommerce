@@ -9,15 +9,17 @@
  * (name + SKU, "× count / of total") and two arrows: ▲ moves one unit of
  * that line to the box above, ▼ one unit to the box below - creating a
  * new box when there is none - so a line can be split across boxes in
- * any proportion. An emptied box stays (it may carry an explicit weight)
- * with a "Remove box" control (never the first box); "Reset to one
- * parcel" clears a stored split.
+ * any proportion. A box is never empty: when its last unit moves out it
+ * is removed (its explicit weight/dimensions with it) and the boxes below
+ * renumber; ▼ on a lone unit in the last box is disabled, since it would
+ * only spawn a box while emptying this one. New boxes come from ▼ alone;
+ * "Reset to one parcel" clears a stored split.
  */
 import { createElement } from '@wordpress/element';
 import { Button } from '@wordpress/components';
 import { __, _n, sprintf } from '@wordpress/i18n';
 
-import { boxLines, computedBoxWeight, emptyBox, formatWeight, moveOneUnit, totalWeight } from './model';
+import { boxLines, computedBoxWeight, dropBoxIfEmpty, emptyBox, formatWeight, moveOneUnit, totalWeight } from './model';
 import { FieldError } from './ErrorNotice';
 
 const DIMENSIONS = [
@@ -34,35 +36,29 @@ export default function ParcelEditor( { units, boxes, assignment, editing, onEdi
 		update( nextBoxes, assignment );
 	};
 
+	// Move one unit of a line and drop the source box when that emptied it.
+	const move = ( id, boxIndex, nextBoxes, target ) => {
+		const moved = moveOneUnit( units, assignment, id, boxIndex, target );
+		const next = dropBoxIfEmpty( nextBoxes, moved, boxIndex );
+		update( next.boxes, next.assignment );
+	};
+
 	const moveUp = ( id, boxIndex ) => {
 		if ( boxIndex === 0 ) {
 			return;
 		}
-		update( boxes, moveOneUnit( units, assignment, id, boxIndex, boxIndex - 1 ) );
+		move( id, boxIndex, boxes, boxIndex - 1 );
 	};
 
 	// Below the last box a new one is created for the moved unit.
 	const moveDown = ( id, boxIndex ) => {
-		const nextBoxes = boxIndex === boxes.length - 1 ? [ ...boxes, emptyBox() ] : boxes;
-		update( nextBoxes, moveOneUnit( units, assignment, id, boxIndex, boxIndex + 1 ) );
+		const isLast = boxIndex === boxes.length - 1;
+		move( id, boxIndex, isLast ? [ ...boxes, emptyBox() ] : boxes, boxIndex + 1 );
 	};
 
-	const addBox = () => update( [ ...boxes, emptyBox() ], assignment );
-
-	const removeBox = ( boxIndex ) => {
-		if ( boxes.length === 1 ) {
-			return;
-		}
-		const nextBoxes = boxes.filter( ( box, index ) => index !== boxIndex );
-		// Units of the removed box go to the first box; later boxes shift up.
-		const nextAssignment = assignment.map( ( current ) => {
-			if ( current === boxIndex ) {
-				return 0;
-			}
-			return current > boxIndex ? current - 1 : current;
-		} );
-		update( nextBoxes, nextAssignment );
-	};
+	// A lone unit in the last box cannot move down: it would only spawn a
+	// box while emptying this one.
+	const isStuckBelow = ( line, boxIndex, lines ) => boxIndex === boxes.length - 1 && lines.length === 1 && line.count === 1;
 
 	const reset = () => update( [ emptyBox() ], units.map( () => 0 ) );
 
@@ -105,13 +101,6 @@ export default function ParcelEditor( { units, boxes, assignment, editing, onEdi
 											sprintf( __( 'Box %d', 'smart-send-logistics' ), boxIndex + 1 )
 										}
 									</strong>
-									{ lines.length === 0 && <span className="description">{ __( '(empty)', 'smart-send-logistics' ) }</span> }
-									{ /* An emptied box stays until removed explicitly; the first box never goes. */ }
-									{ lines.length === 0 && boxIndex > 0 && (
-										<Button variant="link" size="small" isDestructive data-ss-action="remove-box" onClick={ () => removeBox( boxIndex ) } disabled={ disabled }>
-											{ __( 'Remove box', 'smart-send-logistics' ) }
-										</Button>
-									) }
 								</div>
 
 								<div className="smart-send-fulfillment__measures">
@@ -148,8 +137,7 @@ export default function ParcelEditor( { units, boxes, assignment, editing, onEdi
 								) ) }
 								<FieldError field={ `parcel_plan.specs[${ boxIndex }]` } errors={ errors } />
 
-								{ lines.length > 0 && (
-									<ul className="smart-send-fulfillment__lines">
+								<ul className="smart-send-fulfillment__lines">
 										{ lines.map( ( line ) => (
 											<li className="smart-send-fulfillment__line" key={ line.id } data-ss-line={ line.id }>
 												<span className="smart-send-fulfillment__line-text">
@@ -188,26 +176,26 @@ export default function ParcelEditor( { units, boxes, assignment, editing, onEdi
 														type="button"
 														className="button"
 														data-ss-action="move-down"
-														aria-label={ __( 'Move one unit to the box below', 'smart-send-logistics' ) }
-														title={ __( 'Move one unit to the box below', 'smart-send-logistics' ) }
+														aria-label={ isStuckBelow( line, boxIndex, lines )
+															? __( 'Cannot move down: this is the only unit in the last box and a box must not be empty', 'smart-send-logistics' )
+															: __( 'Move one unit to the box below', 'smart-send-logistics' ) }
+														title={ isStuckBelow( line, boxIndex, lines )
+															? __( 'Cannot move down: this is the only unit in the last box and a box must not be empty', 'smart-send-logistics' )
+															: __( 'Move one unit to the box below', 'smart-send-logistics' ) }
 														onClick={ () => moveDown( line.id, boxIndex ) }
-														disabled={ disabled }
+														disabled={ disabled || isStuckBelow( line, boxIndex, lines ) }
 													>
 														▼
 													</button>
 												</span>
 											</li>
 										) ) }
-									</ul>
-								) }
+								</ul>
 							</div>
 						);
 					} ) }
 
 					<div className="smart-send-fulfillment__inline-actions">
-						<Button variant="secondary" size="small" data-ss-action="add-box" onClick={ addBox } disabled={ disabled }>
-							{ __( '+ Add box', 'smart-send-logistics' ) }
-						</Button>
 						<Button variant="tertiary" size="small" data-ss-action="reset-parcels" onClick={ reset } disabled={ disabled }>
 							{ __( 'Reset to one parcel', 'smart-send-logistics' ) }
 						</Button>

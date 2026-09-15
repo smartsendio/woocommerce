@@ -213,7 +213,7 @@ it('returns the state on GET, matching the presenter', function () {
     expect($state)->toBe(SS_SHIPPING_WC()->fulfillment_presenter()->state(wc_get_order($order->get_id())));
 });
 
-it('rejects a bad flow, a non-numeric weight and an item id not on the order with 400 rest_invalid_param', function () {
+it('rejects a bad flow, a non-numeric weight, a parcel without items and an item id not on the order with 400 rest_invalid_param', function () {
     $order = create_rest_order();
     as_rest_user();
     $capture = mock_smart_send_api();
@@ -231,6 +231,20 @@ it('rejects a bad flow, a non-numeric weight and an item id not on the order wit
         ->and($bad_weight->get_data()['code'])->toBe('rest_invalid_param')
         ->and($bad_weight->get_data()['data']['params'])->toHaveKey('delivery_details')
         ->and($bad_weight->get_data()['data']['params']['delivery_details'])->toContain('weight');
+
+    // A parcel without items: the meta box can no longer produce one (an
+    // emptied box is removed), so the schema path rejects it - the DTO and
+    // the smart_send_delivery_details filter path still allow box-only specs.
+    $no_items = fulfillment_post($order->get_id(), [
+        'flow'             => 'outbound',
+        'delivery_details' => ['parcel_plan' => ['specs' => [
+            ['weight' => 1.5, 'items' => [['id' => $order->get_items()[array_key_first($order->get_items())]->get_product_id(), 'quantity' => 1]]],
+            ['weight' => 2.5, 'items' => []],
+        ]]],
+    ]);
+    expect($no_items->get_status())->toBe(400)
+        ->and($no_items->get_data()['code'])->toBe('rest_invalid_param')
+        ->and($no_items->get_data()['data']['params']['delivery_details'])->toContain('parcel_plan.specs[1].items: A parcel must contain at least one item.');
 
     $unknown_item = fulfillment_post($order->get_id(), [
         'flow'             => 'outbound',

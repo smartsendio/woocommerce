@@ -75,7 +75,7 @@ export function methodName( groups, code ) {
 }
 
 /**
- * An empty box (a parcel spec without allocations).
+ * A fresh box (no explicit weight or dimensions yet).
  *
  * @return {Object} { weight, length, width, height } as input strings.
  */
@@ -236,6 +236,28 @@ export function moveOneUnit( units, assignment, id, from, to ) {
 	}
 
 	return assignment.map( ( current, index ) => ( index === unitIndex ? to : current ) );
+}
+
+/**
+ * Drop a box that holds no unit: its explicit weight/dimensions go with
+ * it and the boxes below renumber (assignments above it shift down). The
+ * boxes are returned unchanged when the box still holds a unit or is the
+ * only one.
+ *
+ * @param {Array}    boxes      The editor's boxes.
+ * @param {number[]} assignment Per unit index, its box index.
+ * @param {number}   boxIndex   The box to drop when empty.
+ * @return {{boxes: Array, assignment: number[]}} The boxes and assignment.
+ */
+export function dropBoxIfEmpty( boxes, assignment, boxIndex ) {
+	if ( boxes.length === 1 || assignment.some( ( current ) => current === boxIndex ) ) {
+		return { boxes, assignment };
+	}
+
+	return {
+		boxes: boxes.filter( ( box, index ) => index !== boxIndex ),
+		assignment: assignment.map( ( current ) => ( current > boxIndex ? current - 1 : current ) ),
+	};
 }
 
 /**

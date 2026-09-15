@@ -292,9 +292,10 @@ if ( ! class_exists( 'SS_Shipping_Fulfillment_Rest_Controller' ) ) :
 
 		/**
 		 * Validate the delivery_details argument: the schema first, then
-		 * every parcel allocation must reference an item of the order (the
-		 * builder would silently skip an unknown id; here it is a
-		 * parcel_plan.specs[N].items[M].id error).
+		 * every parcel must contain at least one item (a
+		 * parcel_plan.specs[N].items error) and every parcel allocation must
+		 * reference an item of the order (the builder would silently skip an
+		 * unknown id; here it is a parcel_plan.specs[N].items[M].id error).
 		 *
 		 * @param mixed           $value   The submitted value.
 		 * @param WP_REST_Request $request The request.
@@ -323,7 +324,22 @@ if ( ! class_exists( 'SS_Shipping_Fulfillment_Rest_Controller' ) ) :
 			$order_item_ids = array_map( 'strval', array_unique( wp_list_pluck( $this->presenter->order_units( $order ), 'id' ) ) );
 
 			foreach ( array_values( $value['parcel_plan']['specs'] ) as $spec_index => $spec ) {
-				foreach ( isset( $spec['items'] ) && is_array( $spec['items'] ) ? array_values( $spec['items'] ) : array() as $item_index => $item ) {
+				// A parcel without items: the box cannot produce one (an emptied
+				// box is removed), so reject it here. The DTO itself still
+				// allows box-only specs - the smart_send_delivery_details
+				// filter may build them programmatically, outside this schema.
+				if ( empty( $spec['items'] ) || ! is_array( $spec['items'] ) ) {
+					return new WP_Error(
+						'rest_invalid_param',
+						sprintf(
+							/* translators: %s: the form field. */
+							__( '%s: A parcel must contain at least one item.', 'smart-send-logistics' ),
+							sprintf( 'parcel_plan.specs[%d].items', $spec_index )
+						)
+					);
+				}
+
+				foreach ( array_values( $spec['items'] ) as $item_index => $item ) {
 					if ( ! isset( $item['id'] ) || in_array( (string) $item['id'], $order_item_ids, true ) ) {
 						continue;
 					}
