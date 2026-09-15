@@ -13,13 +13,6 @@
  * only actually clicking through.)
  */
 
-function ss_dev_trace(string $message): void //DBG
-{ //DBG
-    fwrite(STDERR, '[trace ' . date('H:i:s') . '] ' . $message . PHP_EOL); //DBG
-} //DBG
-beforeAll(function (): void { ss_dev_trace('DevStoreTest file start'); }); //DBG
-beforeEach(function (): void { ss_dev_trace('test start'); }); //DBG
-afterEach(function (): void { ss_dev_trace('test end'); }); //DBG
 
 it('loads the store home page without javascript errors', function () {
     visit(base_url('/'))
@@ -58,18 +51,11 @@ it('lists the sample products in the shop', function () {
  */
 function ss_dev_store_add_beanie_and_open_cart()
 {
-    ss_dev_trace('visit product page'); //DBG
-    $page = visit(base_url('/product/beanie/'));
-    ss_dev_trace('assert add to cart'); //DBG
-    $page->assertSee('Add to cart');
-    ss_dev_trace('click add to cart'); //DBG
-    $page->click('form.cart button.single_add_to_cart_button');
-    ss_dev_trace('assert notice'); //DBG
-    $page->assertSee('has been added to your cart');
-    ss_dev_trace('navigate cart'); //DBG
-    $page->navigate(base_url('/cart/'));
-    ss_dev_trace('on cart page'); //DBG
-    return $page;
+    return visit(base_url('/product/beanie/'))
+        ->assertSee('Add to cart')
+        ->click('form.cart button.single_add_to_cart_button')
+        ->assertSee('has been added to your cart')
+        ->navigate(base_url('/cart/'));
 }
 
 it('calculates flat rate shipping for the Danish store address in the cart', function () {
@@ -83,9 +69,26 @@ it('proceeds from the cart to the checkout', function () {
     // Guards the store-page wiring: a woocommerce_checkout_page_id pointing
     // at a missing page makes the cart block render this button with an
     // empty href, spinning forever without an error anywhere.
-    ss_dev_store_add_beanie_and_open_cart()
-        ->assertSee('Proceed to Checkout')
-        ->click('Proceed to Checkout')
-        ->assertPathContains('checkout')
+    $page = ss_dev_store_add_beanie_and_open_cart()
+        ->assertSee('Proceed to Checkout');
+
+    // Click the button page-side and wait for the checkout URL ourselves:
+    // on the WooCommerce 8.2 floor (classic shortcode cart) a Playwright
+    // text click on this button never settled and the whole suite hung
+    // until the job timeout, while a real user's click navigates fine. The
+    // guard above still holds - a button with an empty href navigates
+    // nowhere and the URL wait below fails instead of spinning.
+    $page->script(<<<'JS'
+        (function () {
+            var button = Array.prototype.find.call(document.querySelectorAll('a, button'), function (element) {
+                return /proceed to checkout/i.test(element.textContent);
+            });
+            if (button) { button.click(); }
+        })();
+        JS
+    );
+    ss_wait_for_script($page, "location.pathname.indexOf('checkout') !== -1", 15);
+
+    $page->assertPathContains('checkout')
         ->assertNoJavaScriptErrors();
 });
