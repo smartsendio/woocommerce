@@ -190,18 +190,25 @@ if ( ! class_exists( 'SS_Shipping_Shipment_Builder' ) ) :
 				return array();
 			}
 
-			// A single parcel containing all the items.
-			$weight_total = 0;
+			// A single parcel containing all the items. The implicit spec
+			// behind it (every unit, no explicit weight) is what the
+			// default-weight filter receives, so a snippet adding packaging
+			// weight sees the same spec shape whether or not a plan was
+			// declared.
+			$weight_total  = 0;
+			$implicit_spec = new SS_Shipping_Parcel_Spec();
+			$implicit_spec->set_reference( '1' );
 			foreach ( $items_data as $item_row ) {
 				if ( $item_row['unit_weight'] ) {
 					$weight_total += ( $item_row['quantity'] * $item_row['unit_weight'] );
 				}
+				$implicit_spec->add_item( $item_row['id'], $item_row['quantity'], isset( $item_row['name'] ) ? $item_row['name'] : null );
 			}
 
 			$parcel = new SS_Shipping_Parcel();
 			$parcel->set_internal_id( $this->value_or_null( $this->order_reader->get_order_id() ) )
 				->set_internal_reference( $this->value_or_null( $this->order_reader->get_order_number() ) )
-				->set_weight( $this->value_or_null( $weight_total ) )
+				->set_weight( $this->value_or_null( $this->default_parcel_weight( (float) $weight_total, $implicit_spec ) ) )
 				->set_freetext( $this->value_or_null( $order_note ) )
 				->set_items( array_values( $items_data ) )
 				->set_total_net_amount( $totals['subtotal_net_amount'] )
@@ -240,8 +247,14 @@ if ( ! class_exists( 'SS_Shipping_Shipment_Builder' ) ) :
 
 			if ( ! $spec->has_items() ) {
 				// No item allocations: dimensions/weight come from the spec
-				// alone, amounts live at shipment level only.
-				$parcel->set_weight( $spec->get_weight() );
+				// alone, amounts live at shipment level only. Without an
+				// explicit weight the item-sum is 0 - the default-weight
+				// filter is the only way to weigh such a parcel.
+				$parcel->set_weight(
+					null !== $spec->get_weight()
+						? $spec->get_weight()
+						: $this->value_or_null( $this->default_parcel_weight( 0.0, $spec ) )
+				);
 
 				return $parcel;
 			}
@@ -268,12 +281,48 @@ if ( ! class_exists( 'SS_Shipping_Shipment_Builder' ) ) :
 				}
 			}
 
-			$parcel->set_weight( null !== $spec->get_weight() ? $spec->get_weight() : $this->value_or_null( $item_weight_total ) )
+			$parcel->set_weight(
+				null !== $spec->get_weight()
+					? $spec->get_weight()
+					: $this->value_or_null( $this->default_parcel_weight( (float) $item_weight_total, $spec ) )
+			)
 				->set_items( $item_rows )
 				->set_total_net_amount( $this->value_or_null( $item_net_total ) )
 				->set_total_tax_amount( $this->value_or_null( $item_tax_total ) );
 
 			return $parcel;
+		}
+
+		/**
+		 * The weight of a parcel whose spec declares none: the sum of the
+		 * allocated items' weights, passed through the
+		 * smart_send_parcel_default_weight filter. An explicit spec weight
+		 * never reaches this method (it wins as declared, packaging
+		 * included).
+		 *
+		 * @param float                   $item_weight The item-sum in kg (0 for a parcel without items).
+		 * @param SS_Shipping_Parcel_Spec $spec        The planned parcel the weight is for.
+		 *
+		 * @return float
+		 */
+		protected function default_parcel_weight( float $item_weight, SS_Shipping_Parcel_Spec $spec ): float {
+			/*
+			 * Filter the default weight of a parcel that has no explicit
+			 * weight: the sum of the weights of the items allocated to it.
+			 * Use it to add packaging weight or apply a minimum. A parcel
+			 * spec with an explicit weight (set_weight() on the
+			 * SS_Shipping_Parcel_Spec, e.g. entered in the order meta box)
+			 * bypasses this filter entirely.
+			 *
+			 * @since 9.0.0
+			 *
+			 * @param float                   $weight The computed weight in kg (0 when the items have no weight or the parcel has no items).
+			 * @param SS_Shipping_Parcel_Spec $spec   The planned parcel (reference, dimensions, item allocations).
+			 * @param WC_Order                $order  The WooCommerce order.
+			 *
+			 * @return float The weight to book the parcel with.
+			 */
+			return (float) apply_filters( 'smart_send_parcel_default_weight', $item_weight, $spec, $this->order );
 		}
 
 		/**

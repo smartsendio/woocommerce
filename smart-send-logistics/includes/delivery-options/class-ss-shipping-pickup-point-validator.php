@@ -52,12 +52,21 @@ if ( ! class_exists( 'SS_Shipping_Pickup_Point_Validator' ) ) :
 		protected SS_Shipping_Method_Resolver $method_resolver;
 
 		/**
-		 * @param SS_Shipping_Order_Meta      $repository      Order meta repository.
-		 * @param SS_Shipping_Method_Resolver $method_resolver Shipping method resolver.
+		 * Pickup point lookup (the shared find-by-agent-number call, #182).
+		 *
+		 * @var SS_Shipping_Pickup_Point_Lookup
 		 */
-		public function __construct( SS_Shipping_Order_Meta $repository, SS_Shipping_Method_Resolver $method_resolver ) {
-			$this->repository      = $repository;
-			$this->method_resolver = $method_resolver;
+		protected SS_Shipping_Pickup_Point_Lookup $pickup_point_lookup;
+
+		/**
+		 * @param SS_Shipping_Order_Meta               $repository          Order meta repository.
+		 * @param SS_Shipping_Method_Resolver          $method_resolver     Shipping method resolver.
+		 * @param SS_Shipping_Pickup_Point_Lookup|null $pickup_point_lookup Pickup point lookup (stateless; a fresh default is safe).
+		 */
+		public function __construct( SS_Shipping_Order_Meta $repository, SS_Shipping_Method_Resolver $method_resolver, ?SS_Shipping_Pickup_Point_Lookup $pickup_point_lookup = null ) {
+			$this->repository          = $repository;
+			$this->method_resolver     = $method_resolver;
+			$this->pickup_point_lookup = null === $pickup_point_lookup ? new SS_Shipping_Pickup_Point_Lookup() : $pickup_point_lookup;
 		}
 
 		/**
@@ -100,6 +109,14 @@ if ( ! class_exists( 'SS_Shipping_Pickup_Point_Validator' ) ) :
 		 */
 		public function filter_update_agent_meta( $check, $meta_id, $meta_value, $meta_key ) {
 
+			// A repository write (a complete, typed pickup point - e.g. the
+			// one a successful booking was submitted with, #182) is not an
+			// admin edit: nothing to validate, and re-validating could
+			// refuse the number after the agent object was already replaced.
+			if ( SS_Shipping_Order_Meta::is_writing() ) {
+				return $check;
+			}
+
 			if ( SS_Shipping_Order_Meta::META_AGENT_NO == $meta_key ) { // phpcs:ignore Universal.Operators.StrictComparisons.LooseEqual -- pre-existing loose comparison; tightening is a behaviour change out of scope for the #139 move.
 				$meta      = get_metadata_by_mid( 'post', $meta_id );
 				$object_id = $meta->post_id;
@@ -125,6 +142,12 @@ if ( ! class_exists( 'SS_Shipping_Pickup_Point_Validator' ) ) :
 		 */
 		// phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed -- $_meta_value is part of the deleted_post_meta hook signature.
 		public function action_deleted_agent_meta( $meta_ids, $object_id, $meta_key, $_meta_value ) {
+
+			// The repository deletes both pickup point keys itself when a
+			// submitted clearing is persisted (#182); no cascade needed.
+			if ( SS_Shipping_Order_Meta::is_writing() ) {
+				return;
+			}
 
 			if ( SS_Shipping_Order_Meta::META_AGENT_NO == $meta_key ) { // phpcs:ignore Universal.Operators.StrictComparisons.LooseEqual -- pre-existing loose comparison; tightening is a behaviour change out of scope for the #139 move.
 				$this->repository->delete_pickup_point( $object_id );
@@ -279,9 +302,11 @@ if ( ! class_exists( 'SS_Shipping_Pickup_Point_Validator' ) ) :
 
 				if ( ! empty( $shipping_method_carrier ) && ! empty( $shipping_address['country'] ) ) {
 
-					// API call to get agent info by agent no.
+					// Resolve the entered number through the shared lookup
+					// (#182); the stored object is the API's agent object
+					// exactly as received (to_object() reproduces it).
 					try {
-						$response = SS_SHIPPING_WC()->get_api_handle()->pickupPoints()->findByAgentNo( $shipping_method_carrier, $shipping_address['country'], $ss_shipping_agent_no );
+						$pickup_point = $this->pickup_point_lookup->find_by_agent_no( $shipping_method_carrier, (string) $shipping_address['country'], (string) $ss_shipping_agent_no );
 
 						SS_Shipping_Logger::info(
 							'Pickup point changed on order',
@@ -294,10 +319,10 @@ if ( ! class_exists( 'SS_Shipping_Pickup_Point_Validator' ) ) :
 
 						$this->repository->store_pickup_point_object(
 							$order_id,
-							$response->data()
+							$pickup_point->to_object()
 						);
 						return true;
-					} catch ( \Smartsend\Exceptions\HttpClientException $e ) {
+					} catch ( SS_Shipping_Pickup_Point_Not_Found_Exception $e ) {
 
 						SS_Shipping_Logger::warning(
 							'Pickup point not found - agent number rejected',

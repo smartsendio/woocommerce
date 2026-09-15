@@ -27,6 +27,14 @@ if ( ! class_exists( 'SS_Shipping_Parcel_Spec' ) ) :
 	 * Item allocations are rows of the shape
 	 * array( 'id' => product/variation id, 'quantity' => units, 'name' => label|null ).
 	 *
+	 * to_array()/from_array() are the canonical JSON form of a spec (#182):
+	 * array( 'reference' => string|null, 'weight' => float|null, 'length'
+	 * => float|null, 'width' => float|null, 'height' => float|null, 'items'
+	 * => array( array( 'id', 'quantity', 'name' ), ... ) ). Every scalar
+	 * is optional on the way in - an absent or null weight means "compute
+	 * it from the items" (see the smart_send_parcel_default_weight filter
+	 * in SS_Shipping_Shipment_Builder), absent dimensions mean "none".
+	 *
 	 * Serializable, with no live WC_Order or WordPress dependency
 	 * (Phase 7 queues delivery details).
 	 */
@@ -76,6 +84,74 @@ if ( ! class_exists( 'SS_Shipping_Parcel_Spec' ) ) :
 		 * @var array[]
 		 */
 		protected array $items = array();
+
+		/**
+		 * Build a spec from its to_array() form (the canonical JSON shape).
+		 *
+		 * Every key is optional: a missing or null 'weight', 'length',
+		 * 'width', 'height' or 'reference' stays null; 'items' defaults to
+		 * no allocations. An item row needs an 'id'; 'quantity' defaults to
+		 * 1 and 'name' to null (rows without an id are dropped).
+		 *
+		 * @param array $data The array produced by to_array() (or the decoded JSON of a request).
+		 *
+		 * @return self
+		 */
+		public static function from_array( array $data ): self {
+			$spec = new self();
+
+			$spec->set_reference( isset( $data['reference'] ) ? $data['reference'] : null )
+				->set_weight( self::float_or_null( $data, 'weight' ) )
+				->set_length( self::float_or_null( $data, 'length' ) )
+				->set_width( self::float_or_null( $data, 'width' ) )
+				->set_height( self::float_or_null( $data, 'height' ) );
+
+			foreach ( isset( $data['items'] ) && is_array( $data['items'] ) ? $data['items'] : array() as $item ) {
+				if ( ! is_array( $item ) || ! isset( $item['id'] ) ) {
+					continue;
+				}
+
+				$spec->add_item(
+					$item['id'],
+					isset( $item['quantity'] ) ? (int) $item['quantity'] : 1,
+					isset( $item['name'] ) ? (string) $item['name'] : null
+				);
+			}
+
+			return $spec;
+		}
+
+		/**
+		 * The canonical array form of the spec (see the class docblock).
+		 *
+		 * @return array
+		 */
+		public function to_array(): array {
+			return array(
+				'reference' => $this->reference,
+				'weight'    => $this->weight,
+				'length'    => $this->length,
+				'width'     => $this->width,
+				'height'    => $this->height,
+				'items'     => $this->items,
+			);
+		}
+
+		/**
+		 * Read an optional numeric key: absent, null or '' is null.
+		 *
+		 * @param array  $data The array.
+		 * @param string $key  The key.
+		 *
+		 * @return float|null
+		 */
+		protected static function float_or_null( array $data, string $key ) {
+			if ( ! isset( $data[ $key ] ) || '' === $data[ $key ] ) {
+				return null;
+			}
+
+			return (float) $data[ $key ];
+		}
 
 		/**
 		 * Get the explicit parcel weight, or null when the resolved weight

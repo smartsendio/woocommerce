@@ -928,3 +928,59 @@ it('books an item-less two-parcel plan declared via smart_send_delivery_details 
         'total_price_including_tax'    => 239,
     ]));
 });
+
+it('passes a parcel with no explicit weight through smart_send_parcel_default_weight, and an explicit weight bypasses it (#182)', function () {
+    $product_a = create_simple_product(['name' => 'Default Weight One', 'price' => 100, 'weight' => 1]);
+    $product_b = create_simple_product(['name' => 'Default Weight Two', 'price' => 50, 'weight' => 2]);
+    $order     = create_order([
+        'products'        => [$product_a, $product_b],
+        'shipping_method' => 'postnord_homedelivery',
+    ]);
+
+    $seen   = [];
+    $filter = function ($weight, $spec, $order_arg) use (&$seen, $order) {
+        expect($weight)->toBeFloat()
+            ->and($spec)->toBeInstanceOf(SS_Shipping_Parcel_Spec::class)
+            ->and($order_arg)->toBeInstanceOf(WC_Order::class)
+            ->and($order_arg->get_id())->toBe($order->get_id());
+        $seen[] = [$spec->get_reference(), $weight, array_column($spec->get_items(), 'quantity')];
+
+        // Add 0.25 kg of packaging to every parcel the filter sees.
+        return $weight + 0.25;
+    };
+    add_filter('smart_send_parcel_default_weight', $filter, 10, 3);
+    remember_cleanup_callback(function () use ($filter): void {
+        remove_filter('smart_send_parcel_default_weight', $filter, 10);
+    });
+
+    // No plan: the single implicit parcel (every unit, item-sum 3 kg) goes
+    // through the filter with a spec describing it.
+    $payload = capture_shipment_payload($order);
+    expect($payload['parcels'])->toHaveCount(1)
+        ->and($payload['parcels'][0]['weight'])->toEqual(3.25)
+        ->and($seen)->toBe([['1', 3.0, [1, 1]]]);
+
+    // A plan: the spec without a weight is filtered (item-sum 2 kg), the
+    // spec with an explicit weight never reaches the filter, and an
+    // item-less spec is filtered from 0.
+    $seen = [];
+    $plan = function (SS_Shipping_Delivery_Details $details) use ($product_a, $product_b) {
+        $plan = new SS_Shipping_Parcel_Plan();
+        $plan->add_spec((new SS_Shipping_Parcel_Spec())->set_reference('a')->set_weight(9.5)->add_item($product_a->get_id()))
+            ->add_spec((new SS_Shipping_Parcel_Spec())->set_reference('b')->add_item($product_b->get_id()))
+            ->add_spec((new SS_Shipping_Parcel_Spec())->set_reference('c')->set_length(10)->set_width(10)->set_height(10));
+
+        return $details->set_parcel_plan($plan);
+    };
+    add_filter('smart_send_delivery_details', $plan);
+    remember_cleanup_callback(function () use ($plan): void {
+        remove_filter('smart_send_delivery_details', $plan);
+    });
+
+    $payload = capture_shipment_payload($order);
+    expect($payload['parcels'])->toHaveCount(3)
+        ->and($payload['parcels'][0]['weight'])->toEqual(9.5)
+        ->and($payload['parcels'][1]['weight'])->toEqual(2.25)
+        ->and($payload['parcels'][2]['weight'])->toEqual(0.25)
+        ->and($seen)->toBe([['b', 2.0, [1]], ['c', 0.0, []]]);
+});

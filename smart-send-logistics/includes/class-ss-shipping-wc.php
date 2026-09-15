@@ -286,6 +286,7 @@ if ( ! class_exists( 'SS_Shipping_WC' ) ) :
 			// Pickup-point surface: the checkout/admin-facing services around
 			// pickup point selection (lookup, formatting, validation, the
 			// Store API channel and the checkout option/section vocabulary).
+			require_once SS_SHIPPING_PLUGIN_DIR_PATH . '/includes/delivery-options/exceptions/class-ss-shipping-pickup-point-not-found-exception.php';
 			require_once SS_SHIPPING_PLUGIN_DIR_PATH . '/includes/delivery-options/class-ss-shipping-checkout-options.php';
 			require_once SS_SHIPPING_PLUGIN_DIR_PATH . '/includes/delivery-options/class-ss-shipping-pickup-point-formatter.php';
 			require_once SS_SHIPPING_PLUGIN_DIR_PATH . '/includes/delivery-options/class-ss-shipping-pickup-point-lookup.php';
@@ -397,14 +398,15 @@ if ( ! class_exists( 'SS_Shipping_WC' ) ) :
 				$this->admin_notices          = new SS_Shipping_Admin_Notices();
 				$this->method_resolver        = new SS_Shipping_Method_Resolver( $this->settings );
 				$this->shipment_ids           = new SS_Shipping_Shipment_Ids();
-				$this->pickup_point_validator = new SS_Shipping_Pickup_Point_Validator( $this->order_meta, $this->method_resolver );
+				$this->pickup_point_validator = new SS_Shipping_Pickup_Point_Validator( $this->order_meta, $this->method_resolver, $this->pickup_point_lookup );
 				$this->meta_box               = new SS_Shipping_Order_Meta_Box( $this->order_meta, $this->method_resolver, $this->pickup_point_formatter, $this->settings );
 				$this->fulfillment_service    = new SS_Shipping_Fulfillment_Service(
 					$this->order_meta,
 					$this->method_resolver,
 					$this->shipment_ids,
 					new SS_Shipping_Booking_Service(),
-					$this->settings
+					$this->settings,
+					$this->pickup_point_lookup
 				);
 				$this->label_creator          = new SS_Shipping_Label_Creator( $this->fulfillment_service );
 				$this->test_connection        = new SS_Shipping_Test_Connection( new SS_Shipping_Api_Factory( $this->settings ) );
