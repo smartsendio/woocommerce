@@ -115,8 +115,38 @@ if ( ! class_exists( 'SS_Shipping_Block_Checkout' ) ) :
 		 * @return void
 		 */
 		public function initialize() {
+			$this->register_jsx_runtime_fallback();
 			$this->register_built_script( self::HANDLE_FRONTEND, 'pickup-point-block/frontend' );
 			$this->register_built_script( self::HANDLE_EDITOR, 'pickup-point-block/index' );
+		}
+
+		/**
+		 * Register a `react-jsx-runtime` script when WordPress has not.
+		 *
+		 * The built bundles depend on that handle (automatic JSX runtime),
+		 * which WordPress core only registers from 6.6. On the WordPress
+		 * 6.5 floor the dependency would otherwise stay unmet - and because
+		 * WooCommerce Blocks merges every integration's script handles into
+		 * the Checkout block's own script dependencies, the entire Checkout
+		 * block would fail to load, not just the pickup point block (#183).
+		 * The fallback is a small shim over the React global core ships
+		 * (public/js/react-jsx-runtime.js).
+		 *
+		 * @return void
+		 */
+		protected function register_jsx_runtime_fallback(): void {
+			// Existence varies across the supported range: WordPress registers the handle from 6.6, the plugin floor is 6.5.
+			if ( wp_script_is( 'react-jsx-runtime', 'registered' ) ) {
+				return;
+			}
+
+			wp_register_script(
+				'react-jsx-runtime',
+				SS_SHIPPING_PLUGIN_DIR_URL . '/public/js/react-jsx-runtime.js',
+				array( 'react' ),
+				SS_SHIPPING_VERSION,
+				true
+			);
 		}
 
 		/**

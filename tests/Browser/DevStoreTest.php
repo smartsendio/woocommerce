@@ -35,11 +35,26 @@ it('lists the sample products in the shop', function () {
         ->assertNoJavaScriptErrors();
 });
 
-it('calculates flat rate shipping for the Danish store address in the cart', function () {
-    visit(base_url('/product/beanie/'))
+/**
+ * Put the Beanie in the cart from its product page and land on the cart
+ * page. The classic (Storefront) product page adds to the cart with a form
+ * POST that reloads the page; wait for WooCommerce's "added to your cart"
+ * notice before leaving, otherwise a navigation issued straight after the
+ * click can cut the POST short and the cart page renders empty (seen on the
+ * WooCommerce 8.2 floor leg, where the cart page is the classic shortcode
+ * cart rendered server-side rather than the Cart block).
+ */
+function ss_dev_store_add_beanie_and_open_cart()
+{
+    return visit(base_url('/product/beanie/'))
         ->assertSee('Add to cart')
         ->click('Add to cart')
-        ->navigate(base_url('/cart/'))
+        ->assertSee('has been added to your cart')
+        ->navigate(base_url('/cart/'));
+}
+
+it('calculates flat rate shipping for the Danish store address in the cart', function () {
+    ss_dev_store_add_beanie_and_open_cart()
         ->assertSee('Beanie')
         ->assertSee('Flat rate')
         ->assertNoJavaScriptErrors();
@@ -49,10 +64,7 @@ it('proceeds from the cart to the checkout', function () {
     // Guards the store-page wiring: a woocommerce_checkout_page_id pointing
     // at a missing page makes the cart block render this button with an
     // empty href, spinning forever without an error anywhere.
-    visit(base_url('/product/beanie/'))
-        ->assertSee('Add to cart')
-        ->click('Add to cart')
-        ->navigate(base_url('/cart/'))
+    ss_dev_store_add_beanie_and_open_cart()
         ->assertSee('Proceed to Checkout')
         ->click('Proceed to Checkout')
         ->assertPathContains('checkout')

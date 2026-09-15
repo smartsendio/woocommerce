@@ -45,21 +45,16 @@ jobs:
         include:
           # The floor leg: oldest supported PHP on the oldest supported
           # WordPress + WooCommerce (latest patch release of each; verify
-          # the zips exist on wordpress.org before bumping).
-          #
-          # CANARY (continue-on-error) until #183 is fixed: on WordPress
-          # 6.5 the Checkout block renders nothing with the plugin active,
-          # because the built pickup point bundle depends on the
-          # react-jsx-runtime script handle (WordPress 6.6+) and WooCommerce
-          # merges integration script handles into the checkout block's own
-          # script dependencies. BlockCheckoutFlowTest fails deterministically
-          # there (first seen in run 34955850906). Drop the `canary` key once
-          # #183 lands so the leg blocks merges again.
+          # the zips exist on wordpress.org before bumping). Its first run
+          # caught #183 (the Checkout block did not render on WordPress
+          # 6.5 - the block bundles' react-jsx-runtime dependency) and the
+          # WooCommerce 8.2 rate-refetch timing in BlockCheckoutFlowTest.
           - php-version: '7.4'
             wp-version: '6.5.10'
             wc-version: '8.2.5'
-            canary: true
-    # A canary leg reports its result but never fails the workflow.
+    # Set `canary: true` on a matrix entry to let it report without failing
+    # the workflow - only with a comment naming the issue that makes it
+    # strict again.
     continue-on-error: ${{ matrix.canary == true }}
 
     steps:
@@ -211,7 +206,10 @@ jobs:
 
           # Assert the settings an actual fpm worker runs with (served through
           # nginx, not `php -i`, so SAPI and scan-dir ordering are the real
-          # ones): PCRE JIT off, opcache on, opcache JIT off (#79).
+          # ones): PCRE JIT off, opcache on, opcache JIT off (#79). Note that
+          # GitHub echoes this whole script at the top of the step log, so
+          # the "::error::" line below appears there even when the check
+          # passes - the verdict is the "Effective fpm worker settings" line.
           PROBE="$DOCROOT/ci-ini-probe.php"
           cat > "$PROBE" <<'PHP'
           <?php

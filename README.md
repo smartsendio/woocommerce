@@ -163,7 +163,7 @@ The matrices cover the two ends of the supported range (PHP 7.4+, WordPress 6.5+
 | Browser (store on the matrix PHP, Pest on 8.4) | PHP 7.4, 8.0, 8.1, 8.2, 8.3, 8.4, 8.5 | PHP 7.4 / WP 6.5.x / WC 8.2.x |
 | Integration (WordPress in the Pest process, so Pest's PHP 8.3 floor applies) | PHP 8.3, 8.4, 8.5 | PHP 8.3 / WP 6.5.x / WC 8.2.x |
 
-A leg carrying `canary: true` in the matrix runs with `continue-on-error`: it reports its result but does not block merges. Both floor legs are canaries today, each pointing at the issue that turns it strict again (#183: the Checkout block does not render on WordPress 6.5; #184: four integration tests pin the WC-latest cost format). The comments above each matrix say why.
+A leg carrying `canary: true` in the matrix runs with `continue-on-error`: it reports its result but does not block merges — use it only with a comment naming the issue that turns it strict again. No leg is a canary today; the floor legs are strict.
 
 The browser store runs on nginx + php-fpm with the opcache JIT and PCRE JIT turned off — the PHP 8.x fpm segfaults tracked in #79 resolved to the opcache tracing JIT that `setup-php` enables by default for PHP 8.x, which silently overrode the workflow's own ini — and the workflow asserts the effective worker settings before the suite starts.
 
