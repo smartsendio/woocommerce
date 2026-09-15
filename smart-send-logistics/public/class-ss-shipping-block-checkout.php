@@ -13,7 +13,7 @@
  * This file references Automattic\WooCommerce\Blocks classes at class
  * definition time, so the composition root loads it lazily (like
  * SS_Shipping_WC_Method) - this plugin loads before WooCommerce. The
- * interface itself is guaranteed by the plugin's WC 5.0 floor.
+ * interface itself is guaranteed by the plugin's WC 8.2 floor.
  *
  * @package  SS_Shipping_WC
  * @category Shipping

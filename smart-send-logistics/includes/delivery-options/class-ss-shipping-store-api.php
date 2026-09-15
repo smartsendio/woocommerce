@@ -140,12 +140,6 @@ if ( ! class_exists( 'SS_Shipping_Store_Api' ) ) :
 		 * @return void
 		 */
 		public function register_store_api_extensions() {
-			// The Store API extension functions exist since WC 6.4 (Blocks 7.2); the WC floor is 5.0 -
-			// older stores simply get no block-checkout extension data (the classic checkout is unaffected).
-			if ( ! function_exists( 'woocommerce_store_api_register_endpoint_data' ) ) {
-				return;
-			}
-
 			woocommerce_store_api_register_endpoint_data(
 				array(
 					'endpoint'        => self::ENDPOINT_CART,
@@ -493,13 +487,7 @@ if ( ! class_exists( 'SS_Shipping_Store_Api' ) ) :
 		 * @return void
 		 */
 		protected function reject_checkout() {
-			// The Store API moved namespace when it graduated from the Blocks package into WooCommerce
-			// core (WC 7.2); support both locations across the supported WC 5.0+ range.
-			$route_exception = class_exists( 'Automattic\WooCommerce\StoreApi\Exceptions\RouteException' )
-				? 'Automattic\WooCommerce\StoreApi\Exceptions\RouteException'
-				: 'Automattic\WooCommerce\Blocks\StoreApi\Routes\RouteException';
-
-			throw new $route_exception(
+			throw new \Automattic\WooCommerce\StoreApi\Exceptions\RouteException(
 				'ss_shipping_pickup_point_required',
 				esc_html__( 'A pickup point must be selected.', 'smart-send-logistics' ),
 				400
