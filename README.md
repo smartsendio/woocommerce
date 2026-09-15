@@ -43,10 +43,11 @@ Two git-ignored files at the repo root pin where the stores live (`WP_PATH`, rel
 
 The first interactive `composer setup` asks where to put the dev store and writes `.env`. Point `WP_URL` at a directory served by [Laravel Herd](https://herd.laravel.com) (parked or `herd link`ed, plain `http://`) and you never have to start a web server; with a localhost URL the test runner starts a PHP built-in server itself, and for manual testing you start one yourself from the store directory with `wp server --host=127.0.0.1 --port=8181` (or with `--path=<WP_PATH>` from anywhere).
 
-Two knobs change how the store behaves, resolved as flag > exported environment variable > env file entry > default:
+Three knobs change how the store behaves, resolved as flag > exported environment variable > env file entry > default:
 
 - `--checkout classic|block` / `WP_CHECKOUT` (default `block`) — whether the checkout page uses the WooCommerce Checkout block or the classic `[woocommerce_checkout]` shortcode. The plugin supports both, so test both.
 - `--prices-tax include|exclude` / `WP_PRICES_TAX` (default `include`) — WooCommerce's "Prices entered with tax".
+- `--order-storage hpos|posts|default` / `WP_ORDER_STORAGE` (default `default`, WooCommerce's own choice — HPOS on a fresh install) — the order storage backend. The order screen differs between High-Performance Order Storage and the legacy post-based storage, so the Browser suite runs against both in CI.
 
 Example: `WP_CHECKOUT=classic composer setup`.
 

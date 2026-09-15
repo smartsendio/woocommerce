@@ -361,13 +361,11 @@ if ( ! class_exists( 'SS_Shipping_Order_Fulfillment_Presenter' ) ) :
 		 * wraps every meta box in its own <form> (post.php's #post, the HPOS
 		 * screen's #order) and the HTML parser drops a nested <form> start
 		 * tag, which would leave no #smart-send-fulfillment element at all.
-		 * Submission is JS-only via the REST controller (Decisions, #182).
-		 *
-		 * A few historic ids/names (#ss-shipping-label-form, the two button
-		 * ids, #ss-shipping-split-parcels, #ss-shipping-order-items, the
-		 * ss_shipping_box_no[] selects and the nonce) are kept on the new
-		 * markup so the existing admin/js/ss-shipping-label.js AJAX bridge
-		 * keeps working until PR 3 replaces it with the REST-backed app.
+		 * Submission is JS-only via the REST controller (Decisions, #182):
+		 * the React app (src/order-fulfillment/) mounts on the fieldset,
+		 * hydrates from the inlined state and replaces this markup - what is
+		 * rendered here is the first paint and the fallback while the
+		 * bundle loads.
 		 *
 		 * @param array $state The state (see state()).
 		 *
@@ -376,8 +374,13 @@ if ( ! class_exists( 'SS_Shipping_Order_Fulfillment_Presenter' ) ) :
 		public function render_form( array $state ): string {
 			$box_state = $this->box_state( $state );
 
-			$html  = '<div id="ss-shipping-label-form" class="smart-send-fulfillment">';
-			$html .= '<fieldset id="smart-send-fulfillment" class="smart-send-fulfillment__form" data-ss-form="fulfillment" data-ss-state="' . esc_attr( $box_state ) . '" data-ss-order-id="' . esc_attr( (string) $state['order_id'] ) . '"' . ( self::STATE_NOT_CONNECTED === $box_state ? ' disabled' : '' ) . '>';
+			$html = '<div class="smart-send-fulfillment">';
+			// Always rendered disabled: submission is JS-only, and the app
+			// enables the fieldset once it has mounted (and keeps it disabled
+			// while not connected / submitting), so nothing is clickable
+			// before the app took over - Playwright's actionability wait
+			// doubles as the hydration gate.
+			$html .= '<fieldset id="smart-send-fulfillment" class="smart-send-fulfillment__form" data-ss-form="fulfillment" data-ss-state="' . esc_attr( $box_state ) . '" data-ss-order-id="' . esc_attr( (string) $state['order_id'] ) . '" disabled>';
 
 			if ( self::STATE_NOT_CONNECTED === $box_state ) {
 				$html .= $this->render_notice(
@@ -390,8 +393,6 @@ if ( ! class_exists( 'SS_Shipping_Order_Fulfillment_Presenter' ) ) :
 
 				return $html;
 			}
-
-			$html .= '<input type="hidden" id="ss_shipping_label_nonce" name="ss_shipping_label_nonce" value="' . esc_attr( wp_create_nonce( 'create-ss-shipping-label' ) ) . '">';
 
 			if ( self::STATE_BOOKED === $box_state ) {
 				$html .= $this->render_booked( $state );
@@ -534,12 +535,12 @@ if ( ! class_exists( 'SS_Shipping_Order_Fulfillment_Presenter' ) ) :
 			$split         = array() !== $boxes_by_unit;
 
 			$html  = '<div class="smart-send-fulfillment__row" data-ss-section="parcel_plan">';
-			$html .= '<label><input type="checkbox" id="ss-shipping-split-parcels" name="smart_send[delivery_details][parcel_plan][split]" value="1" data-ss-field="parcel_plan.split" autocomplete="off"' . checked( $split, true, false ) . '> <strong>' . esc_html__( 'Split into parcels', 'smart-send-logistics' ) . '</strong></label>';
-			$html .= '<div id="ss-shipping-order-items" class="' . ( $split ? '' : 'hidden' ) . '"><table width="100%">';
+			$html .= '<label><input type="checkbox" name="smart_send[delivery_details][parcel_plan][split]" value="1" data-ss-field="parcel_plan.split" autocomplete="off"' . checked( $split, true, false ) . '> <strong>' . esc_html__( 'Split into parcels', 'smart-send-logistics' ) . '</strong></label>';
+			$html .= '<div class="smart-send-fulfillment__units' . ( $split ? '' : ' hidden' ) . '"><table width="100%">';
 
 			foreach ( $state['order']['units'] as $index => $unit ) {
 				$box    = isset( $boxes_by_unit[ $index ] ) ? (int) $boxes_by_unit[ $index ] : 1;
-				$select = '<select name="ss_shipping_box_no[]" data-id="' . esc_attr( (string) $unit['id'] ) . '" data-name="' . esc_attr( $unit['name'] ) . '" data-ss-field="parcel_plan.units[' . (int) $index . '].box" autocomplete="off">';
+				$select = '<select name="smart_send[delivery_details][parcel_plan][units][' . (int) $index . ']" data-id="' . esc_attr( (string) $unit['id'] ) . '" data-ss-field="parcel_plan.units[' . (int) $index . '].box" autocomplete="off">';
 				for ( $i = 1; $i <= self::MAX_BOXES; $i++ ) {
 					$select .= '<option value="' . (int) $i . '"' . selected( $box, $i, false ) . '>' . (int) $i . '</option>';
 				}
@@ -707,8 +708,8 @@ if ( ! class_exists( 'SS_Shipping_Order_Fulfillment_Presenter' ) ) :
 		}
 
 		/**
-		 * A create-label button. Carries the historic id the AJAX bridge
-		 * binds to, the flow as its value and a data-ss-action selector.
+		 * A create-label button: the flow as its value and a data-ss-action
+		 * selector.
 		 *
 		 * @param string  $flow    'outbound' or 'return'.
 		 * @param array   $state   The state.
@@ -725,7 +726,7 @@ if ( ! class_exists( 'SS_Shipping_Order_Fulfillment_Presenter' ) ) :
 				$text = $state['demo_mode'] ? __( 'DEMO MODE: Create shipping label', 'smart-send-logistics' ) : __( 'Create shipping label', 'smart-send-logistics' );
 			}
 
-			return '<button type="button" id="' . ( $is_return ? 'ss-shipping-return-label-button' : 'ss-shipping-label-button' ) . '" class="button' . ( $primary ? ' button-primary' : '' ) . '" name="smart_send[flow]" value="' . esc_attr( $flow ) . '" data-ss-action="' . ( $is_return ? 'create-return-label' : 'create-label' ) . '">' . esc_html( $text ) . '</button>';
+			return '<button type="button" class="button' . ( $primary ? ' button-primary' : '' ) . '" name="smart_send[flow]" value="' . esc_attr( $flow ) . '" data-ss-action="' . ( $is_return ? 'create-return-label' : 'create-label' ) . '">' . esc_html( $text ) . '</button>';
 		}
 
 		/**

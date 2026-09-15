@@ -12,7 +12,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  * orders/{id} -
  *
  *   GET  /fulfillment                  the meta box state (SS_Shipping_Order_Fulfillment_Presenter::state())
- *   POST /fulfillment                  book: { flow, with_return, confirm_rebook, delivery_details }
+ *   POST /fulfillment                  book: { flow, with_return, return_method, confirm_rebook, delivery_details }
  *   GET  /pickup-points/{agent_no}     resolve an entered agent number through the shared lookup
  *
  * The request body is validated declaratively by the args schema
@@ -195,6 +195,11 @@ if ( ! class_exists( 'SS_Shipping_Fulfillment_Rest_Controller' ) ) :
 				'with_return'      => array(
 					'description' => __( 'Whether to also create the return label (outbound flow only); null follows the shipping method\'s auto-generate-return-label setting.', 'smart-send-logistics' ),
 					'type'        => array( 'boolean', 'null' ),
+					'default'     => null,
+				),
+				'return_method'    => array(
+					'description' => __( 'The Smart Send return method to book the return label with when the order has none configured (outbound flow with with_return, e.g. an order placed without a Smart Send method); null follows the shipping method\'s configured return method.', 'smart-send-logistics' ),
+					'type'        => array( 'string', 'null' ),
 					'default'     => null,
 				),
 				'confirm_rebook'   => array(
@@ -416,12 +421,23 @@ if ( ! class_exists( 'SS_Shipping_Fulfillment_Rest_Controller' ) ) :
 			$with_return = $request->get_param( 'with_return' );
 			$with_return = is_bool( $with_return ) ? $with_return : null;
 
+			// A return method submitted for the return leg of a combined
+			// outbound + return run (state B: an order without a Smart Send
+			// method has no configured return method).
+			$return_overrides        = null;
+			$submitted_return_method = (string) $request->get_param( 'return_method' );
+
+			if ( ! $is_return && '' !== $submitted_return_method ) {
+				$return_overrides = new SS_Shipping_Delivery_Details();
+				$return_overrides->set_shipping_method( $submitted_return_method );
+			}
+
 			if ( $is_return || true === $with_return ) {
 				// A return is explicitly requested: fail the request, not the
 				// leg, when no return method is resolvable and none was
 				// submitted. (A null with_return follows the setting, whose
 				// missing return method stays a failed leg.)
-				$return_method = $is_return ? $method : $this->configured_return_method( $order );
+				$return_method = $is_return ? $method : ( '' !== $submitted_return_method ? $submitted_return_method : $this->configured_return_method( $order ) );
 
 				if ( '' === $return_method ) {
 					return new WP_Error(
@@ -440,7 +456,7 @@ if ( ! class_exists( 'SS_Shipping_Fulfillment_Rest_Controller' ) ) :
 
 			$result = $is_return
 				? $this->fulfillment_service->fulfill_return( $order, true, $details )
-				: $this->fulfillment_service->fulfill_outbound( $order, true, $details, $with_return );
+				: $this->fulfillment_service->fulfill_outbound( $order, true, $details, $with_return, $return_overrides );
 
 			return rest_ensure_response( $this->presenter->response( $result, $order, $flow ) );
 		}

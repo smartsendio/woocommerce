@@ -1,13 +1,16 @@
 <?php
 
 /*
- * Tests for the order screen "Smart Send Shipping" meta box (#182 PR 2,
+ * Tests for the order screen "Smart Send Shipping" meta box (#182,
  * SS_Shipping_Order_Meta_Box + SS_Shipping_Order_Fulfillment_Presenter::render_form()):
- * registration on the legacy and the HPOS order screen, and the rendered
- * form per state of section 1.2 of the issue - not connected, no Smart
- * Send method (method select offered), not yet booked, booked from a
+ * registration on the legacy and the HPOS order screen, the server-rendered
+ * first paint per state of section 1.2 of the issue - not connected, no
+ * Smart Send method (method select offered), not yet booked, booked from a
  * stored shipment id - with the state inlined as JSON and every value
- * escaped.
+ * escaped, and the built React app (build/order-fulfillment/) enqueued
+ * from the render callback only, with every script dependency registered
+ * on the running WordPress (the WP 6.5 floor has no react-jsx-runtime
+ * handle, #183 - the app is built with the classic JSX runtime).
  */
 
 /**
@@ -65,8 +68,11 @@ function create_meta_box_order(array $args = []): WC_Order
 beforeEach(function (): void {
     with_ss_settings();
 
-    // Every render re-adds the inline state; start each test without one.
+    // Every render re-adds the inline state; start each test without one,
+    // and without the app enqueued (wp_scripts() persists across tests).
     wp_scripts()->add_data(SS_Shipping_Order_Meta_Box::STATE_SCRIPT_HANDLE, 'before', []);
+    wp_dequeue_script(SS_Shipping_Order_Meta_Box::STATE_SCRIPT_HANDLE);
+    wp_dequeue_style(SS_Shipping_Order_Meta_Box::STYLE_HANDLE);
 });
 
 it('registers the meta box on the HPOS order screen when HPOS is enabled', function () {
@@ -126,11 +132,12 @@ it('renders the not-yet-booked form with the state inlined as JSON', function ()
         ->toContain('data-ss-action="create-label"')
         ->toContain('DEMO MODE: Create shipping label')
         ->toContain('data-ss-action="create-return-label"')
-        // The historic AJAX bridge ids stay wired.
-        ->toContain('id="ss-shipping-label-form"')
-        ->toContain('id="ss-shipping-label-button"')
-        ->toContain('id="ss-shipping-return-label-button"')
-        ->toContain('id="ss_shipping_label_nonce"')
+        // Rendered disabled: the app enables the fieldset once mounted
+        // (submission is JS-only, #182) - nothing of the AJAX bridge is left.
+        ->toContain('data-ss-order-id="' . $order->get_id() . '" disabled>')
+        ->not->toContain('ss-shipping-label-button')
+        ->not->toContain('ss_shipping_label_nonce')
+        ->not->toContain('ss_shipping_box_no')
         ->not->toContain('data-ss-notice=');
 
     $state = inlined_meta_box_state();
@@ -141,8 +148,40 @@ it('renders the not-yet-booked form with the state inlined as JSON', function ()
         // toEqual: JSON decoding turns a whole-number float (1.0) into an int.
         ->and($state)->toEqual(SS_SHIPPING_WC()->fulfillment_presenter()->state(wc_get_order($order->get_id())));
 
-    expect(wp_script_is('ss-shipping-label-js', 'enqueued'))->toBeTrue()
-        ->and(wp_style_is('ss-shipping-admin-css', 'enqueued'))->toBeTrue();
+    expect(wp_script_is('ss-shipping-label-js', 'enqueued'))->toBeFalse();
+});
+
+it('enqueues the built app from the render callback only, with every dependency registered on this WordPress', function () {
+    $order = create_meta_box_order();
+
+    expect(wp_script_is(SS_Shipping_Order_Meta_Box::STATE_SCRIPT_HANDLE, 'enqueued'))->toBeFalse()
+        ->and(wp_style_is(SS_Shipping_Order_Meta_Box::STYLE_HANDLE, 'enqueued'))->toBeFalse();
+
+    render_meta_box($order);
+
+    $asset = require SS_SHIPPING_PLUGIN_DIR_PATH . '/build/order-fulfillment/index.asset.php';
+    $script = wp_scripts()->query(SS_Shipping_Order_Meta_Box::STATE_SCRIPT_HANDLE);
+
+    expect(wp_script_is(SS_Shipping_Order_Meta_Box::STATE_SCRIPT_HANDLE, 'enqueued'))->toBeTrue()
+        ->and($script->src)->toEndWith('/build/order-fulfillment/index.js')
+        ->and($script->ver)->toBe($asset['version'])
+        ->and($script->deps)->toBe($asset['dependencies'])
+        ->and($asset['dependencies'])->toContain('wp-api-fetch', 'wp-components', 'wp-element', 'wp-i18n', 'wp-url')
+        // The classic JSX runtime: no dependency on the react-jsx-runtime
+        // handle WordPress registers only from 6.6 (#183).
+        ->and($asset['dependencies'])->not->toContain('react-jsx-runtime')
+        ->and($script->textdomain)->toBe('smart-send-logistics');
+
+    foreach ($asset['dependencies'] as $dependency) {
+        expect(wp_script_is($dependency, 'registered'))->toBeTrue("Script dependency {$dependency} is not registered on this WordPress");
+    }
+
+    expect(wp_style_is(SS_Shipping_Order_Meta_Box::STYLE_HANDLE, 'enqueued'))->toBeTrue()
+        ->and(wp_styles()->query(SS_Shipping_Order_Meta_Box::STYLE_HANDLE)->src)->toEndWith('/build/order-fulfillment/style-index.css')
+        ->and(wp_style_is('wp-components', 'enqueued'))->toBeTrue();
+
+    // The inline state rides before the bundle.
+    expect(inlined_meta_box_state()['order_id'])->toBe($order->get_id());
 });
 
 it('disables the return checkbox with a hint when no return method is configured', function () {
@@ -240,7 +279,7 @@ it('renders the stored parcel split into the per-unit box selects', function () 
     $html = render_meta_box($order);
 
     expect($html)->toContain('data-ss-field="parcel_plan.split" autocomplete="off" checked=\'checked\'>')
-        ->toContain('<div id="ss-shipping-order-items" class="">');
+        ->toContain('<div class="smart-send-fulfillment__units"><table');
 
     preg_match_all('/data-ss-field="parcel_plan\.units\[\d\]\.box" autocomplete="off">(.*?)<\/select>/s', $html, $selects);
     expect($selects[1])->toHaveCount(3)

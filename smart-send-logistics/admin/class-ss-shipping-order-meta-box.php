@@ -12,8 +12,11 @@ use Automattic\WooCommerce\Internal\DataStores\Orders\CustomOrdersTableControlle
  * Registers and renders the "Smart Send Shipping" meta box on the
  * WooCommerce order edit screen (legacy post-based and HPOS). The box is
  * rendered from the one state object SS_Shipping_Order_Fulfillment_Presenter
- * builds (#182): the presenter renders the server-side form and the same
- * state is inlined as window.smartSendOrderFulfillment for the client.
+ * builds (#182): the presenter renders the server-side first paint and the
+ * same state is inlined as window.smartSendOrderFulfillment for the React
+ * app (src/order-fulfillment/, built into build/order-fulfillment/), which
+ * mounts on #smart-send-fulfillment and talks to the REST controller - no
+ * admin-ajax, no page reload.
  *
  * @package  SS_Shipping_Order_Meta_Box
  * @category Shipping
@@ -31,11 +34,22 @@ if ( ! class_exists( 'SS_Shipping_Order_Meta_Box' ) ) :
 		const META_BOX_ID = 'woocommerce-ss-shipping-label';
 
 		/**
-		 * The script handle carrying the inline state (a src-less handle:
-		 * the state rides as an inline script; PR 3's app enqueues the
-		 * built bundle that reads it).
+		 * The script handle of the meta box app: the built
+		 * build/order-fulfillment/index.js bundle (src/order-fulfillment/),
+		 * with the state riding as an inline script before it.
 		 */
 		const STATE_SCRIPT_HANDLE = 'ss-order-fulfillment';
+
+		/**
+		 * The stylesheet handle of the meta box app
+		 * (build/order-fulfillment/style-index.css).
+		 */
+		const STYLE_HANDLE = 'ss-order-fulfillment';
+
+		/**
+		 * The built entry inside build/, without extension.
+		 */
+		const BUILD_ENTRY = 'order-fulfillment/index';
 
 		/**
 		 * The meta box presenter (state + form rendering).
@@ -109,45 +123,48 @@ if ( ! class_exists( 'SS_Shipping_Order_Meta_Box' ) ) :
 		}
 
 		/**
-		 * The meta box owns its assets: the inline state the client reads
-		 * (window.smartSendOrderFulfillment), the historic AJAX bridge
-		 * script (kept until PR 3 of #182 replaces it with the REST-backed
-		 * app) and the meta box stylesheet.
+		 * The meta box owns its assets (#182): the built React app
+		 * (src/order-fulfillment/, registered from its generated
+		 * *.asset.php so the externals - wp-element, wp-components,
+		 * wp-api-fetch, wp-i18n, wp-url - are declared as dependencies), its
+		 * stylesheet plus WordPress' components stylesheet, the script
+		 * translations, and the state the app hydrates from
+		 * (window.smartSendOrderFulfillment). Enqueued from the render
+		 * callback, so only the order screen (HPOS and legacy) ever loads
+		 * them.
 		 *
 		 * @param array $state The state (see SS_Shipping_Order_Fulfillment_Presenter::state()).
 		 *
 		 * @return void
 		 */
 		protected function enqueue_assets( array $state ) {
+			$asset = require SS_SHIPPING_PLUGIN_DIR_PATH . '/build/' . self::BUILD_ENTRY . '.asset.php';
+
+			wp_register_script(
+				self::STATE_SCRIPT_HANDLE,
+				SS_SHIPPING_PLUGIN_DIR_URL . '/build/' . self::BUILD_ENTRY . '.js',
+				$asset['dependencies'],
+				$asset['version'],
+				true
+			);
+			wp_set_script_translations( self::STATE_SCRIPT_HANDLE, 'smart-send-logistics', SS_SHIPPING_PLUGIN_DIR_PATH . '/lang' );
+
 			// The state as inline JSON. JSON_HEX_TAG keeps a "</script>" inside
 			// a value (e.g. a product name) from closing the script element.
-			wp_register_script( self::STATE_SCRIPT_HANDLE, false, array(), SS_SHIPPING_VERSION, true );
-			wp_enqueue_script( self::STATE_SCRIPT_HANDLE );
 			wp_add_inline_script(
 				self::STATE_SCRIPT_HANDLE,
 				'window.smartSendOrderFulfillment = ' . wp_json_encode( $state, JSON_HEX_TAG | JSON_HEX_AMP | JSON_UNESCAPED_SLASHES ) . ';',
 				'before'
 			);
+			wp_enqueue_script( self::STATE_SCRIPT_HANDLE );
 
-			// Load JS for AJAX calls
-			$ss_label_data = array(
-				'read_more'             => __( 'Read more', 'smart-send-logistics' ),
-				'unique_error_id'       => __( 'Unique error id: ', 'smart-send-logistics' ),
-				'download_label'        => __( 'Download shipping label', 'smart-send-logistics' ),
-				'download_return_label' => __( 'Download return label', 'smart-send-logistics' ),
-				'unexpected_error'      => __( 'Unexpected error', 'smart-send-logistics' ),
+			wp_enqueue_style( 'wp-components' );
+			wp_enqueue_style(
+				self::STYLE_HANDLE,
+				SS_SHIPPING_PLUGIN_DIR_URL . '/build/order-fulfillment/style-index.css',
+				array( 'wp-components' ),
+				$asset['version']
 			);
-			wp_enqueue_script(
-				'ss-shipping-label-js',
-				SS_SHIPPING_PLUGIN_DIR_URL . '/admin/js/ss-shipping-label.js',
-				array(),
-				SS_SHIPPING_VERSION,
-				false
-			);
-			wp_localize_script( 'ss-shipping-label-js', 'ss_label_data', $ss_label_data );
-			// The meta box owns its stylesheet (message styling for the AJAX
-			// responses the label JS injects) - see #140.
-			wp_enqueue_style( 'ss-shipping-admin-css', SS_SHIPPING_PLUGIN_DIR_URL . '/admin/css/ss-shipping-admin.css', array(), SS_SHIPPING_VERSION );
 		}
 	}
 

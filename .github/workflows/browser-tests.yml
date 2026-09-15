@@ -7,7 +7,7 @@ on:
 
 jobs:
   pest:
-    name: Pest browser tests (PHP ${{ matrix.php-version }} / WP ${{ matrix.wp-version }} / WC ${{ matrix.wc-version }})
+    name: Pest browser tests (PHP ${{ matrix.php-version }} / WP ${{ matrix.wp-version }} / WC ${{ matrix.wc-version }} / ${{ matrix.order-storage }} orders)
     runs-on: ubuntu-latest
     timeout-minutes: 15
     strategy:
@@ -34,6 +34,15 @@ jobs:
         php-version: ['7.4', '8.0', '8.1', '8.2', '8.3']
         wp-version: ['latest']
         wc-version: ['latest']
+        # Order storage of the store: the default legs run WooCommerce's
+        # HPOS; one extra leg (newest PHP) runs the legacy post-based storage
+        # so the order screen journeys cover both backends (#182).
+        order-storage: ['hpos']
+        include:
+          - php-version: '8.3'
+            wp-version: 'latest'
+            wc-version: 'latest'
+            order-storage: 'posts'
 
     steps:
       - uses: actions/checkout@v4
@@ -92,7 +101,8 @@ jobs:
             --db-name smartsend_woo_test \
             --db-user root \
             --db-pass root \
-            --db-host 127.0.0.1
+            --db-host 127.0.0.1 \
+            --order-storage "${{ matrix.order-storage }}"
 
       - name: Start the store (nginx + php-fpm)
         # The PHP built-in CLI server segfaults intermittently under
@@ -231,6 +241,6 @@ jobs:
         if: failure()
         uses: actions/upload-artifact@v4
         with:
-          name: pest-browser-screenshots-php${{ matrix.php-version }}-${{ matrix.wp-version }}-${{ matrix.wc-version }}
+          name: pest-browser-screenshots-php${{ matrix.php-version }}-${{ matrix.wp-version }}-${{ matrix.wc-version }}-${{ matrix.order-storage }}
           path: tests/Browser/Screenshots
           if-no-files-found: ignore

@@ -115,7 +115,7 @@ it('pins that every request-schema property round-trips through the delivery det
     $schema = SS_SHIPPING_WC()->fulfillment_controller()->request_schema();
 
     // Top-level request shape (section 3.1).
-    expect(array_keys($schema))->toBe(['flow', 'with_return', 'confirm_rebook', 'delivery_details'])
+    expect(array_keys($schema))->toBe(['flow', 'with_return', 'return_method', 'confirm_rebook', 'delivery_details'])
         ->and($schema['flow']['enum'])->toBe(['outbound', 'return']);
 
     $details_properties = $schema['delivery_details']['properties'];
@@ -582,6 +582,46 @@ it('books an order without a Smart Send method when the request submits one (sta
     $payload = json_decode($capture->requests[0]['body'], true);
     expect($payload['shipping_carrier'])->toBe('gls')
         ->and($payload['shipping_method'])->toBe('homedelivery');
+});
+
+it('books outbound and return in one run for an order without a Smart Send method when a return method is submitted', function () {
+    $product = create_simple_product(['price' => 100, 'weight' => 1]);
+    $order   = create_order(['products' => [$product]]);
+    as_rest_user();
+    $capture = mock_smart_send_api();
+
+    // Without a return method the explicit return request is a 409...
+    $refused = fulfillment_post($order->get_id(), [
+        'flow'             => 'outbound',
+        'with_return'      => true,
+        'delivery_details' => ['shipping_method' => 'gls_homedelivery'],
+    ]);
+
+    expect($refused->get_status())->toBe(409)
+        ->and($refused->get_data()['code'])->toBe('smart_send_no_return_method')
+        ->and($capture->requests)->toBe([]);
+
+    // ...with one, both legs book in the same run, the return leg with it.
+    $response = fulfillment_post($order->get_id(), [
+        'flow'             => 'outbound',
+        'with_return'      => true,
+        'return_method'    => 'gls_returndropoff',
+        'delivery_details' => ['shipping_method' => 'gls_homedelivery'],
+    ]);
+
+    expect($response->get_status())->toBe(200)
+        ->and($response->get_data()['success'])->toBeTrue()
+        ->and($response->get_data()['shipments'])->toHaveCount(2)
+        ->and($response->get_data()['shipments'][1]['direction'])->toBe('return')
+        ->and($capture->requests)->toHaveCount(2);
+
+    $return_payload = json_decode($capture->requests[1]['body'], true);
+    expect($return_payload['shipping_carrier'])->toBe('gls')
+        ->and($return_payload['shipping_method'])->toBe('returndropoff');
+
+    $fresh = wc_get_order($order->get_id());
+    expect($fresh->get_meta('_ss_shipping_label_id', true))->not->toBe('')
+        ->and($fresh->get_meta('_ss_shipping_return_label_id', true))->not->toBe('');
 });
 
 it('maps API v1 field names onto form fields in one place', function () {

@@ -140,8 +140,8 @@ it('order-status-after-label setting changes the order status', function () {
         login_as_admin()
             ->navigate(base_url(ss_browser_order_edit_path($order_id)))
             ->assertSee('Smart Send Shipping')
-            ->click('#ss-shipping-label-button')
-            ->assertSeeIn('#ss-label-created', 'Download shipping label');
+            ->click('[data-ss-action="create-label"]')
+            ->assertSeeIn('[data-ss-section="outbound_shipment"]', 'Booked');
 
         $result = ss_browser_wp_eval(<<<PHP
 \$order = wc_get_order({$order_id});

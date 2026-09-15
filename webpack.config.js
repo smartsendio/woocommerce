@@ -1,5 +1,7 @@
 /**
- * Webpack configuration for the checkout-block scripts (issue #74).
+ * Webpack configuration for the plugin's compiled scripts: the
+ * checkout-block scripts (issue #74) and the order screen fulfillment app
+ * (issue #182).
  *
  * Extends the @wordpress/scripts default config with:
  * - explicit entries under src/ (dev tooling at the repo root, like
@@ -21,6 +23,10 @@ module.exports = {
 	entry: {
 		'pickup-point-block/index': path.resolve( __dirname, 'src/pickup-point-block/index.js' ),
 		'pickup-point-block/frontend': path.resolve( __dirname, 'src/pickup-point-block/frontend.js' ),
+		// The order meta box app. Its files opt into the classic JSX runtime
+		// (pragma comments), so the bundle depends on wp-element rather than
+		// the react-jsx-runtime handle WordPress only registers from 6.6 (#183).
+		'order-fulfillment/index': path.resolve( __dirname, 'src/order-fulfillment/index.js' ),
 	},
 	output: {
 		...defaultConfig.output,

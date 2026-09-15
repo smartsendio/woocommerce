@@ -1,0 +1,183 @@
+/**
+ * Order screen "Smart Send Shipping" meta box (#182): the server-rendered
+ * first paint (SS_Shipping_Order_Fulfillment_Presenter::render_form()) and
+ * the React app share these class names. Built into
+ * build/order-fulfillment/style-index.css, enqueued by
+ * SS_Shipping_Order_Meta_Box next to WordPress' wp-components stylesheet.
+ */
+
+.smart-send-fulfillment {
+	&__form {
+		border: 0;
+		margin: 0;
+		padding: 0;
+		min-width: 0;
+	}
+
+	&__notice {
+		margin: 0 0 10px;
+
+		.components-notice {
+			margin: 0;
+		}
+
+		p {
+			margin: 0 0 6px;
+		}
+
+		p:last-child {
+			margin-bottom: 0;
+		}
+
+		ul {
+			margin: 4px 0 6px 16px;
+			list-style: disc;
+		}
+	}
+
+	&__row {
+		margin: 0 0 12px;
+
+		h4 {
+			margin: 0 0 4px;
+		}
+
+		select,
+		input[type="text"] {
+			width: 100%;
+			max-width: 100%;
+		}
+
+		table select {
+			width: auto;
+		}
+	}
+
+	&__value {
+		margin: 2px 0 4px;
+	}
+
+	&__address {
+		color: #50575e;
+		margin: 2px 0 4px;
+	}
+
+	&__inline-form {
+		margin-top: 6px;
+
+		label {
+			display: block;
+			margin-bottom: 2px;
+		}
+	}
+
+	&__inline-actions {
+		display: flex;
+		flex-wrap: wrap;
+		align-items: center;
+		gap: 6px;
+
+		input[type="text"] {
+			flex: 1 1 100px;
+			width: auto;
+		}
+	}
+
+	&__field-error {
+		color: #d63638;
+		margin: 4px 0 0;
+	}
+
+	&__boxes {
+		margin-top: 8px;
+	}
+
+	&__box {
+		border: 1px solid #dcdcde;
+		border-radius: 2px;
+		padding: 8px;
+		margin: 0 0 8px;
+		background: #f6f7f7;
+	}
+
+	&__measures {
+		display: grid;
+		grid-template-columns: 1.4fr 1fr 1fr 1fr;
+		gap: 6px;
+		margin: 6px 0;
+
+		label span {
+			display: block;
+			font-size: 11px;
+			color: #50575e;
+		}
+
+		input[type="text"] {
+			width: 100%;
+		}
+	}
+
+	&__units {
+		margin: 6px 0 0;
+
+		li {
+			display: flex;
+			justify-content: space-between;
+			align-items: center;
+			gap: 6px;
+			margin: 0 0 4px;
+
+			select {
+				width: auto;
+			}
+		}
+	}
+
+	&__actions {
+		display: flex;
+		align-items: center;
+		gap: 8px;
+		margin: 12px 0 4px;
+	}
+
+	&__booked {
+		margin: 0 0 8px;
+
+		p {
+			margin: 0 0 6px;
+		}
+	}
+
+	&__outputs {
+		margin: 0 0 8px;
+
+		dt {
+			font-weight: 600;
+			margin: 6px 0 2px;
+		}
+
+		dd {
+			margin: 0 0 4px;
+		}
+	}
+
+	&__code-image {
+		display: block;
+		max-width: 160px;
+		margin: 4px 0;
+	}
+
+	&__rebook {
+		margin-top: 8px;
+	}
+
+	&__rebook-panel {
+		margin-top: 8px;
+		padding-top: 8px;
+		border-top: 1px dashed #dcdcde;
+	}
+}
+
+#smart-send-fulfillment[disabled] .components-button {
+	pointer-events: none;
+}

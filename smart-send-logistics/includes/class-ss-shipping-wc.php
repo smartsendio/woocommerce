@@ -81,15 +81,6 @@ if ( ! class_exists( 'SS_Shipping_WC' ) ) :
 		protected ?SS_Shipping_Fulfillment_Service $fulfillment_service = null;
 
 		/**
-		 * AJAX label-generation controller (the historic bridge the order
-		 * meta box's JS still posts to; replaced by the REST controller's
-		 * client in #182 PR 3).
-		 *
-		 * @var SS_Shipping_Label_Creator|null
-		 */
-		protected ?SS_Shipping_Label_Creator $label_creator = null;
-
-		/**
 		 * The order meta box presenter (state + server-rendered form).
 		 *
 		 * @var SS_Shipping_Order_Fulfillment_Presenter|null
@@ -346,7 +337,6 @@ if ( ! class_exists( 'SS_Shipping_WC' ) ) :
 			require_once SS_SHIPPING_PLUGIN_DIR_PATH . '/admin/class-ss-shipping-order-fulfillment-presenter.php';
 			require_once SS_SHIPPING_PLUGIN_DIR_PATH . '/admin/class-ss-shipping-order-meta-box.php';
 			require_once SS_SHIPPING_PLUGIN_DIR_PATH . '/admin/class-ss-shipping-fulfillment-rest-controller.php';
-			require_once SS_SHIPPING_PLUGIN_DIR_PATH . '/admin/class-ss-shipping-label-creator.php';
 			require_once SS_SHIPPING_PLUGIN_DIR_PATH . '/admin/class-ss-shipping-order-bulk-actions.php';
 			require_once SS_SHIPPING_PLUGIN_DIR_PATH . '/admin/class-ss-shipping-wc-product.php';
 
@@ -436,7 +426,6 @@ if ( ! class_exists( 'SS_Shipping_WC' ) ) :
 					$this->order_meta,
 					$this->settings
 				);
-				$this->label_creator          = new SS_Shipping_Label_Creator( $this->fulfillment_service );
 				$this->test_connection        = new SS_Shipping_Test_Connection( new SS_Shipping_Api_Factory( $this->settings ) );
 				$this->rate_sorter            = new SS_Shipping_Rate_Sorter( $this->settings );
 				$this->bulk_actions           = new SS_Shipping_Order_Bulk_Actions( $this->method_resolver, $this->fulfillment_service, $this->admin_notices, $this->settings );
@@ -470,7 +459,6 @@ if ( ! class_exists( 'SS_Shipping_WC' ) ) :
 			$this->pickup_point_validator->register_hooks();
 			$this->meta_box->register_hooks();
 			$this->fulfillment_controller->register_hooks();
-			$this->label_creator->register_hooks();
 			$this->test_connection->register_hooks();
 			$this->rate_sorter->register_hooks();
 			$this->bulk_actions->register_hooks();

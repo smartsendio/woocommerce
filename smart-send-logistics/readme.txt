@@ -352,9 +352,9 @@ No - this is by design. Neither deactivating nor uninstalling the plugin deletes
 == Screenshots ==
 
 1. Show closest pickup points during checkout
-2. Create PDF shipping labels from backend with just one click
-3. Save tracking information automatically after creating shipping labels
-4. Get detailed error description if something is incorrect
+2. Create shipping labels from the order screen - change the shipping method, pickup point and parcels before booking
+3. See the booked label's documents and tracking right on the order, with an order note added automatically
+4. Booking errors are shown on the field they belong to, with a response ID for support
 5. Add shipping methods to WooCommerce Shipping Zones
 6. Connect WooCommerce to Smart Send by entering the API Token
 
@@ -366,6 +366,7 @@ No - this is by design. Neither deactivating nor uninstalling the plugin deletes
 * New hook and filter API (smart_send_*) for every stage: shipping methods at checkout, fulfillment and booking. The version 8 hooks and filters no longer work - see the Developers section
 * Support for the WooCommerce Checkout Block: pickup point selection now works in the block-based checkout as well as the classic checkout
 * Support for High-Performance Order Storage (HPOS)
+* Rebuilt order-screen meta box: books without a page reload, lets you change the shipping method, pickup point and parcels (weight and dimensions per box) before booking, and books orders placed with another shipping method
 * Minimum required WordPress version raised to 6.5
 * Minimum required WooCommerce version raised from 4.7 to 8.2
 * Minimum required PHP version is 7.4 (unchanged since 8.2.0)
