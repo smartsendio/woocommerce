@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## What this is
 
-The Smart Send WooCommerce plugin ("Smart Send for WooCommerce", slug `smart-send-logistics`). It adds Smart Send shipping methods to WooCommerce, shows carrier pick-up points at checkout, and generates shipping labels via the Smart Send API. Supported carriers: PostNord, GLS, DAO, Burd, Budbee, Bring.
+The Smart Send WooCommerce plugin (display name "Smart Send", slug `smart-send-logistics` - the WordPress.org slug can never change). It adds Smart Send shipping methods to WooCommerce, shows carrier pick-up points at checkout, and generates shipping labels via the Smart Send API. Supported carriers: PostNord, GLS, DAO, Burd, Budbee, Bring.
 
 The actual plugin lives entirely in `smart-send-logistics/` — that folder is what gets shipped to the WordPress.org plugin directory. The repo root only holds dev tooling (`composer.json` for phpcs, `bin/svn-deploy.sh`, README).
 
@@ -136,7 +136,8 @@ Extension points are `smart_send_*` filters/actions, organised by the three stag
 Releases go to the WordPress.org SVN repo, not GitHub. Use `sh bin/svn-deploy.sh` (interactive; copies `smart-send-logistics/` into an SVN checkout's trunk, tags, commits).
 
 A version bump must update **three places in lockstep**:
-- `smart-send-logistics/smart-send-logistics.php`: the `Version:` header and the private `$version` property
+- `smart-send-logistics/smart-send-logistics.php`: the `Version:` header
+- `smart-send-logistics/includes/class-ss-shipping-wc.php`: the private `$version` property
 - `smart-send-logistics/readme.txt`: the `Stable tag:`
 
 Also add a changelog entry under `== Changelog ==` in `readme.txt` (WordPress.org readme format, not Keep a Changelog). When compatibility is verified against newer versions, bump `Tested up to:` / `WC tested up to:` in both files.

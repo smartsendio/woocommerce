@@ -1,4 +1,4 @@
-# Smart Send for WooCommerce
+# Smart Send (WooCommerce plugin)
 
 The Smart Send shipping plugin for WooCommerce. This README is for **developers of the plugin**: how to get a local shop running, how to test the plugin by hand without touching the Smart Send API, and how the automated tests work.
 
