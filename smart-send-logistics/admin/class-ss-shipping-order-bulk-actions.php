@@ -182,54 +182,53 @@ if ( ! class_exists( 'SS_Shipping_Order_Bulk_Actions' ) ) :
 
 						if ( ! empty( $ss_shipping_method_id ) ) {
 
-							$result   = $return
+							$result = $return
 								? $this->fulfillment_service->fulfill_return( $order_id, true )
 								: $this->fulfillment_service->fulfill_outbound( $order_id, true );
-							$response = $result->to_legacy_response_array();
 
-							foreach ( $response as $key => $value ) {
+							// One success notice per booked shipment, linking every
+							// document (and showing every code) it produced (#177).
+							foreach ( $result->shipments() as $shipment ) {
+								$outputs = $this->fulfillment_service->get_shipment_outputs_html( $shipment, ', ', false );
 
-								if ( isset( $value['success'] ) ) {
-									$is_return_label = ! empty( $value['success']->woocommerce['return'] );
-									$label_link      = $this->fulfillment_service->get_ss_shipping_label_link( $value['success']->woocommerce['label_url'], $is_return_label );
-
-									if ( $is_return_label ) {
-										$message = sprintf(
-											/* translators: 1: WooCommerce order number, 2: link to download the return label. */
-											__( 'Order #%1$s: Return label created by Smart Send: %2$s', 'smart-send-logistics' ),
-											$order->get_order_number(),
-											$label_link
-										);
-									} else {
-										$message = sprintf(
-											/* translators: 1: WooCommerce order number, 2: link to download the shipping label. */
-											__( 'Order #%1$s: Shipping label created by Smart Send: %2$s', 'smart-send-logistics' ),
-											$order->get_order_number(),
-											$label_link
-										);
-									}
-
-									array_push(
-										$array_messages_success,
-										array(
-											'message' => $message,
-											'type'    => 'success',
-										)
+								if ( $shipment->is_return() ) {
+									$message = sprintf(
+										/* translators: 1: WooCommerce order number, 2: link to download the return label. */
+										__( 'Order #%1$s: Return label created by Smart Send: %2$s', 'smart-send-logistics' ),
+										$order->get_order_number(),
+										$outputs
 									);
 								} else {
-									array_push(
-										$array_messages_error,
-										array(
-											'message' => sprintf(
-												/* translators: 1: WooCommerce order number, 2: error message. */
-												__( 'Order #%1$s: %2$s', 'smart-send-logistics' ),
-												$order->get_order_number(),
-												$value['error']
-											),
-											'type'    => 'error',
-										)
+									$message = sprintf(
+										/* translators: 1: WooCommerce order number, 2: link to download the shipping label. */
+										__( 'Order #%1$s: Shipping label created by Smart Send: %2$s', 'smart-send-logistics' ),
+										$order->get_order_number(),
+										$outputs
 									);
 								}
+
+								array_push(
+									$array_messages_success,
+									array(
+										'message' => $message,
+										'type'    => 'success',
+									)
+								);
+							}
+
+							foreach ( $result->get_error_messages() as $error_message ) {
+								array_push(
+									$array_messages_error,
+									array(
+										'message' => sprintf(
+											/* translators: 1: WooCommerce order number, 2: error message. */
+											__( 'Order #%1$s: %2$s', 'smart-send-logistics' ),
+											$order->get_order_number(),
+											$error_message
+										),
+										'type'    => 'error',
+									)
+								);
 							}
 						} else {
 							array_push(

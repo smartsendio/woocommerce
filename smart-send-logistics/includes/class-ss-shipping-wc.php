@@ -295,19 +295,22 @@ if ( ! class_exists( 'SS_Shipping_WC' ) ) :
 			require_once SS_SHIPPING_PLUGIN_DIR_PATH . '/includes/delivery-options/class-ss-shipping-pickup-point-validator.php';
 			require_once SS_SHIPPING_PLUGIN_DIR_PATH . '/includes/delivery-options/class-ss-shipping-store-api.php';
 
-			// Booking domain: order reading, shipment representation, booking.
+			// Booking domain: order reading, shipment representation, booking,
+			// and the typed booked-shipment result (documents, codes, parcels).
 			require_once SS_SHIPPING_PLUGIN_DIR_PATH . '/includes/booking/exceptions/class-ss-shipping-booking-exception.php';
 			require_once SS_SHIPPING_PLUGIN_DIR_PATH . '/includes/booking/class-ss-shipping-order-reader.php';
 			require_once SS_SHIPPING_PLUGIN_DIR_PATH . '/includes/booking/class-ss-shipping-parcel.php';
 			require_once SS_SHIPPING_PLUGIN_DIR_PATH . '/includes/booking/class-ss-shipping-shipment.php';
 			require_once SS_SHIPPING_PLUGIN_DIR_PATH . '/includes/booking/class-ss-shipping-shipment-builder.php';
-			require_once SS_SHIPPING_PLUGIN_DIR_PATH . '/includes/booking/class-ss-shipping-booking.php';
+			require_once SS_SHIPPING_PLUGIN_DIR_PATH . '/includes/booking/class-ss-shipping-shipment-document.php';
+			require_once SS_SHIPPING_PLUGIN_DIR_PATH . '/includes/booking/class-ss-shipping-shipment-code.php';
+			require_once SS_SHIPPING_PLUGIN_DIR_PATH . '/includes/booking/class-ss-shipping-booked-parcel.php';
+			require_once SS_SHIPPING_PLUGIN_DIR_PATH . '/includes/booking/class-ss-shipping-booked-shipment.php';
 			require_once SS_SHIPPING_PLUGIN_DIR_PATH . '/includes/booking/class-ss-shipping-booking-service.php';
 
 			// Fulfillment domain: the label fulfillment workflow around a
 			// booking (persist overrides, book, label PDF, meta, tracking).
 			require_once SS_SHIPPING_PLUGIN_DIR_PATH . '/includes/fulfillment/class-ss-shipping-shipment-ids.php';
-			require_once SS_SHIPPING_PLUGIN_DIR_PATH . '/includes/fulfillment/class-ss-shipping-label-entry.php';
 			require_once SS_SHIPPING_PLUGIN_DIR_PATH . '/includes/fulfillment/class-ss-shipping-fulfillment-result.php';
 			require_once SS_SHIPPING_PLUGIN_DIR_PATH . '/includes/fulfillment/class-ss-shipping-fulfillment-service.php';
 
@@ -403,7 +406,7 @@ if ( ! class_exists( 'SS_Shipping_WC' ) ) :
 					$this->order_meta,
 					$this->method_resolver,
 					$this->shipment_ids,
-					new SS_Shipping_Booking_Service( $this->order_meta, $this->method_resolver ),
+					new SS_Shipping_Booking_Service(),
 					$this->settings
 				);
 				$this->label_creator          = new SS_Shipping_Label_Creator( $this->fulfillment_service );

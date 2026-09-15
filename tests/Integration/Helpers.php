@@ -467,3 +467,24 @@ function create_order(array $args = []): WC_Order
 
     return $order;
 }
+
+if (! function_exists('wc_st_add_tracking_number')) {
+    /**
+     * Stand-in for the optional WooCommerce Shipment Tracking plugin: records
+     * every tracking push the fulfillment workflow makes.
+     */
+    function wc_st_add_tracking_number($order_id, $tracking_number, $provider, $date_shipped, $tracking_url): void
+    {
+        $GLOBALS['ss_test_shipment_tracking_calls'][] = [$order_id, $tracking_number, $provider, $date_shipped, $tracking_url];
+    }
+}
+
+/**
+ * Reset the recorded Shipment Tracking pushes and return the log by reference.
+ */
+function &shipment_tracking_calls(): array
+{
+    $GLOBALS['ss_test_shipment_tracking_calls'] = [];
+
+    return $GLOBALS['ss_test_shipment_tracking_calls'];
+}

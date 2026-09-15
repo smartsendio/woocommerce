@@ -27,7 +27,8 @@ if ( ! class_exists( 'SS_Shipping_Delivery_Details' ) ) :
 	 * caller can submit a PARTIAL details object - every field is nullable,
 	 * null meaning "not specified, keep the stored/derived value" - which
 	 * the flow merges with the stored/derived one. The merged details pass
-	 * through the smart_send_delivery_details filter before booking.
+	 * through the smart_send_delivery_details filter (in the fulfillment
+	 * service) before booking is called.
 	 *
 	 * Booked shipment ids are deliberately NOT part of this type: they are
 	 * the OUTCOME of fulfillment, not delivery configuration (see

@@ -342,6 +342,26 @@ if ( ! class_exists( 'SS_Shipping_Method_Catalog' ) ) :
 		public function get_return_shipping_methods() {
 			return $this->return_shipping_method;
 		}
+
+		/**
+		 * The display name of a carrier from its Smart Send carrier code,
+		 * e.g. 'PostNord' for 'postnord' - the carrier group names of the
+		 * catalogue are the display names. Unknown codes are returned as
+		 * given.
+		 *
+		 * @param string $carrier_code The Smart Send carrier code.
+		 *
+		 * @return string
+		 */
+		public function get_carrier_name( $carrier_code ) {
+			foreach ( array_keys( $this->shipping_method ) as $carrier_name ) {
+				if ( strtolower( (string) $carrier_name ) === strtolower( (string) $carrier_code ) ) {
+					return (string) $carrier_name;
+				}
+			}
+
+			return (string) $carrier_code;
+		}
 		/**
 		 * Get the human readable name of the Smart Send shipping method
 		 * Example: 'PostNord: Closest pickup point (MyPack Collect)'

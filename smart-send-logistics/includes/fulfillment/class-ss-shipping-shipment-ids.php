@@ -27,6 +27,20 @@ if ( ! class_exists( 'SS_Shipping_Shipment_Ids' ) ) :
 	class SS_Shipping_Shipment_Ids {
 
 		/**
+		 * Save the id of a booked shipment on the order, under the outbound
+		 * or return meta key according to the shipment's own direction
+		 * (#177).
+		 *
+		 * @param integer|WC_Order            $order    Order (or order id).
+		 * @param SS_Shipping_Booked_Shipment $shipment The booked shipment.
+		 *
+		 * @return void
+		 */
+		public function save_booked( $order, SS_Shipping_Booked_Shipment $shipment ) {
+			$this->save( $order, $shipment->get_shipment_id(), $shipment->is_return() );
+		}
+
+		/**
 		 * Save a booked shipment id on the order.
 		 *
 		 * @param integer|WC_Order $order       Order (or order id).

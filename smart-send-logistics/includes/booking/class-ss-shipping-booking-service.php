@@ -15,108 +15,80 @@ if ( ! defined( 'ABSPATH' ) ) {
 if ( ! class_exists( 'SS_Shipping_Booking_Service' ) ) :
 
 	/**
-	 * Books a WooCommerce order with the Smart Send API.
+	 * Books a shipment for a WooCommerce order with the Smart Send API -
+	 * the booking stage (#177): everything from "build the shipment" to
+	 * "API response", and nothing that happens on the order afterwards.
 	 *
-	 * SS_Shipping_Shipment_Builder assembles the internal shipment
-	 * representation (#113); \Smartsend\Resources\BookingResource (#112)
-	 * translates that representation into the v1 wire request
-	 * (Smartsend\Models\Shipment and its sub-models) and sends it. This
-	 * class is the order-level orchestrator: build the representation, hand
-	 * it to the booking resource, and expose the result to callers
-	 * (SS_Shipping_Fulfillment_Service) as a SS_Shipping_Booking.
+	 * book() takes the WC_Order plus the SS_Shipping_Delivery_Details
+	 * fulfillment decided on (method, pickup point, parcel plan) and:
 	 *
-	 * Outbound and return bookings are two separate entry points -
-	 * book_outbound() and book_return() - rather than a single method
-	 * taking an is_return boolean; see SS_Shipping_Shipment_Builder's
-	 * class docblock for why. Neither method ever throws: a config error
-	 * (e.g. no return method configured, raised internally by
-	 * SS_Shipping_Shipment_Builder as a SS_Shipping_Booking_Exception) or
-	 * an API-level error are both reported the same way, as a failed
-	 * SS_Shipping_Booking - callers only need to check is_successful().
+	 *   1. builds the request DTO, SS_Shipping_Shipment, through
+	 *      SS_Shipping_Shipment_Builder (#113) and runs the
+	 *      smart_send_booking_request filter on it;
+	 *   2. hands it to \Smartsend\Resources\BookingResource (#112), which
+	 *      translates it into the v1 wire request and sends it;
+	 *   3. maps the response into the result DTO,
+	 *      SS_Shipping_Booked_Shipment, fires smart_send_booking_completed
+	 *      and returns it - or, when the API rejected the shipment, fires
+	 *      smart_send_booking_failed and throws
+	 *      SS_Shipping_Booking_Exception (the API exception as previous,
+	 *      validation errors on errors()).
 	 *
-	 * The service is stateless and long-lived: it is constructed once
-	 * (without an order) and takes the WC_Order per call, so one instance
-	 * can safely book many orders sequentially. The short-lived per-order
-	 * collaborators (SS_Shipping_Order_Reader, SS_Shipping_Shipment_Builder)
-	 * are constructed fresh per call and keep their constructor-injected
-	 * WC_Order.
+	 * Booking pragmatically receives the WC_Order (a booking always comes
+	 * from an order, and the order reader needs it) but never reads order
+	 * meta and never resolves shipping methods: that is
+	 * SS_Shipping_Fulfillment_Service's job, before book() is called.
+	 * Outbound and return bookings are the same operation, hence one
+	 * method with an is_return flag - fulfillment, whose two flows
+	 * genuinely differ, keeps two entry points.
+	 *
+	 * This is also where the API v1 response becomes the typed
+	 * SS_Shipping_Booked_Shipment: map_v1_response() is the one place
+	 * that knows the v1 response shape (shipment_id, carrier_code,
+	 * pdf->link/base_64_encoded, parcels[]->tracking_code/tracking_link).
+	 * The API v2 switch replaces that mapper and nothing else; nothing
+	 * v1-shaped leaves this class.
+	 *
+	 * The service is stateless and long-lived: it is constructed once and
+	 * takes the WC_Order per call, so one instance can safely book many
+	 * orders sequentially. The short-lived per-order collaborators
+	 * (SS_Shipping_Order_Reader, SS_Shipping_Shipment_Builder) are
+	 * constructed fresh per call.
 	 */
 	class SS_Shipping_Booking_Service {
 
 		/**
-		 * Order meta repository.
+		 * Book a shipment for the order.
 		 *
-		 * @var SS_Shipping_Order_Meta
+		 * @param WC_Order                     $order     The WooCommerce order the shipment is for.
+		 * @param SS_Shipping_Delivery_Details $details   The delivery details to ship with (method set, pickup point and parcel plan as decided).
+		 * @param boolean                      $is_return Whether the shipment is a return shipment.
+		 *
+		 * @throws SS_Shipping_Booking_Exception When the shipment cannot be built or the API rejects it.
+		 *
+		 * @return SS_Shipping_Booked_Shipment
 		 */
-		protected SS_Shipping_Order_Meta $order_meta;
+		public function book( WC_Order $order, SS_Shipping_Delivery_Details $details, bool $is_return ): SS_Shipping_Booked_Shipment {
+			$builder  = new SS_Shipping_Shipment_Builder( $order, new SS_Shipping_Order_Reader( $order ) );
+			$shipment = $builder->build( $details );
 
-		/**
-		 * Shipping method resolver.
-		 *
-		 * @var SS_Shipping_Method_Resolver
-		 */
-		protected SS_Shipping_Method_Resolver $method_resolver;
+			/*
+			 * Filter the shipment about to be booked: the complete request
+			 * representation (receiver, pickup point, parcels with item
+			 * lines, amounts) after the order has been read and the
+			 * delivery details applied, right before it is sent to the
+			 * Smart Send API. Return the (modified) SS_Shipping_Shipment.
+			 *
+			 * @since 9.0.0
+			 *
+			 * @param SS_Shipping_Shipment $shipment  The shipment to book.
+			 * @param WC_Order             $order     The WooCommerce order.
+			 * @param boolean              $is_return Whether the shipment is a return shipment.
+			 *
+			 * @return SS_Shipping_Shipment The shipment to book.
+			 */
+			$shipment = apply_filters( 'smart_send_booking_request', $shipment, $order, $is_return );
 
-		/**
-		 * Constructor.
-		 *
-		 * @param SS_Shipping_Order_Meta      $order_meta      Order meta repository.
-		 * @param SS_Shipping_Method_Resolver $method_resolver Shipping method resolver.
-		 */
-		public function __construct( SS_Shipping_Order_Meta $order_meta, SS_Shipping_Method_Resolver $method_resolver ) {
-			$this->order_meta      = $order_meta;
-			$this->method_resolver = $method_resolver;
-		}
-
-		/**
-		 * Book an outbound (normal) shipping label.
-		 *
-		 * @param WC_Order $order The WooCommerce order to book a shipment for.
-		 *
-		 * @return SS_Shipping_Booking
-		 */
-		public function book_outbound( WC_Order $order ): SS_Shipping_Booking {
-			$builder = new SS_Shipping_Shipment_Builder( $order, new SS_Shipping_Order_Reader( $order ), $this->order_meta, $this->method_resolver );
-
-			try {
-				$shipment = $builder->build_outbound();
-			} catch ( SS_Shipping_Booking_Exception $e ) {
-				return new SS_Shipping_Booking( false, $e->getMessage(), null, null );
-			}
-
-			return $this->send( $shipment );
-		}
-
-		/**
-		 * Book a return shipping label.
-		 *
-		 * @param WC_Order $order The WooCommerce order to book a shipment for.
-		 *
-		 * @return SS_Shipping_Booking
-		 */
-		public function book_return( WC_Order $order ): SS_Shipping_Booking {
-			$builder = new SS_Shipping_Shipment_Builder( $order, new SS_Shipping_Order_Reader( $order ), $this->order_meta, $this->method_resolver );
-
-			try {
-				$shipment = $builder->build_return();
-			} catch ( SS_Shipping_Booking_Exception $e ) {
-				return new SS_Shipping_Booking( false, $e->getMessage(), null, null );
-			}
-
-			return $this->send( $shipment );
-		}
-
-		/**
-		 * Translate the shipment representation into the v1 wire model and
-		 * send it to the Smart Send API, wrapping the outcome into a
-		 * SS_Shipping_Booking. Shared by book_outbound() and book_return()
-		 * - the part of booking that never differs between the two.
-		 *
-		 * @param SS_Shipping_Shipment $shipment The shipment representation to book.
-		 *
-		 * @return SS_Shipping_Booking
-		 */
-		protected function send( SS_Shipping_Shipment $shipment ): SS_Shipping_Booking {
 			$api = SS_SHIPPING_WC()->get_api_handle();
 
 			$wire_shipment = $api->bookings()->fromShipment( $shipment );
@@ -126,45 +98,102 @@ if ( ! class_exists( 'SS_Shipping_Booking_Service' ) ) :
 			try {
 				$response = $api->bookings()->create( $wire_shipment );
 			} catch ( \Smartsend\Exceptions\HttpClientException $e ) {
-				return new SS_Shipping_Booking( false, $this->format_booking_error( $e ), null, $wire_shipment );
+				$exception = SS_Shipping_Booking_Exception::from_api_exception( $e );
+
+				/*
+				 * Action when the Smart Send API rejected a shipment. Fires
+				 * right before the SS_Shipping_Booking_Exception is thrown
+				 * (getMessage(), errors() for per-field validation errors,
+				 * response_id(), getPrevious() for the API client exception).
+				 *
+				 * @since 9.0.0
+				 *
+				 * @param SS_Shipping_Booking_Exception $exception The failure.
+				 * @param SS_Shipping_Shipment          $shipment  The shipment that was sent.
+				 * @param WC_Order                      $order     The WooCommerce order.
+				 */
+				do_action( 'smart_send_booking_failed', $exception, $shipment, $order );
+
+				throw $exception;
 			}
 
-			return new SS_Shipping_Booking( true, null, $response->data(), $wire_shipment );
+			$booked = $this->map_v1_response( $response->data(), $shipment, $is_return );
+
+			/*
+			 * Action when the Smart Send API booked a shipment. Fires
+			 * before anything is written to the WooCommerce order - listen
+			 * to smart_send_order_fulfilled for the order-side outcome.
+			 *
+			 * @since 9.0.0
+			 *
+			 * @param SS_Shipping_Booked_Shipment $booked   The booked shipment (shipment id, tracking, parcels, documents, codes).
+			 * @param SS_Shipping_Shipment        $shipment The shipment that was sent.
+			 * @param WC_Order                    $order    The WooCommerce order.
+			 */
+			do_action( 'smart_send_booking_completed', $booked, $shipment, $order );
+
+			return $booked;
 		}
 
 		/**
-		 * Render an API failure as the human-readable (HTML) error string
-		 * shown to the merchant: the message, each field's validation
-		 * errors and the API's Response-ID for support reference.
+		 * Map the API v1 create-shipment response into the typed booked
+		 * shipment: one "label" document in "pdf" format from pdf->link
+		 * (with the inline base64 bytes as its transient inline_content),
+		 * no codes (v1 never produces any), one booked parcel per
+		 * parcels[] entry, and shipment-level tracking taken from the
+		 * first parcel when the API gives none (v1 tracks per parcel).
+		 * The carrier and method codes fall back to what was requested
+		 * when the response does not repeat them.
 		 *
-		 * @param \Smartsend\Exceptions\HttpClientException $e The failure.
+		 * @param object               $data      The v1 response data (Smartsend\Response::data()).
+		 * @param SS_Shipping_Shipment $shipment  The shipment representation that was booked.
+		 * @param boolean              $is_return Whether the shipment is a return shipment.
 		 *
-		 * @return string
+		 * @return SS_Shipping_Booked_Shipment
 		 */
-		protected function format_booking_error( \Smartsend\Exceptions\HttpClientException $e ): string {
-			$delimiter    = '<br>';
-			$error_string = $e->getMessage();
+		protected function map_v1_response( $data, SS_Shipping_Shipment $shipment, bool $is_return ): SS_Shipping_Booked_Shipment {
+			$booked = new SS_Shipping_Booked_Shipment( isset( $data->shipment_id ) ? (string) $data->shipment_id : '' );
 
-			if ( $e instanceof \Smartsend\Exceptions\ValidationException ) {
-				foreach ( $e->errors() as $error_field => $error_details ) {
-					if ( count( $error_details ) > 1 ) {
-						$error_string .= $delimiter . $error_field . ':';
-						foreach ( $error_details as $error_description ) {
-							$error_string .= $delimiter . '- ' . $error_description;
-						}
-					} else {
-						foreach ( $error_details as $error_description ) {
-							$error_string .= $delimiter . '- ' . $error_field . ': ' . $error_description;
-						}
-					}
-				}
+			$booked
+				->set_carrier( ! empty( $data->carrier_code ) ? (string) $data->carrier_code : $shipment->get_shipping_carrier() )
+				->set_service_code( $shipment->get_shipping_method() )
+				->set_is_return( $is_return )
+				->set_state( SS_Shipping_Booked_Shipment::STATE_BOOKED )
+				->set_booked_at( gmdate( 'c' ) );
+
+			foreach ( isset( $data->parcels ) ? (array) $data->parcels : array() as $parcel ) {
+				$booked->add_parcel(
+					new SS_Shipping_Booked_Parcel(
+						isset( $parcel->parcel_internal_id ) ? (string) $parcel->parcel_internal_id : null,
+						isset( $parcel->tracking_code ) ? (string) $parcel->tracking_code : null,
+						isset( $parcel->tracking_link ) ? (string) $parcel->tracking_link : null
+					)
+				);
 			}
 
-			if ( $e instanceof \Smartsend\Exceptions\RequestException && null !== $e->getResponse()->responseId() ) {
-				$error_string .= $delimiter . 'Response ID: ' . $e->getResponse()->responseId();
+			if ( ! empty( $data->tracking_code ) ) {
+				$booked->set_tracking( (string) $data->tracking_code, isset( $data->tracking_link ) ? (string) $data->tracking_link : null );
+			} elseif ( array() !== $booked->parcels() ) {
+				$first = $booked->parcels()[0];
+				$booked->set_tracking( $first->get_tracking_code(), $first->get_tracking_url() );
 			}
 
-			return $error_string;
+			if ( isset( $data->pdf ) ) {
+				$document = new SS_Shipping_Shipment_Document(
+					SS_Shipping_Shipment_Document::TYPE_LABEL,
+					SS_Shipping_Shipment_Document::FORMAT_PDF,
+					isset( $data->pdf->link ) ? (string) $data->pdf->link : ''
+				);
+
+				// v1 delivers the label PDF inline next to its link; the
+				// uploads copy is written from these bytes (v1 bridge, see
+				// SS_Shipping_Shipment_Document::get_inline_content()).
+				$document->set_inline_content( isset( $data->pdf->base_64_encoded ) ? (string) $data->pdf->base_64_encoded : null );
+
+				$booked->add_document( $document );
+			}
+
+			return $booked;
 		}
 	}
 
