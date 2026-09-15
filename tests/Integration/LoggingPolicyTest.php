@@ -319,11 +319,12 @@ it('logs the rate calculation start and cost outcome as a debug trace', function
     ], 99955);
     $method->calculate_shipping($package);
 
+    $cost   = ss_rate_cost_as_traced($method, 'smart_send_shipping:99955', 49);
     $debugs = implode("\n", ss_policy_logged($spy, 'debug'));
     expect($debugs)->toContain('Calculating shipping cost for shipping rate smart_send_shipping:99955')
-        ->and($debugs)->toContain('Calculated shipping cost for shipping rate smart_send_shipping:99955: 49');
+        ->and($debugs)->toContain('Calculated shipping cost for shipping rate smart_send_shipping:99955: ' . $cost);
 
-    $outcome = ss_policy_entry($spy, 'Calculated shipping cost for shipping rate smart_send_shipping:99955: 49');
+    $outcome = ss_policy_entry($spy, 'Calculated shipping cost for shipping rate smart_send_shipping:99955: ' . $cost);
     expect($outcome)->not->toBeNull()
         ->and($outcome['context']['rate_id'])->toBe('smart_send_shipping:99955');
 });

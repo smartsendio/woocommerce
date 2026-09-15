@@ -35,7 +35,13 @@
 set -euo pipefail
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-ENV_WP_PATH="$(sed -n 's/^WP_PATH=//p' "$REPO_ROOT/.env" 2>/dev/null | tail -1)"
+# Tolerate a missing .env: under `set -euo pipefail` a bare `$(sed ... | tail)`
+# assignment inherits sed's exit 2 and silently kills the script (same fix as
+# in bin/setup-local-dev.sh).
+ENV_WP_PATH=""
+if [[ -f "$REPO_ROOT/.env" ]]; then
+    ENV_WP_PATH="$(sed -n 's/^WP_PATH=//p' "$REPO_ROOT/.env" | tail -1)"
+fi
 if [[ -n "$ENV_WP_PATH" && "$ENV_WP_PATH" != /* ]]; then
     ENV_WP_PATH="$REPO_ROOT/$ENV_WP_PATH"
 fi

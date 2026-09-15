@@ -488,3 +488,22 @@ function &shipment_tracking_calls(): array
 
     return $GLOBALS['ss_test_shipment_tracking_calls'];
 }
+
+/**
+ * The cost string the shipping method's debug bar summary and log trace
+ * interpolate for a calculated rate: WC_Shipping_Rate::get_cost() verbatim.
+ * WooCommerce formats it differently across the supported range ("49.00"
+ * on WooCommerce 8.2, "49" on current releases), so expectations build the
+ * trace text from the rate instead of a literal. The numeric value is
+ * pinned here so a wrong cost cannot hide behind the indirection.
+ */
+function ss_rate_cost_as_traced(WC_Shipping_Method $method, string $rate_id, float $expected): string
+{
+    expect($method->rates)->toHaveKey($rate_id);
+
+    $cost = $method->rates[$rate_id]->get_cost();
+
+    expect((float) $cost)->toBe($expected);
+
+    return (string) $cost;
+}

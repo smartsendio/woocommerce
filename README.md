@@ -154,7 +154,18 @@ vendor/bin/pest --testsuite=Browser      # you serve the store yourself in this 
 
 ### CI
 
-`.github/workflows/integration-tests.yml` and `browser-tests.yml` run on every pull request and on pushes to `main` and `develop`; browser failure screenshots are uploaded as workflow artifacts. `coding-standards.yml` runs phpcs and `js-build.yml` fails if the committed `build/` output drifts from `src/`. `docs-screenshots.yml` is manual only (`workflow_dispatch`): it uploads the screenshots as an artifact for a human to review and commit.
+`.github/workflows/integration-tests.yml` and `browser-tests.yml` run on every pull request and on pushes to `main` and `develop` (and on demand via `workflow_dispatch`); browser failure screenshots are uploaded as workflow artifacts. `coding-standards.yml` runs phpcs and the PHPCompatibility scan (`testVersion` 7.4 and up), and `js-build.yml` fails if the committed `build/` output drifts from `src/`. `docs-screenshots.yml` is manual only (`workflow_dispatch`): it uploads the screenshots as an artifact for a human to review and commit.
+
+The matrices cover the two ends of the supported range (PHP 7.4+, WordPress 6.5+, WooCommerce 8.2+) rather than every combination: `latest` legs run each PHP version against the latest WordPress and WooCommerce, and one `floor` leg per workflow runs the oldest supported WordPress + WooCommerce (latest patch of each).
+
+| Workflow | `latest` legs | `floor` leg |
+|---|---|---|
+| Browser (store on the matrix PHP, Pest on 8.4) | PHP 7.4, 8.0, 8.1, 8.2, 8.3, 8.4, 8.5 | PHP 7.4 / WP 6.5.x / WC 8.2.x |
+| Integration (WordPress in the Pest process, so Pest's PHP 8.3 floor applies) | PHP 8.3, 8.4, 8.5 | PHP 8.3 / WP 6.5.x / WC 8.2.x |
+
+A leg carrying `canary: true` in the matrix runs with `continue-on-error`: it reports its result but does not block merges — use it only with a comment naming the issue that turns it strict again. No leg is a canary today; the floor legs are strict.
+
+The browser store runs on nginx + php-fpm with the opcache JIT and PCRE JIT turned off — the PHP 8.x fpm segfaults tracked in #79 resolved to the opcache tracing JIT that `setup-php` enables by default for PHP 8.x, which silently overrode the workflow's own ini — and the workflow asserts the effective worker settings before the suite starts.
 
 ## Coding standards and the JS build
 
