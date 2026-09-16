@@ -7,12 +7,12 @@ if ( ! defined( 'ABSPATH' ) ) {
 /**
  * Smart Send fulfillment REST controller.
  *
- * The transport of the order screen's "Smart Send Shipping" meta box (#182):
+ * The transport of the order screen's "Smart Send" meta box (#182):
  * WP REST under the smart-send/v1 namespace, three routes below
  * orders/{id} -
  *
  *   GET  /fulfillment                  the meta box state (SS_Shipping_Order_Fulfillment_Presenter::state())
- *   POST /fulfillment                  book: { flow, with_return, confirm_rebook, delivery_details }
+ *   POST /fulfillment                  book: { flow, with_return, return_method, confirm_rebook, delivery_details }
  *   GET  /pickup-points/{agent_no}     resolve an entered agent number through the shared lookup
  *
  * The request body is validated declaratively by the args schema
@@ -197,6 +197,11 @@ if ( ! class_exists( 'SS_Shipping_Fulfillment_Rest_Controller' ) ) :
 					'type'        => array( 'boolean', 'null' ),
 					'default'     => null,
 				),
+				'return_method'    => array(
+					'description' => __( 'The Smart Send return method to book the return label with when the order has none configured (outbound flow with with_return, e.g. an order placed without a Smart Send method); null follows the shipping method\'s configured return method.', 'smart-send-logistics' ),
+					'type'        => array( 'string', 'null' ),
+					'default'     => null,
+				),
 				'confirm_rebook'   => array(
 					'description' => __( 'Must be true to book again when the order already has a shipment for the flow.', 'smart-send-logistics' ),
 					'type'        => 'boolean',
@@ -287,9 +292,10 @@ if ( ! class_exists( 'SS_Shipping_Fulfillment_Rest_Controller' ) ) :
 
 		/**
 		 * Validate the delivery_details argument: the schema first, then
-		 * every parcel allocation must reference an item of the order (the
-		 * builder would silently skip an unknown id; here it is a
-		 * parcel_plan.specs[N].items[M].id error).
+		 * every parcel must contain at least one item (a
+		 * parcel_plan.specs[N].items error) and every parcel allocation must
+		 * reference an item of the order (the builder would silently skip an
+		 * unknown id; here it is a parcel_plan.specs[N].items[M].id error).
 		 *
 		 * @param mixed           $value   The submitted value.
 		 * @param WP_REST_Request $request The request.
@@ -318,7 +324,22 @@ if ( ! class_exists( 'SS_Shipping_Fulfillment_Rest_Controller' ) ) :
 			$order_item_ids = array_map( 'strval', array_unique( wp_list_pluck( $this->presenter->order_units( $order ), 'id' ) ) );
 
 			foreach ( array_values( $value['parcel_plan']['specs'] ) as $spec_index => $spec ) {
-				foreach ( isset( $spec['items'] ) && is_array( $spec['items'] ) ? array_values( $spec['items'] ) : array() as $item_index => $item ) {
+				// A parcel without items: the box cannot produce one (an emptied
+				// box is removed), so reject it here. The DTO itself still
+				// allows box-only specs - the smart_send_delivery_details
+				// filter may build them programmatically, outside this schema.
+				if ( empty( $spec['items'] ) || ! is_array( $spec['items'] ) ) {
+					return new WP_Error(
+						'rest_invalid_param',
+						sprintf(
+							/* translators: %s: the form field. */
+							__( '%s: A parcel must contain at least one item.', 'smart-send-logistics' ),
+							sprintf( 'parcel_plan.specs[%d].items', $spec_index )
+						)
+					);
+				}
+
+				foreach ( array_values( $spec['items'] ) as $item_index => $item ) {
 					if ( ! isset( $item['id'] ) || in_array( (string) $item['id'], $order_item_ids, true ) ) {
 						continue;
 					}
@@ -416,12 +437,23 @@ if ( ! class_exists( 'SS_Shipping_Fulfillment_Rest_Controller' ) ) :
 			$with_return = $request->get_param( 'with_return' );
 			$with_return = is_bool( $with_return ) ? $with_return : null;
 
+			// A return method submitted for the return leg of a combined
+			// outbound + return run (state B: an order without a Smart Send
+			// method has no configured return method).
+			$return_overrides        = null;
+			$submitted_return_method = (string) $request->get_param( 'return_method' );
+
+			if ( ! $is_return && '' !== $submitted_return_method ) {
+				$return_overrides = new SS_Shipping_Delivery_Details();
+				$return_overrides->set_shipping_method( $submitted_return_method );
+			}
+
 			if ( $is_return || true === $with_return ) {
 				// A return is explicitly requested: fail the request, not the
 				// leg, when no return method is resolvable and none was
 				// submitted. (A null with_return follows the setting, whose
 				// missing return method stays a failed leg.)
-				$return_method = $is_return ? $method : $this->configured_return_method( $order );
+				$return_method = $is_return ? $method : ( '' !== $submitted_return_method ? $submitted_return_method : $this->configured_return_method( $order ) );
 
 				if ( '' === $return_method ) {
 					return new WP_Error(
@@ -440,7 +472,7 @@ if ( ! class_exists( 'SS_Shipping_Fulfillment_Rest_Controller' ) ) :
 
 			$result = $is_return
 				? $this->fulfillment_service->fulfill_return( $order, true, $details )
-				: $this->fulfillment_service->fulfill_outbound( $order, true, $details, $with_return );
+				: $this->fulfillment_service->fulfill_outbound( $order, true, $details, $with_return, $return_overrides );
 
 			return rest_ensure_response( $this->presenter->response( $result, $order, $flow ) );
 		}

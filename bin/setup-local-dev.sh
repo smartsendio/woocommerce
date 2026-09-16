@@ -58,6 +58,13 @@ CHECKOUT_TYPE=""
 CHECKOUT_FROM_FLAG="false"
 PRICES_TAX=""
 PRICES_FROM_FLAG="false"
+# Order storage (hpos|posts|default): --flag > exported WP_ORDER_STORAGE >
+# env file > "default" (WooCommerce's own choice for the install - HPOS on
+# fresh installs). Explicit hpos/posts pins the storage backend so the
+# Browser suite can run against both the HPOS and the legacy order screen
+# (#182).
+ORDER_STORAGE=""
+ORDER_STORAGE_FROM_FLAG="false"
 
 usage() {
     cat <<'EOF'
@@ -84,6 +91,11 @@ Options:
                         "exclude"-ing tax (WooCommerce "Prices entered with
                         tax"). Default: the WP_PRICES_TAX environment variable
                         or env file entry, else include
+  --order-storage <s>   Order storage backend: "hpos" (High-Performance Order
+                        Storage) or "posts" (the legacy post-based storage),
+                        or "default" to leave WooCommerce's own choice for the
+                        install. Default: the WP_ORDER_STORAGE environment
+                        variable or env file entry, else default
 
   --wp-version <v>      WordPress version to install (default: latest)
   --wc-version <v>      WooCommerce version to install (default: latest)
@@ -135,6 +147,7 @@ while [[ $# -gt 0 ]]; do
         --admin-email)  ADMIN_EMAIL="$2"; shift 2 ;;
         --checkout)     CHECKOUT_TYPE="$2"; CHECKOUT_FROM_FLAG="true"; shift 2 ;;
         --prices-tax)   PRICES_TAX="$2"; PRICES_FROM_FLAG="true"; shift 2 ;;
+        --order-storage) ORDER_STORAGE="$2"; ORDER_STORAGE_FROM_FLAG="true"; shift 2 ;;
         --skip-seed)    SKIP_SEED="true"; shift ;;
         --force)        FORCE="true"; shift ;;
         -h|--help)      usage; exit 0 ;;
@@ -177,11 +190,12 @@ if [[ ! -f "$ENV_FILE" && ( "$PATH_FROM_FLAG" != "true" || "$URL_FROM_FLAG" != "
 # built-in server, or at a parked .test domain to let Laravel Herd serve it.
 WP_PATH=$ENV_TESTING_DEFAULT_PATH
 WP_URL=$ENV_TESTING_DEFAULT_URL
-# Optional: checkout page type (classic|block) and whether product prices
-# are entered including or excluding tax (include|exclude).
-# Defaults: block / include.
+# Optional: checkout page type (classic|block), whether product prices are
+# entered including or excluding tax (include|exclude) and the order storage
+# backend (hpos|posts|default). Defaults: block / include / default.
 #WP_CHECKOUT=block
 #WP_PRICES_TAX=include
+#WP_ORDER_STORAGE=default
 EOF
     elif [[ -z "$ENV_NAME" && -t 0 ]]; then
         log "No .env found - where should the local dev store live?"
@@ -193,11 +207,12 @@ EOF
 # The test suites use .env.testing instead (see bin/run-tests.sh).
 WP_PATH=${ANSWER_PATH:-$ENV_DEFAULT_PATH}
 WP_URL=${ANSWER_URL:-$ENV_DEFAULT_URL}
-# Optional: checkout page type (classic|block) and whether product prices
-# are entered including or excluding tax (include|exclude).
-# Defaults: block / include.
+# Optional: checkout page type (classic|block), whether product prices are
+# entered including or excluding tax (include|exclude) and the order storage
+# backend (hpos|posts|default). Defaults: block / include / default.
 #WP_CHECKOUT=block
 #WP_PRICES_TAX=include
+#WP_ORDER_STORAGE=default
 EOF
         log "Wrote $ENV_FILE"
     fi
@@ -234,6 +249,16 @@ fi
 
 if [[ "$PRICES_TAX" != "include" && "$PRICES_TAX" != "exclude" ]]; then
     echo "Error: --prices-tax / WP_PRICES_TAX must be 'include' or 'exclude' (got '$PRICES_TAX')" >&2
+    exit 1
+fi
+
+if [[ "$ORDER_STORAGE_FROM_FLAG" != "true" ]]; then
+    ORDER_STORAGE="${WP_ORDER_STORAGE:-$(env_get WP_ORDER_STORAGE)}"
+fi
+ORDER_STORAGE="${ORDER_STORAGE:-default}"
+
+if [[ "$ORDER_STORAGE" != "hpos" && "$ORDER_STORAGE" != "posts" && "$ORDER_STORAGE" != "default" ]]; then
+    echo "Error: --order-storage / WP_ORDER_STORAGE must be 'hpos', 'posts' or 'default' (got '$ORDER_STORAGE')" >&2
     exit 1
 fi
 
@@ -432,6 +457,14 @@ wp option update woocommerce_task_list_hidden "yes" >/dev/null 2>&1 || true
 log "Configuring the $CHECKOUT_TYPE checkout page"
 wp eval-file "$REPO_ROOT/bin/configure-checkout-page.php" "$CHECKOUT_TYPE" >/dev/null
 
+# Order storage backend, set through the option WooCommerce's HPOS feature
+# reads (`wp wc hpos` is newer than the WC 8.2 floor); switching is safe here
+# because the store has no orders yet.
+if [[ "$ORDER_STORAGE" != "default" ]]; then
+    log "Configuring $ORDER_STORAGE order storage"
+    wp option update woocommerce_custom_orders_table_enabled "$( [[ "$ORDER_STORAGE" == "hpos" ]] && echo "yes" || echo "no" )" >/dev/null
+fi
+
 # General site settings.
 wp option update blogname "$SITE_TITLE" >/dev/null
 wp option update timezone_string "Europe/Copenhagen" >/dev/null
@@ -583,6 +616,7 @@ Local development store is ready!
   Smart Send:  symlinked from $PLUGIN_SRC
   Checkout:    $CHECKOUT_TYPE (--checkout / WP_CHECKOUT)
   Prices:      entered $( [[ "$PRICES_TAX" == "include" ]] && echo "including" || echo "excluding" ) tax (--prices-tax / WP_PRICES_TAX)
+  Orders:      $ORDER_STORAGE storage (--order-storage / WP_ORDER_STORAGE)
 
 $SERVE_HINT
 

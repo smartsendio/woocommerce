@@ -152,8 +152,8 @@ it('runs the full workflow on a successful outbound fulfillment', function () {
         ->and($result->get_return_error())->toBeNull()
         ->and($result->get_outbound_shipment())->not->toBeNull()
         ->and($result->get_return_shipment())->toBeNull()
-        ->and($result->to_legacy_response_array())->toHaveCount(1)
-        ->and($result->to_legacy_response_array()[0])->toHaveKey('success')
+        ->and($result->to_array())->toHaveCount(1)
+        ->and($result->to_array()[0]['status'])->toBe('fulfilled')
         ->and($fired->order_ids)->toBe([$order->get_id()]);
 
     // Every side-effect step ran with its default.
@@ -167,6 +167,15 @@ it('runs the full workflow on a successful outbound fulfillment', function () {
     $fresh = wc_get_order($order->get_id());
     expect($fresh->get_meta('_ss_shipping_label_id', true))->toBe('shipment-fulfill')
         ->and($fresh->get_status())->toBe('completed');
+
+    // The shipment-id step also appends exactly one row to the order's
+    // append-only booked-labels list (what the meta box's "Booked
+    // shipments" timeline renders).
+    $labels = SS_SHIPPING_WC()->shipment_ids()->labels($fresh);
+    expect($labels)->toHaveCount(1)
+        ->and($labels[0]['direction'])->toBe('outbound')
+        ->and($labels[0]['shipment_id'])->toBe('shipment-fulfill')
+        ->and($labels[0]['booked_at'])->not->toBeNull();
 
     $notes = wc_get_order_notes(['order_id' => $order->get_id()]);
     expect(implode("\n", wp_list_pluck($notes, 'content')))->toContain('Shipping label')
@@ -213,17 +222,15 @@ it('passes smart_send_order_fulfilled the order and the result - no raw API resp
     // The result is a plain serializable DTO (no WC_Order inside).
     expect(unserialize(serialize($result))->get_outbound_shipment()->to_array())->toBe($shipment->to_array());
 
-    // The legacy AJAX entry keeps the frozen woocommerce.* shape.
-    $legacy = $result->to_legacy_response_array()[0]['success'];
-    expect($legacy->shipment_id)->toBe('shipment-clean')
-        ->and($legacy->woocommerce['label_url'])->toBe('https://api.example.test/labels/label.pdf')
-        ->and($legacy->woocommerce['return'])->toBeFalse()
-        ->and($legacy->woocommerce['order_note'])->toBe($result->get_order_note($shipment))
-        ->and($legacy->woocommerce['outputs_html'])->toBe('<a href="https://api.example.test/labels/label.pdf" target="_blank">Download shipping label</a>')
-        // ...and is derived from the DTO, not the API response: no inline PDF blob.
-        ->and(property_exists($legacy, 'pdf'))->toBeFalse()
-        ->and($legacy->documents[0])->not->toHaveKey('inline_content')
-        ->and($legacy->documents[0]['url'])->toBe('https://api.example.test/labels/label.pdf');
+    // The canonical array form carries the DTO, not the API response: no
+    // inline PDF blob, the document by URL.
+    $row = $result->to_array()[0];
+    expect($row['shipment']['shipment_id'])->toBe('shipment-clean')
+        ->and($row['shipment']['is_return'])->toBeFalse()
+        ->and($row['order_note']['id'])->toBe($result->get_order_note_id($shipment))
+        ->and($row['shipment'])->not->toHaveKey('pdf')
+        ->and($row['shipment']['documents'][0])->not->toHaveKey('inline_content')
+        ->and($row['shipment']['documents'][0]['url'])->toBe('https://api.example.test/labels/label.pdf');
 });
 
 it('no longer fires smart_send_shipment_booked or smart_send_shipping_label_created (#177)', function () {
@@ -342,7 +349,8 @@ it('lets smart_send_fulfillment_save_documents turn the uploads copy on and off'
     expect($result_b->is_successful())->toBeTrue()
         ->and($result_b->get_steps($result_b->get_outbound_shipment())['save_documents'])->toBeFalse()
         ->and($result_b->get_outbound_shipment()->label_document()->has_local_copy())->toBeFalse()
-        ->and($result_b->to_legacy_response_array()[0]['success']->woocommerce['label_url'])->toBe('https://api.example.test/labels/label.pdf');
+        ->and($result_b->to_array()[0]['shipment']['documents'][0]['local_url'])->toBeNull()
+        ->and($result_b->to_array()[0]['shipment']['documents'][0]['url'])->toBe('https://api.example.test/labels/label.pdf');
 });
 
 it('lets smart_send_fulfillment_order_note rewrite or suppress the order note', function () {
@@ -363,9 +371,8 @@ it('lets smart_send_fulfillment_order_note rewrite or suppress the order note', 
         ->and($args[0])->toContain('Download shipping label')
         ->and($args[1])->toBe($shipment)
         ->and($args[2]->get_id())->toBe($order->get_id())
-        // The filtered note is what is saved AND what the AJAX response carries.
+        // The filtered note is what is saved and what the result carries.
         ->and($result->get_order_note($shipment))->toBe('Custom note for ' . $shipment->get_shipment_id())
-        ->and($result->to_legacy_response_array()[0]['success']->woocommerce['order_note'])->toBe('Custom note for ' . $shipment->get_shipment_id())
         ->and($result->get_steps($shipment)['order_note'])->toBeTrue();
 
     $notes = wp_list_pluck(wc_get_order_notes(['order_id' => $order->get_id()]), 'content');
@@ -461,16 +468,16 @@ it('links the uploads copy of the label when saving labels in uploads is enabled
 
     expect($result->is_successful())->toBeTrue();
 
-    $legacy = $result->to_legacy_response_array()[0]['success'];
-    expect($legacy->woocommerce['label_url'])->toContain('smart-send-label-shipment-uploads.pdf')
-        ->and($legacy->woocommerce['label_url'])->not->toBe('https://api.example.test/labels/label.pdf');
+    $document = $result->to_array()[0]['shipment']['documents'][0];
+    expect($document['local_url'])->toContain('smart-send-label-shipment-uploads.pdf')
+        ->and($document['local_url'])->not->toBe('https://api.example.test/labels/label.pdf');
 
     // The uploads copy lives on the shipment's label document (#177): the
     // Smart Send URL stays, the local copy is recorded next to it.
     $label = $result->get_outbound_shipment()->label_document();
     expect($label->get_url())->toBe('https://api.example.test/labels/label.pdf')
         ->and($label->has_local_copy())->toBeTrue()
-        ->and($label->get_local_url())->toBe($legacy->woocommerce['label_url'])
+        ->and($label->get_local_url())->toBe($document['local_url'])
         ->and($label->get_local_path())->toEndWith('/smart-send-label-shipment-uploads.pdf')
         ->and(file_get_contents($label->get_local_path()))->toBe('%PDF-fake')
         ->and($label->download_url())->toBe($label->get_local_url());
@@ -489,7 +496,7 @@ it('also fulfills the return label when auto-generate-return-label is enabled', 
         ->and($result->get_outbound_shipment())->not->toBeNull()
         ->and($result->get_return_shipment())->not->toBeNull()
         ->and($result->get_return_shipment()->is_return())->toBeTrue()
-        ->and($result->to_legacy_response_array())->toHaveCount(2)
+        ->and($result->to_array())->toHaveCount(2)
         ->and($capture->requests)->toHaveCount(2);
 });
 
@@ -545,9 +552,9 @@ it('keeps a booked shipment fulfilled with a warning when the uploads copy fails
         // The document has no local copy, so download_url() is the Smart Send URL.
         ->and($outbound->label_document()->has_local_copy())->toBeFalse()
         ->and($outbound->label_document()->download_url())->toBe('')
-        ->and($result->to_legacy_response_array())->toHaveCount(2)
-        ->and($result->to_legacy_response_array()[0])->toHaveKey('success')
-        ->and($result->to_legacy_response_array()[1])->toHaveKey('success');
+        ->and($result->to_array())->toHaveCount(2)
+        ->and($result->to_array()[0]['status'])->toBe('fulfilled')
+        ->and($result->to_array()[1]['status'])->toBe('fulfilled');
 
     // to_array() reports the warning on the fulfilled outbound row.
     $rows = $result->to_array();
@@ -598,14 +605,18 @@ it('writes nothing when the booking fails', function () {
         ->and($result->get_return_error())->toBeNull()
         ->and($result->get_outbound_shipment())->toBeNull()
         ->and($result->shipments())->toBe([])
-        ->and($result->to_legacy_response_array())->toBe([['error' => $result->get_outbound_error()]])
+        ->and($result->to_array()[0]['status'])->toBe('failed')
+        ->and($result->to_array()[0]['error']['html'])->toBe($result->get_outbound_error())
         ->and($fired->order_ids)->toBe([])
         ->and($failed->calls)->toHaveCount(1)
         ->and($failed->calls[0][0])->toBeInstanceOf(SS_Shipping_Booking_Exception::class);
 
     $fresh = wc_get_order($order->get_id());
     expect($fresh->get_meta('_ss_shipping_label_id', true))->toBe('')
-        ->and($fresh->get_status())->toBe('processing');
+        ->and($fresh->get_status())->toBe('processing')
+        // ...and nothing lands on the booked-labels list either: a failed
+        // booking leaves the order's timeline untouched.
+        ->and(SS_SHIPPING_WC()->shipment_ids()->labels($fresh))->toBe([]);
 
     $notes = wc_get_order_notes(['order_id' => $order->get_id()]);
     expect(implode("\n", wp_list_pluck($notes, 'content')))->not->toContain('Shipping label');
@@ -621,8 +632,8 @@ it('returns a failed result when the order cannot be found', function () {
         ->and($result->get_outbound_error())->toContain('The order could not be found')
         ->and($result->get_return_error())->toBeNull()
         ->and($result->shipments())->toBe([])
-        ->and($result->to_legacy_response_array())->toHaveCount(1)
-        ->and($result->to_legacy_response_array()[0])->toHaveKey('error');
+        ->and($result->to_array())->toHaveCount(1)
+        ->and($result->to_array()[0]['status'])->toBe('failed');
 });
 
 it('books two different orders through one stateless booking service without state bleed', function () {
@@ -676,8 +687,8 @@ it('records a failed auto-return leg next to the fulfilled outbound shipment', f
         ->and($result->get_return_error())->toContain('Response ID: resp-return')
         ->and($result->get_validation_errors(true))->toBe(['receiver.postal_code' => ['The postal code is invalid.']])
         ->and($result->get_error_messages())->toHaveCount(1)
-        ->and($result->to_legacy_response_array()[0])->toHaveKey('success')
-        ->and($result->to_legacy_response_array()[1])->toHaveKey('error');
+        ->and($result->to_array()[0]['status'])->toBe('fulfilled')
+        ->and($result->to_array()[1]['status'])->toBe('failed');
 
     // The booking failure was announced with the shipment that was sent...
     expect($failed->calls)->toHaveCount(1)

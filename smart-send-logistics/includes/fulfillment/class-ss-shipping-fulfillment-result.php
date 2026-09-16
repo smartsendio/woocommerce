@@ -20,8 +20,8 @@ if ( ! class_exists( 'SS_Shipping_Fulfillment_Result' ) ) :
 	 * then the auto-generated return label) either the booked
 	 * SS_Shipping_Booked_Shipment with the WooCommerce-side outcomes the
 	 * workflow produced for it - the order note HTML (get_order_note())
-	 * and its comment id (get_order_note_id()), the rendered outputs
-	 * (get_outputs_html()), which side-effect steps ran (get_steps()) and
+	 * and its comment id (get_order_note_id()), which side-effect steps
+	 * ran (get_steps()) and
 	 * any warnings (get_warnings(), e.g. the uploads copy could not be
 	 * saved - the shipment is booked and fulfilled regardless) - or the
 	 * failure as structured data: the plain message, the per-field
@@ -43,12 +43,9 @@ if ( ! class_exists( 'SS_Shipping_Fulfillment_Result' ) ) :
 	 * string (HTML), 'errors' => array, 'response_id' => string|null ) for
 	 * a failed one, or array( 'is_return' => bool, 'shipment' =>
 	 * SS_Shipping_Booked_Shipment, 'order_note' => string, 'note_id' =>
-	 * int|null, 'outputs_html' => string, 'steps' => array, 'warnings' =>
-	 * string[] ) for a booked one. to_array() is the canonical JSON form
-	 * (#182, the fulfillment REST response's shipments[]);
-	 * to_legacy_response_array() derives the historic response shape
-	 * admin/js/ss-shipping-label.js still parses until the meta box
-	 * rewrite (#182 PR 2) removes it.
+	 * int|null, 'steps' => array, 'warnings' => string[] ) for a booked
+	 * one. to_array() is the canonical JSON form (#182, the fulfillment
+	 * REST response's shipments[]).
 	 */
 	class SS_Shipping_Fulfillment_Result {
 
@@ -95,23 +92,21 @@ if ( ! class_exists( 'SS_Shipping_Fulfillment_Result' ) ) :
 		 * A fulfilled run entry.
 		 *
 		 * @param SS_Shipping_Booked_Shipment $shipment     The booked shipment.
-		 * @param string                      $order_note   The order note HTML (after the smart_send_fulfillment_order_note filter).
-		 * @param string                      $outputs_html The rendered outputs (document links and codes).
-		 * @param array                       $steps        Which side-effect steps ran (see get_steps()).
-		 * @param integer|null                $note_id      The comment id of the order note that was added, or null when none was.
-		 * @param string[]                    $warnings     Warnings of side-effect steps that failed without un-fulfilling the shipment.
+		 * @param string                      $order_note The order note HTML (after the smart_send_fulfillment_order_note filter).
+		 * @param array                       $steps      Which side-effect steps ran (see get_steps()).
+		 * @param integer|null                $note_id    The comment id of the order note that was added, or null when none was.
+		 * @param string[]                    $warnings   Warnings of side-effect steps that failed without un-fulfilling the shipment.
 		 *
 		 * @return array
 		 */
-		public static function fulfilled_entry( SS_Shipping_Booked_Shipment $shipment, string $order_note, string $outputs_html, array $steps, ?int $note_id = null, array $warnings = array() ): array {
+		public static function fulfilled_entry( SS_Shipping_Booked_Shipment $shipment, string $order_note, array $steps, ?int $note_id = null, array $warnings = array() ): array {
 			return array(
-				'is_return'    => $shipment->is_return(),
-				'shipment'     => $shipment,
-				'order_note'   => $order_note,
-				'note_id'      => $note_id,
-				'outputs_html' => $outputs_html,
-				'steps'        => $steps,
-				'warnings'     => $warnings,
+				'is_return'  => $shipment->is_return(),
+				'shipment'   => $shipment,
+				'order_note' => $order_note,
+				'note_id'    => $note_id,
+				'steps'      => $steps,
+				'warnings'   => $warnings,
 			);
 		}
 
@@ -322,21 +317,6 @@ if ( ! class_exists( 'SS_Shipping_Fulfillment_Result' ) ) :
 		}
 
 		/**
-		 * The rendered outputs of a fulfilled shipment as shown on the
-		 * order screen: a download link per document and every code. Null
-		 * when the shipment is not part of this run.
-		 *
-		 * @param SS_Shipping_Booked_Shipment $shipment One of shipments().
-		 *
-		 * @return string|null
-		 */
-		public function get_outputs_html( SS_Shipping_Booked_Shipment $shipment ): ?string {
-			$entry = $this->find_entry( $shipment );
-
-			return null === $entry ? null : $entry['outputs_html'];
-		}
-
-		/**
 		 * Which side-effect steps ran for a fulfilled shipment:
 		 * 'save_documents' (true - a local copy of the documents was
 		 * stored, false - not attempted, 'failed' - attempted but the copy
@@ -418,50 +398,6 @@ if ( ! class_exists( 'SS_Shipping_Fulfillment_Result' ) ) :
 			}
 
 			return $rows;
-		}
-
-		/**
-		 * The response entries in the array shape
-		 * create_label_for_single_order_maybe_return() historically returned
-		 * and admin/js/ss-shipping-label.js parses: one entry per attempted
-		 * label, array( 'error' => $message ) or array( 'success' => $data )
-		 * where $data carries the shipment's to_array() fields plus the
-		 * 'woocommerce' block (label_url, order_note, return, outputs_html).
-		 *
-		 * Kept until the meta box rewrite (#182 PR 2) replaces the AJAX
-		 * bridge with the REST controller; to_array() is the successor.
-		 *
-		 * @return array[]
-		 */
-		public function to_legacy_response_array(): array {
-			$legacy = array();
-
-			foreach ( $this->entries as $entry ) {
-				if ( isset( $entry['error'] ) ) {
-					$legacy[] = array( 'error' => $entry['error'] );
-					continue;
-				}
-
-				/** @var SS_Shipping_Booked_Shipment $shipment */
-				$shipment = $entry['shipment'];
-				$label    = $shipment->label_document();
-
-				$legacy[] = array(
-					'success' => (object) array_merge(
-						$shipment->to_array(),
-						array(
-							'woocommerce' => array(
-								'label_url'    => null === $label ? '' : $label->download_url(),
-								'order_note'   => $entry['order_note'],
-								'return'       => $entry['is_return'],
-								'outputs_html' => $entry['outputs_html'],
-							),
-						)
-					),
-				);
-			}
-
-			return $legacy;
 		}
 
 		/**

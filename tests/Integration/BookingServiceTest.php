@@ -214,3 +214,107 @@ it('renders a multi-message validation failure in the fulfillment error the merc
         . '<br>Response ID: resp-multi'
     );
 });
+
+it('carries the weight, dimensions and reference of each request parcel onto the booked parcel at the same index', function () {
+    $product = create_simple_product(['price' => 100, 'weight' => 1]);
+    $order   = create_order(['products' => [[$product, 3]], 'shipping_method' => 'postnord_agent']);
+
+    // Two boxes: the second with explicit measures.
+    $plan = new SS_Shipping_Parcel_Plan();
+    $plan->add_spec((new SS_Shipping_Parcel_Spec())->add_item($product->get_id(), 2));
+    $plan->add_spec(
+        (new SS_Shipping_Parcel_Spec())
+            ->add_item($product->get_id(), 1)
+            ->set_weight(2.5)
+            ->set_length(40)
+            ->set_width(30)
+            ->set_height(20)
+    );
+
+    $details = handmade_details()->set_parcel_plan($plan);
+
+    mock_smart_send_api(function () {
+        return ss_api_response(200, ['data' => ss_api_shipment_data([
+            'shipment_id' => 'shipment-split',
+            'parcels'     => [
+                ['parcel_internal_id' => 1, 'tracking_code' => 'TRACK-1', 'tracking_link' => 'https://tracking.example.test/1'],
+                ['parcel_internal_id' => 2, 'tracking_code' => 'TRACK-2', 'tracking_link' => 'https://tracking.example.test/2'],
+            ],
+        ])]);
+    });
+
+    $booked  = (new SS_Shipping_Booking_Service())->book($order, $details, false);
+    $parcels = $booked->parcels();
+
+    expect($parcels)->toHaveCount(2)
+        // The first box has no explicit weight: the item sum is what was booked.
+        ->and($parcels[0]->get_tracking_code())->toBe('TRACK-1')
+        ->and($parcels[0]->get_weight())->toEqual(2.0)
+        ->and($parcels[0]->has_dimensions())->toBeFalse()
+        ->and($parcels[1]->get_tracking_code())->toBe('TRACK-2')
+        ->and($parcels[1]->get_weight())->toEqual(2.5)
+        ->and($parcels[1]->get_length())->toEqual(40.0)
+        ->and($parcels[1]->get_width())->toEqual(30.0)
+        ->and($parcels[1]->get_height())->toEqual(20.0)
+        ->and($parcels[1]->has_dimensions())->toBeTrue()
+        // The reference is the request parcel's internal reference (the
+        // order number the builder puts on every parcel).
+        ->and($parcels[0]->get_reference())->toBe((string) $order->get_order_number())
+        ->and($parcels[1]->get_reference())->toBe((string) $order->get_order_number());
+
+    // Round-trips through the serializable form.
+    expect(SS_Shipping_Booked_Shipment::from_array($booked->to_array())->parcels()[1]->to_array())
+        ->toBe($parcels[1]->to_array());
+});
+
+it('degrades gracefully when the API answers with a different number of parcels than were booked', function () {
+    $product = create_simple_product(['price' => 100, 'weight' => 1]);
+    $order   = create_order(['products' => [[$product, 2]], 'shipping_method' => 'postnord_agent']);
+
+    $plan = new SS_Shipping_Parcel_Plan();
+    $plan->add_spec((new SS_Shipping_Parcel_Spec())->add_item($product->get_id(), 1)->set_weight(1.5));
+    $plan->add_spec((new SS_Shipping_Parcel_Spec())->add_item($product->get_id(), 1)->set_weight(2.5));
+
+    mock_smart_send_api(function () {
+        return ss_api_response(200, ['data' => ss_api_shipment_data([
+            'shipment_id' => 'shipment-mismatch',
+            'parcels'     => [
+                ['parcel_internal_id' => 1, 'tracking_code' => 'TRACK-ONLY', 'tracking_link' => null],
+            ],
+        ])]);
+    });
+
+    $entries  = [];
+    $previous = SS_Shipping_Logger::$logger;
+    SS_Shipping_Logger::$logger = new class ($entries) {
+        public function __construct(public array &$entries)
+        {
+        }
+
+        public function log($level, $message, $context = []): void
+        {
+            $this->entries[] = ['level' => $level, 'message' => $message];
+        }
+
+        public function __call(string $level, array $args): void
+        {
+            $this->log($level, $args[0], $args[1] ?? []);
+        }
+    };
+
+    try {
+        $booked = (new SS_Shipping_Booking_Service())->book($order, handmade_details()->set_parcel_plan($plan), false);
+    } finally {
+        SS_Shipping_Logger::$logger = $previous;
+    }
+
+    // The booking stands; only the measures are left out.
+    expect($booked->get_shipment_id())->toBe('shipment-mismatch')
+        ->and($booked->parcels())->toHaveCount(1)
+        ->and($booked->parcels()[0]->get_tracking_code())->toBe('TRACK-ONLY')
+        ->and($booked->parcels()[0]->get_weight())->toBeNull()
+        ->and($booked->parcels()[0]->get_reference())->toBeNull();
+
+    $warnings = array_column(array_filter($entries, fn ($entry) => 'warning' === $entry['level']), 'message');
+    expect($warnings)->toContain('The Smart Send API returned a different number of parcels than were booked - the booked parcels carry no weight, dimensions or reference.');
+});

@@ -48,6 +48,23 @@ if ( ! class_exists( 'SS_Shipping_Order_Meta' ) ) :
 		const META_RETURN_LABEL_ID = '_ss_shipping_return_label_id';
 
 		/**
+		 * Meta key holding the append-only list of the labels this plugin
+		 * booked for the order - one row per booked shipment, in booking
+		 * order:
+		 *
+		 *   array( array( 'direction' => 'outbound'|'return',
+		 *                 'shipment_id' => string,
+		 *                 'booked_at' => string (ISO 8601, UTC) ), ... )
+		 *
+		 * The two frozen id keys above keep holding the LATEST id per
+		 * direction (a documented public contract); this key is what the
+		 * order screen's "Booked shipments" timeline renders, and it is
+		 * capped (see SS_Shipping_Shipment_Ids::MAX_LABELS) so a
+		 * pathological order cannot grow its meta without limit.
+		 */
+		const META_LABELS = '_ss_shipping_labels';
+
+		/**
 		 * Meta key holding the selected pickup point (agent) object.
 		 */
 		const META_AGENT = '_ss_shipping_order_agent';
@@ -85,7 +102,8 @@ if ( ! class_exists( 'SS_Shipping_Order_Meta' ) ) :
 		}
 
 		/**
-		 * Meta keys recording a booked-label outcome (shipment ids).
+		 * Meta keys recording a booked-label outcome (shipment ids and the
+		 * list of booked labels).
 		 *
 		 * These are per-order booking results and must NOT copy to
 		 * subscription renewal orders - a renewal gets its own label.
@@ -96,6 +114,7 @@ if ( ! class_exists( 'SS_Shipping_Order_Meta' ) ) :
 			return array(
 				self::META_LABEL_ID,
 				self::META_RETURN_LABEL_ID,
+				self::META_LABELS,
 			);
 		}
 

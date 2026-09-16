@@ -190,6 +190,43 @@ function ss_browser_install_api_mock(): void
     copy(__DIR__ . '/ApiMockMuPlugin.php', ss_browser_mu_plugin_path());
 }
 
+/**
+ * Install the merchant snippet that narrows the meta box's method
+ * drop-downs through the public smart_send_fulfillment_shipping_methods
+ * filter, and set what it keeps per direction (see the mu-plugin source's
+ * header for the option shape). Removed again by
+ * ss_browser_remove_methods_filter().
+ */
+function ss_browser_install_methods_filter(array $config): void
+{
+    $mu_dir = dirname(ss_browser_methods_filter_path());
+    if (!is_dir($mu_dir)) {
+        mkdir($mu_dir, 0755, true);
+    }
+
+    copy(__DIR__ . '/MethodsFilterMuPlugin.php', ss_browser_methods_filter_path());
+
+    $encoded = var_export($config, true);
+    ss_browser_wp_eval(<<<PHP
+update_option('ss_test_methods_filter', {$encoded});
+echo json_encode(array('ok' => true));
+PHP);
+}
+
+function ss_browser_remove_methods_filter(): void
+{
+    if (file_exists(ss_browser_methods_filter_path())) {
+        unlink(ss_browser_methods_filter_path());
+    }
+
+    ss_browser_wp_eval("delete_option('ss_test_methods_filter'); echo json_encode(array('ok' => true));");
+}
+
+function ss_browser_methods_filter_path(): string
+{
+    return ss_browser_wp_path() . '/wp-content/mu-plugins/ss-browser-test-methods-filter.php';
+}
+
 function ss_browser_remove_api_mock(): void
 {
     if (file_exists(ss_browser_mu_plugin_path())) {
@@ -215,6 +252,37 @@ function ss_browser_set_api_scenarios(?array $scenarios): void
 update_option('ss_test_api', \$config);
 echo json_encode(array('ok' => true));
 PHP);
+}
+
+/**
+ * The requests the API mock recorded (see the mock source's header:
+ * booking requests, newest last, each { endpoint, url, method, body }),
+ * optionally filtered to one endpoint. Reset by ss_browser_seed_store().
+ */
+function ss_browser_api_requests(?string $endpoint = null): array
+{
+    $encoded = var_export($endpoint, true);
+
+    return ss_browser_wp_eval(<<<PHP
+\$requests = get_option('ss_test_api_requests', array());
+\$requests = is_array(\$requests) ? array_values(\$requests) : array();
+\$endpoint = {$encoded};
+if (\$endpoint !== null) {
+    \$requests = array_values(array_filter(\$requests, function (\$request) use (\$endpoint) {
+        return isset(\$request['endpoint']) && \$request['endpoint'] === \$endpoint;
+    }));
+}
+echo json_encode(array('requests' => \$requests));
+PHP)['requests'];
+}
+
+/**
+ * Forget the requests the API mock recorded so far, so a test asserts on
+ * the requests of its own actions only.
+ */
+function ss_browser_reset_api_requests(): void
+{
+    ss_browser_wp_eval("delete_option('ss_test_api_requests'); echo json_encode(array('ok' => true));");
 }
 
 /**
@@ -310,6 +378,7 @@ function ss_browser_cleanup_store(): void
     ss_browser_wp_eval_file(__DIR__ . '/Snippets/cleanup-store.php');
 
     ss_browser_remove_api_mock();
+    ss_browser_remove_methods_filter();
 
     unset($GLOBALS['ss_browser_state']);
 }

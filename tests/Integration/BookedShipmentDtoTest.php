@@ -54,7 +54,7 @@ function full_booked_shipment(): SS_Shipping_Booked_Shipment
         ->set_state(SS_Shipping_Booked_Shipment::STATE_BOOKED)
         ->set_booked_at('2026-09-15T10:00:00+00:00')
         ->set_tracking('SHIP-TRACK', 'https://track.example.test/SHIP-TRACK')
-        ->add_parcel(new SS_Shipping_Booked_Parcel('p-1', 'PARCEL-1', 'https://track.example.test/PARCEL-1'))
+        ->add_parcel(new SS_Shipping_Booked_Parcel('p-1', 'PARCEL-1', 'https://track.example.test/PARCEL-1', 1.5, 40.0, 30.0, 20.0, '4711'))
         ->add_parcel(new SS_Shipping_Booked_Parcel('p-2', 'PARCEL-2', null))
         ->add_document(new SS_Shipping_Shipment_Document(SS_Shipping_Shipment_Document::TYPE_LABEL, SS_Shipping_Shipment_Document::FORMAT_PDF, 'https://docs.example.test/label.pdf', 'A4'))
         ->add_document(
@@ -205,7 +205,28 @@ it('round-trips through to_array() / from_array() and PHP serialization', functi
     $array    = $shipment->to_array();
 
     expect(array_keys($array))->toBe(['shipment_id', 'carrier', 'service_code', 'is_return', 'state', 'booked_at', 'tracking_code', 'tracking_url', 'parcels', 'documents', 'codes'])
-        ->and($array['parcels'][1])->toBe(['parcel_id' => 'p-2', 'tracking_code' => 'PARCEL-2', 'tracking_url' => null])
+        // The measures the parcel was booked with travel with it (they
+        // come from the request parcel - the API echoes none of them back).
+        ->and($array['parcels'][0])->toBe([
+            'parcel_id'     => 'p-1',
+            'tracking_code' => 'PARCEL-1',
+            'tracking_url'  => 'https://track.example.test/PARCEL-1',
+            'weight'        => 1.5,
+            'length'        => 40.0,
+            'width'         => 30.0,
+            'height'        => 20.0,
+            'reference'     => '4711',
+        ])
+        ->and($array['parcels'][1])->toBe([
+            'parcel_id'     => 'p-2',
+            'tracking_code' => 'PARCEL-2',
+            'tracking_url'  => null,
+            'weight'        => null,
+            'length'        => null,
+            'width'         => null,
+            'height'        => null,
+            'reference'     => null,
+        ])
         ->and($array['documents'][1])->toBe([
             'type'       => 'customs_declaration',
             'format'     => 'zpl',

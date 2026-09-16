@@ -10,7 +10,7 @@ on:
 
 jobs:
   pest:
-    name: Pest browser tests (PHP ${{ matrix.php-version }} / WP ${{ matrix.wp-version }} / WC ${{ matrix.wc-version }})${{ matrix.canary && ' [canary]' || '' }}
+    name: Pest browser tests (PHP ${{ matrix.php-version }} / WP ${{ matrix.wp-version }} / WC ${{ matrix.wc-version }} / ${{ matrix.order-storage }} orders)${{ matrix.canary && ' [canary]' || '' }}
     runs-on: ubuntu-latest
     timeout-minutes: 15
     strategy:
@@ -42,7 +42,15 @@ jobs:
         php-version: ['7.4', '8.0', '8.1', '8.2', '8.3', '8.4', '8.5']
         wp-version: ['latest']
         wc-version: ['latest']
+        # Order storage of the store: the default legs run WooCommerce's
+        # HPOS; one extra leg (newest PHP) runs the legacy post-based storage
+        # so the order screen journeys cover both backends (#182).
+        order-storage: ['hpos']
         include:
+          - php-version: '8.3'
+            wp-version: 'latest'
+            wc-version: 'latest'
+            order-storage: 'posts'
           # The floor leg: oldest supported PHP on the oldest supported
           # WordPress + WooCommerce (latest patch release of each; verify
           # the zips exist on wordpress.org before bumping). Its first run
@@ -52,6 +60,7 @@ jobs:
           - php-version: '7.4'
             wp-version: '6.5.10'
             wc-version: '8.2.5'
+            order-storage: 'hpos'
     # Set `canary: true` on a matrix entry to let it report without failing
     # the workflow - only with a comment naming the issue that makes it
     # strict again.
@@ -114,7 +123,8 @@ jobs:
             --db-name smartsend_woo_test \
             --db-user root \
             --db-pass root \
-            --db-host 127.0.0.1
+            --db-host 127.0.0.1 \
+            --order-storage "${{ matrix.order-storage }}"
 
       - name: Start the store (nginx + php-fpm)
         # The PHP built-in CLI server segfaults intermittently under
@@ -296,6 +306,6 @@ jobs:
         if: failure()
         uses: actions/upload-artifact@v4
         with:
-          name: pest-browser-screenshots-php${{ matrix.php-version }}-${{ matrix.wp-version }}-${{ matrix.wc-version }}
+          name: pest-browser-screenshots-php${{ matrix.php-version }}-${{ matrix.wp-version }}-${{ matrix.wc-version }}-${{ matrix.order-storage }}
           path: tests/Browser/Screenshots
           if-no-files-found: ignore

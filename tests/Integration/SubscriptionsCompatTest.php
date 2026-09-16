@@ -46,6 +46,12 @@ test('the renewal exclusion contains exactly the booking-outcome keys', function
     // The NOT IN list is exactly the booking-outcome keys, in order.
     $expected = "AND `meta_key` NOT IN ( '" . implode("', '", $booking_outcome) . "' )";
     expect($fragment)->toContain($expected);
+
+    // The append-only booked-labels list is a booking outcome too (#182
+    // review): a renewal must not inherit the parent order's timeline.
+    expect($booking_outcome)->toContain(SS_Shipping_Order_Meta::META_LABELS)
+        ->and(SS_Shipping_Order_Meta::META_LABELS)->toBe('_ss_shipping_labels');
+    expect($fragment)->toContain("'_ss_shipping_labels'");
 });
 
 test('delivery-configuration keys are NOT excluded and copy to renewals', function () {

@@ -30,9 +30,9 @@
  *
  * Cases authenticate: success 401
  * Cases pickup-points: success empty
- * Cases booking: success 422-wrong-zip
+ * Cases booking: success 422-wrong-zip 422-agent-no
  * Cases labels-combine: success
- * Cases agent-lookup: success
+ * Cases agent-lookup: success not-found
  *
  * Named cases:
  *  - authenticate '401'      -> the real "Invalid API token provided" body
@@ -41,7 +41,19 @@
  *  - pickup-points 'empty'   -> an empty data set (no pickup points near the
  *                               address; a valid empty-collection response)
  *  - booking '422-wrong-zip' -> a validation failure in the shape the real
- *                               API produces (message + field errors)
+ *                               API produces (message + field errors) on a
+ *                               field OUTSIDE the order meta box (the
+ *                               receiver address)
+ *  - booking '422-agent-no'  -> the same shape on the agent_no field, which
+ *                               the meta box maps onto its pickup point
+ *                               field (#182)
+ *  - agent-lookup 'not-found' -> a 404 for the requested agent number
+ *
+ * Request capture: every booking request (POST shipments/labels) is
+ * recorded - URL, method and decoded JSON body - in the ss_test_api_requests
+ * option (newest last, capped at 20) so a test can assert what the plugin
+ * actually sent, e.g. the parcels of a split (#182). Reset by
+ * seed-store.php, deleted by cleanup-store.php.
  */
 add_filter('pre_http_request', function ($pre, $args, $url) {
     $config = get_option('ss_test_api');
@@ -61,6 +73,21 @@ add_filter('pre_http_request', function ($pre, $args, $url) {
             'cookies'  => array(),
             'filename' => null,
         );
+    };
+
+    // Record a request (see the header: ss_test_api_requests).
+    $record = function ($endpoint) use ($url, $args) {
+        $requests = get_option('ss_test_api_requests', array());
+        $requests = is_array($requests) ? $requests : array();
+        $body = isset($args['body']) ? $args['body'] : null;
+        $decoded = is_string($body) ? json_decode($body, true) : $body;
+        $requests[] = array(
+            'endpoint' => $endpoint,
+            'url'      => $url,
+            'method'   => isset($args['method']) ? $args['method'] : 'GET',
+            'body'     => $decoded === null ? $body : $decoded,
+        );
+        update_option('ss_test_api_requests', array_slice($requests, -20), false);
     };
 
     // Resolve the endpoint's case: a named case handled below, a bare
@@ -108,7 +135,18 @@ add_filter('pre_http_request', function ($pre, $args, $url) {
     }
 
     if (strpos($url, 'shipments/labels') !== false) {
+        $record('booking');
         $case = $case_of('booking');
+        if ($case === '422-agent-no') {
+            // A validation failure on a field the meta box owns: the
+            // presenter maps agent_no onto pickup_point.agent_no.
+            return $respond(array(
+                'message' => 'The given data was invalid.',
+                'errors'  => array(
+                    'agent_no' => array('The selected pickup point is not available for this carrier'),
+                ),
+            ), 422);
+        }
         if ($case === '422-wrong-zip') {
             // The resource throws a ValidationException which the booking
             // service renders into the meta box error div.
@@ -119,8 +157,24 @@ add_filter('pre_http_request', function ($pre, $args, $url) {
                 ),
             ), 422);
         }
-        if ($error = $generic('booking', $case, array('422-wrong-zip'))) {
+        if ($error = $generic('booking', $case, array('422-wrong-zip', '422-agent-no'))) {
             return $error;
+        }
+
+        // One response parcel per request parcel, in the order they were
+        // sent (what the real API does): the plugin correlates the two by
+        // index to carry the booked weight/dimensions/reference onto the
+        // booked parcels, so a split booking must answer with a split.
+        $sent = json_decode(isset($args['body']) ? (string) $args['body'] : '', true);
+        $count = (isset($sent['parcels']) && is_array($sent['parcels'])) ? max(1, count($sent['parcels'])) : 1;
+
+        $parcels = array();
+        for ($i = 1; $i <= $count; $i++) {
+            $parcels[] = array(
+                'parcel_internal_id' => $i,
+                'tracking_code'      => 'BROWSERTRACK' . $i,
+                'tracking_link'      => 'https://mock.smartsend.test/track/' . $i,
+            );
         }
 
         return $respond(array('data' => array(
@@ -128,21 +182,33 @@ add_filter('pre_http_request', function ($pre, $args, $url) {
             'carrier_name' => 'PostNord',
             'carrier_code' => 'postnord',
             'pdf'          => array('link' => 'https://mock.smartsend.test/labels/label.pdf', 'base_64_encoded' => base64_encode('%PDF-label')),
-            'parcels'      => array(
-                array('parcel_internal_id' => 1, 'tracking_code' => 'BROWSERTRACK1', 'tracking_link' => 'https://mock.smartsend.test/track/1'),
-            ),
+            'parcels'      => $parcels,
         )));
     }
 
     if (strpos($url, 'agents/carrier') !== false) {
         $case = $case_of('agent-lookup');
-        if ($error = $generic('agent-lookup', $case, array())) {
+        if ($error = $generic('agent-lookup', $case, array('not-found'))) {
             return $error;
         }
+        if ($case === 'not-found') {
+            return $respond(array('message' => 'No pickup point found with the given agent number'), 404);
+        }
 
-        return $respond(array('data' => array(
-            'id' => 1, 'agent_no' => '1234', 'company' => 'Browser Test Shop', 'address_line1' => 'Main Street 1', 'address_line2' => null, 'postal_code' => '2300', 'city' => 'Copenhagen', 'country' => 'DK',
-        )));
+        // Echo the requested agent number (…/agentno/{agent_no}) so a
+        // lookup resolves to the point the merchant asked for: the two
+        // numbers the pickup-points mock lists get their known addresses,
+        // anything else a generic shop.
+        $agent_no = preg_match('#/agentno/([^/?]+)#', $url, $m) ? rawurldecode($m[1]) : '1234';
+        $known = array(
+            '1234' => array('id' => 1, 'company' => 'Browser Test Shop', 'address_line1' => 'Main Street 1'),
+            '5678' => array('id' => 2, 'company' => 'Second Test Shop', 'address_line1' => 'Other Street 9'),
+        );
+        $point = isset($known[$agent_no]) ? $known[$agent_no] : array('id' => 99, 'company' => 'Shop ' . $agent_no, 'address_line1' => 'Some Street ' . $agent_no);
+
+        return $respond(array('data' => array_merge($point, array(
+            'agent_no' => $agent_no, 'address_line2' => null, 'postal_code' => '2300', 'city' => 'Copenhagen', 'country' => 'DK',
+        ))));
     }
 
     // Anything else is the account/authenticate call (the API base URL with
