@@ -117,12 +117,13 @@ it('surfaces one evaluation summary line per method when shipping debug mode is 
 
     $unit    = get_option('woocommerce_weight_unit');
     $notices = ss_debug_smart_send_notices();
+    $cost    = ss_rate_cost_as_traced($method, 'smart_send_shipping:99941', 49);
 
     // ONE Smart Send line: the verdict, the evaluated inputs and the cost derivation.
     expect($notices)->toHaveCount(1)
         ->and($notices[0])->toBe(
             'Smart Send: Evaluated method "SS Debug Method" (smart_send_shipping:99941) as available'
-            . ' (total=200, weight=3 ' . $unit . '). Weight table row 1-5 ' . $unit . ' applied, cost 49.'
+            . ' (total=200, weight=3 ' . $unit . '). Weight table row 1-5 ' . $unit . ' applied, cost ' . $cost . '.'
         );
 });
 
@@ -141,11 +142,12 @@ it('surfaces the free shipping decision inside the evaluation summary', function
 
     $unit    = get_option('woocommerce_weight_unit');
     $notices = ss_debug_smart_send_notices();
+    $cost    = ss_rate_cost_as_traced($method, 'smart_send_shipping:99941', 25);
 
     expect($notices)->toHaveCount(1)
         ->and($notices[0])->toBe(
             'Smart Send: Evaluated method "SS Debug Method" (smart_send_shipping:99941) as available'
-            . ' (total=100, weight=2 ' . $unit . '). Flat fee cost 25 applied.'
+            . ' (total=100, weight=2 ' . $unit . '). Flat fee cost ' . $cost . ' applied.'
         );
 });
 

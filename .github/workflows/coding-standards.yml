@@ -33,5 +33,9 @@ jobs:
       - name: Run phpcs
         run: vendor/bin/phpcs
 
+      # testVersion is the open-ended "7.4-" (phpcs.compat.xml.dist), so
+      # the scan covers the whole supported range up to the newest PHP the
+      # installed PHPCompatibility release knows about. Runtime proof for
+      # PHP 8.x comes from the browser/integration matrices (up to 8.5).
       - name: Run PHP compatibility scan (PHP 7.4+)
         run: vendor/bin/phpcs --standard=phpcs.compat.xml.dist

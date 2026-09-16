@@ -13,6 +13,7 @@
  * only actually clicking through.)
  */
 
+
 it('loads the store home page without javascript errors', function () {
     visit(base_url('/'))
         ->assertSee('Smart Send')
@@ -35,11 +36,30 @@ it('lists the sample products in the shop', function () {
         ->assertNoJavaScriptErrors();
 });
 
-it('calculates flat rate shipping for the Danish store address in the cart', function () {
-    visit(base_url('/product/beanie/'))
+/**
+ * Put the Beanie in the cart from its product page and land on the cart
+ * page.
+ *
+ * The click targets the product form's own submit button by selector. A
+ * text click ('Add to cart') resolves to the first of several matches on
+ * a Storefront product page - the related products' AJAX "Add to cart"
+ * links and the sticky add-to-cart bar carry the same text - so on the
+ * WooCommerce 8.2 floor leg it added a related product instead and the
+ * cart page had no Beanie. The form POST reloads the product page with
+ * WooCommerce's "added to your cart" notice; wait for it before opening
+ * the cart so the navigation does not cut the POST short.
+ */
+function ss_dev_store_add_beanie_and_open_cart()
+{
+    return visit(base_url('/product/beanie/'))
         ->assertSee('Add to cart')
-        ->click('Add to cart')
-        ->navigate(base_url('/cart/'))
+        ->click('form.cart button.single_add_to_cart_button')
+        ->assertSee('has been added to your cart')
+        ->navigate(base_url('/cart/'));
+}
+
+it('calculates flat rate shipping for the Danish store address in the cart', function () {
+    ss_dev_store_add_beanie_and_open_cart()
         ->assertSee('Beanie')
         ->assertSee('Flat rate')
         ->assertNoJavaScriptErrors();
@@ -49,12 +69,26 @@ it('proceeds from the cart to the checkout', function () {
     // Guards the store-page wiring: a woocommerce_checkout_page_id pointing
     // at a missing page makes the cart block render this button with an
     // empty href, spinning forever without an error anywhere.
-    visit(base_url('/product/beanie/'))
-        ->assertSee('Add to cart')
-        ->click('Add to cart')
-        ->navigate(base_url('/cart/'))
-        ->assertSee('Proceed to Checkout')
-        ->click('Proceed to Checkout')
-        ->assertPathContains('checkout')
+    $page = ss_dev_store_add_beanie_and_open_cart()
+        ->assertSee('Proceed to Checkout');
+
+    // Click the button page-side and wait for the checkout URL ourselves:
+    // on the WooCommerce 8.2 floor (classic shortcode cart) a Playwright
+    // text click on this button never settled and the whole suite hung
+    // until the job timeout, while a real user's click navigates fine. The
+    // guard above still holds - a button with an empty href navigates
+    // nowhere and the URL wait below fails instead of spinning.
+    $page->script(<<<'JS'
+        (function () {
+            var button = Array.prototype.find.call(document.querySelectorAll('a, button'), function (element) {
+                return /proceed to checkout/i.test(element.textContent);
+            });
+            if (button) { button.click(); }
+        })();
+        JS
+    );
+    ss_wait_for_script($page, "location.pathname.indexOf('checkout') !== -1", 15);
+
+    $page->assertPathContains('checkout')
         ->assertNoJavaScriptErrors();
 });

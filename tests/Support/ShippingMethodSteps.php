@@ -44,10 +44,62 @@ function ss_zone_page_url(int $zoneId): string
  */
 function ss_step_add_smart_send_method(Webpage|AwaitableWebpage $page): void
 {
-    $page->click('Add shipping method')
-        ->click('label[for="smart_send_shipping"]')
-        ->click('Continue')
-        ->assertSee('Smart Send');
+    $page->click('Add shipping method');
+
+    // Two generations of WooCommerce's add-method dialog are in the
+    // supported range: the Backbone dialog of WooCommerce < 8.3 (a
+    // <select name="add_method_id"> plus an "Add shipping method" #btn-ok
+    // button) and the redesigned one (radio cards + "Continue"). Detect the
+    // old one once the dialog is up and drive it directly - waiting on the
+    // new dialog's label there never returns (pest-plugin-browser clicks
+    // have no action timeout), which hung the WooCommerce 8.2 floor leg.
+    $legacyDialog = ss_wait_for_script($page, <<<'JS'
+        (function () {
+            if (document.querySelector('select[name="add_method_id"]')) { return 'legacy'; }
+            if (document.querySelector('label[for="smart_send_shipping"]')) { return 'current'; }
+            return false;
+        })()
+        JS
+    );
+
+    if ('legacy' === $legacyDialog) {
+        $page->script(<<<'JS'
+            (function () {
+                var select = document.querySelector('select[name="add_method_id"]');
+                select.value = 'smart_send_shipping';
+                select.dispatchEvent(new Event('change', { bubbles: true }));
+                document.querySelector('.wc-backbone-modal #btn-ok').click();
+            })();
+            JS
+        );
+    } else {
+        $page->click('label[for="smart_send_shipping"]')
+            ->click('Continue');
+    }
+
+    $page->assertSee('Smart Send');
+}
+
+/**
+ * Poll a page-side expression until it returns a truthy value (returned)
+ * or the timeout passes (RuntimeException). The browser plugin's own
+ * waits have no deadline, so version detection and similar "which UI is
+ * this" probes go through this instead of an element wait that may never
+ * resolve.
+ */
+function ss_wait_for_script(Webpage|AwaitableWebpage $page, string $expression, int $timeoutSeconds = 10)
+{
+    $deadline = microtime(true) + $timeoutSeconds;
+
+    do {
+        $result = $page->script($expression);
+        if ($result) {
+            return $result;
+        }
+        usleep(200000);
+    } while (microtime(true) < $deadline);
+
+    throw new RuntimeException("Page-side probe did not become truthy within {$timeoutSeconds}s: " . trim($expression));
 }
 
 /**
@@ -58,7 +110,26 @@ function ss_step_add_smart_send_method(Webpage|AwaitableWebpage $page): void
  */
 function ss_step_open_method_settings(Webpage|AwaitableWebpage $page): void
 {
-    $page->click('Edit')->assertSee('Method Title');
+    // WooCommerce < 8.3 renders the zone's method table with WordPress
+    // list-table row actions: "Edit | Delete" sit at left:-9999em until the
+    // row is hovered, so a Playwright click on the link (which waits for it
+    // to be in view and hit-testable) never resolves - the hang behind the
+    // WooCommerce 8.2 floor leg's timeout. Click the link page-side instead;
+    // that also covers the redesigned table, whose link is always visible.
+    ss_wait_for_script($page, <<<'JS'
+        (function () {
+            var table = document.querySelector('.wc-shipping-zone-methods') || document;
+            var links = Array.prototype.filter.call(table.querySelectorAll('a, button'), function (element) {
+                return element.textContent.trim() === 'Edit';
+            });
+            if (links.length !== 1) { return false; }
+            links[0].click();
+            return true;
+        })()
+        JS
+    );
+
+    $page->assertSee('Method Title');
 }
 
 /**
