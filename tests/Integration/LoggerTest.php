@@ -61,7 +61,7 @@ function with_smart_send_logging_filter(callable $callback, int $accepted_args =
  */
 function create_logging_api_client(string $token = 'secret-token-123'): \Smartsend\Api
 {
-    $api = new \Smartsend\Api($token, 'example.test', true);
+    $api = new \Smartsend\Api($token, 'example.test');
     $api->setRequestLogger(['SS_Shipping_Logger', 'log_api_request']);
 
     return $api;
@@ -204,12 +204,12 @@ it('logs successful API calls as one concise line with method, path, HTTP status
 
     expect($spy->entries)->toHaveCount(1);
     expect($spy->entries[0]['level'])->toBe('debug');
-    expect($spy->entries[0]['message'])->toMatch('#^GET /api/v1/demo/website/example\.test/ → 200 \(\d+ms\)$#u');
+    expect($spy->entries[0]['message'])->toMatch('#^GET /api/v1/website/example\.test/ → 200 \(\d+ms\)$#u');
 
     $context = $spy->entries[0]['context'];
     expect($context['source'])->toBe('smart-send-logistics');
     expect($context['status_code'])->toBe(200);
-    expect($context['endpoint'])->toContain('https://app.smartsend.io/api/v1/demo/website/example.test/');
+    expect($context['endpoint'])->toContain('https://app.smartsend.io/api/v1/website/example.test/');
     expect($context['duration_ms'])->toBeInt();
     expect($context['response_body'])->toContain('log-test-shipment');
 });

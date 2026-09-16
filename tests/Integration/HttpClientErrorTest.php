@@ -65,7 +65,7 @@ function create_client_with_log_spy(): array
 {
     $spy = spy_on_ss_logger();
 
-    $api = new Api('secret-token-123', 'example.test', true);
+    $api = new Api('secret-token-123', 'example.test');
     $api->setRequestLogger(['SS_Shipping_Logger', 'log_api_request']);
 
     return [$api, $spy];

@@ -102,7 +102,7 @@ it('talks to the production host with the API version path appended by default',
     (new SS_Shipping_Api_Factory())->create()->account()->getAuthenticatedUser();
 
     expect($capture->urls)->toHaveCount(1)
-        ->and($capture->urls[0])->toStartWith('https://app.smartsend.io/api/v1/demo/website/');
+        ->and($capture->urls[0])->toStartWith('https://app.smartsend.io/api/v1/website/');
 });
 
 it('passes the host only to smart_send_api_endpoint and appends the API version path itself', function () {
@@ -114,7 +114,7 @@ it('passes the host only to smart_send_api_endpoint and appends the API version 
     // The filter receives the bare host, never the versioned base URL.
     expect($seen->received)->toBe(['https://app.smartsend.io'])
         ->and($capture->urls)->toHaveCount(1)
-        ->and($capture->urls[0])->toStartWith('https://app.smartsend.dev/api/v1/demo/website/');
+        ->and($capture->urls[0])->toStartWith('https://app.smartsend.dev/api/v1/website/');
 });
 
 it('tolerates a trailing slash on the filtered host', function () {
@@ -123,7 +123,7 @@ it('tolerates a trailing slash on the filtered host', function () {
 
     (new SS_Shipping_Api_Factory())->create()->account()->getAuthenticatedUser();
 
-    expect($capture->urls[0])->toStartWith('https://app.smartsend.dev/api/v1/demo/website/');
+    expect($capture->urls[0])->toStartWith('https://app.smartsend.dev/api/v1/website/');
 });
 
 it('strips a pre-9.0 style /api/v1/ suffix from the filtered value and logs a warning', function ($filtered_value) {
@@ -135,7 +135,7 @@ it('strips a pre-9.0 style /api/v1/ suffix from the filtered value and logs a wa
 
     // Never '/api/v1/api/v1/'.
     expect($capture->urls)->toHaveCount(1)
-        ->and($capture->urls[0])->toStartWith('https://app.smartsend.dev/api/v1/demo/website/')
+        ->and($capture->urls[0])->toStartWith('https://app.smartsend.dev/api/v1/website/')
         ->and($capture->urls[0])->not->toContain('/api/v1/api/v1');
 
     $warnings = array_values(array_filter($spy->entries, fn ($entry) => $entry['level'] === 'warning'));
@@ -163,15 +163,15 @@ it('logs no warning for a plain host', function () {
 it('builds the endpoint from host + API version path in the client itself', function () {
     // The lib-level guarantee behind the factory: the client owns the API
     // version path and normalizes a versioned host defensively too.
-    $client = new \Smartsend\Client('token', 'example.test', true);
+    $client = new \Smartsend\Client('token', 'example.test');
     expect($client->getApiHost())->toBe('https://app.smartsend.io')
-        ->and($client->getApiEndpoint())->toBe('https://app.smartsend.io/api/v1/demo/website/example.test/');
+        ->and($client->getApiEndpoint())->toBe('https://app.smartsend.io/api/v1/website/example.test/');
 
-    $client = new \Smartsend\Client('token', 'example.test', false, 'https://sandbox.example/');
+    $client = new \Smartsend\Client('token', 'example.test', 'https://sandbox.example/');
     expect($client->getApiHost())->toBe('https://sandbox.example')
         ->and($client->getApiEndpoint())->toBe('https://sandbox.example/api/v1/website/example.test/');
 
-    $client = new \Smartsend\Client('token', 'example.test', false, 'https://sandbox.example/api/v1/');
+    $client = new \Smartsend\Client('token', 'example.test', 'https://sandbox.example/api/v1/');
     expect($client->getApiHost())->toBe('https://sandbox.example')
         ->and($client->getApiEndpoint())->toBe('https://sandbox.example/api/v1/website/example.test/');
 

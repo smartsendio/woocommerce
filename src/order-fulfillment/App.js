@@ -6,9 +6,6 @@
  * (booked, or failed with per-field errors) - rendering the section 1.2
  * states:
  *
- *   (demo mode on: a "Demo mode active" warning callout at the top of the
- *   box in every state)
- *
  *   A not connected      notice + "Open settings", everything disabled
  *   B no Smart Send method   notice; the method rows read "None" + Edit
  *                            (the select behind Edit); the order is bookable
@@ -401,13 +398,6 @@ export default function App( { initialState, mount } ) {
 
 	const callouts = (
 		<Fragment>
-			{ state.demo_mode && (
-				<div className="smart-send-fulfillment__notice" data-ss-notice="demo_mode">
-					<Notice status="warning" isDismissible={ false }>
-						{ __( 'Demo mode active', 'smart-send-logistics' ) }
-					</Notice>
-				</div>
-			) }
 			{ current === STATE_NOT_CONNECTED && (
 				<div className="smart-send-fulfillment__notice" data-ss-notice="not_connected">
 					<Notice status="warning" isDismissible={ false }>

@@ -120,8 +120,7 @@ if ( ! class_exists( 'SS_Shipping_Order_Fulfillment_Presenter' ) ) :
 		 *
 		 *   array(
 		 *     'order_id'          => int,
-		 *     'connected'         => bool,            // an API token is configured, or demo mode is on
-		 *     'demo_mode'         => bool,
+		 *     'connected'         => bool,            // an API token is configured
 		 *     'screen'            => 'hpos'|'legacy',
 		 *     'order'             => array( 'weight_kg' => float, 'shipping_country' => string,
 		 *                                   'units' => array( array( 'id' => int, 'name' => string, 'unit_weight' => float ), ... ) ), // one row per unit
@@ -166,7 +165,6 @@ if ( ! class_exists( 'SS_Shipping_Order_Fulfillment_Presenter' ) ) :
 			return array(
 				'order_id'          => $order_id,
 				'connected'         => $this->is_connected(),
-				'demo_mode'         => $this->settings->demo_mode(),
 				'screen'            => $this->screen(),
 				'order'             => array(
 					'weight_kg'        => round( array_sum( wp_list_pluck( $units, 'unit_weight' ) ), 2 ),
@@ -486,8 +484,7 @@ if ( ! class_exists( 'SS_Shipping_Order_Fulfillment_Presenter' ) ) :
 			// doubles as the hydration gate.
 			$html .= '<fieldset id="smart-send-fulfillment" class="smart-send-fulfillment__form" data-ss-form="fulfillment" data-ss-state="' . esc_attr( $box_state ) . '" data-ss-order-id="' . esc_attr( (string) $state['order_id'] ) . '" disabled>';
 
-			// Demo mode: a warning callout at the top of the box, in every state.
-			$callouts = $state['demo_mode'] ? $this->render_notice( 'warning', 'demo_mode', esc_html__( 'Demo mode active', 'smart-send-logistics' ) ) : '';
+			$callouts = '';
 
 			if ( self::STATE_NOT_CONNECTED === $box_state ) {
 				$callouts .= $this->render_notice(
@@ -1411,13 +1408,12 @@ if ( ! class_exists( 'SS_Shipping_Order_Fulfillment_Presenter' ) ) :
 		}
 
 		/**
-		 * Whether the plugin can book: an API token is configured, or demo
-		 * mode is on (which books nothing live).
+		 * Whether the plugin can book: an API token is configured.
 		 *
 		 * @return boolean
 		 */
 		public function is_connected(): bool {
-			return null !== $this->settings->api_token() || $this->settings->demo_mode();
+			return null !== $this->settings->api_token();
 		}
 
 		/**

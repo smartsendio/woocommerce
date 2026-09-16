@@ -4,8 +4,7 @@
  * The plugin's general settings surface, end-to-end: the settings page
  * itself, the "Validate API Token" test-connection flow (success and
  * failure, against the mocked API), the debug log reaching the WooCommerce
- * log viewer, demo mode announcing itself in the order meta box, and the
- * order-status-after-label setting taking effect.
+ * log viewer, and the order-status-after-label setting taking effect.
  *
  * Settings-permutation depth deliberately lives in the Integration suite
  * (tests/Integration/RateCalculationTest.php and friends); this file
@@ -26,11 +25,11 @@ beforeAll(function (): void {
         return;
     }
 
-    // Two orders: one for the demo-mode meta box test, one for the
-    // order-status-after-label test (which books a label on it).
+    // One order for the order-status-after-label test (which books a
+    // label on it).
     ss_browser_seed_store([
         'settings' => ['api_token' => 'ss-browser-settings-token'],
-        'orders'   => [[], []],
+        'orders'   => [[]],
     ]);
 });
 
@@ -50,8 +49,7 @@ it('renders the Smart Send settings page', function () {
     login_as_admin()
         ->navigate(ss_settings_page_url())
         ->assertSee('API Token')
-        ->assertSee('Validate API Token')
-        ->assertSee('Demo mode');
+        ->assertSee('Validate API Token');
 });
 
 it('validates the API token with a valid token', function () {
@@ -107,34 +105,9 @@ PHP);
     }
 });
 
-it('demo mode shows a warning callout at the top of the meta box, with plain button labels', function () {
-    $state = ss_browser_state();
-
-    // Demo mode on (the seeded default): the callout, the buttons unprefixed.
-    login_as_admin()
-        ->navigate(base_url(ss_browser_order_edit_path($state['orders'][0])))
-        ->assertSeeIn('[data-ss-notice="demo_mode"]', 'Demo mode active')
-        ->assertSeeIn('[data-ss-section="actions"]', 'Create shipping label')
-        ->assertSeeIn('[data-ss-section="actions"]', 'Create return label')
-        ->assertDontSee('DEMO MODE: Create');
-
-    // Demo mode off: no callout.
-    ss_browser_update_plugin_setting('demo', 'no');
-
-    try {
-        login_as_admin()
-            ->navigate(base_url(ss_browser_order_edit_path($state['orders'][0])))
-            ->assertSeeIn('[data-ss-section="actions"]', 'Create shipping label')
-            ->assertNotPresent('[data-ss-notice="demo_mode"]')
-            ->assertDontSee('Demo mode active');
-    } finally {
-        ss_browser_update_plugin_setting('demo', 'yes');
-    }
-});
-
 it('order-status-after-label setting changes the order status', function () {
     $state = ss_browser_state();
-    $order_id = $state['orders'][1];
+    $order_id = $state['orders'][0];
 
     ss_browser_update_plugin_setting('order_status', 'wc-completed');
 

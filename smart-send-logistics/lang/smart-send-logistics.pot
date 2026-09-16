@@ -385,18 +385,6 @@ msgstr ""
 msgid "Save the settings before clicking the button to validate API Token."
 msgstr ""
 
-#: admin/class-ss-shipping-method-settings.php:89
-msgid "Demo mode"
-msgstr ""
-
-#: admin/class-ss-shipping-method-settings.php:90
-msgid "Demo mode is used for testing on a staging site. No data will be send to the shipping carrier."
-msgstr ""
-
-#: admin/class-ss-shipping-method-settings.php:96
-msgid "Enable demo mode"
-msgstr ""
-
 #: admin/class-ss-shipping-method-settings.php:99
 msgid "Debug Log"
 msgstr ""
@@ -492,15 +480,6 @@ msgstr ""
 
 #: admin/class-ss-shipping-method-settings.php:194
 msgid "Shipping methods will be sorted in ascending order, according to the cost, instead of by order of appearance in Shipping Zone table as per default"
-msgstr ""
-
-#: admin/class-ss-shipping-method-settings.php:224
-msgid "Demo mode can only be disabled with a valid API Token. Please enter a valid API Token and save the settings again."
-msgstr ""
-
-#. translators: %s: website host name of the current site.
-#: admin/class-ss-shipping-method-settings.php:244
-msgid "Invalid API Token. Demo mode can only be disabled with a valid API Token for %s."
 msgstr ""
 
 #: admin/class-ss-shipping-method-settings.php:275
@@ -714,14 +693,6 @@ msgstr ""
 #. translators: %s: WooCommerce order number.
 #: admin/class-ss-shipping-order-bulk-actions.php:224
 msgid "Order #%s: The selected order did not include a Send Smart shipping method"
-msgstr ""
-
-#: admin/class-ss-shipping-order-bulk-actions.php:258
-msgid "DEMO MODE: Smart Send - Generate Labels"
-msgstr ""
-
-#: admin/class-ss-shipping-order-bulk-actions.php:259
-msgid "DEMO MODE: Smart Send - Generate Return Labels"
 msgstr ""
 
 #: admin/class-ss-shipping-order-bulk-actions.php:264
@@ -939,16 +910,8 @@ msgstr ""
 msgid "Smart Send \"%s\": free shipping (flat fee) is NOT available, because it is not available."
 msgstr ""
 
-#: admin/class-ss-shipping-wc-order.php:98
-msgid "DEMO MODE: Generate label"
-msgstr ""
-
 #: admin/class-ss-shipping-wc-order.php:99
 msgid "Generate label"
-msgstr ""
-
-#: admin/class-ss-shipping-wc-order.php:104
-msgid "DEMO MODE: Generate return label"
 msgstr ""
 
 #: admin/class-ss-shipping-wc-order.php:105

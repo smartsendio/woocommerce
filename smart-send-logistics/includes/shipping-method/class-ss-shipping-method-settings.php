@@ -166,16 +166,6 @@ if ( ! class_exists( 'SS_Shipping_Method_Settings' ) ) :
 					),
 					'desc_tip'          => false,
 				),
-				SS_Shipping_Settings::KEY_DEMO         => array(
-					'title'       => __( 'Demo mode', 'smart-send-logistics' ),
-					'description' => __(
-						'Demo mode is used for testing on a staging site. No data will be send to the shipping carrier.',
-						'smart-send-logistics'
-					),
-					'type'        => 'checkbox',
-					'default'     => 'yes',
-					'label'       => __( 'Enable demo mode', 'smart-send-logistics' ),
-				),
 				SS_Shipping_Settings::KEY_DEBUG        => array(
 					'title'       => __( 'Debug Log', 'smart-send-logistics' ),
 					'type'        => 'checkbox',
@@ -281,64 +271,6 @@ if ( ! class_exists( 'SS_Shipping_Method_Settings' ) ) :
 					),
 				),
 			);
-		}
-
-		/**
-		 * Validate the Demo Checkbox Field.
-		 *
-		 * If not set, return "no", otherwise return "yes".
-		 *
-		 * @param  string $key
-		 * @param  string|null $value Posted Value
-		 * @return string
-		 *
-		 * @throws Exception
-		 */
-		public function validate_demo_field( $key, $value ) {
-
-			//Trying to disable Demo-mode setting. Check if the API Token entered is valid
-			if ( 0 == $value ) { // phpcs:ignore Universal.Operators.StrictComparisons.LooseEqual -- pre-existing loose comparison; tightening is a behaviour change out of scope for the #43 move.
-				$post_data = $this->method->get_post_data();
-				if ( empty( $post_data['woocommerce_smart_send_shipping_api_token'] ) ) {
-					// No API Token was provided, so need to shown an error and re-enable demo-mode
-					WC_Admin_Settings::add_error(
-						__(
-							'Demo mode can only be disabled with a valid API Token. Please enter a valid API Token and save the settings again.',
-							'smart-send-logistics'
-						)
-					);
-					$value = 1;
-				} else {
-					// Check if the posted (not yet saved) API Token is valid for
-					// live mode. Built through the factory so the request is
-					// logged like every other API call (#140).
-					$credentials = new SS_Shipping_Api_Credentials( $post_data['woocommerce_smart_send_shipping_api_token'] );
-					$website_url = $credentials->website();
-					$api_handle  = ( new SS_Shipping_Api_Factory() )->create_for_credentials( $credentials, false );
-					try {
-						$api_handle->account()->getAuthenticatedUser();
-						$token_is_valid = true;
-					} catch ( \Smartsend\Exceptions\HttpClientException $e ) {
-						$token_is_valid = false;
-					}
-					if ( ! $token_is_valid ) {
-						// The API Token was not valid for live mode, so need to shown an error and re-enable demo-mode
-						WC_Admin_Settings::add_error(
-							sprintf(
-								/* translators: %s: website host name of the current site. */
-								__(
-									'Invalid API Token. Demo mode can only be disabled with a valid API Token for %s.',
-									'smart-send-logistics'
-								),
-								$website_url
-							)
-						);
-						$value = 1;
-					}
-				}
-			}
-
-			return $this->method->validate_checkbox_field( $key, $value );
 		}
 
 		public function get_guest_role() {

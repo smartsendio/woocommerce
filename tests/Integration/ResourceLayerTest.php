@@ -150,7 +150,7 @@ beforeEach(function (): void {
 });
 
 it('accepts a Shipment through the client and returns a successful Response', function () {
-    $api = new Api('secret-token-123', 'example.test', true);
+    $api = new Api('secret-token-123', 'example.test');
     $capture = mock_smart_send_api();
 
     $resource = $api->bookings();
@@ -167,7 +167,7 @@ it('accepts a Shipment through the client and returns a successful Response', fu
 });
 
 it('re-throws a 422 as a ValidationException through BookingResource::create()', function () {
-    $api = new Api('secret-token-123', 'example.test', true);
+    $api = new Api('secret-token-123', 'example.test');
     mock_smart_send_api(function () {
         return ss_api_response(422, ss_api_error_body('The receiver postal code is invalid.'));
     });
@@ -185,7 +185,7 @@ it('re-throws a 422 as a ValidationException through BookingResource::create()',
 });
 
 it('builds the v1 wire Shipment model from the internal representation (BookingResource::fromShipment)', function () {
-    $api = new Api('secret-token-123', 'example.test', true);
+    $api = new Api('secret-token-123', 'example.test');
 
     $shipment = $api->bookings()->fromShipment(sample_representation());
 
@@ -201,7 +201,7 @@ it('builds the v1 wire Shipment model from the internal representation (BookingR
 });
 
 it('combines labels for multiple shipments into a single request body', function () {
-    $api = new Api('secret-token-123', 'example.test', true);
+    $api = new Api('secret-token-123', 'example.test');
     $capture = mock_smart_send_api();
 
     $response = $api->bookings()->combine(['shipment-1', 'shipment-2']);
@@ -220,7 +220,7 @@ it('combines labels for multiple shipments into a single request body', function
 });
 
 it('looks up a pickup point by agent number', function () {
-    $api = new Api('secret-token-123', 'example.test', true);
+    $api = new Api('secret-token-123', 'example.test');
     $capture = mock_smart_send_api(function () {
         return ss_api_response(200, ['data' => pickup_point_api_data()]);
     });
@@ -238,7 +238,7 @@ it('looks up a pickup point by agent number', function () {
 });
 
 it('throws a RequestException for a 404 through PickupPointResource::findByAgentNo()', function () {
-    $api = new Api('secret-token-123', 'example.test', true);
+    $api = new Api('secret-token-123', 'example.test');
     mock_smart_send_api(function () {
         return ss_api_response(404, ss_api_error_body('Agent number not found.'));
     });
@@ -253,7 +253,7 @@ it('throws a RequestException for a 404 through PickupPointResource::findByAgent
 });
 
 it('finds the closest pickup points to an address, including the city segment', function () {
-    $api = new Api('secret-token-123', 'example.test', true);
+    $api = new Api('secret-token-123', 'example.test');
     $capture = mock_smart_send_api(function () {
         return ss_api_response(200, ['data' => [pickup_point_api_data()]]);
     });
@@ -267,7 +267,7 @@ it('finds the closest pickup points to an address, including the city segment', 
 });
 
 it('omits the city segment from the closest-address lookup when no city is given', function () {
-    $api = new Api('secret-token-123', 'example.test', true);
+    $api = new Api('secret-token-123', 'example.test');
     $capture = mock_smart_send_api(function () {
         return ss_api_response(200, ['data' => [pickup_point_api_data()]]);
     });
@@ -280,7 +280,7 @@ it('omits the city segment from the closest-address lookup when no city is given
 });
 
 it('applies the pickup point lookup timeout to both pickup point resource calls', function () {
-    $api = new Api('secret-token-123', 'example.test', true);
+    $api = new Api('secret-token-123', 'example.test');
     $capture = mock_smart_send_api(function () {
         return ss_api_response(200, ['data' => pickup_point_api_data()]);
     });

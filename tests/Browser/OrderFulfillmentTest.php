@@ -123,10 +123,7 @@ it('creates a shipping label from the meta box without a page reload and prepend
         ->assertSeeIn('[data-ss-section="parcel_plan"]', '1 parcel · 1.00 kg')
         ->assertNotChecked('[data-ss-field="with_return"]')
         ->assertDontSee('Default from the shipping method settings')
-        // Demo mode (the seeded default) is a warning callout, not a button prefix.
-        ->assertSeeIn('[data-ss-notice="demo_mode"]', 'Demo mode active')
         ->assertSeeIn('[data-ss-section="actions"]', 'Create shipping label')
-        ->assertDontSee('DEMO MODE: Create')
         // WooCommerce's help tips (aria-label = the tip text) on the three
         // rows and on the settings checkbox.
         ->assertAttribute('[data-ss-section="shipping_method"] .woocommerce-help-tip', 'aria-label', 'Shipping method used for booking of outgoing shipment')
@@ -177,7 +174,7 @@ it('creates a shipping label from the meta box without a page reload and prepend
     expect($meta['label_id'])->toStartWith('browser-shipment-')
         ->and($meta['return_label_id'])->toBe('');
 
-    // The app link is built from the resolved API host (the demo store talks
+    // The app link is built from the resolved API host (the mocked store talks
     // to the production host), never hardcoded in the client.
     $page->assertAttribute('[data-ss-action="view-shipment"]', 'href', 'https://app.smartsend.io/shipments/' . $meta['label_id'])
         ->assertAttribute('[data-ss-timeline="outbound"]', 'href', 'https://app.smartsend.io/shipments/' . $meta['label_id']);

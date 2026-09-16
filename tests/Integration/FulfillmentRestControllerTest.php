@@ -186,10 +186,9 @@ it('returns the state on GET, matching the presenter', function () {
     expect($response->get_status())->toBe(200);
 
     $state = $response->get_data();
-    expect($state)->toHaveKeys(['order_id', 'connected', 'demo_mode', 'screen', 'order', 'delivery_details', 'methods', 'return', 'outbound_shipment', 'return_shipment', 'debug', 'urls'])
+    expect($state)->toHaveKeys(['order_id', 'connected', 'screen', 'order', 'delivery_details', 'methods', 'return', 'outbound_shipment', 'return_shipment', 'debug', 'urls'])
         ->and($state['order_id'])->toBe($order->get_id())
         ->and($state['connected'])->toBeTrue()
-        ->and($state['demo_mode'])->toBeTrue()
         ->and($state['screen'])->toBeIn(['hpos', 'legacy'])
         ->and($state['order']['weight_kg'])->toBe(1.0)
         ->and($state['order']['shipping_country'])->toBe('DK')
@@ -434,8 +433,8 @@ it('returns 409 smart_send_already_booked without confirm_rebook when a shipment
         ->and(wc_get_order($order->get_id())->get_meta('_ss_shipping_label_id', true))->toBe('shipment-new');
 });
 
-it('returns 409 smart_send_not_connected when no API token is configured and demo mode is off', function () {
-    with_ss_settings(['api_token' => '', 'demo' => 'no']);
+it('returns 409 smart_send_not_connected when no API token is configured', function () {
+    with_ss_settings(['api_token' => '']);
     $order = create_rest_order();
     as_rest_user();
     $capture = mock_smart_send_api();

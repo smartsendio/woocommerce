@@ -71,7 +71,7 @@ function with_ss_settings(array $overrides = []): array
     $original   = get_option($option_key);
 
     $settings = array_merge([
-        'demo'                            => 'yes',
+        'api_token'                       => 'integration-test-token',
         'ss_debug'                        => 'no',
         'include_order_comment'           => 'no',
         'save_shipping_labels_in_uploads' => 'no',

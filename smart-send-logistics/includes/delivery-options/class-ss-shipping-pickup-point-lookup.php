@@ -76,8 +76,8 @@ if ( ! class_exists( 'SS_Shipping_Pickup_Point_Lookup' ) ) :
 		 */
 		public function find_closest_by_address( $carrier, $country, $postal_code, $city, $street ) {
 			// Without an API token the lookup cannot succeed - skip the API
-			// call entirely. Demo mode works without a token.
-			if ( null === $this->settings->api_token() && ! $this->settings->demo_mode() ) {
+			// call entirely.
+			if ( null === $this->settings->api_token() ) {
 				SS_Shipping_Logger::error(
 					'Smart Send: pickup point lookup skipped - no API token configured (plugin not connected).',
 					array( 'carrier' => $carrier )

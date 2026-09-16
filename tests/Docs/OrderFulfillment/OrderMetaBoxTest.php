@@ -91,23 +91,6 @@ it('shows the not-yet-booked box', function () {
     capture_doc_screenshot($page, 'OrderFulfillment', 'not-booked', false);
 });
 
-it('shows the demo mode callout', function () {
-    $page = visit(base_url('/wp-login.php'))
-        ->fill('#user_login', admin_username())
-        ->fill('#user_pass', admin_password())
-        ->click('#wp-submit')
-        ->assertPathContains('wp-admin')
-        ->navigate(docs_order_url(0));
-
-    $page->assertSeeIn('#woocommerce-ss-shipping-label .hndle', 'Smart Send')
-        ->assertSeeIn('[data-ss-notice="demo_mode"]', 'Demo mode active')
-        ->assertSeeIn('[data-ss-section="actions"]', 'Create shipping label');
-
-    highlight_element($page, '[data-ss-notice="demo_mode"]');
-
-    capture_doc_screenshot($page, 'OrderFulfillment', 'demo-mode', false);
-});
-
 it('shows the parcels section collapsed to its summary line', function () {
     $page = visit(base_url('/wp-login.php'))
         ->fill('#user_login', admin_username())
@@ -309,7 +292,6 @@ it('shows the method choice for an order placed without a Smart Send method', fu
 
 it('shows the not-connected notice when no API token is configured', function () {
     ss_browser_update_plugin_setting('api_token', '');
-    ss_browser_update_plugin_setting('demo', 'no');
 
     try {
         $page = visit(base_url('/wp-login.php'))
@@ -326,6 +308,6 @@ it('shows the not-connected notice when no API token is configured', function ()
 
         capture_doc_screenshot($page, 'OrderFulfillment', 'not-connected', false);
     } finally {
-        ss_browser_update_plugin_setting('demo', 'yes');
+        ss_browser_update_plugin_setting('api_token', 'ss-mock-api-token');
     }
 });

@@ -125,24 +125,6 @@ if ( ! class_exists( 'SS_Shipping_WC_Method' ) ) :
 		}
 
 		/**
-		 * Validate the Demo Checkbox Field.
-		 *
-		 * WooCommerce's settings framework dispatches validate_{key}_field on
-		 * this instance; the logic lives in the settings component.
-		 *
-		 * @see SS_Shipping_Method_Settings::validate_demo_field()
-		 *
-		 * @param  string $key
-		 * @param  string|null $value Posted Value
-		 * @return string
-		 *
-		 * @throws Exception
-		 */
-		public function validate_demo_field( $key, $value ) {
-			return $this->settings_builder->validate_demo_field( $key, $value );
-		}
-
-		/**
 		 * Validate the Method Title field.
 		 *
 		 * @see SS_Shipping_Method_Settings::validate_title_field()

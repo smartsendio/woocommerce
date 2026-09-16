@@ -168,7 +168,7 @@ it('surfaces an authorization failure as an error box, a debug notice and an err
 
 it('surfaces a missing API token as an error box and an error log entry without an API call', function () {
     with_option('woocommerce_shipping_debug_mode', 'yes');
-    with_ss_settings(['api_token' => '', 'demo' => 'no']);
+    with_ss_settings(['api_token' => '']);
     $spy = spy_on_logger();
     $capture = mock_smart_send_api();
 

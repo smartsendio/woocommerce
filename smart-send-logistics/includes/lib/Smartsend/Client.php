@@ -52,15 +52,13 @@ class Client
     // yet (SS_Shipping_Api_Credentials::api_token() returns null).
     private ?string $website = null;
     private ?string $api_token = null;
-    private bool $demo = false;
     /** @var callable|null Untyped: PHP does not support callable property types (the setter parameter below is still hinted `callable`). */
     private $request_logger;
 
-    public function __construct($api_token, $website, $demo=false, ?string $api_host = null)
+    public function __construct($api_token, $website, ?string $api_host = null)
     {
         $this->setApiToken($api_token);
         $this->setWebsite($website);
-        $this->setDemo($demo);
         $this->setApiHost($api_host === null ? self::DEFAULT_API_HOST : $api_host);
     }
 
@@ -126,14 +124,9 @@ class Client
         $this->website = $website;
     }
 
-    public function setDemo(bool $demo): void
-    {
-        $this->demo = $demo;
-    }
-
     public function getApiEndpoint()
     {
-        return $this->getApiHost().self::API_VERSION_PATH.($this->getDemo() ? 'demo/' : '')."website/".$this->getWebsite()."/";
+        return $this->getApiHost().self::API_VERSION_PATH."website/".$this->getWebsite()."/";
     }
 
     /**
@@ -154,11 +147,6 @@ class Client
     private function getApiToken(): ?string
     {
         return $this->api_token;
-    }
-
-    public function getDemo(): bool
-    {
-        return $this->demo;
     }
 
     public function getModuleVersion()
