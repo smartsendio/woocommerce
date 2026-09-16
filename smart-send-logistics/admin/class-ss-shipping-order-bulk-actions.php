@@ -214,6 +214,23 @@ if ( ! class_exists( 'SS_Shipping_Order_Bulk_Actions' ) ) :
 								);
 							}
 
+							// A booked shipment whose local copy could not be
+							// saved is fulfilled with a warning (#182).
+							foreach ( $result->get_warning_messages() as $warning_message ) {
+								array_push(
+									$array_messages_error,
+									array(
+										'message' => sprintf(
+											/* translators: 1: WooCommerce order number, 2: warning message. */
+											__( 'Order #%1$s: %2$s', 'smart-send-logistics' ),
+											$order->get_order_number(),
+											$warning_message
+										),
+										'type'    => 'warning',
+									)
+								);
+							}
+
 							foreach ( $result->get_error_messages() as $error_message ) {
 								array_push(
 									$array_messages_error,

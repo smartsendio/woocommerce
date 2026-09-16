@@ -256,6 +256,45 @@ if ( ! class_exists( 'SS_Shipping_Pickup_Point_Lookup' ) ) :
 		}
 
 		/**
+		 * Find one pickup point by its agent number at the Smart Send API -
+		 * the shared "resolve an entered agent number" call (#182) behind
+		 * the order screen's Custom Fields validation
+		 * (SS_Shipping_Pickup_Point_Validator) and a pickup point override
+		 * submitted with a fulfillment request (SS_Shipping_Fulfillment_Service).
+		 *
+		 * No session cache is involved (unlike the checkout lookups): the
+		 * admin has no checkout session, and an entered number is verified
+		 * against the API every time. The request and response are logged
+		 * by the client's request logger; the callers log what the miss
+		 * means in their context.
+		 *
+		 * @param string $carrier  Unique carrier code (e.g. 'postnord').
+		 * @param string $country  ISO3166-A2 country code of the order's shipping address.
+		 * @param string $agent_no The agent number to resolve.
+		 *
+		 * @throws SS_Shipping_Pickup_Point_Not_Found_Exception When the API knows no such pickup point (or the lookup failed).
+		 *
+		 * @return SS_Shipping_Pickup_Point The resolved pickup point, mapped at the API boundary.
+		 */
+		public function find_by_agent_no( string $carrier, string $country, string $agent_no ): SS_Shipping_Pickup_Point {
+			// phpcs:disable WordPress.Security.EscapeOutput.ExceptionNotEscaped -- the exception carries the carrier and agent number as data for its callers (validator error message, fulfillment field error, REST 422), never echoed directly.
+			try {
+				$response = SS_SHIPPING_WC()->get_api_handle()->pickupPoints()->findByAgentNo( $carrier, $country, $agent_no );
+			} catch ( \Smartsend\Exceptions\HttpClientException $e ) {
+				throw new SS_Shipping_Pickup_Point_Not_Found_Exception( $carrier, $agent_no, $e );
+			}
+
+			$data = $response->data();
+
+			if ( ! is_object( $data ) && ! is_array( $data ) ) {
+				throw new SS_Shipping_Pickup_Point_Not_Found_Exception( $carrier, $agent_no );
+			}
+			// phpcs:enable WordPress.Security.EscapeOutput.ExceptionNotEscaped
+
+			return SS_Shipping_Pickup_Point::from_object( $data );
+		}
+
+		/**
 		 * Map the raw API pickup point objects of a lookup response into
 		 * value objects - the API boundary of the pickup point contract.
 		 *

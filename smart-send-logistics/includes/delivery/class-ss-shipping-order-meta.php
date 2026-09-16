@@ -63,6 +63,28 @@ if ( ! class_exists( 'SS_Shipping_Order_Meta' ) ) :
 		const META_PARCELS = 'ss_shipping_order_parcels';
 
 		/**
+		 * Whether a write() is in progress. Programmatic repository writes
+		 * carry a complete, typed pickup point and must not be re-validated
+		 * by the Custom Fields validator, whose legacy-storage hooks
+		 * (update_post_metadata_by_mid / deleted_post_meta) fire for every
+		 * post-meta update WooCommerce makes on save() (#182).
+		 *
+		 * @var bool
+		 */
+		protected static bool $writing = false;
+
+		/**
+		 * Whether the repository is currently persisting delivery details
+		 * (see SS_Shipping_Pickup_Point_Validator, which skips its meta
+		 * hooks for such writes).
+		 *
+		 * @return boolean
+		 */
+		public static function is_writing(): bool {
+			return self::$writing;
+		}
+
+		/**
 		 * Meta keys recording a booked-label outcome (shipment ids).
 		 *
 		 * These are per-order booking results and must NOT copy to
@@ -149,9 +171,13 @@ if ( ! class_exists( 'SS_Shipping_Order_Meta' ) ) :
 		 * Persist a (possibly partial) delivery configuration on an order.
 		 *
 		 * A null pickup point / parcel plan means "not specified" and
-		 * leaves the stored meta alone; an empty parcel plan clears the
-		 * stored split (one parcel containing everything). The resolved
-		 * shipping method and addons are derived data and are not stored.
+		 * leaves the stored meta alone; an explicitly cleared pickup point
+		 * (SS_Shipping_Delivery_Details::clear_pickup_point()) deletes the
+		 * stored pickup point meta; an empty parcel plan clears the stored
+		 * split (one parcel containing everything). The resolved shipping
+		 * method and addons are derived data and are not stored, and a
+		 * parcel spec's weight and dimensions are per booking only - the
+		 * frozen box rows carry item allocations alone (#182).
 		 *
 		 * @param integer|WC_Order            $order   Order (or order id).
 		 * @param SS_Shipping_Delivery_Details $details The delivery configuration to persist.
@@ -171,6 +197,10 @@ if ( ! class_exists( 'SS_Shipping_Order_Meta' ) ) :
 				$order->update_meta_data( self::META_AGENT, $pickup_point->to_object() );
 				$order->update_meta_data( self::META_AGENT_NO, $pickup_point->get_agent_no() );
 				$changed = true;
+			} elseif ( $details->is_pickup_point_cleared() ) {
+				$order->delete_meta_data( self::META_AGENT );
+				$order->delete_meta_data( self::META_AGENT_NO );
+				$changed = true;
 			}
 
 			$parcel_plan = $details->get_parcel_plan();
@@ -180,7 +210,12 @@ if ( ! class_exists( 'SS_Shipping_Order_Meta' ) ) :
 			}
 
 			if ( $changed ) {
-				$order->save();
+				self::$writing = true;
+				try {
+					$order->save();
+				} finally {
+					self::$writing = false;
+				}
 			}
 		}
 

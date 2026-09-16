@@ -101,11 +101,13 @@ it('creates a label, saves the shipment id and adds an order note on success', f
         ->toContain('https://tracking.example.test/TRACK-1234');
 });
 
-it('persists submitted delivery overrides through the repository before booking', function () {
+it('persists submitted delivery overrides through the repository once the booking succeeded', function () {
     // The AJAX controller translates the posted parcel rows into a typed
     // SS_Shipping_Parcel_Plan and hands it into the flow as partial
-    // delivery details (#139); the fulfillment service persists them in
-    // the frozen meta format before booking (save-before-book preserved).
+    // delivery details (#139); the fulfillment service books with them and
+    // persists them in the frozen meta format after the booking succeeded
+    // (persist-after-success, #182 - a failed booking writes nothing, see
+    // FulfillmentServiceTest).
     $product_a = create_simple_product(['name' => 'Override Box One', 'price' => 100, 'weight' => 1]);
     $product_b = create_simple_product(['name' => 'Override Box Two', 'price' => 50, 'weight' => 2]);
     $order     = create_order([
