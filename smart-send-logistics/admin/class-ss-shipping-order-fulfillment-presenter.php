@@ -400,7 +400,7 @@ if ( ! class_exists( 'SS_Shipping_Order_Fulfillment_Presenter' ) ) :
 				$callouts = $this->render_notice(
 					'info',
 					'no_method',
-					esc_html__( 'This order has no Smart Send shipping method. Choose the method to ship it with.', 'smart-send-logistics' )
+					esc_html__( 'Shipping method is not from the Smart Send plugin.', 'smart-send-logistics' )
 				);
 			}
 
@@ -526,7 +526,7 @@ if ( ! class_exists( 'SS_Shipping_Order_Fulfillment_Presenter' ) ) :
 			$html = $this->render_row(
 				'shipping_method',
 				esc_html__( 'Shipping method', 'smart-send-logistics' ),
-				__( 'Taken from the order. Choose another method to ship it differently; the order is not changed.', 'smart-send-logistics' ),
+				__( 'Shipping method used for booking of outgoing shipment', 'smart-send-logistics' ),
 				$editable ? 'edit-method' : '',
 				$content
 			);
@@ -541,27 +541,27 @@ if ( ! class_exists( 'SS_Shipping_Order_Fulfillment_Presenter' ) ) :
 		}
 
 		/**
-		 * A detail row: the label line (label, optional help icon, the
+		 * A detail row: the label line (label, optional help tip, the
 		 * right-aligned control - an Edit link for an action, or custom
 		 * markup) over the row's content.
 		 *
 		 * @param string $section The data-ss-section selector value.
 		 * @param string $label   The (already escaped) label.
-		 * @param string $help    The help text (unescaped; '' for no icon).
+		 * @param string $help    The help text (unescaped; '' for no tip).
 		 * @param string $action  The Edit link's data-ss-action ('' for no link).
 		 * @param string $content The (already escaped) row content.
-		 * @param string $head    Optional (already escaped) extra label-line markup, before the help icon.
-		 * @param string $class   Optional extra class on the row (the parcels row is a section of its own).
+		 * @param string $head    Optional (already escaped) extra label-line markup, before the help tip.
+		 * @param string $extra_class Optional extra class on the row (the parcels row is a section of its own).
 		 *
 		 * @return string HTML
 		 */
-		protected function render_row( string $section, string $label, string $help, string $action, string $content, string $head = '', string $class = '' ): string {
-			$html  = '<div class="' . esc_attr( trim( $class . ' smart-send-fulfillment__row' ) ) . '" data-ss-section="' . esc_attr( $section ) . '">';
+		protected function render_row( string $section, string $label, string $help, string $action, string $content, string $head = '', string $extra_class = '' ): string {
+			$html  = '<div class="' . esc_attr( trim( $extra_class . ' smart-send-fulfillment__row' ) ) . '" data-ss-section="' . esc_attr( $section ) . '">';
 			$html .= '<div class="smart-send-fulfillment__row-head">';
 			$html .= '<span class="smart-send-fulfillment__label">' . $label . '</span>';
 			$html .= $head;
 			if ( '' !== $help ) {
-				$html .= $this->render_help_icon( $help );
+				$html .= $this->render_help_tip( $help );
 			}
 			if ( '' !== $action ) {
 				$html .= '<button type="button" class="button-link smart-send-fulfillment__edit" data-ss-action="' . esc_attr( $action ) . '">' . esc_html__( 'Edit', 'smart-send-logistics' ) . '</button>';
@@ -585,19 +585,18 @@ if ( ! class_exists( 'SS_Shipping_Order_Fulfillment_Presenter' ) ) :
 		}
 
 		/**
-		 * The 16px help icon (a question mark in a circle) with the help
-		 * text as its title and aria-label - WordPress' help tip pattern,
-		 * the same inline SVG the app renders.
+		 * WooCommerce's own help tip: the markup WooCommerce's admin stylesheet
+		 * renders as the question mark icon, with the text as `data-tip` (what
+		 * WooCommerce's tipTip binding reads) and as `aria-label` (screen
+		 * readers, and what the tests assert) - the same markup the app
+		 * renders (HelpTip in src/order-fulfillment/Row.js).
 		 *
 		 * @param string $text The help text (unescaped).
 		 *
 		 * @return string HTML
 		 */
-		protected function render_help_icon( string $text ): string {
-			return '<span class="smart-send-fulfillment__help" title="' . esc_attr( $text ) . '" aria-label="' . esc_attr( $text ) . '" role="img" data-ss-help="">'
-				. '<svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">'
-				. '<circle cx="8" cy="8" r="6.5"></circle><path d="M6.2 6.2a1.9 1.9 0 0 1 3.7.5c0 1.2-1.9 1.4-1.9 2.6"></path><circle cx="8" cy="11.6" r=".5" fill="currentColor"></circle>'
-				. '</svg></span>';
+		protected function render_help_tip( string $text ): string {
+			return '<span class="woocommerce-help-tip" tabindex="0" aria-label="' . esc_attr( $text ) . '" data-tip="' . esc_attr( $text ) . '" data-ss-help=""></span>';
 		}
 
 		/**
@@ -644,10 +643,12 @@ if ( ! class_exists( 'SS_Shipping_Order_Fulfillment_Presenter' ) ) :
 				return isset( $pickup_point[ $key ] ) && null !== $pickup_point[ $key ] ? trim( (string) $pickup_point[ $key ] ) : '';
 			};
 
-			$lines = array_filter( array(
-				$field( 'address_line1' ),
-				trim( $field( 'postal_code' ) . ' ' . $field( 'city' ) ),
-			) );
+			$lines = array_filter(
+				array(
+					$field( 'address_line1' ),
+					trim( $field( 'postal_code' ) . ' ' . $field( 'city' ) ),
+				)
+			);
 
 			$html  = '<div class="smart-send-fulfillment__pickup-point" data-ss-value="pickup_point">' . $this->render_pin_icon();
 			$html .= '<div class="smart-send-fulfillment__pickup-point-text"><div>';
@@ -672,7 +673,7 @@ if ( ! class_exists( 'SS_Shipping_Order_Fulfillment_Presenter' ) ) :
 		 * The parcels section, collapsed to its header line: "Parcels", the
 		 * summary ("2 parcels · 3.00 kg" - a box's explicit weight wins over
 		 * the sum of its units', mirroring the app's totalWeight()), the
-		 * help icon and the Edit link. The editor itself is the app's.
+		 * help tip and the Edit link. The editor itself is the app's.
 		 *
 		 * @param array   $state    The state.
 		 * @param boolean $editable Whether the row offers an Edit link.
@@ -773,8 +774,9 @@ if ( ! class_exists( 'SS_Shipping_Order_Fulfillment_Presenter' ) ) :
 
 		/**
 		 * The settings section's "Also create return label" checkbox,
-		 * defaulting from the method's auto-generate-return-label setting
-		 * ("Default from the shipping method settings" under the label).
+		 * defaulting from the method's auto-generate-return-label setting,
+		 * with a help tip next to its label (outside the label, so a click
+		 * on the tip does not toggle the checkbox).
 		 *
 		 * @param array $state The state.
 		 *
@@ -783,47 +785,46 @@ if ( ! class_exists( 'SS_Shipping_Order_Fulfillment_Presenter' ) ) :
 		protected function render_return_toggle( array $state ): string {
 			$available = null !== $state['return']['method'];
 
-			$html  = '<div class="smart-send-fulfillment__row" data-ss-section="return">';
+			$html  = '<div class="smart-send-fulfillment__row smart-send-fulfillment__check-row" data-ss-section="return">';
 			$html .= '<label class="smart-send-fulfillment__check">';
 			$html .= '<input type="checkbox" name="smart_send[with_return]" value="1" data-ss-field="with_return" autocomplete="off"' . checked( $available && $state['return']['auto_default'], true, false ) . '>';
-			$html .= '<span class="smart-send-fulfillment__check-text">' . esc_html__( 'Also create return label', 'smart-send-logistics' );
-			$html .= '<span class="smart-send-fulfillment__hint">' . esc_html__( 'Default from the shipping method settings', 'smart-send-logistics' ) . '</span>';
-			$html .= '</span></label></div>';
+			$html .= '<span class="smart-send-fulfillment__check-text">' . esc_html__( 'Also create return label', 'smart-send-logistics' ) . '</span>';
+			$html .= '</label>';
+			$html .= $this->render_help_tip( __( 'When booking an outgoing label, then we will automatically also book a return label', 'smart-send-logistics' ) );
+			$html .= '</div>';
 
 			return $html;
 		}
 
 		/**
-		 * The return method row: the configured return method with an Edit
-		 * link, or - for an order without a configured one (state B, or a
-		 * zone method without one) - the grouped return method select right
-		 * away under a hint. The chosen method serves both the combined
+		 * The return method row: the configured return method - grey "None"
+		 * for an order without one (state B, or a zone method without one) -
+		 * with an Edit link, collapsed in every state; the select behind Edit
+		 * is the app's. A return method chosen there serves both the combined
 		 * outbound + return run and the return-only action.
 		 *
 		 * @param array   $state    The state.
 		 * @param boolean $editable Whether the row offers an Edit link.
-		 * @param string  $id       The select's id (unique per rendered select).
 		 *
 		 * @return string HTML
 		 */
-		protected function render_return_method_row( array $state, bool $editable, string $id = 'smart-send-return-method' ): string {
+		protected function render_return_method_row( array $state, bool $editable ): string {
 			$return_method = $state['return']['method'];
-			$help          = __( 'Used for return labels. Taken from the shipping method settings; change it here for this booking only.', 'smart-send-logistics' );
 
-			if ( null !== $return_method ) {
-				$name    = $this->method_name( $return_method );
-				$content = '<div class="smart-send-fulfillment__value"><span data-ss-value="return_method">' . esc_html( '' === $name ? $return_method : $name ) . '</span></div>';
-
-				return $this->render_row( 'return_method', esc_html__( 'Return method', 'smart-send-logistics' ), $help, $editable ? 'edit-return-method' : '', $content );
+			if ( null === $return_method ) {
+				$value = $this->render_none( 'return_method' );
+			} else {
+				$name  = $this->method_name( $return_method );
+				$value = '<span data-ss-value="return_method">' . esc_html( '' === $name ? $return_method : $name ) . '</span>';
 			}
 
-			$content  = '<select id="' . esc_attr( $id ) . '" class="smart-send-fulfillment__select" name="smart_send[return_method]" data-ss-field="return_method" autocomplete="off">';
-			$content .= '<option value="" selected=\'selected\'>' . esc_html__( 'Select a method…', 'smart-send-logistics' ) . '</option>';
-			$content .= $this->render_method_options( $state['methods']['return'], null );
-			$content .= '</select>';
-			$content .= '<p class="smart-send-fulfillment__hint" data-ss-hint="no_return_method">' . esc_html__( 'No return method configured on the shipping method - choose one here, or set one under WooCommerce → Shipping → the zone method.', 'smart-send-logistics' ) . '</p>';
-
-			return $this->render_row( 'return_method', esc_html__( 'Return method', 'smart-send-logistics' ), $help, '', $content );
+			return $this->render_row(
+				'return_method',
+				esc_html__( 'Return method', 'smart-send-logistics' ),
+				__( 'Shipping method used for booking of return shipments', 'smart-send-logistics' ),
+				$editable ? 'edit-return-method' : '',
+				'<div class="smart-send-fulfillment__value">' . $value . '</div>'
+			);
 		}
 
 		/**
@@ -850,7 +851,7 @@ if ( ! class_exists( 'SS_Shipping_Order_Fulfillment_Presenter' ) ) :
 				$html .= $this->render_section( 'return', $this->render_booked_block( $state, true ) );
 			} else {
 				$block  = '<div class="smart-send-fulfillment__row" data-ss-section="return_shipment"><p><strong>' . esc_html__( 'Return label', 'smart-send-logistics' ) . '</strong> ' . esc_html__( 'not created', 'smart-send-logistics' ) . '</p>';
-				$block .= $this->render_return_method_row( $state, true, 'smart-send-return-method-only' );
+				$block .= $this->render_return_method_row( $state, true );
 				$block .= '<div class="smart-send-fulfillment__actions">' . $this->render_button( 'return', $state, false ) . '</div></div>';
 				$html  .= $this->render_section( 'return', $block );
 			}
@@ -894,7 +895,7 @@ if ( ! class_exists( 'SS_Shipping_Order_Fulfillment_Presenter' ) ) :
 			$html .= '<input type="hidden" name="smart_send[confirm_rebook]" value="1" data-ss-field="confirm_rebook">';
 
 			if ( $is_return ) {
-				$html .= $this->render_return_method_row( $state, true, 'smart-send-return-method-rebook' );
+				$html .= $this->render_return_method_row( $state, true );
 				$html .= '<div class="smart-send-fulfillment__actions">' . $this->render_button( 'return', $state, false ) . '</div>';
 			} else {
 				$html .= $this->render_details_form( $state, '', true );
@@ -940,28 +941,6 @@ if ( ! class_exists( 'SS_Shipping_Order_Fulfillment_Presenter' ) ) :
 		 */
 		protected function render_notice( string $type, string $key, string $message, string $extra = '' ): string {
 			return '<div class="notice notice-' . esc_attr( $type ) . ' inline smart-send-fulfillment__notice" data-ss-notice="' . esc_attr( $key ) . '"><p>' . $message . '</p>' . ( '' === $extra ? '' : '<p>' . $extra . '</p>' ) . '</div>';
-		}
-
-		/**
-		 * The optgroup markup of a method list, pre-selecting a code.
-		 *
-		 * @param array       $groups   Method groups (see method_groups()).
-		 * @param string|null $selected The selected method code.
-		 *
-		 * @return string HTML
-		 */
-		protected function render_method_options( array $groups, ?string $selected ): string {
-			$html = '';
-
-			foreach ( $groups as $group ) {
-				$html .= '<optgroup label="' . esc_attr( $group['carrier'] ) . '">';
-				foreach ( $group['options'] as $option ) {
-					$html .= '<option value="' . esc_attr( $option['code'] ) . '"' . selected( $selected, $option['code'], false ) . '>' . esc_html( $option['name'] ) . '</option>';
-				}
-				$html .= '</optgroup>';
-			}
-
-			return $html;
 		}
 
 		/**

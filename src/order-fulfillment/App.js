@@ -7,8 +7,8 @@
  * states:
  *
  *   A not connected      notice + "Open settings", everything disabled
- *   B no Smart Send method   notice + method select (+ return method select
- *                            used by both actions); the order is bookable
+ *   B no Smart Send method   notice; the method rows read "None" + Edit
+ *                            (the select behind Edit); the order is bookable
  *   C not yet booked     method / pickup point / parcels rows, return toggle,
  *                        "Create shipping label" (primary) next to "Create
  *                        return label" (secondary, books a return leg only)
@@ -57,6 +57,7 @@ import MethodField, { ReturnMethodField } from './MethodField';
 import PickupPointField from './PickupPointField';
 import ParcelEditor from './ParcelEditor';
 import ReturnToggle from './ReturnToggle';
+import { bindHelpTips } from './Row';
 import BookedShipment from './BookedShipment';
 import ErrorNotice from './ErrorNotice';
 
@@ -146,6 +147,13 @@ export default function App( { initialState, mount } ) {
 		mount.setAttribute( 'data-ss-app', submitting ? 'submitting' : 'ready' );
 		mount.disabled = disabled;
 	}, [ mount, current, submitting, disabled ] );
+
+	// WooCommerce binds its tooltip to `.woocommerce-help-tip` on DOM ready
+	// only; the help tips this app renders come later, so bind them after
+	// every render (idempotent - see bindHelpTips).
+	useEffect( () => {
+		bindHelpTips( mount );
+	} );
 
 	const runEntry = ( direction ) => run.find( ( entry ) => entry.direction === direction ) || null;
 
@@ -300,7 +308,7 @@ export default function App( { initialState, mount } ) {
 			{ current === STATE_NO_METHOD && (
 				<div className="smart-send-fulfillment__notice" data-ss-notice="no_method">
 					<Notice status="info" isDismissible={ false }>
-						{ __( 'This order has no Smart Send shipping method. Choose the method to ship it with.', 'smart-send-logistics' ) }
+						{ __( 'Shipping method is not from the Smart Send plugin.', 'smart-send-logistics' ) }
 					</Notice>
 				</div>
 			) }
@@ -319,8 +327,7 @@ export default function App( { initialState, mount } ) {
 	);
 
 	/**
-	 * The return method row: the configured method with "Edit", or the
-	 * select right away when none is configured.
+	 * The return method row: the configured method (or "None") with "Edit".
 	 */
 	const returnMethodRow = ( id ) => (
 		<ReturnMethodField

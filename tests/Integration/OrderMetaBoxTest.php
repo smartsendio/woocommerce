@@ -118,10 +118,12 @@ it('renders the not-yet-booked form with the state inlined as JSON', function ()
         ->toContain('<div class="smart-send-fulfillment__section smart-send-fulfillment__row" data-ss-section="parcel_plan">')
         ->toContain('<div class="smart-send-fulfillment__section smart-send-fulfillment__section--actions" data-ss-section="actions">')
         ->toContain('<div class="smart-send-fulfillment__section smart-send-fulfillment__section--settings" data-ss-section="settings">')
-        // The shipping method as a read value with its help icon and Edit
-        // link - no select until Edit (the app's).
+        // The shipping method as a read value with WooCommerce's help tip
+        // (its markup; bound to tipTip by the app) and the Edit link - no
+        // select until Edit (the app's).
         ->toContain('<span data-ss-value="shipping_method">PostNord: Select pickup point (MyPack Collect)</span>')
-        ->toContain('title="Taken from the order. Choose another method to ship it differently; the order is not changed."')
+        ->toContain('<span class="woocommerce-help-tip" tabindex="0" aria-label="Shipping method used for booking of outgoing shipment" data-tip="Shipping method used for booking of outgoing shipment" data-ss-help=""></span>')
+        ->not->toContain('smart-send-fulfillment__help')
         ->toContain('data-ss-action="edit-method"')
         ->not->toContain('data-ss-field="shipping_method"')
         // The pickup point row for an agent method: the pin, "#agent no
@@ -132,20 +134,23 @@ it('renders the not-yet-booked form with the state inlined as JSON', function ()
         ->toContain('<div class="smart-send-fulfillment__address"><span>Main Street 1</span><span>2300 Copenhagen</span></div>')
         ->toContain('data-ss-action="edit-pickup-point"')
         ->not->toContain('data-ss-field="pickup_point.agent_no"')
-        // The return method row: the configured method, Edit, no select/hint.
+        // The return method row: the configured method, its help tip, Edit,
+        // no select.
         ->toContain('<span data-ss-value="return_method">PostNord: Return from pickup point (Return Drop Off)</span>')
+        ->toContain('<span class="woocommerce-help-tip" tabindex="0" aria-label="Shipping method used for booking of return shipments" data-tip="Shipping method used for booking of return shipments" data-ss-help=""></span>')
         ->toContain('data-ss-action="edit-return-method"')
         ->not->toContain('data-ss-field="return_method"')
-        ->not->toContain('data-ss-hint="no_return_method"')
+        ->not->toContain('No return method configured')
         // The parcels section collapsed to its summary line with Edit.
         ->toContain('<span class="smart-send-fulfillment__summary" data-ss-value="parcel_plan.summary">1 parcel · 1.00 kg</span>')
         ->toContain('data-ss-action="edit-parcels"')
         ->not->toContain('data-ss-section="parcel_editor"')
         ->not->toContain('Weight: 1.00 kg')
         // The return checkbox defaults from the auto-return setting, with
-        // its hint under the label.
+        // its help tip next to the label (outside it).
         ->toContain('name="smart_send[with_return]" value="1" data-ss-field="with_return" autocomplete="off" checked=\'checked\'>')
-        ->toContain('Default from the shipping method settings')
+        ->toContain('Also create return label</span></label>' . '<span class="woocommerce-help-tip" tabindex="0" aria-label="When booking an outgoing label, then we will automatically also book a return label" data-tip="When booking an outgoing label, then we will automatically also book a return label" data-ss-help=""></span>')
+        ->not->toContain('Default from the shipping method settings')
         // Both actions, always: the primary "Create shipping label" over the
         // secondary "Create return label" (a return leg on its own).
         ->toContain('class="button button-primary smart-send-fulfillment__action" name="smart_send[flow]" value="outbound" data-ss-action="create-label"')
@@ -204,23 +209,21 @@ it('enqueues the built app from the render callback only, with every dependency 
     expect(inlined_meta_box_state()['order_id'])->toBe($order->get_id());
 });
 
-it('keeps the return checkbox usable and offers a return method select when no return method is configured', function () {
+it('reads "None" with an Edit link for the return method, and keeps the return checkbox usable, when no return method is configured', function () {
     $order = create_meta_box_order(['return_method' => '']);
 
     $html = render_meta_box($order);
 
-    // The select serves both the combined run and the return-only action,
-    // so the return method row shows it right away (no Edit link, no
-    // read value) under the hint.
+    // Collapsed like every other row: "None" + Edit, the select (serving
+    // both the combined run and the return-only action) is the app's - no
+    // select, no hint on the first paint.
     expect($html)->toContain('data-ss-field="with_return" autocomplete="off">')
         ->not->toContain('disabled=\'disabled\'')
         ->toContain('data-ss-section="return_method"')
-        ->toContain('data-ss-hint="no_return_method"')
-        ->toContain('No return method configured on the shipping method - choose one here')
-        ->toContain('name="smart_send[return_method]" data-ss-field="return_method"')
-        ->toContain('<option value="postnord_returndropoff">')
-        ->not->toContain('data-ss-action="edit-return-method"')
-        ->not->toContain('data-ss-value="return_method"')
+        ->toContain('<span class="smart-send-fulfillment__none" data-ss-value="return_method">None</span>')
+        ->toContain('data-ss-action="edit-return-method"')
+        ->not->toContain('data-ss-field="return_method"')
+        ->not->toContain('No return method configured')
         ->toContain('data-ss-action="create-label"')
         ->toContain('data-ss-action="create-return-label"');
 });
@@ -257,18 +260,20 @@ it('reads "None" with an Edit link for an order without a Smart Send shipping me
 
     expect($html)->toContain('data-ss-state="no_method"')
         ->toContain('data-ss-notice="no_method"')
-        ->toContain('This order has no Smart Send shipping method. Choose the method to ship it with.')
+        ->toContain('Shipping method is not from the Smart Send plugin.')
         // The callout is inside the first section, over the method row,
         // which reads "None" with its Edit link (the select is the app's).
         ->toContain('data-ss-section="details"><div class="notice notice-info inline smart-send-fulfillment__notice" data-ss-notice="no_method">')
         ->toContain('<span class="smart-send-fulfillment__none" data-ss-value="shipping_method">None</span>')
         ->toContain('data-ss-action="edit-method"')
         ->not->toContain('data-ss-field="shipping_method"')
-        // No method, so no pickup point row; no return method either, so the
-        // return method select (for both actions) is rendered right away.
+        // No method, so no pickup point row; no return method either, so
+        // that row reads "None" with its Edit link too (the select is the app's).
         ->not->toContain('data-ss-section="pickup_point"')
-        ->toContain('data-ss-hint="no_return_method"')
-        ->toContain('name="smart_send[return_method]" data-ss-field="return_method"')
+        ->toContain('<span class="smart-send-fulfillment__none" data-ss-value="return_method">None</span>')
+        ->toContain('data-ss-action="edit-return-method"')
+        ->not->toContain('data-ss-field="return_method"')
+        ->not->toContain('No return method configured')
         // Both actions: the primary outbound one and the secondary return one.
         ->toContain('class="button button-primary smart-send-fulfillment__action" name="smart_send[flow]" value="outbound" data-ss-action="create-label"')
         ->toContain('class="button smart-send-fulfillment__action" name="smart_send[flow]" value="return" data-ss-action="create-return-label"');

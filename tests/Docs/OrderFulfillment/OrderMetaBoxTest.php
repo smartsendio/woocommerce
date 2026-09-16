@@ -248,8 +248,9 @@ it('shows the method choice for an order placed without a Smart Send method', fu
         ->navigate(docs_order_url(5));
 
     $page->assertSeeIn('#woocommerce-ss-shipping-label .hndle', 'Smart Send')
-        ->assertSeeIn('[data-ss-notice="no_method"]', 'Choose the method to ship it with')
+        ->assertSeeIn('[data-ss-notice="no_method"]', 'Shipping method is not from the Smart Send plugin.')
         ->assertSeeIn('[data-ss-value="shipping_method"]', 'None')
+        ->assertSeeIn('[data-ss-value="return_method"]', 'None')
         ->click('[data-ss-action="edit-method"]')
         ->assertPresent('[data-ss-field="shipping_method"]');
 

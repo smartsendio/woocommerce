@@ -112,7 +112,18 @@ it('creates a shipping label from the meta box without a page reload and prepend
         ->assertNotPresent('[data-ss-section="parcel_editor"]')
         ->assertSeeIn('[data-ss-section="parcel_plan"]', '1 parcel · 1.00 kg')
         ->assertNotChecked('[data-ss-field="with_return"]')
-        ->assertSeeIn('[data-ss-section="settings"]', 'Default from the shipping method settings')
+        ->assertDontSee('Default from the shipping method settings')
+        // WooCommerce's help tips (aria-label = the tip text) on the three
+        // rows and on the settings checkbox.
+        ->assertAttribute('[data-ss-section="shipping_method"] .woocommerce-help-tip', 'aria-label', 'Shipping method used for booking of outgoing shipment')
+        ->assertAttribute('[data-ss-section="return_method"] .woocommerce-help-tip', 'aria-label', 'Shipping method used for booking of return shipments')
+        ->assertAttribute('[data-ss-section="parcel_plan"] .woocommerce-help-tip', 'aria-label', 'Move items between boxes with the arrows. Weight is calculated from the items unless you enter one.')
+        ->assertAttribute('[data-ss-section="settings"] .woocommerce-help-tip', 'aria-label', 'When booking an outgoing label, then we will automatically also book a return label')
+        // The tips the app rendered are bound to WooCommerce's tipTip
+        // tooltip (WooCommerce binds on DOM ready only; the app binds after
+        // every render): hovering one shows WooCommerce's tooltip holder.
+        ->hover('[data-ss-section="shipping_method"] .woocommerce-help-tip')
+        ->assertSeeIn('#tiptip_holder', 'Shipping method used for booking of outgoing shipment')
         ->click('[data-ss-action="create-label"]')
         // State E, rendered from the POST response: documents and tracking.
         ->assertSeeIn('[data-ss-section="outbound_shipment"]', 'Booked')
@@ -184,11 +195,14 @@ it('creates only a return label for an order placed without a Smart Send method 
     ss_browser_reset_api_requests();
 
     ss_browser_open_order($order_id)
-        ->assertSeeIn('[data-ss-notice="no_method"]', 'This order has no Smart Send shipping method.')
-        // No return method to fall back on: the secondary action waits for
-        // the return method select (shown without ticking the checkbox).
+        ->assertSeeIn('[data-ss-notice="no_method"]', 'Shipping method is not from the Smart Send plugin.')
+        // No return method to fall back on: the row reads "None" and the
+        // secondary action waits for one chosen behind Edit (no checkbox
+        // needed for a return-only booking).
         ->assertNotChecked('[data-ss-field="with_return"]')
+        ->assertSeeIn('[data-ss-value="return_method"]', 'None')
         ->assertDisabled('[data-ss-action="create-return-label"]')
+        ->click('[data-ss-action="edit-return-method"]')
         ->select('[data-ss-field="return_method"]', 'postnord_returndropoff')
         ->click('[data-ss-action="create-return-label"]')
         ->assertSeeIn('[data-ss-section="return_shipment"]', 'Booked')
@@ -424,15 +438,18 @@ it('books an order placed without a Smart Send method once a method and a return
     ss_browser_reset_api_requests();
 
     ss_browser_open_order($order_id)
-        ->assertSeeIn('[data-ss-notice="no_method"]', 'This order has no Smart Send shipping method. Choose the method to ship it with.')
-        ->assertSeeIn('[data-ss-hint="no_return_method"]', 'No return method configured')
-        // The method reads "None" until Edit opens the select; the primary
-        // action waits for a method.
+        ->assertSeeIn('[data-ss-notice="no_method"]', 'Shipping method is not from the Smart Send plugin.')
+        ->assertDontSee('No return method configured')
+        // Both method rows read "None" until Edit opens their select; the
+        // primary action waits for a method.
         ->assertSeeIn('[data-ss-value="shipping_method"]', 'None')
+        ->assertSeeIn('[data-ss-value="return_method"]', 'None')
+        ->assertNotPresent('[data-ss-field="return_method"]')
         ->assertDisabled('[data-ss-action="create-label"]')
         ->click('[data-ss-action="edit-method"]')
         ->select('[data-ss-field="shipping_method"]', 'postnord_homedelivery')
         ->check('[data-ss-field="with_return"]')
+        ->click('[data-ss-action="edit-return-method"]')
         ->select('[data-ss-field="return_method"]', 'postnord_returndropoff')
         ->click('[data-ss-action="create-label"]')
         ->assertSeeIn('[data-ss-section="outbound_shipment"]', 'Booked')
@@ -472,18 +489,22 @@ it('books a return with another return method chosen behind the return method ro
         ->and($requests[1]['body']['shipping_method'])->toBe('returndropoff');
 });
 
-it('explains a missing return method and offers the return method select for both actions', function () {
+it('reads "None" for a missing return method and offers the select behind Edit for both actions', function () {
     $order_id = ss_browser_state()['orders'][9];
 
     ss_browser_open_order($order_id)
-        ->assertSeeIn('[data-ss-hint="no_return_method"]', 'No return method configured on the shipping method')
+        ->assertSeeIn('[data-ss-value="return_method"]', 'None')
+        ->assertDontSee('No return method configured')
+        ->assertAttribute('[data-ss-section="return_method"] .woocommerce-help-tip', 'aria-label', 'Shipping method used for booking of return shipments')
         ->assertNotChecked('[data-ss-field="with_return"]')
-        // The select is there right away in the return method row - the
-        // return-only action needs it without the checkbox - and the
-        // return action waits for a choice.
-        ->assertPresent('[data-ss-section="return_method"] [data-ss-field="return_method"]')
-        ->assertNotPresent('[data-ss-action="edit-return-method"]')
+        // Collapsed like every row: no select until Edit; the return action
+        // waits for a choice (the return-only action needs it without the
+        // checkbox).
+        ->assertNotPresent('[data-ss-field="return_method"]')
+        ->assertPresent('[data-ss-action="edit-return-method"]')
         ->assertDisabled('[data-ss-action="create-return-label"]')
+        ->click('[data-ss-action="edit-return-method"]')
+        ->assertNotPresent('[data-ss-action="edit-return-method"]')
         ->select('[data-ss-field="return_method"]', 'postnord_returndropoff')
         ->assertEnabled('[data-ss-action="create-return-label"]')
         ->check('[data-ss-field="with_return"]')

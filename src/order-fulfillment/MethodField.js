@@ -2,12 +2,12 @@
 /** @jsx createElement */
 /**
  * The shipping method and return method rows: the method name (grey
- * "None" when the order has none) with an "Edit" link that swaps the
- * value for the grouped method select in place (state.methods.outbound /
- * .return). The return method row shows the select right away when the
- * shipping method has no return method configured (state B, or a zone
- * method without one) - the chosen method serves both the combined
- * outbound + return run and the return-only action.
+ * "None" when the order has none, or no return method is configured)
+ * with an "Edit" link that swaps the value for the grouped method select
+ * in place (state.methods.outbound / .return). Both rows are collapsed
+ * to their read value in every state - the select appears only after
+ * Edit; a return method chosen there serves both the combined outbound +
+ * return run and the return-only action.
  */
 import { createElement } from '@wordpress/element';
 import { __ } from '@wordpress/i18n';
@@ -16,8 +16,8 @@ import { methodName } from './model';
 import { FieldError } from './ErrorNotice';
 import DetailRow, { NoneValue } from './Row';
 
-export const SHIPPING_METHOD_HELP = __( 'Taken from the order. Choose another method to ship it differently; the order is not changed.', 'smart-send-logistics' );
-export const RETURN_METHOD_HELP = __( 'Used for return labels. Taken from the shipping method settings; change it here for this booking only.', 'smart-send-logistics' );
+export const SHIPPING_METHOD_HELP = __( 'Shipping method used for booking of outgoing shipment', 'smart-send-logistics' );
+export const RETURN_METHOD_HELP = __( 'Shipping method used for booking of return shipments', 'smart-send-logistics' );
 
 export function MethodSelect( { id, field, groups, value, onChange, placeholder } ) {
 	return (
@@ -65,26 +65,18 @@ export default function MethodField( { groups, value, editing, editable = true, 
 
 /**
  * The return method row. `configured` is the method the shipping method
- * settings resolve to (null when none): with one, the row reads it and
- * "Edit" opens the select; without one, the select is shown right away
- * under a hint.
+ * settings resolve to (null when none): the row reads it - grey "None"
+ * when there is none - and "Edit" opens the select, in every state.
  */
 export function ReturnMethodField( { groups, value, configured, editing, editable = true, onEdit, onChange, errors, id = 'smart-send-return-method' } ) {
-	const showSelect = editing || ! configured;
-
 	return (
-		<DetailRow section="return_method" label={ __( 'Return method', 'smart-send-logistics' ) } help={ RETURN_METHOD_HELP } action="edit-return-method" editable={ editable && !! configured } editing={ showSelect } onEdit={ onEdit }>
-			{ showSelect ? (
+		<DetailRow section="return_method" label={ __( 'Return method', 'smart-send-logistics' ) } help={ RETURN_METHOD_HELP } action="edit-return-method" editable={ editable } editing={ editing } onEdit={ onEdit }>
+			{ editing ? (
 				<MethodSelect id={ id } field="return_method" groups={ groups } value={ value } onChange={ onChange } />
 			) : (
 				<div className="smart-send-fulfillment__value">
-					<span data-ss-value="return_method">{ methodName( groups, configured ) || configured }</span>
+					{ configured ? <span data-ss-value="return_method">{ methodName( groups, configured ) || configured }</span> : <NoneValue field="return_method" /> }
 				</div>
-			) }
-			{ ! configured && (
-				<p className="smart-send-fulfillment__hint" data-ss-hint="no_return_method">
-					{ __( 'No return method configured on the shipping method - choose one here, or set one under WooCommerce → Shipping → the zone method.', 'smart-send-logistics' ) }
-				</p>
 			) }
 			<FieldError field="return_method" errors={ errors } />
 		</DetailRow>

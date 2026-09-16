@@ -60,36 +60,21 @@
 	}
 
 	&__summary,
-	&__hint,
 	&__none,
 	&__address {
 		color: #50575e;
 	}
 
 	&__summary,
-	&__hint,
 	&__address {
 		font-size: 12px;
 	}
 
-	&__hint {
-		display: block;
-		margin: 2px 0 0;
-	}
-
-	&__help {
-		display: inline-flex;
-		align-items: center;
-		justify-content: center;
-		width: 16px;
-		height: 16px;
-		color: #646970;
-		cursor: help;
-		vertical-align: middle;
-
-		svg {
-			display: block;
-		}
+	// WooCommerce's own help tip (styled by WooCommerce's admin stylesheet);
+	// only its placement in the flex label line is ours.
+	.woocommerce-help-tip {
+		flex: 0 0 auto;
+		margin: 0;
 	}
 
 	&__edit,
@@ -159,7 +144,13 @@
 		}
 	}
 
-	// The settings checkbox with its grey hint under the label.
+	// The settings checkbox with its help tip next to the label.
+	&__check-row {
+		display: flex;
+		align-items: center;
+		gap: 6px;
+	}
+
 	&__check {
 		display: flex;
 		align-items: flex-start;
