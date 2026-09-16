@@ -74,6 +74,7 @@ if (empty($state['original_settings'])) {
 }
 
 delete_option('ss_test_api');
+delete_option('ss_test_api_requests');
 // Legacy single-scenario mock options (pre per-endpoint rework) - remove if left behind.
 delete_option('ss_test_api_mock');
 delete_option('ss_test_api_scenario');

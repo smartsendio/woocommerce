@@ -8,10 +8,11 @@
  */
 
 /**
- * Fulfill an order and return the legacy AJAX response shape. The only
- * public entry points (the AJAX handler and the bulk handler) wrap the
- * fulfillment service the same way; the AJAX handler cannot run in-process
- * because it ends with wp_send_json() + wp_die().
+ * Fulfill an order and return the run's canonical array form
+ * (SS_Shipping_Fulfillment_Result::to_array(), what the REST response's
+ * shipments[] carries). The two public entry points - the REST controller
+ * behind the order meta box (#182) and the bulk handler - wrap the
+ * fulfillment service the same way.
  */
 function create_labels_for(int $order_id, bool $return = false, bool $save_order_note = true): array
 {
@@ -21,7 +22,7 @@ function create_labels_for(int $order_id, bool $return = false, bool $save_order
         ? $fulfillment->fulfill_return($order_id, $save_order_note)
         : $fulfillment->fulfill_outbound($order_id, $save_order_note);
 
-    return $result->to_legacy_response_array();
+    return $result->to_array();
 }
 
 /**
@@ -60,8 +61,9 @@ beforeEach(function (): void {
     with_ss_settings();
 });
 
-it('registers the AJAX label generation handler', function () {
-    expect(has_action('wp_ajax_ss_shipping_generate_label'))->not->toBeFalse();
+it('registers no admin-ajax label handler: the order meta box books through the REST controller', function () {
+    expect(has_action('wp_ajax_ss_shipping_generate_label'))->toBeFalse()
+        ->and(class_exists('SS_Shipping_Label_Creator'))->toBeFalse();
 });
 
 it('creates a label, saves the shipment id and adds an order note on success', function () {
@@ -82,10 +84,10 @@ it('creates a label, saves the shipment id and adds an order note on success', f
     $response = create_labels_for($order->get_id());
 
     expect($response)->toHaveCount(1)
-        ->and($response[0])->toHaveKey('success')
-        ->and($response[0]['success']->shipment_id)->toBe('shipment-abc')
-        ->and($response[0]['success']->woocommerce['label_url'])->toBe('https://api.example.test/labels/label.pdf')
-        ->and($response[0]['success']->woocommerce['return'])->toBeFalse()
+        ->and($response[0]['status'])->toBe('fulfilled')
+        ->and($response[0]['direction'])->toBe('outbound')
+        ->and($response[0]['shipment']['shipment_id'])->toBe('shipment-abc')
+        ->and($response[0]['shipment']['documents'][0]['url'])->toBe('https://api.example.test/labels/label.pdf')
         ->and($capture->requests)->toHaveCount(1)
         ->and($fired)->toBe([$order->get_id()]);
 
@@ -101,11 +103,12 @@ it('creates a label, saves the shipment id and adds an order note on success', f
         ->toContain('https://tracking.example.test/TRACK-1234');
 });
 
-it('persists submitted delivery overrides through the repository before booking', function () {
-    // The AJAX controller translates the posted parcel rows into a typed
-    // SS_Shipping_Parcel_Plan and hands it into the flow as partial
-    // delivery details (#139); the fulfillment service persists them in
-    // the frozen meta format before booking (save-before-book preserved).
+it('persists submitted delivery overrides through the repository once the booking succeeded', function () {
+    // The REST controller hands the submitted parcel plan into the flow as
+    // partial delivery details (#182); the fulfillment service books with
+    // them and persists them in the frozen meta format after the booking
+    // succeeded (persist-after-success - a failed booking writes nothing,
+    // see FulfillmentServiceTest).
     $product_a = create_simple_product(['name' => 'Override Box One', 'price' => 100, 'weight' => 1]);
     $product_b = create_simple_product(['name' => 'Override Box Two', 'price' => 50, 'weight' => 2]);
     $order     = create_order([
@@ -145,7 +148,8 @@ it('updates the order status after label generation when configured', function (
 
     $response = create_labels_for($order->get_id());
 
-    expect($response[0])->toHaveKey('success')
+    expect($response[0]['status'])->toBe('fulfilled')
+        ->and($response[0]['steps']['order_status'])->toBe('wc-completed')
         ->and(wc_get_order($order->get_id())->get_status())->toBe('completed');
 });
 
@@ -158,8 +162,10 @@ it('returns the formatted API error message when the API rejects the shipment', 
     $response = create_labels_for($order->get_id());
 
     expect($response)->toHaveCount(1)
-        ->and($response[0])->toHaveKey('error')
-        ->and($response[0]['error'])->toContain('The given data was invalid.')
+        ->and($response[0]['status'])->toBe('failed')
+        ->and($response[0]['error']['message'])->toBe('The given data was invalid.')
+        ->and($response[0]['error']['response_id'])->toBe('test-response-id')
+        ->and($response[0]['error']['html'])->toContain('The given data was invalid.')
         ->toContain('The postal code is invalid.')
         ->toContain('Response ID: test-response-id');
 
@@ -173,10 +179,11 @@ it('auto-generates the return label after a successful normal label', function (
     $response = create_labels_for($order->get_id());
 
     expect($response)->toHaveCount(2)
-        ->and($response[0])->toHaveKey('success')
-        ->and($response[0]['success']->woocommerce['return'])->toBeFalse()
-        ->and($response[1])->toHaveKey('success')
-        ->and($response[1]['success']->woocommerce['return'])->toBeTrue()
+        ->and($response[0]['status'])->toBe('fulfilled')
+        ->and($response[0]['direction'])->toBe('outbound')
+        ->and($response[1]['status'])->toBe('fulfilled')
+        ->and($response[1]['direction'])->toBe('return')
+        ->and($response[1]['shipment']['is_return'])->toBeTrue()
         ->and($capture->requests)->toHaveCount(2);
 
     // The second request books the configured return method.
@@ -198,8 +205,9 @@ it('creates only a return label when explicitly requested', function () {
     $response = create_labels_for($order->get_id(), true);
 
     expect($response)->toHaveCount(1)
-        ->and($response[0])->toHaveKey('success')
-        ->and($response[0]['success']->woocommerce['return'])->toBeTrue();
+        ->and($response[0]['status'])->toBe('fulfilled')
+        ->and($response[0]['direction'])->toBe('return')
+        ->and($response[0]['shipment']['is_return'])->toBeTrue();
 
     $fresh = wc_get_order($order->get_id());
     expect($fresh->get_meta('_ss_shipping_return_label_id', true))->not->toBe('')

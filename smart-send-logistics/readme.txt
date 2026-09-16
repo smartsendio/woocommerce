@@ -173,17 +173,40 @@ Example: show at most 5 pickup points, and pre-select the first one that is open
 
 = 2. Fulfillment =
 
-Fulfillment runs when the merchant clicks "Generate label" on the order page or uses the bulk action. For each label (outbound, and the return label when one is created) it decides the delivery details, books, and then applies the side effects on the order one step at a time. Every step has a filter, and the run ends with one action.
+Fulfillment runs when the merchant creates a label on the order page or uses the bulk action. For each label (outbound, and the return label when one is created) it decides the delivery details, books, and then applies the side effects on the order one step at a time. Every step has a filter, and the run ends with one action.
 
 Deciding what ships:
 
 * **smart_send_delivery_details** `( SS_Shipping_Delivery_Details $details, WC_Order $order, bool $is_return )` (since 9.0.0)
-    Filter on the merged delivery details - the stored order configuration plus the shipping method resolved from the order - right before booking is called. This is the one place to override the shipping method (`set_shipping_method('gls_shop')`), clear or replace the pickup point (`set_pickup_point()` with a `SS_Shipping_Pickup_Point` or `null`) or declare the parcel split (`set_parcel_plan()` with a `SS_Shipping_Parcel_Plan` of `SS_Shipping_Parcel_Spec` rows - a spec may carry dimensions and an explicit weight with no item allocations at all). Return the details object
+    Filter on the merged delivery details - the stored order configuration plus the shipping method resolved from the order - right before booking is called. This is the one place to override the shipping method (`set_shipping_method('gls_shop')`), clear or replace the pickup point (`set_pickup_point()` with a `SS_Shipping_Pickup_Point` or `null`) or declare the parcel split (`set_parcel_plan()` with a `SS_Shipping_Parcel_Plan` of `SS_Shipping_Parcel_Spec` rows - a spec may carry dimensions and an explicit weight with no item allocations at all). Return the details object.
+    The details the merchant submitted in the order meta box (shipping method, pickup point, parcels) are already merged into `$details` when the filter runs - a submitted value wins over the stored one. They are stored on the order only after the booking succeeds: the submitted pickup point and the parcel item rows are written first, then the shipment id; a failed booking leaves the order meta untouched. The submitted shipping method and a parcel's weight and dimensions are per booking and are never stored. What the filter returns is what gets booked, but it is not what gets stored.
+* **smart_send_parcel_default_weight** `( float $weight, SS_Shipping_Parcel_Spec $spec, WC_Order $order )` (since 9.0.0)
+    Filter on the weight of a parcel that has no explicit weight: the sum of the weights of the items allocated to it (0 when the items weigh nothing or the parcel has no items). Use it to add packaging weight or apply a minimum. A parcel with an explicit weight - entered in the order meta box, or `set_weight()` on the spec in `smart_send_delivery_details` - bypasses this filter entirely
 
-Side effects on the order, in the order they run (the shipment id is always stored in order meta first):
+What the order screen offers:
+
+* **smart_send_fulfillment_shipping_methods** `( array $carriers, WC_Order $order, bool $is_return )` (since 9.0.0)
+    Filter on the shipping methods the order screen's "Smart Send" box offers in its method drop-downs. It runs once per list, so the outbound and the return drop-down can be restricted differently (`$is_return` tells them apart). The methods are carriers, each with services, each with addons:
+
+        array(
+            array(
+                'code'     => 'postnord',
+                'name'     => 'PostNord',
+                'services' => array(
+                    array( 'code' => 'agent', 'name' => 'PostNord: Select pickup point (MyPack Collect)', 'addons' => array() ),
+                    array( 'code' => 'homedelivery', 'name' => 'PostNord: Private delivery to address (MyPack Home)', 'addons' => array() ),
+                ),
+            ),
+        )
+
+    The method code booked with is `<carrier code>_<service code>`, e.g. `postnord_agent`. Returning an empty array leaves the drop-down empty. `addons` is **reserved** for the delivery addons landing with the API v2 work and is always an empty array today - do not build an addon catalogue on it.
+    The method the order itself resolves to (its stored/resolved shipping method, and the configured return method) is always offered, even when the filter removes its carrier or service: the box never shows a selected value its drop-down cannot offer, and the plugin logs that at `debug` level naming the method code.
+    This narrows what the **box offers**; it is **not an authorisation boundary**. The REST route behind the box does not validate a submitted method against the filter, and only users with the `edit_shop_orders` capability reach any of it. Use `smart_send_delivery_details` when a method must not be booked at all.
+
+Side effects on the order, in the order they run (the submitted delivery details, then the shipment id, are always stored in order meta first):
 
 * **smart_send_fulfillment_save_documents** `( bool $save, SS_Shipping_Booked_Shipment $shipment, WC_Order $order )` (since 9.0.0)
-    Filter on whether a copy of the shipment's documents is saved in the uploads folder; defaults to the "Save shipping labels in uploads folder" setting. When saved, the label document's `download_url()` points at the copy
+    Filter on whether a copy of the shipment's documents is saved in the uploads folder; defaults to the "Save shipping labels in uploads folder" setting. When saved, the label document's `download_url()` points at the copy. A copy that cannot be saved does not fail the label: the shipment stays fulfilled with a warning (`get_warnings($shipment)` on the result, `save_documents` = `'failed'` in `get_steps($shipment)`) and `download_url()` falls back to the Smart Send URL
 * **smart_send_fulfillment_order_note** `( string $note_html, SS_Shipping_Booked_Shipment $shipment, WC_Order $order )` (since 9.0.0)
     Filter on the order note added once the shipment is booked (document links, codes, tracking numbers). Return an empty string to add no note. Replaces `smart_send_shipping_label_comment`
 * **smart_send_fulfillment_tracking** `( bool $push, SS_Shipping_Booked_Shipment $shipment, WC_Order $order )` (since 9.0.0)
@@ -194,7 +217,28 @@ Side effects on the order, in the order they run (the shipment id is always stor
 When the run is done:
 
 * **smart_send_order_fulfilled** `( WC_Order $order, SS_Shipping_Fulfillment_Result $result )` (since 9.0.0)
-    Action fired once per run, after every side effect of every label is applied, when at least one shipment was fulfilled. The result carries `shipments()`, `get_outbound_shipment()` and `get_return_shipment()` (each a `SS_Shipping_Booked_Shipment`, see Booking below), `get_order_note($shipment)`, `get_steps($shipment)` (which side effects ran) and, for a leg that failed, `get_outbound_error()`/`get_return_error()` and `get_validation_errors($is_return)`. Replaces `smart_send_shipping_label_created` (8.x), which no longer fires
+    Action fired once per run, after every side effect of every label is applied, when at least one shipment was fulfilled. The result carries `shipments()`, `get_outbound_shipment()` and `get_return_shipment()` (each a `SS_Shipping_Booked_Shipment`, see Booking below), `get_order_note($shipment)`, `get_order_note_id($shipment)`, `get_steps($shipment)` (which side effects ran), `get_warnings($shipment)` and, for a leg that failed, `get_outbound_error()`/`get_return_error()` (HTML), `get_validation_errors($is_return)` and `get_error_details($is_return)` (message, Response-ID, field errors, HTML). `to_array()` is the serializable form: one row per attempted label with `direction`, `status` (`fulfilled`/`failed`), the shipment's `to_array()`, `steps`, `order_note`, `warnings` or `error`. Replaces `smart_send_shipping_label_created` (8.x), which no longer fires
+
+Example: offer only PostNord pickup point services on the order screen for heavy orders:
+
+    add_filter('smart_send_fulfillment_shipping_methods', function (array $carriers, WC_Order $order, bool $is_return) {
+        if ($is_return || $order->get_shipping_total() < 10) {
+            return $carriers;
+        }
+
+        foreach ($carriers as $index => $carrier) {
+            if ($carrier['code'] !== 'postnord') {
+                unset($carriers[$index]);
+                continue;
+            }
+
+            $carriers[$index]['services'] = array_values(array_filter($carrier['services'], function ($service) {
+                return in_array($service['code'], array('agent', 'collect'), true);
+            }));
+        }
+
+        return array_values($carriers);
+    }, 10, 3);
 
 Example: ship every order in two parcels of fixed size and weight, with no item allocation:
 
@@ -269,7 +313,7 @@ The request and the result:
 * **smart_send_booking_failed** `( SS_Shipping_Booking_Exception $exception, SS_Shipping_Shipment $shipment, WC_Order $order )` (since 9.0.0)
     Action when the API rejected the shipment, right before the exception is thrown. `$exception->getMessage()` is the API message, `errors()` the per-field validation errors (field => list of messages), `response_id()` the Smart Send Response-ID for support, `getPrevious()` the API client exception
 
-The booked shipment (`SS_Shipping_Booked_Shipment`) carries `get_shipment_id()`, `get_carrier()` (the carrier code, e.g. `postnord`), `get_service_code()`, `is_return()`, `get_state()`, `get_booked_at()`, shipment-level `get_tracking_code()`/`get_tracking_url()`, `parcels()` (`SS_Shipping_Booked_Parcel`: parcel id, tracking code and URL), `documents()` (`SS_Shipping_Shipment_Document`: type such as `label` or `customs_declaration`, format such as `pdf` or `zpl`, layout, `get_url()`, and `get_local_url()`/`get_local_path()` when fulfillment stored a copy - `download_url()` prefers that copy) and `codes()` (`SS_Shipping_Shipment_Code`: type such as `qr_code`, value, image URL, expiry, instructions). Documents and codes are lists on the shipment, never on a parcel - do not assume one PDF; `label_document()` is a shortcut to the first label document, or null. `to_array()`/`from_array()` round-trip every field. Today (API v1) a booking yields exactly one `label`/`pdf` document and no codes; API v2 will add QR codes, label codes and ZPL/customs documents without changing this contract.
+The booked shipment (`SS_Shipping_Booked_Shipment`) carries `get_shipment_id()`, `get_carrier()` (the carrier code, e.g. `postnord`), `get_service_code()`, `is_return()`, `get_state()`, `get_booked_at()`, shipment-level `get_tracking_code()`/`get_tracking_url()`, `parcels()` (`SS_Shipping_Booked_Parcel`: parcel id, tracking code and URL, plus the weight, dimensions and reference it was booked with - carried over from the request parcel, since the API does not echo them back), `documents()` (`SS_Shipping_Shipment_Document`: type such as `label` or `customs_declaration`, format such as `pdf` or `zpl`, layout, `get_url()`, and `get_local_url()`/`get_local_path()` when fulfillment stored a copy - `download_url()` prefers that copy) and `codes()` (`SS_Shipping_Shipment_Code`: type such as `qr_code`, value, image URL, expiry, instructions). Documents and codes are lists on the shipment, never on a parcel - do not assume one PDF; `label_document()` is a shortcut to the first label document, or null. `to_array()`/`from_array()` round-trip every field. Today (API v1) a booking yields exactly one `label`/`pdf` document and no codes; API v2 will add QR codes, label codes and ZPL/customs documents without changing this contract.
 
 Example: react to a completed booking and to a rejected one:
 
@@ -314,6 +358,8 @@ The following meta fields are used by the plugin. The order meta keys and their 
     Hidden field used for storing the unique Smart Send id of the generated shipping label
 * **_ss_shipping_return_label_id**
     Hidden field used for storing the unique Smart Send id of the generated return shipping label
+* **_ss_shipping_labels** (since 9.0.0)
+    Hidden field holding the append-only list of every label booked for the order - one row per shipment with its direction, Smart Send shipment id and booking time - which the order screen shows as "Booked shipments"
 * **_ss_hs_code**
     Hidden field used to store the customs HS code for products in WooCommerce
 * **_ss_customs_desc**
@@ -334,6 +380,9 @@ This box appears when a "Select Pickup Point" shipping method is selected, but n
 = Info box: Enter shipping information =
 This box appears when a "Select Pickup Point" shipping method is selected, but no shipping address is entered. Enter a valid shipping address so that the plugin can search for nearby pickup points.
 
+= Can I create a label for an order placed with another shipping method? =
+Yes. Open the order and use the Smart Send box: when the order has no Smart Send shipping method (for example a Flat rate order), the box says so ("Shipping method is not from the Smart Send plugin.") and the shipping method row reads "None". Press its Edit link, choose the Smart Send method to ship with and create the label - the method applies to that label only and is not stored on the order.
+
 = Does the plugin work with the WooCommerce Checkout Block and HPOS? =
 Yes. Pickup point selection works in both the classic checkout and the WooCommerce Checkout Block, and the plugin is compatible with High-Performance Order Storage (HPOS).
 
@@ -346,9 +395,9 @@ No - this is by design. Neither deactivating nor uninstalling the plugin deletes
 == Screenshots ==
 
 1. Show closest pickup points during checkout
-2. Create PDF shipping labels from backend with just one click
-3. Save tracking information automatically after creating shipping labels
-4. Get detailed error description if something is incorrect
+2. Create shipping labels from the order screen - change the shipping method, pickup point and parcels before booking, with every booked label listed under "Booked shipments"
+3. Once booked, the box confirms the shipment, links to it in the Smart Send app and lists the parcels with their tracking numbers, weight and dimensions
+4. Booking errors are shown on the field they belong to, with a response ID for support
 5. Add shipping methods to WooCommerce Shipping Zones
 6. Connect WooCommerce to Smart Send by entering the API Token
 
@@ -360,6 +409,8 @@ No - this is by design. Neither deactivating nor uninstalling the plugin deletes
 * New hook and filter API (smart_send_*) for every stage: shipping methods at checkout, fulfillment and booking. The version 8 hooks and filters no longer work - see the Developers section
 * Support for the WooCommerce Checkout Block: pickup point selection now works in the block-based checkout as well as the classic checkout
 * Support for High-Performance Order Storage (HPOS)
+* Rebuilt order-screen meta box: books without a page reload, lets you change the shipping method, pickup point and parcels (weight and dimensions per box) before booking, and books orders placed with another shipping method. A booking is confirmed right in the box - the shipment with a link into the Smart Send app, every parcel with its tracking number, weight and dimensions, and the documents - and every label the order has is listed under "Booked shipments"; the form stays open, so another label is always one click away
+* New filter smart_send_fulfillment_shipping_methods: restrict the shipping methods the order screen's "Smart Send" box offers in its method drop-downs, per order and per direction - see the Developers section
 * Minimum required WordPress version raised to 6.5
 * Minimum required WooCommerce version raised from 4.7 to 8.2
 * Minimum required PHP version is 7.4 (unchanged since 8.2.0)

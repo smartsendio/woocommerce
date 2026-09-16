@@ -98,6 +98,7 @@ function block_cart_setup(string $method_code = 'postnord_agent', array $address
         remove_filter('woocommerce_package_rates', $rate_filter);
         WC()->cart->empty_cart();
         WC()->session->set('chosen_shipping_methods', null);
+        WC()->session->set('shipping_for_package_0', null);
         WC()->session->set('ss_shipping_agents', null);
         WC()->session->set(SS_Shipping_Store_Api::SESSION_SELECTED_AGENT_NO, null);
 
@@ -107,6 +108,18 @@ function block_cart_setup(string $method_code = 'postnord_agent', array $address
         $customer->set_shipping_city('');
         $customer->set_shipping_address_1('');
     });
+
+    // WooCommerce caches a package's calculated rates in the session under
+    // shipping_for_package_<key>, keyed by a hash that includes the
+    // 'shipping' transient version - second resolution, like the method
+    // count above. Two tests running inside the same wall-clock second
+    // with the same cart shape therefore share ONE cache entry, and the
+    // second is handed the first one's rates. Every test here uses the
+    // rate id smart_send_shipping:1, so the id guard below still passes
+    // while the rate's smart_send_shipping_method meta is the previous
+    // test's - which reads a home-delivery rate as an agent one. Drop the
+    // cached package so each test calculates its own rates.
+    WC()->session->set('shipping_for_package_0', null);
 
     // Verify the gate BEFORE calculating: WC_Cart::show_shipping() (and
     // needs_shipping()) short-circuit when the store counts zero enabled

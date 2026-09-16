@@ -25,6 +25,12 @@ if ( ! class_exists( 'SS_Shipping_Parcel_Plan' ) ) :
 	 * (SS_Shipping_Order_Meta) and the label-creation controller both use
 	 * that frozen row shape at their boundaries.
 	 *
+	 * to_array()/from_array() are the canonical JSON form of a plan (#182):
+	 * array( 'specs' => array( SS_Shipping_Parcel_Spec::to_array(), ... ) ).
+	 * Unlike the frozen box rows, this form carries a spec's weight and
+	 * dimensions and can express specs without items. An empty 'specs'
+	 * list is the empty plan (one parcel containing everything).
+	 *
 	 * Serializable, with no live WC_Order or WordPress dependency
 	 * (Phase 7 queues delivery details).
 	 */
@@ -98,6 +104,42 @@ if ( ! class_exists( 'SS_Shipping_Parcel_Plan' ) ) :
 			}
 
 			return $rows;
+		}
+
+		/**
+		 * Build a plan from its to_array() form (the canonical JSON shape).
+		 * A missing or empty 'specs' list is the empty plan.
+		 *
+		 * @param array $data The array produced by to_array() (or the decoded JSON of a request).
+		 *
+		 * @return self
+		 */
+		public static function from_array( array $data ): self {
+			$plan = new self();
+
+			foreach ( isset( $data['specs'] ) && is_array( $data['specs'] ) ? $data['specs'] : array() as $spec ) {
+				if ( is_array( $spec ) ) {
+					$plan->add_spec( SS_Shipping_Parcel_Spec::from_array( $spec ) );
+				}
+			}
+
+			return $plan;
+		}
+
+		/**
+		 * The canonical array form of the plan (see the class docblock).
+		 *
+		 * @return array
+		 */
+		public function to_array(): array {
+			return array(
+				'specs' => array_map(
+					static function ( SS_Shipping_Parcel_Spec $spec ) {
+						return $spec->to_array();
+					},
+					array_values( $this->specs )
+				),
+			);
 		}
 
 		/**

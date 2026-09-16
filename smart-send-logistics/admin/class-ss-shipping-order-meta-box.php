@@ -9,8 +9,14 @@ use Automattic\WooCommerce\Internal\DataStores\Orders\CustomOrdersTableControlle
 /**
  * Smart Send order screen meta box.
  *
- * Registers and renders the "Smart Send Shipping" meta box on the
- * WooCommerce order edit screen (legacy post-based and HPOS).
+ * Registers and renders the "Smart Send" meta box on the
+ * WooCommerce order edit screen (legacy post-based and HPOS). The box is
+ * rendered from the one state object SS_Shipping_Order_Fulfillment_Presenter
+ * builds (#182): the presenter renders the server-side first paint and the
+ * same state is inlined as window.smartSendOrderFulfillment for the React
+ * app (src/order-fulfillment/, built into build/order-fulfillment/), which
+ * mounts on #smart-send-fulfillment and talks to the REST controller - no
+ * admin-ajax, no page reload.
  *
  * @package  SS_Shipping_Order_Meta_Box
  * @category Shipping
@@ -23,44 +29,40 @@ if ( ! class_exists( 'SS_Shipping_Order_Meta_Box' ) ) :
 	class SS_Shipping_Order_Meta_Box {
 
 		/**
-		 * Order meta repository.
-		 *
-		 * @var SS_Shipping_Order_Meta
+		 * The meta box id.
 		 */
-		protected SS_Shipping_Order_Meta $order_meta;
+		const META_BOX_ID = 'woocommerce-ss-shipping-label';
 
 		/**
-		 * Shipping method resolver.
-		 *
-		 * @var SS_Shipping_Method_Resolver
+		 * The script handle of the meta box app: the built
+		 * build/order-fulfillment/index.js bundle (src/order-fulfillment/),
+		 * with the state riding as an inline script before it.
 		 */
-		protected SS_Shipping_Method_Resolver $method_resolver;
+		const STATE_SCRIPT_HANDLE = 'ss-order-fulfillment';
 
 		/**
-		 * Pickup point display formatter.
-		 *
-		 * @var SS_Shipping_Pickup_Point_Formatter
+		 * The stylesheet handle of the meta box app
+		 * (build/order-fulfillment/style-index.css).
 		 */
-		protected SS_Shipping_Pickup_Point_Formatter $pickup_point_formatter;
+		const STYLE_HANDLE = 'ss-order-fulfillment';
 
 		/**
-		 * Typed plugin settings reader.
-		 *
-		 * @var SS_Shipping_Settings
+		 * The built entry inside build/, without extension.
 		 */
-		protected SS_Shipping_Settings $settings;
+		const BUILD_ENTRY = 'order-fulfillment/index';
 
 		/**
-		 * @param SS_Shipping_Order_Meta             $order_meta             Order meta repository.
-		 * @param SS_Shipping_Method_Resolver        $method_resolver        Shipping method resolver.
-		 * @param SS_Shipping_Pickup_Point_Formatter $pickup_point_formatter Pickup point display formatter.
-		 * @param SS_Shipping_Settings|null          $settings               Typed plugin settings reader (stateless; a fresh default is safe).
+		 * The meta box presenter (state + form rendering).
+		 *
+		 * @var SS_Shipping_Order_Fulfillment_Presenter
 		 */
-		public function __construct( SS_Shipping_Order_Meta $order_meta, SS_Shipping_Method_Resolver $method_resolver, SS_Shipping_Pickup_Point_Formatter $pickup_point_formatter, ?SS_Shipping_Settings $settings = null ) {
-			$this->order_meta             = $order_meta;
-			$this->method_resolver        = $method_resolver;
-			$this->pickup_point_formatter = $pickup_point_formatter;
-			$this->settings               = null === $settings ? new SS_Shipping_Settings() : $settings;
+		protected SS_Shipping_Order_Fulfillment_Presenter $presenter;
+
+		/**
+		 * @param SS_Shipping_Order_Fulfillment_Presenter $presenter The meta box presenter.
+		 */
+		public function __construct( SS_Shipping_Order_Fulfillment_Presenter $presenter ) {
+			$this->presenter = $presenter;
 		}
 
 		/**
@@ -73,24 +75,6 @@ if ( ! class_exists( 'SS_Shipping_Order_Meta_Box' ) ) :
 		}
 
 		/**
-		 * The label-generation button text. Plain methods instead of the
-		 * historic per-request global define()s (#140).
-		 *
-		 * @return string
-		 */
-		protected function label_button_text() {
-			return __( 'Generate label', 'smart-send-logistics' );
-		}
-
-		/**
-		 * The return-label-generation button text.
-		 *
-		 * @return string
-		 */
-		protected function return_label_button_text() {
-			return __( 'Generate return label', 'smart-send-logistics' );
-		}
-		/**
 		 * Add the meta box for shipment info on the order page
 		 */
 		public function add_smart_send_order_meta_box() {
@@ -100,8 +84,8 @@ if ( ! class_exists( 'SS_Shipping_Order_Meta_Box' ) ) :
 				: 'shop_order';
 
 			add_meta_box(
-				'woocommerce-ss-shipping-label',
-				__( 'Smart Send Shipping', 'smart-send-logistics' ),
+				self::META_BOX_ID,
+				__( 'Smart Send', 'smart-send-logistics' ),
 				array( $this, 'render_smart_send_order_meta_box' ),
 				$screen,
 				'side',
@@ -110,7 +94,8 @@ if ( ! class_exists( 'SS_Shipping_Order_Meta_Box' ) ) :
 		}
 
 		/**
-		 * Render the content of the order meta box.
+		 * Render the content of the order meta box: the presenter's form for
+		 * the order's state, with the state inlined for the client.
 		 *
 		 * @param WP_Post|WC_Order $post_or_order_object
 		 * @return void
@@ -125,195 +110,61 @@ if ( ! class_exists( 'SS_Shipping_Order_Meta_Box' ) ) :
 				return;
 			}
 
-			$order_id = $order->get_id();
+			$state = $this->presenter->state( $order );
 
-			$ss_shipping_method_id = $this->method_resolver->resolve_outbound( $order );
-
-			// Only display Smart Shipping (SS) meta box is SS selected as shipping method OR free shipping is set to SS method.
-			if ( ! $ss_shipping_method_id ) {
-				SS_Shipping_Logger::debug( 'No Smart Send shipping method on order - skipping meta box content', array( 'order_id' => $order_id ) );
-
-				echo '<p>' . esc_html__( 'Order placed with a shipping method that is not from the Smart Send plugin', 'smart-send-logistics' ) . '</p>';
-
-				return;
+			if ( null === $state['delivery_details']['shipping_method'] ) {
+				SS_Shipping_Logger::debug( 'No Smart Send shipping method on order - the meta box offers a method choice', array( 'order_id' => $order->get_id() ) );
 			}
 
-			// phpcs:disable WordPress.Security.EscapeOutput.OutputNotEscaped -- pre-existing behaviour: the meta box HTML is built from translated strings and internally generated markup exactly as before the #43 move; escaping it is a behaviour change out of scope here.
+			$this->enqueue_assets( $state );
 
-			$method_code             = new SS_Shipping_Method_Code( $ss_shipping_method_id );
-			$ss_shipping_method_name = $method_code->name();
-
-			// The stored delivery configuration (pickup point + parcel plan).
-			$delivery_details           = $this->order_meta->read( $order );
-			$ss_shipping_order_agent    = null === $delivery_details->get_pickup_point() ? null : $delivery_details->get_pickup_point()->to_object();
-			$ss_shipping_order_agent_no = null === $delivery_details->get_pickup_point() ? null : $delivery_details->get_pickup_point()->get_agent_no();
-
-			echo '<div id="ss-shipping-label-form">';
-
-			woocommerce_wp_hidden_input(
-				array(
-					'id'    => 'ss_shipping_label_nonce',
-					'value' => wp_create_nonce( 'create-ss-shipping-label' ),
-				)
-			);
-
-			$shipping_method_carrier = ucfirst( $method_code->carrier() );
-			$shipping_method_type    = ucfirst( $method_code->type() );
-
-			echo '<h3>' . __( 'Shipping Method', 'smart-send-logistics' ) . '</h3>';
-			echo '<p>' . $ss_shipping_method_name . '</p>';
-
-			// If debug is enabled then show the shipping method id and instance id.
-			if ( $this->settings->debug_log() ) {
-				foreach ( $order->get_shipping_methods() as $method ) {
-					echo '<pre>' . sprintf(
-						/* translators: %s: shipping method id and instance id. */
-						esc_html__( 'Debug id: %s', 'smart-send-logistics' ),
-						esc_html( $method->get_method_id() . ':' . $method->get_instance_id() )
-					) . '</pre>';
-				}
-			}
-
-			echo '<p>' . sprintf(
-				/* translators: %0.2f: total order weight in kg. */
-				esc_html__( 'Weight: %0.2f kg', 'smart-send-logistics' ),
-				floatval( $this->get_order_weight( $order ) )
-			) . '</p>';
-
-			// Display Agent No. field if pickup-point shipping method selected.
-			if ( false !== stripos( $shipping_method_type, 'agent' ) ) {
-				echo '<h3>' . esc_html__( 'Pickup Point', 'smart-send-logistics' ) . '</h3>';
-				echo '<strong>' . sprintf(
-					/* translators: %s: pickup point agent number. */
-					esc_html__( 'Agent No.: %s', 'smart-send-logistics' ),
-					esc_html( (string) $ss_shipping_order_agent_no )
-				) . '</strong>';
-				echo wp_kses_post( $this->pickup_point_formatter->format_admin_block( $ss_shipping_order_agent ) );
-			}
-
-			echo '<hr>';
-
-			$parcels        = null === $delivery_details->get_parcel_plan() ? array() : $delivery_details->get_parcel_plan()->to_box_rows();
-			$checked_attrib = '';
-			$items_class    = 'hidden';
-			$items          = '';
-			if ( ! empty( $parcels ) ) {
-				$checked_attrib = 'checked';
-				$items_class    = '';
-
-				foreach ( $parcels as $parcel ) {
-					$dropdown = '<select data-id="' . $parcel['id'] . '" data-name="' . $parcel['name'] . '" name="ss_shipping_box_no[]"  autocomplete="off">';
-
-					for ( $i = 1; $i <= 9; $i++ ) {
-						$selected  = ( intval( $parcel['value'] ) == $i ) ? 'selected' : ''; // phpcs:ignore Universal.Operators.StrictComparisons.LooseEqual -- pre-existing loose comparison; tightening is a behaviour change out of scope for the #43 move.
-						$dropdown .= '<option value="' . $i . '" ' . $selected . '>' . $i . '</option>';
-					}
-					$dropdown .= '</select>';
-
-					$items .= '<tr><td width="80%">' . $parcel['name'] . '</td><td width="20%">' . $dropdown . '</td></tr>';
-				}
-			}
-
-			echo '<input type="checkbox" id="ss-shipping-split-parcels" name="ss_shipping_split_parcels" autocomplete="off" value="1" ' . $checked_attrib . '> <strong>' . __(
-				'Split into parcels',
-				'smart-send-logistics'
-			) . '</strong><br/>';
-
-			echo '<div id="ss-shipping-order-items" class="' . $items_class . '"><table width="100%">';
-
-			if ( ! empty( $parcels ) ) {
-				echo $items;
-			} else {
-				foreach ( $order->get_items() as $item_id => $item ) {
-
-					$product_id   = $item['product_id'];
-					$product_name = $item['name'];
-					// If variable product, add attribute to name
-					if ( ! empty( $item['variation_id'] ) ) {
-						$product_id = $item['variation_id'];
-
-						$product_attribute = wc_get_product_variation_attributes( $item['variation_id'] );
-						$product_name     .= ': ' . current( $product_attribute );
-
-					}
-
-					$item_qty = intval( $item['qty'] );
-					for ( $ii = 1; $ii <= $item_qty; $ii++ ) {
-
-						$dropdown = '<select data-id="' . $product_id . '" data-name="' . $product_name . '" name="ss_shipping_box_no[]"  autocomplete="off">';
-
-						for ( $i = 1; $i <= 9; $i++ ) {
-							$dropdown .= '<option value="' . $i . '">' . $i . '</option>';
-						}
-
-						$dropdown .= '</select>';
-
-						echo '<tr><td width="80%">' . $product_name . '</td><td width="20%">' . $dropdown . '</td></tr>';
-					}
-				}
-			}
-
-			echo '</table></div>';
-
-			echo '<hr>';
-			echo '</p>';
-
-			echo '<button id="ss-shipping-label-button" class="button button-primary button-save-form">' . $this->label_button_text() . '</button><br><br>';
-			echo '<button id="ss-shipping-return-label-button" class="button button-save-form">' . $this->return_label_button_text() . '</button>';
-
-			// Load JS for AJAX calls
-			$ss_label_data = array(
-				'read_more'             => __( 'Read more', 'smart-send-logistics' ),
-				'unique_error_id'       => __( 'Unique error id: ', 'smart-send-logistics' ),
-				'download_label'        => __( 'Download shipping label', 'smart-send-logistics' ),
-				'download_return_label' => __( 'Download return label', 'smart-send-logistics' ),
-				'unexpected_error'      => __( 'Unexpected error', 'smart-send-logistics' ),
-			);
-			wp_enqueue_script(
-				'ss-shipping-label-js',
-				SS_SHIPPING_PLUGIN_DIR_URL . '/admin/js/ss-shipping-label.js',
-				array(),
-				SS_SHIPPING_VERSION,
-				false
-			);
-			wp_localize_script( 'ss-shipping-label-js', 'ss_label_data', $ss_label_data );
-			// The meta box owns its stylesheet (message styling for the AJAX
-			// responses the label JS injects) - see #140.
-			wp_enqueue_style( 'ss-shipping-admin-css', SS_SHIPPING_PLUGIN_DIR_URL . '/admin/css/ss-shipping-admin.css', array(), SS_SHIPPING_VERSION );
-
-			echo '</div>';
-			// phpcs:enable WordPress.Security.EscapeOutput.OutputNotEscaped
+			// The presenter escapes every value it renders (no phpcs:disable).
+			echo $this->presenter->render_form( $state ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- SS_Shipping_Order_Fulfillment_Presenter::render_form() escapes every value on output.
 		}
 
 		/**
-		 * Get an orders total weight.
+		 * The meta box owns its assets (#182): the built React app
+		 * (src/order-fulfillment/, registered from its generated
+		 * *.asset.php so the externals - wp-element, wp-components,
+		 * wp-api-fetch, wp-i18n, wp-url - are declared as dependencies), its
+		 * stylesheet plus WordPress' components stylesheet, the script
+		 * translations, and the state the app hydrates from
+		 * (window.smartSendOrderFulfillment). Enqueued from the render
+		 * callback, so only the order screen (HPOS and legacy) ever loads
+		 * them.
 		 *
-		 * @param WC_Order $order The order.
-		 * @return float weight in kg
+		 * @param array $state The state (see SS_Shipping_Order_Fulfillment_Presenter::state()).
+		 *
+		 * @return void
 		 */
-		protected function get_order_weight( $order ) {
-			$weight_total = 0;
+		protected function enqueue_assets( array $state ) {
+			$asset = require SS_SHIPPING_PLUGIN_DIR_PATH . '/build/' . self::BUILD_ENTRY . '.asset.php';
 
-			// Get order item specific data.
-			$ordered_items = $order->get_items();
-			if ( ! empty( $ordered_items ) ) {
-				foreach ( $ordered_items as $key => $item ) {
-					$product = wc_get_product( $item['product_id'] );
-					if ( ! empty( $item['variation_id'] ) ) {
-						$product_variation = wc_get_product( $item['variation_id'] );
-					} else {
-						$product_variation = $product;
-					}
+			wp_register_script(
+				self::STATE_SCRIPT_HANDLE,
+				SS_SHIPPING_PLUGIN_DIR_URL . '/build/' . self::BUILD_ENTRY . '.js',
+				$asset['dependencies'],
+				$asset['version'],
+				true
+			);
+			wp_set_script_translations( self::STATE_SCRIPT_HANDLE, 'smart-send-logistics', SS_SHIPPING_PLUGIN_DIR_PATH . '/lang' );
 
-					if ( $product_variation ) { // null|false if unable to load product.
-						$product_weight = round( wc_get_weight( $product_variation->get_weight(), 'kg' ), 2 );
-						if ( $product_weight ) {
-							$weight_total += ( $item['qty'] * $product_weight );
-						}
-					}
-				}
-			}
-			return $weight_total;
+			// The state as inline JSON. JSON_HEX_TAG keeps a "</script>" inside
+			// a value (e.g. a product name) from closing the script element.
+			wp_add_inline_script(
+				self::STATE_SCRIPT_HANDLE,
+				'window.smartSendOrderFulfillment = ' . wp_json_encode( $state, JSON_HEX_TAG | JSON_HEX_AMP | JSON_UNESCAPED_SLASHES ) . ';',
+				'before'
+			);
+			wp_enqueue_script( self::STATE_SCRIPT_HANDLE );
+
+			wp_enqueue_style( 'wp-components' );
+			wp_enqueue_style(
+				self::STYLE_HANDLE,
+				SS_SHIPPING_PLUGIN_DIR_URL . '/build/order-fulfillment/style-index.css',
+				array( 'wp-components' ),
+				$asset['version']
+			);
 		}
 	}
 

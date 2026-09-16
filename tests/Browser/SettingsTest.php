@@ -4,8 +4,7 @@
  * The plugin's general settings surface, end-to-end: the settings page
  * itself, the "Validate API Token" test-connection flow (success and
  * failure, against the mocked API), the debug log reaching the WooCommerce
- * log viewer, the label buttons on the order screen, and the
- * order-status-after-label setting taking effect.
+ * log viewer, and the order-status-after-label setting taking effect.
  *
  * Settings-permutation depth deliberately lives in the Integration suite
  * (tests/Integration/RateCalculationTest.php and friends); this file
@@ -26,11 +25,11 @@ beforeAll(function (): void {
         return;
     }
 
-    // Two orders: one for the meta box button test, one for the
-    // order-status-after-label test (which books a label on it).
+    // One order for the order-status-after-label test (which books a
+    // label on it).
     ss_browser_seed_store([
         'settings' => ['api_token' => 'ss-browser-settings-token'],
-        'orders'   => [[], []],
+        'orders'   => [[]],
     ]);
 });
 
@@ -106,27 +105,18 @@ PHP);
     }
 });
 
-it('shows the label buttons on the order screen', function () {
-    $state = ss_browser_state();
-
-    login_as_admin()
-        ->navigate(base_url(ss_browser_order_edit_path($state['orders'][0])))
-        ->assertSee('Generate label')
-        ->assertSee('Generate return label');
-});
-
 it('order-status-after-label setting changes the order status', function () {
     $state = ss_browser_state();
-    $order_id = $state['orders'][1];
+    $order_id = $state['orders'][0];
 
     ss_browser_update_plugin_setting('order_status', 'wc-completed');
 
     try {
         login_as_admin()
             ->navigate(base_url(ss_browser_order_edit_path($order_id)))
-            ->assertSee('Smart Send Shipping')
-            ->click('#ss-shipping-label-button')
-            ->assertSeeIn('#ss-label-created', 'Download shipping label');
+            ->assertSeeIn('#woocommerce-ss-shipping-label .hndle', 'Smart Send')
+            ->click('[data-ss-action="create-label"]')
+            ->assertPresent('[data-ss-result="outbound"]');
 
         $result = ss_browser_wp_eval(<<<PHP
 \$order = wc_get_order({$order_id});

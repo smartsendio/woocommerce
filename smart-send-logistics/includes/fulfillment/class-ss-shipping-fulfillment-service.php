@@ -24,24 +24,34 @@ if ( ! class_exists( 'SS_Shipping_Fulfillment_Service' ) ) :
 	 * outbound-only, the meta keys differ):
 	 *
 	 *   fulfill_outbound( $order, ... ) - the outbound label, plus the
-	 *     return label when the order's shipping method has the
-	 *     auto-generate-return-label setting enabled;
+	 *     return label when asked for ($with_return), defaulting to the
+	 *     order's shipping method's auto-generate-return-label setting;
 	 *   fulfill_return( $order, ... )   - a return label on its own.
 	 *
 	 * Each leg runs the same steps:
 	 *
 	 *   1. Delivery details = the stored order configuration (repository)
-	 *      + the method resolved from the order's shipping item (+ the
-	 *      overrides submitted with the request, persisted first), passed
-	 *      through the smart_send_delivery_details filter.
+	 *      + the method resolved from the order's shipping item, with the
+	 *      details submitted with the request merged on top (a submitted
+	 *      field wins over the stored/derived one, a submitted method
+	 *      wins over the resolver - which is how an order placed with a
+	 *      non-Smart-Send method gets booked; a pickup point submitted as
+	 *      a bare agent number is resolved through the shared lookup),
+	 *      passed through the smart_send_delivery_details filter.
 	 *   2. SS_Shipping_Booking_Service::book() - ONE operation for both
 	 *      directions - returns the SS_Shipping_Booked_Shipment or throws
 	 *      SS_Shipping_Booking_Exception, which is caught here and
-	 *      recorded on the result (rendered as HTML for the merchant by
-	 *      format_booking_error()).
+	 *      recorded on the result as structured data (rendered as HTML
+	 *      for the merchant by format_booking_error()).
 	 *   3. Side effects on the order, one step each, each with a filter:
+	 *      the submitted delivery details persisted through the
+	 *      repository (persist-after-success, #182: a failed booking
+	 *      leaves the order meta untouched; only what has storage is
+	 *      written - pickup point and parcel item rows - the method
+	 *      override and a spec's weight/dimensions are per booking), the
 	 *      shipment id in meta (no filter), local copy of the documents
-	 *      (smart_send_fulfillment_save_documents), order note
+	 *      (smart_send_fulfillment_save_documents - a copy that cannot be
+	 *      saved is a warning on the entry, not a failure), order note
 	 *      (smart_send_fulfillment_order_note), tracking push
 	 *      (smart_send_fulfillment_tracking), order status
 	 *      (smart_send_fulfillment_order_status).
@@ -104,53 +114,66 @@ if ( ! class_exists( 'SS_Shipping_Fulfillment_Service' ) ) :
 		protected SS_Shipping_Settings $settings;
 
 		/**
+		 * Pickup point lookup, resolving a submitted agent number into the
+		 * full pickup point.
+		 *
+		 * @var SS_Shipping_Pickup_Point_Lookup
+		 */
+		protected SS_Shipping_Pickup_Point_Lookup $pickup_point_lookup;
+
+		/**
 		 * Constructor.
 		 *
-		 * @param SS_Shipping_Order_Meta      $order_meta      Order meta repository.
-		 * @param SS_Shipping_Method_Resolver $method_resolver Shipping method resolver.
-		 * @param SS_Shipping_Shipment_Ids    $shipment_ids    Booked shipment id accessor.
-		 * @param SS_Shipping_Booking_Service $booking_service The booking service.
-		 * @param SS_Shipping_Settings|null   $settings        Typed plugin settings reader (stateless; a fresh default is safe).
+		 * @param SS_Shipping_Order_Meta               $order_meta          Order meta repository.
+		 * @param SS_Shipping_Method_Resolver          $method_resolver     Shipping method resolver.
+		 * @param SS_Shipping_Shipment_Ids             $shipment_ids        Booked shipment id accessor.
+		 * @param SS_Shipping_Booking_Service          $booking_service     The booking service.
+		 * @param SS_Shipping_Settings|null            $settings            Typed plugin settings reader (stateless; a fresh default is safe).
+		 * @param SS_Shipping_Pickup_Point_Lookup|null $pickup_point_lookup Pickup point lookup (stateless; a fresh default is safe).
 		 */
-		public function __construct( SS_Shipping_Order_Meta $order_meta, SS_Shipping_Method_Resolver $method_resolver, SS_Shipping_Shipment_Ids $shipment_ids, SS_Shipping_Booking_Service $booking_service, ?SS_Shipping_Settings $settings = null ) {
-			$this->order_meta      = $order_meta;
-			$this->method_resolver = $method_resolver;
-			$this->shipment_ids    = $shipment_ids;
-			$this->booking_service = $booking_service;
-			$this->settings        = null === $settings ? new SS_Shipping_Settings() : $settings;
+		public function __construct( SS_Shipping_Order_Meta $order_meta, SS_Shipping_Method_Resolver $method_resolver, SS_Shipping_Shipment_Ids $shipment_ids, SS_Shipping_Booking_Service $booking_service, ?SS_Shipping_Settings $settings = null, ?SS_Shipping_Pickup_Point_Lookup $pickup_point_lookup = null ) {
+			$this->order_meta          = $order_meta;
+			$this->method_resolver     = $method_resolver;
+			$this->shipment_ids        = $shipment_ids;
+			$this->booking_service     = $booking_service;
+			$this->settings            = null === $settings ? new SS_Shipping_Settings() : $settings;
+			$this->pickup_point_lookup = null === $pickup_point_lookup ? new SS_Shipping_Pickup_Point_Lookup( $this->settings ) : $pickup_point_lookup;
 		}
 
 		/**
 		 * Fulfill an outbound (normal) shipping label for the order, and -
-		 * when the order's shipping method has the auto-generate-return-label
-		 * setting enabled and the outbound booking succeeded - the return
-		 * label too.
+		 * when a return label is wanted and the outbound booking succeeded
+		 * - the return label too.
 		 *
 		 * @param int|WC_Order                      $order              Order id or order object.
 		 * @param boolean                           $save_order_note    Whether to save an order note with information about the label.
-		 * @param SS_Shipping_Delivery_Details|null $delivery_overrides Partial delivery details submitted with the request (e.g. the meta box parcel split), persisted through the repository before booking.
+		 * @param SS_Shipping_Delivery_Details|null $delivery_overrides Partial delivery details submitted with the request (e.g. from the order meta box): a submitted field wins over the stored/derived value, and what has storage (pickup point, parcel item rows) is persisted only after the booking succeeded.
+		 * @param boolean|null                      $with_return        Whether to also create the return label: null follows the order's shipping method's auto-generate-return-label setting (what bulk passes), true/false override it. The return leg reads the freshly persisted details and the order's return method; the outbound overrides are per outbound booking.
+		 * @param SS_Shipping_Delivery_Details|null $return_overrides   Partial delivery details for the return leg of the same run (#182): a submitted return method wins over the configured one, which is how an order without a Smart Send method books outbound and return in one run. Null keeps the configured return method.
 		 *
 		 * @return SS_Shipping_Fulfillment_Result
 		 */
-		public function fulfill_outbound( $order, $save_order_note = true, ?SS_Shipping_Delivery_Details $delivery_overrides = null ): SS_Shipping_Fulfillment_Result {
+		public function fulfill_outbound( $order, $save_order_note = true, ?SS_Shipping_Delivery_Details $delivery_overrides = null, ?bool $with_return = null, ?SS_Shipping_Delivery_Details $return_overrides = null ): SS_Shipping_Fulfillment_Result {
 			$order = $this->resolve_order( $order );
 
 			if ( ! $order instanceof WC_Order ) {
 				return new SS_Shipping_Fulfillment_Result( array( $order ) );
 			}
 
-			$this->apply_delivery_overrides( $order, $delivery_overrides );
-
 			$entries   = array();
-			$entries[] = $this->fulfill_leg( $order, false, $save_order_note, $outbound_booked );
+			$entries[] = $this->fulfill_leg( $order, false, $save_order_note, $outbound_booked, $delivery_overrides );
+
+			if ( null === $with_return ) {
+				$with_return = $this->method_resolver->is_auto_return_enabled( $order );
+			}
 
 			// We're only creating the return label if the outbound BOOKING succeeded.
 			// Deliberate behaviour change from the historic flow, which gated on the
 			// whole outbound entry: a successful API booking whose local PDF save
 			// failed used to silently skip the configured auto-return label; now the
 			// return label is still attempted and both outcomes are reported.
-			if ( $outbound_booked && $this->method_resolver->is_auto_return_enabled( $order ) ) {
-				$entries[] = $this->fulfill_leg( $order, true, $save_order_note, $return_booked );
+			if ( $outbound_booked && $with_return ) {
+				$entries[] = $this->fulfill_leg( $order, true, $save_order_note, $return_booked, $return_overrides );
 			}
 
 			return $this->finish( $order, new SS_Shipping_Fulfillment_Result( $entries ) );
@@ -161,7 +184,7 @@ if ( ! class_exists( 'SS_Shipping_Fulfillment_Service' ) ) :
 		 *
 		 * @param int|WC_Order                      $order              Order id or order object.
 		 * @param boolean                           $save_order_note    Whether to save an order note with information about the label.
-		 * @param SS_Shipping_Delivery_Details|null $delivery_overrides Partial delivery details submitted with the request, persisted through the repository before booking.
+		 * @param SS_Shipping_Delivery_Details|null $delivery_overrides Partial delivery details submitted with the request: a submitted return method wins over the configured one, a submitted pickup point or parcel plan over the stored one; what has storage is persisted only after the booking succeeded.
 		 *
 		 * @return SS_Shipping_Fulfillment_Result
 		 */
@@ -172,9 +195,7 @@ if ( ! class_exists( 'SS_Shipping_Fulfillment_Service' ) ) :
 				return new SS_Shipping_Fulfillment_Result( array( $order ) );
 			}
 
-			$this->apply_delivery_overrides( $order, $delivery_overrides );
-
-			$entries = array( $this->fulfill_leg( $order, true, $save_order_note, $return_booked ) );
+			$entries = array( $this->fulfill_leg( $order, true, $save_order_note, $return_booked, $delivery_overrides ) );
 
 			return $this->finish( $order, new SS_Shipping_Fulfillment_Result( $entries ) );
 		}
@@ -183,56 +204,172 @@ if ( ! class_exists( 'SS_Shipping_Fulfillment_Service' ) ) :
 		 * The delivery details a label for the order ships with, before
 		 * the smart_send_delivery_details filter: the stored order
 		 * configuration (pickup point, parcel plan) with the shipping
-		 * method resolved from the order's shipping item. An outbound
-		 * label uses the order's Smart Send shipping method and keeps the
-		 * stored pickup point; a return label uses the configured return
-		 * method and drops the pickup point - unless the return method
-		 * could not be resolved to the dedicated smart_send_return_method
-		 * meta (free-shipping/vConnect orders, see
+		 * method resolved from the order's shipping item, and the details
+		 * submitted with the request merged on top. An outbound label uses
+		 * the order's Smart Send shipping method and keeps the stored
+		 * pickup point; a return label uses the configured return method
+		 * and drops the pickup point - unless the return method could not
+		 * be resolved to the dedicated smart_send_return_method meta
+		 * (free-shipping/vConnect orders, see
 		 * SS_Shipping_Method_Resolver::return_uses_stored_pickup_point()),
 		 * in which case the stored selection applies like on an outbound
 		 * label.
 		 *
+		 * Submitted overrides win field by field (#182): a submitted
+		 * shipping method replaces the resolved one (for a return leg, the
+		 * configured return method is then not even resolved - so a
+		 * missing return method is no failure when one is submitted), a
+		 * submitted pickup point replaces (or, when cleared, removes) the
+		 * stored one - and a submitted outbound method that is not a pickup
+		 * point method drops the stored point for that booking -, a
+		 * submitted parcel plan replaces the stored split,
+		 * submitted addons replace the stored ones when non-empty. A pickup
+		 * point submitted as a bare agent number that equals the stored
+		 * one resolves to the stored point; any other bare agent number is
+		 * resolved through SS_Shipping_Pickup_Point_Lookup::find_by_agent_no()
+		 * (carrier from the submitted-or-resolved method, country from the
+		 * order's shipping address).
+		 *
 		 * Public so Phase 7 can queue "order id + details" (#116).
 		 *
-		 * @param WC_Order $order     The WooCommerce order.
-		 * @param boolean  $is_return Whether the label is a return label.
+		 * @param WC_Order                          $order     The WooCommerce order.
+		 * @param boolean                           $is_return Whether the label is a return label.
+		 * @param SS_Shipping_Delivery_Details|null $overrides Partial delivery details submitted with the request, or null.
 		 *
-		 * @throws SS_Shipping_Booking_Exception When no return method is configured (from the resolver).
+		 * @throws SS_Shipping_Booking_Exception                When no return method is configured and none was submitted (from the resolver).
+		 * @throws SS_Shipping_Pickup_Point_Not_Found_Exception When a submitted agent number cannot be resolved into a pickup point.
 		 *
 		 * @return SS_Shipping_Delivery_Details
 		 */
-		public function resolve_delivery_details( WC_Order $order, bool $is_return ): SS_Shipping_Delivery_Details {
+		public function resolve_delivery_details( WC_Order $order, bool $is_return, ?SS_Shipping_Delivery_Details $overrides = null ): SS_Shipping_Delivery_Details {
 			$details = $this->order_meta->read( $order->get_id() );
+			$stored  = $details->get_pickup_point();
+
+			$submitted_method = null === $overrides ? null : $overrides->get_shipping_method();
 
 			if ( $is_return ) {
-				$details->set_shipping_method( $this->method_resolver->resolve_return( $order ) );
+				$details->set_shipping_method( null !== $submitted_method ? $submitted_method : $this->method_resolver->resolve_return( $order ) );
 
 				if ( ! $this->method_resolver->return_uses_stored_pickup_point( $order ) ) {
 					$details->set_pickup_point( null );
 				}
 			} else {
-				$details->set_shipping_method( $this->method_resolver->resolve_outbound( $order ) );
+				$details->set_shipping_method( null !== $submitted_method ? $submitted_method : $this->method_resolver->resolve_outbound( $order ) );
+			}
+
+			if ( null === $overrides ) {
+				return $details;
+			}
+
+			if ( $overrides->is_pickup_point_cleared() ) {
+				$details->set_pickup_point( null );
+			} elseif ( null !== $overrides->get_pickup_point() ) {
+				$details->set_pickup_point( $this->resolve_submitted_pickup_point( $order, $overrides->get_pickup_point(), $stored, (string) $details->get_shipping_method() ) );
+			} elseif ( ! $is_return && null !== $submitted_method && false === stripos( ( new SS_Shipping_Method_Code( $submitted_method ) )->type(), 'agent' ) ) {
+				// A submitted method that is not a pickup point method books
+				// without the stored pickup point (#182: the meta box hides
+				// it); per booking only - nothing is persisted for it.
+				$details->set_pickup_point( null );
+			}
+
+			if ( null !== $overrides->get_parcel_plan() ) {
+				$details->set_parcel_plan( $overrides->get_parcel_plan() );
+			}
+
+			if ( array() !== $overrides->get_addons() ) {
+				$details->set_addons( $overrides->get_addons() );
 			}
 
 			return $details;
 		}
 
 		/**
-		 * Persist the delivery details submitted with a fulfillment request
-		 * (e.g. the parcel split from the order meta box) before booking,
-		 * deliberately keeping the historic save-before-book behaviour: the
-		 * submitted configuration sticks even when the booking then fails.
+		 * Resolve a submitted pickup point: a full point is used as
+		 * submitted; a bare agent number (see
+		 * SS_Shipping_Pickup_Point::is_agent_no_only()) resolves to the
+		 * stored point when the numbers match, and through the API lookup
+		 * otherwise.
 		 *
-		 * @param WC_Order                          $order              The WooCommerce order.
-		 * @param SS_Shipping_Delivery_Details|null $delivery_overrides Partial delivery details, or null when the request carried none.
+		 * @param WC_Order                      $order     The WooCommerce order.
+		 * @param SS_Shipping_Pickup_Point      $submitted The submitted pickup point.
+		 * @param SS_Shipping_Pickup_Point|null $stored    The pickup point stored on the order, if any.
+		 * @param string                        $method    The Smart Send method the leg books with (the carrier for the lookup).
 		 *
-		 * @return void
+		 * @throws SS_Shipping_Pickup_Point_Not_Found_Exception When the agent number cannot be resolved.
+		 *
+		 * @return SS_Shipping_Pickup_Point
 		 */
-		protected function apply_delivery_overrides( WC_Order $order, ?SS_Shipping_Delivery_Details $delivery_overrides ) {
-			if ( null !== $delivery_overrides ) {
-				$this->order_meta->write( $order, $delivery_overrides );
+		protected function resolve_submitted_pickup_point( WC_Order $order, SS_Shipping_Pickup_Point $submitted, ?SS_Shipping_Pickup_Point $stored, string $method ): SS_Shipping_Pickup_Point {
+			if ( ! $submitted->is_agent_no_only() ) {
+				return $submitted;
 			}
+
+			$agent_no = (string) $submitted->get_agent_no();
+
+			if ( null !== $stored && (string) $stored->get_agent_no() === $agent_no ) {
+				return $stored;
+			}
+
+			$carrier = '' === $method ? '' : ( new SS_Shipping_Method_Code( $method ) )->carrier();
+
+			if ( '' === $carrier ) {
+				// Without a method there is no carrier to look the number up
+				// for; the builder rejects the booking for the missing method.
+				return $submitted;
+			}
+
+			try {
+				$pickup_point = $this->pickup_point_lookup->find_by_agent_no( $carrier, (string) $order->get_shipping_country(), $agent_no );
+			} catch ( SS_Shipping_Pickup_Point_Not_Found_Exception $e ) {
+				SS_Shipping_Logger::warning(
+					'Pickup point not found - agent number rejected',
+					array(
+						'order_id' => $order->get_id(),
+						'agent_no' => $agent_no,
+						'carrier'  => $carrier,
+					)
+				);
+
+				throw $e;
+			}
+
+			SS_Shipping_Logger::info(
+				'Pickup point changed on order',
+				array(
+					'order_id' => $order->get_id(),
+					'agent_no' => $agent_no,
+					'carrier'  => $carrier,
+				)
+			);
+
+			return $pickup_point;
+		}
+
+		/**
+		 * The part of the submitted details that gets persisted once the
+		 * booking succeeded: the submitted pickup point as resolved (the
+		 * full point, never a bare agent number) or its clearing, and the
+		 * submitted parcel plan (the repository stores its item rows only).
+		 * The shipping method and addons are not stored by the repository,
+		 * so they are per booking by construction.
+		 *
+		 * @param SS_Shipping_Delivery_Details $overrides The submitted details.
+		 * @param SS_Shipping_Delivery_Details $merged    The merged details the leg booked with.
+		 *
+		 * @return SS_Shipping_Delivery_Details
+		 */
+		protected function persistable_overrides( SS_Shipping_Delivery_Details $overrides, SS_Shipping_Delivery_Details $merged ): SS_Shipping_Delivery_Details {
+			$persist = new SS_Shipping_Delivery_Details();
+
+			if ( $overrides->is_pickup_point_cleared() ) {
+				$persist->clear_pickup_point();
+			} elseif ( null !== $overrides->get_pickup_point() ) {
+				$persist->set_pickup_point( $merged->get_pickup_point() );
+			}
+
+			$persist->set_parcel_plan( $overrides->get_parcel_plan() );
+
+			return $persist;
 		}
 
 		/**
@@ -308,22 +445,38 @@ if ( ! class_exists( 'SS_Shipping_Fulfillment_Service' ) ) :
 		 * come after meta and tracking so both are included in the email
 		 * sent via Shipment Tracking.
 		 *
-		 * On a failed booking nothing is written and a failed entry is
-		 * returned; $booked reports whether the API booked the shipment
-		 * (the auto-return gate), independent of the side effects.
+		 * On a failed booking nothing is written - not even the submitted
+		 * delivery details - and a failed entry is returned; $booked
+		 * reports whether the API booked the shipment (the auto-return
+		 * gate), independent of the side effects.
 		 *
-		 * @param WC_Order $order           The WooCommerce order.
-		 * @param boolean  $is_return       Whether the label is a return label.
-		 * @param boolean  $save_order_note Whether to save an order note with information about the label.
-		 * @param boolean  $booked          Set to whether the booking itself succeeded.
+		 * @param WC_Order                          $order           The WooCommerce order.
+		 * @param boolean                           $is_return       Whether the label is a return label.
+		 * @param boolean                           $save_order_note Whether to save an order note with information about the label.
+		 * @param boolean                           $booked          Set to whether the booking itself succeeded.
+		 * @param SS_Shipping_Delivery_Details|null $overrides       Partial delivery details submitted with the request, or null.
 		 *
 		 * @return array A run entry in the shape SS_Shipping_Fulfillment_Result documents.
 		 */
-		protected function fulfill_leg( WC_Order $order, bool $is_return, $save_order_note, &$booked = null ): array {
+		protected function fulfill_leg( WC_Order $order, bool $is_return, $save_order_note, &$booked = null, ?SS_Shipping_Delivery_Details $overrides = null ): array {
 			$booked = false;
 
 			try {
-				$details = $this->resolve_delivery_details( $order, $is_return );
+				try {
+					$details = $this->resolve_delivery_details( $order, $is_return, $overrides );
+				} catch ( SS_Shipping_Pickup_Point_Not_Found_Exception $e ) {
+					// A submitted agent number the API does not know: a
+					// structured field error on the leg, in the v1 field
+					// vocabulary the booking validation errors use.
+					return SS_Shipping_Fulfillment_Result::failed_entry(
+						$is_return,
+						$e->getMessage(),
+						'',
+						array( 'agent_no' => array( $e->getMessage() ) )
+					);
+				}
+
+				$persist = null === $overrides ? null : $this->persistable_overrides( $overrides, $details );
 
 				/*
 				 * Filter the delivery details a shipping label is booked
@@ -352,28 +505,37 @@ if ( ! class_exists( 'SS_Shipping_Fulfillment_Service' ) ) :
 
 				$shipment = $this->booking_service->book( $order, $details, $is_return );
 			} catch ( SS_Shipping_Booking_Exception $e ) {
-				// The booking failed. Record the error, so it can be shown to the user.
-				return SS_Shipping_Fulfillment_Result::failed_entry( $is_return, $this->format_booking_error( $e ), $e->errors() );
+				// The booking failed. Record the error as data, so it can be shown to the user.
+				return SS_Shipping_Fulfillment_Result::failed_entry( $is_return, $e->getMessage(), $this->format_booking_error( $e ), $e->errors(), $e->response_id() );
 			}
 
 			$booked = true;
 
-			return $this->apply_side_effects( $order, $shipment, $save_order_note );
+			return $this->apply_side_effects( $order, $shipment, $save_order_note, $persist );
 		}
 
 		/**
-		 * Write a booked shipment onto the order, one step at a time.
+		 * Write a booked shipment onto the order, one step at a time. Step
+		 * 0 persists the submitted delivery details (#182): the merchant's
+		 * configuration is stored only once the booking it was submitted
+		 * for succeeded, before the shipment id.
 		 *
-		 * @param WC_Order                    $order           The WooCommerce order.
-		 * @param SS_Shipping_Booked_Shipment $shipment        The booked shipment.
-		 * @param boolean                     $save_order_note Whether the caller wants the order note saved (the AJAX flow adds it client-side instead).
+		 * @param WC_Order                          $order           The WooCommerce order.
+		 * @param SS_Shipping_Booked_Shipment       $shipment        The booked shipment.
+		 * @param boolean                           $save_order_note Whether the caller wants the order note saved (the REST response then carries the note the meta box prepends client-side).
+		 * @param SS_Shipping_Delivery_Details|null $persist         The submitted delivery details to persist (see persistable_overrides()), or null when the request carried none.
 		 *
 		 * @return array A run entry in the shape SS_Shipping_Fulfillment_Result documents.
 		 */
-		protected function apply_side_effects( WC_Order $order, SS_Shipping_Booked_Shipment $shipment, $save_order_note ): array {
+		protected function apply_side_effects( WC_Order $order, SS_Shipping_Booked_Shipment $shipment, $save_order_note, ?SS_Shipping_Delivery_Details $persist = null ): array {
 			$order_id     = $order->get_id();
 			$is_return    = $shipment->is_return();
 			$carrier_name = $this->get_carrier_display_name( $shipment );
+			$warnings     = array();
+
+			if ( null !== $persist ) {
+				$this->order_meta->write( $order, $persist );
+			}
 
 			/*
 			 * Filter whether a local copy of the shipment's documents is
@@ -388,6 +550,8 @@ if ( ! class_exists( 'SS_Shipping_Fulfillment_Service' ) ) :
 			 */
 			$save_documents = (bool) apply_filters( 'smart_send_fulfillment_save_documents', $this->settings->save_labels_in_uploads(), $shipment, $order );
 
+			$save_documents_step = $save_documents;
+
 			if ( $save_documents ) {
 				try {
 					// Save the label document(s) and link the local copy.
@@ -397,7 +561,26 @@ if ( ! class_exists( 'SS_Shipping_Fulfillment_Service' ) ) :
 					// now actually link the uploads copy.
 					$this->store_uploads_copies( $shipment );
 				} catch ( Exception $e ) {
-					return SS_Shipping_Fulfillment_Result::failed_entry( $is_return, $e->getMessage() );
+					// Deliberate behaviour change (#182): the shipment IS
+					// booked at Smart Send, so a copy that cannot be saved
+					// no longer turns the leg into a failure. The documents
+					// keep their Smart Send URL (download_url() falls back
+					// to it) and the merchant is warned.
+					$save_documents_step = 'failed';
+					$warnings[]          = sprintf(
+						/* translators: %s: the reason the local copy could not be saved. */
+						__( 'Label booked; the local copy could not be saved: %s', 'smart-send-logistics' ),
+						$e->getMessage()
+					);
+
+					SS_Shipping_Logger::warning(
+						'Label booked but the uploads copy could not be saved',
+						array(
+							'order_id'    => $order_id,
+							'shipment_id' => $shipment->get_shipment_id(),
+							'reason'      => $e->getMessage(),
+						)
+					);
 				}
 			}
 
@@ -434,9 +617,11 @@ if ( ! class_exists( 'SS_Shipping_Fulfillment_Service' ) ) :
 			);
 
 			$note_added = false;
+			$note_id    = null;
 			if ( $save_order_note && '' !== $order_note ) {
-				$order->add_order_note( $order_note, 0, true );
+				$added      = $order->add_order_note( $order_note, 0, true );
 				$note_added = true;
+				$note_id    = $added > 0 ? (int) $added : null;
 
 				SS_Shipping_Logger::info( 'Order note with label and tracking added', array( 'order_id' => $order_id ) );
 			}
@@ -502,13 +687,14 @@ if ( ! class_exists( 'SS_Shipping_Fulfillment_Service' ) ) :
 			return SS_Shipping_Fulfillment_Result::fulfilled_entry(
 				$shipment,
 				$order_note,
-				$this->get_shipment_outputs_html( $shipment ),
 				array(
-					'save_documents' => $save_documents,
+					'save_documents' => $save_documents_step,
 					'order_note'     => $note_added,
 					'tracking'       => $push_tracking,
 					'order_status'   => $order_status,
-				)
+				),
+				$note_id,
+				$warnings
 			);
 		}
 
@@ -791,16 +977,6 @@ if ( ! class_exists( 'SS_Shipping_Fulfillment_Service' ) ) :
 		}
 
 		/**
-		 * Save label file in "uploads" folder
-		 */
-		// phpcs:ignore Universal.NamingConventions.NoReservedKeywordParameterNames.returnFound, Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed -- pre-existing method signature, kept for backwards compatibility.
-		public function save_label_file( $shipment_id, $label_data, $return ) {
-			$copy = $this->save_label_copy( $shipment_id, $label_data, SS_Shipping_Shipment_Document::FORMAT_PDF, '' );
-
-			return $copy['url'];
-		}
-
-		/**
 		 * Save a label document in the "uploads" folder.
 		 *
 		 * @param string      $shipment_id The Smart Send shipment id (part of the file name).
@@ -813,7 +989,7 @@ if ( ! class_exists( 'SS_Shipping_Fulfillment_Service' ) ) :
 		 * @return array The saved file's 'file' (path) and 'url'.
 		 */
 		protected function save_label_copy( $shipment_id, $label_data, $format, $suffix ) {
-			// phpcs:disable WordPress.Security.EscapeOutput.ExceptionNotEscaped -- pre-existing behaviour: exception messages are returned to the admin AJAX response as data, not printed as HTML; escaping is a behaviour change out of scope for the #43 move.
+			// phpcs:disable WordPress.Security.EscapeOutput.ExceptionNotEscaped -- pre-existing behaviour: exception messages are recorded on the result as data, not printed as HTML; escaping is a behaviour change out of scope for the #43 move.
 
 			if ( empty( $shipment_id ) ) {
 				throw new Exception( __( 'Shipment id is empty', 'smart-send-logistics' ) );
@@ -852,24 +1028,6 @@ if ( ! class_exists( 'SS_Shipping_Fulfillment_Service' ) ) :
 				$shipment_id = $this->label_prefix . $shipment_id;
 			}
 			return $shipment_id . '.' . $format;
-		}
-
-		/**
-		 * Get formatted label link
-		 *
-		 * @param string $url label url
-		 * @param boolean $return Whether or not the label is return (true) or normal (false)
-		 *
-		 * @return string html label link
-		 */
-		// phpcs:ignore Universal.NamingConventions.NoReservedKeywordParameterNames.returnFound -- pre-existing public method signature, kept for backwards compatibility.
-		public function get_ss_shipping_label_link( $url, $return ) {
-			if ( $return ) {
-				$message = __( 'Download return shipping label', 'smart-send-logistics' );
-			} else {
-				$message = __( 'Download shipping label', 'smart-send-logistics' );
-			}
-			return '<a href="' . $url . '" target="_blank">' . $message . '</a>';
 		}
 
 		/**

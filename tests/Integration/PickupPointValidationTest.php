@@ -133,3 +133,115 @@ it('rejects an invalid agent number through the legacy validation entry point', 
     expect($result)->toBeString()
         ->and($result)->toContain('9999');
 });
+
+/*
+ * The shared "find a pickup point by agent number" lookup (#182):
+ * SS_Shipping_Pickup_Point_Lookup::find_by_agent_no() is the one API call
+ * behind the Custom Fields validator and the fulfillment service's
+ * pickup point override; a miss is SS_Shipping_Pickup_Point_Not_Found_Exception.
+ */
+
+it('resolves an agent number into a pickup point value object through the shared lookup', function () {
+    $capture = mock_smart_send_api(function () {
+        return ss_api_response(200, ['data' => sample_agent(['agent_no' => '5678', 'company' => 'Other Shop'])]);
+    });
+
+    $pickup_point = SS_SHIPPING_WC()->pickup_point_lookup()->find_by_agent_no('postnord', 'DK', '5678');
+
+    expect($pickup_point)->toBeInstanceOf(SS_Shipping_Pickup_Point::class)
+        ->and($pickup_point->get_agent_no())->toBe('5678')
+        ->and($pickup_point->get_company())->toBe('Other Shop')
+        ->and($pickup_point->is_agent_no_only())->toBeFalse()
+        // The API object round-trips losslessly into the stored form.
+        ->and($pickup_point->to_array())->toEqual((array) sample_agent(['agent_no' => '5678', 'company' => 'Other Shop']))
+        ->and($capture->requests)->toHaveCount(1)
+        ->and($capture->requests[0]['url'])->toContain('agents/carrier/postnord/country/DK/agentno/5678');
+});
+
+it('throws SS_Shipping_Pickup_Point_Not_Found_Exception when the API knows no such agent number', function () {
+    mock_smart_send_api(function () {
+        return ss_api_response(404, ['code' => 'NoResults', 'message' => 'The agent was not found.']);
+    });
+
+    try {
+        SS_SHIPPING_WC()->pickup_point_lookup()->find_by_agent_no('postnord', 'DK', '9999');
+        $this->fail('Expected SS_Shipping_Pickup_Point_Not_Found_Exception.');
+    } catch (SS_Shipping_Pickup_Point_Not_Found_Exception $e) {
+        expect($e->getMessage())->toBe('The agent number entered, 9999, was not found.')
+            ->and($e->carrier())->toBe('postnord')
+            ->and($e->agent_no())->toBe('9999')
+            ->and($e->getPrevious())->toBeInstanceOf(\Smartsend\Exceptions\HttpClientException::class);
+    }
+
+    // A 200 without a pickup point object is a miss too.
+    mock_smart_send_api(function () {
+        return ss_api_response(200, ['data' => null]);
+    });
+    expect(fn () => SS_SHIPPING_WC()->pickup_point_lookup()->find_by_agent_no('postnord', 'DK', '9999'))
+        ->toThrow(SS_Shipping_Pickup_Point_Not_Found_Exception::class);
+});
+
+it('stores the agent object byte-identically through the validator, which now delegates to the shared lookup', function () {
+    // Message parity with the previous inline API call is pinned by the
+    // other tests in this file; this pins that the stored object is the
+    // API's agent object exactly as received (to_object() of the DTO).
+    $product = create_simple_product(['price' => 100, 'weight' => 1]);
+    $order   = create_order(['products' => [$product], 'shipping_method' => 'postnord_agent']);
+
+    $api_agent = sample_agent(['agent_no' => '5678', 'company' => 'Other Shop', 'custom_extra' => 'kept']);
+    $capture   = mock_smart_send_api(function () use ($api_agent) {
+        return ss_api_response(200, ['data' => $api_agent]);
+    });
+
+    $result = SS_SHIPPING_WC()->pickup_point_validator()->validate_and_store($order->get_id(), true, '5678');
+
+    expect($result)->toBeTrue()
+        ->and($capture->requests)->toHaveCount(1)
+        ->and($capture->requests[0]['url'])->toContain('agents/carrier/postnord/country/DK/agentno/5678');
+
+    // Loose equality on purpose: the fixture's int id becomes the DTO's
+    // string internal id (the real API id is a UUID string, so nothing
+    // changes for real data - PickupPointDtoTest pins that byte for byte).
+    $stored = wc_get_order($order->get_id())->get_meta(SS_Shipping_Order_Meta::META_AGENT, true);
+    expect($stored)->toBeObject()
+        ->and(array_keys((array) $stored))->toBe(array_keys((array) $api_agent))
+        ->and((array) $stored)->toEqual((array) $api_agent)
+        ->and($stored->custom_extra)->toBe('kept');
+});
+
+it('does not re-validate a pickup point the repository writes programmatically (legacy storage)', function () {
+    // On legacy post storage WooCommerce updates an existing meta row via
+    // update_metadata_by_mid, which is the validator's hook. A repository
+    // write() carries a complete, typed pickup point (e.g. the one a
+    // successful booking was submitted with, #182), so the validator must
+    // not fire an API lookup for it - and must not be able to refuse it.
+    with_option('woocommerce_custom_orders_table_enabled', 'no');
+
+    $product = create_simple_product(['price' => 100, 'weight' => 1]);
+    $order   = create_order(['products' => [$product], 'shipping_method' => 'postnord_agent']);
+    save_order_pickup_point($order->get_id(), sample_agent());
+
+    $capture = mock_smart_send_api(function () {
+        throw new RuntimeException('No API call expected for a repository write.');
+    });
+
+    // Changing the stored pickup point through the repository...
+    save_order_pickup_point($order->get_id(), sample_agent(['agent_no' => '5678', 'company' => 'Other Shop']));
+
+    $fresh = wc_get_order($order->get_id());
+    expect($capture->requests)->toBe([])
+        ->and($fresh->get_meta(SS_Shipping_Order_Meta::META_AGENT_NO, true))->toBe('5678')
+        ->and($fresh->get_meta(SS_Shipping_Order_Meta::META_AGENT, true)->company)->toBe('Other Shop');
+
+    // ...and clearing it, likewise without the deleted_post_meta cascade
+    // needing to do anything (both keys are gone).
+    SS_SHIPPING_WC()->order_meta()->write($order->get_id(), (new SS_Shipping_Delivery_Details())->clear_pickup_point());
+
+    $fresh = wc_get_order($order->get_id());
+    expect($capture->requests)->toBe([])
+        ->and($fresh->get_meta(SS_Shipping_Order_Meta::META_AGENT_NO, true))->toBe('')
+        ->and($fresh->get_meta(SS_Shipping_Order_Meta::META_AGENT, true))->toBe('')
+        ->and(SS_Shipping_Order_Meta::is_writing())->toBeFalse();
+
+    cleanup_created_objects();
+});
