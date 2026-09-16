@@ -194,7 +194,7 @@ if ( ! class_exists( 'SS_Shipping_Order_Fulfillment_Presenter' ) ) :
 					'shipping_items' => $shipping_items,
 				),
 				'urls'              => array(
-					'settings' => admin_url( 'admin.php?page=wc-settings&tab=shipping&section=smart_send_shipping' ),
+					'settings' => SS_Shipping_Settings::settings_screen_url(),
 					'rest'     => '/' . self::REST_NAMESPACE . '/orders/' . $order_id . '/fulfillment',
 				),
 			);
@@ -491,7 +491,7 @@ if ( ! class_exists( 'SS_Shipping_Order_Fulfillment_Presenter' ) ) :
 					'warning',
 					'not_connected',
 					esc_html__( 'Smart Send is not connected. Enter your API token in the settings to create labels.', 'smart-send-logistics' ),
-					'<a class="button" href="' . esc_url( $state['urls']['settings'] ) . '" data-ss-action="open-settings">' . esc_html__( 'Open settings', 'smart-send-logistics' ) . '</a>'
+					'<a class="button button-small" href="' . esc_url( $state['urls']['settings'] ) . '" data-ss-action="open-settings">' . esc_html__( 'Open settings', 'smart-send-logistics' ) . '</a>'
 				);
 			} elseif ( self::STATE_NO_METHOD === $box_state ) {
 				$callouts .= $this->render_notice(

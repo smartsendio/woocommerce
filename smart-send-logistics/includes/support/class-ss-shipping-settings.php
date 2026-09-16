@@ -118,6 +118,25 @@ if ( ! class_exists( 'SS_Shipping_Settings' ) ) :
 		}
 
 		/**
+		 * The plugin's settings screen: WooCommerce's shipping settings,
+		 * our section. WordPress has no helper for a settings tab/section
+		 * (menu_page_url() only knows the registered page), so the query
+		 * args live here once - the single place that knows them.
+		 *
+		 * @return string
+		 */
+		public static function settings_screen_url(): string {
+			return add_query_arg(
+				array(
+					'page'    => 'wc-settings',
+					'tab'     => 'shipping',
+					'section' => 'smart_send_shipping',
+				),
+				admin_url( 'admin.php' )
+			);
+		}
+
+		/**
 		 * The raw API token setting, or null when empty. May contain
 		 * multiple tokens in the site1:token1,site2:token2 format - resolve
 		 * it through SS_Shipping_Api_Credentials.

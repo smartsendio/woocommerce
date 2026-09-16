@@ -502,6 +502,11 @@
 
 }
 
-#smart-send-fulfillment[disabled] .components-button {
+// A disabled fieldset does not disable a <button> that is not a form
+// control to the browser (WP components render their own), so neutralize
+// them here. Deliberately scoped to <button>: the not-connected callout's
+// "Open settings" is an <a> and must stay clickable - it is the way out of
+// the state that disabled the fieldset in the first place.
+#smart-send-fulfillment[disabled] button.components-button {
 	pointer-events: none;
 }

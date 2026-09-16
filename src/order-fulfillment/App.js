@@ -403,7 +403,7 @@ export default function App( { initialState, mount } ) {
 					<Notice status="warning" isDismissible={ false }>
 						<p>{ __( 'Smart Send is not connected. Enter your API token in the settings to create labels.', 'smart-send-logistics' ) }</p>
 						<p>
-							<a className="components-button is-secondary" href={ state.urls.settings } data-ss-action="open-settings">
+							<a className="button button-small" href={ state.urls.settings } data-ss-action="open-settings">
 								{ __( 'Open settings', 'smart-send-logistics' ) }
 							</a>
 						</p>
