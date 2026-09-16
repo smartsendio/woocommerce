@@ -4,7 +4,7 @@
  * The plugin's general settings surface, end-to-end: the settings page
  * itself, the "Validate API Token" test-connection flow (success and
  * failure, against the mocked API), the debug log reaching the WooCommerce
- * log viewer, demo mode relabelling the label buttons, and the
+ * log viewer, the label buttons on the order screen, and the
  * order-status-after-label setting taking effect.
  *
  * Settings-permutation depth deliberately lives in the Integration suite
@@ -26,7 +26,7 @@ beforeAll(function (): void {
         return;
     }
 
-    // Two orders: one for the demo-mode meta box test, one for the
+    // Two orders: one for the meta box button test, one for the
     // order-status-after-label test (which books a label on it).
     ss_browser_seed_store([
         'settings' => ['api_token' => 'ss-browser-settings-token'],
@@ -50,8 +50,7 @@ it('renders the Smart Send settings page', function () {
     login_as_admin()
         ->navigate(ss_settings_page_url())
         ->assertSee('API Token')
-        ->assertSee('Validate API Token')
-        ->assertSee('Demo mode');
+        ->assertSee('Validate API Token');
 });
 
 it('validates the API token with a valid token', function () {
@@ -107,27 +106,13 @@ PHP);
     }
 });
 
-it('demo mode relabels the label buttons', function () {
+it('shows the label buttons on the order screen', function () {
     $state = ss_browser_state();
 
-    // Demo mode on (the seeded default): the meta box button carries the
-    // DEMO MODE prefix.
     login_as_admin()
         ->navigate(base_url(ss_browser_order_edit_path($state['orders'][0])))
-        ->assertSee('DEMO MODE: Generate label')
-        ->assertSee('DEMO MODE: Generate return label');
-
-    // Demo mode off: the plain button text.
-    ss_browser_update_plugin_setting('demo', 'no');
-
-    try {
-        login_as_admin()
-            ->navigate(base_url(ss_browser_order_edit_path($state['orders'][0])))
-            ->assertDontSee('DEMO MODE: Generate label')
-            ->assertSee('Generate label');
-    } finally {
-        ss_browser_update_plugin_setting('demo', 'yes');
-    }
+        ->assertSee('Generate label')
+        ->assertSee('Generate return label');
 });
 
 it('order-status-after-label setting changes the order status', function () {

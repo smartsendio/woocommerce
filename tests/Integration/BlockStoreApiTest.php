@@ -297,7 +297,7 @@ it('reports the none-found state distinctly when the lookup runs and finds no pi
 });
 
 it('reports the not_connected state and makes no API call when no token is configured', function () {
-    with_ss_settings(['api_token' => '', 'demo' => 'no']);
+    with_ss_settings(['api_token' => '']);
     $capture = mock_smart_send_api();
     block_cart_setup();
 
@@ -483,7 +483,7 @@ it('accepts checkout without an agent_no when the plugin is not connected', func
     // The not-connected short-circuit never reaches the API but still
     // caches the empty result in the session, so the order goes through
     // without a selection - like every other degraded state.
-    with_ss_settings(['api_token' => '', 'demo' => 'no']);
+    with_ss_settings(['api_token' => '']);
     mock_smart_send_api();
     block_cart_setup();
 

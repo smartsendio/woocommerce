@@ -32,7 +32,7 @@ $config += array('settings' => array(), 'orders' => array());
 $state_option = isset($args[1]) ? $args[1] : 'ss_browser_test_state';
 
 // cleanup-store.php deletes the state option, so if it still exists a
-// previous seed was never cleaned up (crashed run, demo mode left on). The
+// previous seed was never cleaned up (crashed run, demo store left on). The
 // live option values are then that seed's fixtures, not the real originals -
 // reuse the earlier snapshots so cleanup restores the true pre-seed state
 // instead of pointing options at fixture pages that get deleted.
@@ -52,7 +52,7 @@ $original_settings = array_key_exists('original_settings', $previous_state)
     ? $previous_state['original_settings']
     : get_option('woocommerce_smart_send_shipping_settings');
 update_option('woocommerce_smart_send_shipping_settings', array_merge(array(
-    'demo' => 'yes', 'ss_debug' => 'no', 'include_order_comment' => 'no',
+    'api_token' => 'ss-mock-api-token', 'ss_debug' => 'no', 'include_order_comment' => 'no',
     'save_shipping_labels_in_uploads' => 'no', 'dropdown_display_format' => '4',
     'default_select_agent' => 'no', 'order_status' => '0',
 ), $config['settings']));

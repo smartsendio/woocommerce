@@ -33,7 +33,7 @@ function mock_smart_send_api_sequence(array $responses): void
 
 it('does not leak the first call\'s data into a failing second call on one Api instance', function () {
     with_ss_settings();
-    $api = new Api('secret-token-123', 'example.test', true);
+    $api = new Api('secret-token-123', 'example.test');
 
     mock_smart_send_api_sequence([
         ss_api_response(200, ['data' => ss_api_shipment_data(['shipment_id' => 'first-call-shipment'])]),
@@ -58,7 +58,7 @@ it('does not leak the first call\'s data into a failing second call on one Api i
 
 it('does not leak the first call\'s failure into a succeeding second call on one Api instance', function () {
     with_ss_settings();
-    $api = new Api('secret-token-123', 'example.test', true);
+    $api = new Api('secret-token-123', 'example.test');
 
     mock_smart_send_api_sequence([
         ss_api_response(422, ss_api_error_body('The given data was invalid.')),

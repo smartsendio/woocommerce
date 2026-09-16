@@ -260,13 +260,6 @@ if ( ! class_exists( 'SS_Shipping_Order_Bulk_Actions' ) ) :
 		 * Return Smart Send bulk actions
 		 */
 		protected function get_bulk_actions() {
-			if ( $this->settings->demo_mode() ) {
-				return array(
-					'ss_shipping_label_bulk'  => __( 'DEMO MODE: Smart Send - Generate Labels', 'smart-send-logistics' ),
-					'ss_shipping_return_bulk' => __( 'DEMO MODE: Smart Send - Generate Return Labels', 'smart-send-logistics' ),
-				);
-			}
-
 			return array(
 				'ss_shipping_label_bulk'  => __( 'Smart Send - Generate Labels', 'smart-send-logistics' ),
 				'ss_shipping_return_bulk' => __( 'Smart Send - Generate Return Labels', 'smart-send-logistics' ),

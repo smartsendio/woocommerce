@@ -44,13 +44,6 @@ if ( ! class_exists( 'SS_Shipping_Settings' ) ) :
 		const KEY_API_TOKEN = 'api_token';
 
 		/**
-		 * Option key: demo mode checkbox.
-		 *
-		 * @var string
-		 */
-		const KEY_DEMO = 'demo';
-
-		/**
 		 * Option key: debug log checkbox.
 		 *
 		 * @var string
@@ -105,19 +98,6 @@ if ( ! class_exists( 'SS_Shipping_Settings' ) ) :
 		 * @var string
 		 */
 		const KEY_SORT_METHODS_BY_COST = 'sort_methods_by_cost';
-
-		/**
-		 * Whether demo mode is enabled. An unsaved (missing) setting counts
-		 * as demo mode - the plugin never books live without an explicit
-		 * opt-out.
-		 *
-		 * @return boolean
-		 */
-		public function demo_mode(): bool {
-			$value = $this->value( self::KEY_DEMO );
-
-			return empty( $value ) ? true : 'yes' == $value; // phpcs:ignore Universal.Operators.StrictComparisons.LooseEqual -- pre-existing loose comparison, kept verbatim from the historic singleton wrapper.
-		}
 
 		/**
 		 * Whether the "Debug Log" setting is enabled.

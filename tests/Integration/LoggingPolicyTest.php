@@ -459,7 +459,7 @@ it('no longer logs the removed noise entries', function () {
 });
 
 it('logs the not-connected pickup point lookup at error level even with debug off', function () {
-    with_ss_settings(['ss_debug' => 'no', 'api_token' => '', 'demo' => 'no']);
+    with_ss_settings(['ss_debug' => 'no', 'api_token' => '']);
     $spy = spy_on_logger();
 
     try {

@@ -73,30 +73,23 @@ if ( ! class_exists( 'SS_Shipping_Order_Meta_Box' ) ) :
 		}
 
 		/**
-		 * The label-generation button text, with the demo-mode prefix when
-		 * demo mode is on. Plain methods instead of the historic per-request
-		 * global define()s (#140).
+		 * The label-generation button text. Plain methods instead of the
+		 * historic per-request global define()s (#140).
 		 *
 		 * @return string
 		 */
 		protected function label_button_text() {
-			return $this->settings->demo_mode()
-				? __( 'DEMO MODE: Generate label', 'smart-send-logistics' )
-				: __( 'Generate label', 'smart-send-logistics' );
+			return __( 'Generate label', 'smart-send-logistics' );
 		}
 
 		/**
-		 * The return-label-generation button text, with the demo-mode prefix
-		 * when demo mode is on.
+		 * The return-label-generation button text.
 		 *
 		 * @return string
 		 */
 		protected function return_label_button_text() {
-			return $this->settings->demo_mode()
-				? __( 'DEMO MODE: Generate return label', 'smart-send-logistics' )
-				: __( 'Generate return label', 'smart-send-logistics' );
+			return __( 'Generate return label', 'smart-send-logistics' );
 		}
-
 		/**
 		 * Add the meta box for shipment info on the order page
 		 */
