@@ -472,7 +472,7 @@ export default function App( { initialState, mount } ) {
 				<Fragment>
 					{ callouts }
 					<MethodField
-						groups={ state.methods.outbound }
+						carriers={ state.methods.outbound }
 						value={ form.shippingMethod }
 						editing={ editing.method }
 						editable={ editable }
@@ -499,7 +499,7 @@ export default function App( { initialState, mount } ) {
 					) }
 					<ReturnMethodField
 						id="smart-send-return-method"
-						groups={ state.methods.return }
+						carriers={ state.methods.return }
 						value={ form.returnMethod }
 						configured={ state.return.method }
 						editing={ editing.returnMethod }

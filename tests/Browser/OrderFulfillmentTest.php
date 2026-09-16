@@ -59,6 +59,7 @@ beforeAll(function (): void {
         ['flat_rate' => true],    // 10: state B - return label only
         [],                       // 11: return method override
         [],                       // 12: a return booked from the booked state
+        [],                       // 13: the smart_send_fulfillment_shipping_methods filter
     ]]);
 });
 
@@ -662,4 +663,48 @@ it('reads "None" for a missing return method and offers the select behind Edit f
         ->assertAttributeMissing('[data-ss-action="create-return-label"]', 'title')
         ->check('[data-ss-field="with_return"]')
         ->assertAttributeMissing('[data-ss-action="create-label"]', 'title');
+});
+
+it('offers only what the smart_send_fulfillment_shipping_methods filter keeps, plus the order own method', function () {
+    $order_id = ss_browser_state()['orders'][13];
+    ss_browser_reset_api_requests();
+
+    // The merchant snippet: PostNord home delivery only outbound (the
+    // order's own postnord_agent is added back by the presenter), GLS only
+    // on the return drop-down.
+    ss_browser_install_methods_filter([
+        'outbound' => ['carriers' => ['postnord'], 'services' => ['homedelivery']],
+        'return'   => ['carriers' => ['gls']],
+    ]);
+
+    try {
+        ss_browser_open_order($order_id)
+            ->assertSeeIn('[data-ss-value="shipping_method"]', 'MyPack Collect')
+            ->click('[data-ss-action="edit-method"]')
+            // One optgroup per carrier, one option per service.
+            ->assertPresent('[data-ss-field="shipping_method"] optgroup[label="PostNord"]')
+            ->assertPresent('[data-ss-field="shipping_method"] option[value="postnord_homedelivery"]')
+            // Filtered away: another PostNord service and every other carrier.
+            ->assertNotPresent('[data-ss-field="shipping_method"] option[value="postnord_collect"]')
+            ->assertNotPresent('[data-ss-field="shipping_method"] optgroup[label="GLS"]')
+            ->assertNotPresent('[data-ss-field="shipping_method"] option[value="gls_agent"]')
+            // The order's own method survives the filter.
+            ->assertPresent('[data-ss-field="shipping_method"] option[value="postnord_agent"]')
+            // The return drop-down is narrowed on its own.
+            ->click('[data-ss-action="edit-return-method"]')
+            ->assertPresent('[data-ss-field="return_method"] optgroup[label="GLS"]')
+            ->assertPresent('[data-ss-field="return_method"] option[value="gls_returndropoff"]')
+            ->assertNotPresent('[data-ss-field="return_method"] option[value="bring_returndropoff"]')
+            // The order's own (configured) return method is added back too.
+            ->assertPresent('[data-ss-field="return_method"] option[value="postnord_returndropoff"]')
+            // A narrowed drop-down still books.
+            ->select('[data-ss-field="shipping_method"]', 'postnord_homedelivery')
+            ->click('[data-ss-action="create-label"]')
+            ->assertPresent('[data-ss-result="outbound"]');
+
+        $body = ss_browser_api_requests('booking')[0]['body'];
+        expect($body['shipping_method'])->toBe('homedelivery');
+    } finally {
+        ss_browser_remove_methods_filter();
+    }
 });

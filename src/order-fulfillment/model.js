@@ -55,18 +55,29 @@ export function isAgentMethod( code ) {
 }
 
 /**
- * The human readable name of a method code in the grouped method lists,
- * '' when unknown.
+ * The method code a carrier + service pair books with: '<carrier>_<service>'.
  *
- * @param {Array}  groups A methods list (state.methods.outbound / .return).
- * @param {string} code   The method code.
+ * @param {Object} carrier A carrier row of state.methods.outbound / .return.
+ * @param {Object} service One of its services.
+ * @return {string} The method code, e.g. 'postnord_agent'.
+ */
+export function methodCode( carrier, service ) {
+	return carrier.code + '_' + service.code;
+}
+
+/**
+ * The human readable name of a method code in the offered method lists
+ * (carriers => services), '' when the lists do not offer it.
+ *
+ * @param {Array}  carriers A methods list (state.methods.outbound / .return).
+ * @param {string} code     The method code.
  * @return {string} The name.
  */
-export function methodName( groups, code ) {
-	for ( const group of groups || [] ) {
-		for ( const option of group.options || [] ) {
-			if ( option.code === code ) {
-				return option.name;
+export function methodName( carriers, code ) {
+	for ( const carrier of carriers || [] ) {
+		for ( const service of carrier.services || [] ) {
+			if ( methodCode( carrier, service ) === code ) {
+				return service.name;
 			}
 		}
 	}

@@ -200,9 +200,10 @@ it('returns the state on GET, matching the presenter', function () {
         ->and($state['delivery_details']['pickup_point']['agent_no'])->toBe('1234')
         ->and($state['delivery_details']['pickup_point']['display_html'])->toContain('Corner Shop')
         ->and($state['delivery_details']['parcel_plan'])->toBeNull()
-        ->and($state['methods']['outbound'][0]['carrier'])->toBe('PostNord')
-        ->and($state['methods']['outbound'][0]['options'][0])->toBe(['code' => 'postnord_agent', 'name' => 'PostNord: Select pickup point (MyPack Collect)'])
-        ->and($state['methods']['return'][0]['options'][0]['code'])->toBe('postnord_returndropoff')
+        ->and($state['methods']['outbound'][0]['code'])->toBe('postnord')
+        ->and($state['methods']['outbound'][0]['name'])->toBe('PostNord')
+        ->and($state['methods']['outbound'][0]['services'][0])->toBe(['code' => 'agent', 'name' => 'PostNord: Select pickup point (MyPack Collect)', 'addons' => []])
+        ->and($state['methods']['return'][0]['services'][0]['code'])->toBe('returndropoff')
         ->and($state['return'])->toBe(['method' => 'postnord_returndropoff', 'auto_default' => true, 'uses_stored_pickup_point' => false])
         ->and($state['outbound_shipment'])->toBeNull()
         ->and($state['return_shipment'])->toBeNull()
@@ -673,4 +674,31 @@ it('maps API v1 field names onto form fields in one place', function () {
         ->and($presenter->map_api_field('shipping_carrier'))->toBe('shipping_method')
         ->and($presenter->map_api_field('receiver.zip_code'))->toBeNull()
         ->and($presenter->map_api_field('sender.name_line1'))->toBeNull();
+});
+
+it('books a method the smart_send_fulfillment_shipping_methods filter hides', function () {
+    // The filter narrows what the meta box OFFERS; it is not an
+    // authorisation boundary (#182), so a submitted method it hides is
+    // still booked.
+    $order   = create_rest_order(['shipping_method' => null]);
+    $capture = mock_smart_send_api();
+    as_rest_user();
+
+    $hide_everything = fn () => [];
+    add_filter('smart_send_fulfillment_shipping_methods', $hide_everything, 10, 3);
+    remember_cleanup_callback(function () use ($hide_everything): void {
+        remove_filter('smart_send_fulfillment_shipping_methods', $hide_everything, 10);
+    });
+
+    $response = fulfillment_post($order->get_id(), [
+        'flow'             => 'outbound',
+        'with_return'      => false,
+        'delivery_details' => ['shipping_method' => 'postnord_homedelivery'],
+    ]);
+
+    expect($response->get_status())->toBe(200)
+        ->and($response->get_data()['success'])->toBeTrue()
+        ->and(json_decode($capture->requests[0]['body'], true)['shipping_method'])->toBe('homedelivery')
+        // ... while the drop-downs the response carries stay empty.
+        ->and($response->get_data()['state']['methods']['outbound'])->toBe([]);
 });

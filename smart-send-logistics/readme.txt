@@ -183,6 +183,26 @@ Deciding what ships:
 * **smart_send_parcel_default_weight** `( float $weight, SS_Shipping_Parcel_Spec $spec, WC_Order $order )` (since 9.0.0)
     Filter on the weight of a parcel that has no explicit weight: the sum of the weights of the items allocated to it (0 when the items weigh nothing or the parcel has no items). Use it to add packaging weight or apply a minimum. A parcel with an explicit weight - entered in the order meta box, or `set_weight()` on the spec in `smart_send_delivery_details` - bypasses this filter entirely
 
+What the order screen offers:
+
+* **smart_send_fulfillment_shipping_methods** `( array $carriers, WC_Order $order, bool $is_return )` (since 9.0.0)
+    Filter on the shipping methods the order screen's "Smart Send" box offers in its method drop-downs. It runs once per list, so the outbound and the return drop-down can be restricted differently (`$is_return` tells them apart). The methods are carriers, each with services, each with addons:
+
+        array(
+            array(
+                'code'     => 'postnord',
+                'name'     => 'PostNord',
+                'services' => array(
+                    array( 'code' => 'agent', 'name' => 'PostNord: Select pickup point (MyPack Collect)', 'addons' => array() ),
+                    array( 'code' => 'homedelivery', 'name' => 'PostNord: Private delivery to address (MyPack Home)', 'addons' => array() ),
+                ),
+            ),
+        )
+
+    The method code booked with is `<carrier code>_<service code>`, e.g. `postnord_agent`. Returning an empty array leaves the drop-down empty. `addons` is **reserved** for the delivery addons landing with the API v2 work and is always an empty array today - do not build an addon catalogue on it.
+    The method the order itself resolves to (its stored/resolved shipping method, and the configured return method) is always offered, even when the filter removes its carrier or service: the box never shows a selected value its drop-down cannot offer, and the plugin logs that at `debug` level naming the method code.
+    This narrows what the **box offers**; it is **not an authorisation boundary**. The REST route behind the box does not validate a submitted method against the filter, and only users with the `edit_shop_orders` capability reach any of it. Use `smart_send_delivery_details` when a method must not be booked at all.
+
 Side effects on the order, in the order they run (the submitted delivery details, then the shipment id, are always stored in order meta first):
 
 * **smart_send_fulfillment_save_documents** `( bool $save, SS_Shipping_Booked_Shipment $shipment, WC_Order $order )` (since 9.0.0)
@@ -198,6 +218,27 @@ When the run is done:
 
 * **smart_send_order_fulfilled** `( WC_Order $order, SS_Shipping_Fulfillment_Result $result )` (since 9.0.0)
     Action fired once per run, after every side effect of every label is applied, when at least one shipment was fulfilled. The result carries `shipments()`, `get_outbound_shipment()` and `get_return_shipment()` (each a `SS_Shipping_Booked_Shipment`, see Booking below), `get_order_note($shipment)`, `get_order_note_id($shipment)`, `get_steps($shipment)` (which side effects ran), `get_warnings($shipment)` and, for a leg that failed, `get_outbound_error()`/`get_return_error()` (HTML), `get_validation_errors($is_return)` and `get_error_details($is_return)` (message, Response-ID, field errors, HTML). `to_array()` is the serializable form: one row per attempted label with `direction`, `status` (`fulfilled`/`failed`), the shipment's `to_array()`, `steps`, `order_note`, `warnings` or `error`. Replaces `smart_send_shipping_label_created` (8.x), which no longer fires
+
+Example: offer only PostNord pickup point services on the order screen for heavy orders:
+
+    add_filter('smart_send_fulfillment_shipping_methods', function (array $carriers, WC_Order $order, bool $is_return) {
+        if ($is_return || $order->get_shipping_total() < 10) {
+            return $carriers;
+        }
+
+        foreach ($carriers as $index => $carrier) {
+            if ($carrier['code'] !== 'postnord') {
+                unset($carriers[$index]);
+                continue;
+            }
+
+            $carriers[$index]['services'] = array_values(array_filter($carrier['services'], function ($service) {
+                return in_array($service['code'], array('agent', 'collect'), true);
+            }));
+        }
+
+        return array_values($carriers);
+    }, 10, 3);
 
 Example: ship every order in two parcels of fixed size and weight, with no item allocation:
 
@@ -369,6 +410,7 @@ No - this is by design. Neither deactivating nor uninstalling the plugin deletes
 * Support for the WooCommerce Checkout Block: pickup point selection now works in the block-based checkout as well as the classic checkout
 * Support for High-Performance Order Storage (HPOS)
 * Rebuilt order-screen meta box: books without a page reload, lets you change the shipping method, pickup point and parcels (weight and dimensions per box) before booking, and books orders placed with another shipping method. A booking is confirmed right in the box - the shipment with a link into the Smart Send app, every parcel with its tracking number, weight and dimensions, and the documents - and every label the order has is listed under "Booked shipments"; the form stays open, so another label is always one click away
+* New filter smart_send_fulfillment_shipping_methods: restrict the shipping methods the order screen's "Smart Send" box offers in its method drop-downs, per order and per direction - see the Developers section
 * Minimum required WordPress version raised to 6.5
 * Minimum required WooCommerce version raised from 4.7 to 8.2
 * Minimum required PHP version is 7.4 (unchanged since 8.2.0)

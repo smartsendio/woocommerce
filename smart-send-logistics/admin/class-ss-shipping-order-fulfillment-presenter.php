@@ -127,7 +127,9 @@ if ( ! class_exists( 'SS_Shipping_Order_Fulfillment_Presenter' ) ) :
 		 *                                   'units' => array( array( 'id' => int, 'name' => string, 'unit_weight' => float ), ... ) ), // one row per unit
 		 *     'delivery_details'  => array( 'shipping_method' => string|null, 'pickup_point' => array|null (to_array() + 'display_html'),
 		 *                                   'parcel_plan' => array|null (to_array()), 'addons' => array ),
-		 *     'methods'           => array( 'outbound' => array( array( 'carrier' => string, 'options' => array( array( 'code', 'name' ), ... ) ), ... ), 'return' => ... ),
+		 *     'methods'           => array( 'outbound' => array( array( 'code' => string, 'name' => string,
+		 *                                       'services' => array( array( 'code' => string, 'name' => string, 'addons' => array() ), ... ) ), ... ),
+		 *                                   'return' => ... ), // the smart_send_fulfillment_shipping_methods filter applies per list
 		 *     'return'            => array( 'method' => string|null, 'auto_default' => bool, 'uses_stored_pickup_point' => bool ),
 		 *     'outbound_shipment' => array( 'shipment_id' => string, 'app_url' => string )|null,  // the LATEST id of the direction (Decisions, #182: the booked DTO is not persisted)
 		 *     'return_shipment'   => array( 'shipment_id' => string, 'app_url' => string )|null,
@@ -178,8 +180,8 @@ if ( ! class_exists( 'SS_Shipping_Order_Fulfillment_Presenter' ) ) :
 					'addons'          => $details->get_addons(),
 				),
 				'methods'           => array(
-					'outbound' => $this->method_groups( $this->catalog()->get_shipping_methods() ),
-					'return'   => $this->method_groups( $this->catalog()->get_return_shipping_methods() ),
+					'outbound' => $this->offered_methods( $order, false, $outbound_method ),
+					'return'   => $this->offered_methods( $order, true, $return_method ),
 				),
 				'return'            => array(
 					'method'                   => '' === $return_method ? null : $return_method,
@@ -1021,35 +1023,259 @@ if ( ! class_exists( 'SS_Shipping_Order_Fulfillment_Presenter' ) ) :
 		}
 
 		/**
-		 * The catalogue's carrier => methods map as a list of groups.
+		 * The shipping methods the box offers for a direction: the
+		 * catalogue as carriers => services, passed through the public
+		 * `smart_send_fulfillment_shipping_methods` filter, normalized, and
+		 * with the order's own method added back when the filter dropped it.
+		 *
+		 * The filter is a UI narrowing only - it decides what the drop-downs
+		 * offer, never what may be booked (the REST controller does not
+		 * validate a submitted method against it).
+		 *
+		 * @param WC_Order $order     The order the box is rendered for.
+		 * @param boolean  $is_return Whether this is the return method list.
+		 * @param string   $selected  The method the order resolves to for this direction ('' when none).
+		 *
+		 * @return array
+		 */
+		protected function offered_methods( WC_Order $order, bool $is_return, string $selected ): array {
+			$carriers = $this->method_carriers(
+				$is_return ? $this->catalog()->get_return_shipping_methods() : $this->catalog()->get_shipping_methods()
+			);
+
+			/**
+			 * Filter the shipping methods the order screen's "Smart Send" box
+			 * offers in its method drop-downs.
+			 *
+			 * Runs once per list, so the outbound and the return drop-down can
+			 * be restricted differently. The method code booked with is
+			 * '<carrier code>_<service code>', e.g. 'postnord_agent'. Returning
+			 * an empty array leaves the drop-down empty.
+			 *
+			 * 'addons' is reserved for the delivery addons landing with the API
+			 * v2 work and is always an empty array today.
+			 *
+			 * This narrows what the box offers; it is not an authorisation
+			 * boundary - a method submitted by an editor is still booked.
+			 *
+			 * @since 9.0.0
+			 *
+			 * @param array    $carriers  array( array( 'code' => string, 'name' => string, 'services' => array( array( 'code' => string, 'name' => string, 'addons' => array() ), ... ) ), ... )
+			 * @param WC_Order $order     The order the box is rendered for.
+			 * @param boolean  $is_return Whether this is the return method list.
+			 */
+			$carriers = apply_filters( 'smart_send_fulfillment_shipping_methods', $carriers, $order, $is_return );
+
+			$carriers = $this->normalize_method_carriers( is_array( $carriers ) ? $carriers : array() );
+
+			return $this->ensure_method_offered( $carriers, $selected, $is_return );
+		}
+
+		/**
+		 * The catalogue's carrier => methods map as the nested carriers =>
+		 * services list the state carries: the method code 'postnord_agent'
+		 * becomes the service 'agent' of the carrier 'postnord'.
 		 *
 		 * @param array $catalog_methods SS_Shipping_Method_Catalog::get_shipping_methods() / get_return_shipping_methods().
 		 *
 		 * @return array
 		 */
-		protected function method_groups( array $catalog_methods ): array {
-			$groups = array();
+		protected function method_carriers( array $catalog_methods ): array {
+			$carriers = array();
 
-			foreach ( $catalog_methods as $carrier => $methods ) {
+			foreach ( $catalog_methods as $group => $methods ) {
 				if ( ! is_array( $methods ) ) {
 					continue; // The '- Select Method -' placeholder.
 				}
 
-				$options = array();
 				foreach ( $methods as $code => $name ) {
-					$options[] = array(
-						'code' => (string) $code,
-						'name' => (string) $name,
+					$carrier = ( new SS_Shipping_Method_Code( (string) $code ) )->carrier();
+
+					if ( ! isset( $carriers[ $carrier ] ) ) {
+						$carriers[ $carrier ] = array(
+							'code'     => $carrier,
+							'name'     => $this->carrier_name( $carrier, (string) $group ),
+							'services' => array(),
+						);
+					}
+
+					$carriers[ $carrier ]['services'][] = array(
+						'code'   => $this->service_code( (string) $code, $carrier ),
+						'name'   => (string) $name,
+						// Reserved for the delivery addons of the API v2 work.
+						'addons' => array(),
+					);
+				}
+			}
+
+			return array_values( $carriers );
+		}
+
+		/**
+		 * The display name of a carrier: the catalogue's own, falling back
+		 * to the group heading the methods were listed under (e.g. 'Bifrost
+		 * Logistics' for the carrier code 'bifrost').
+		 *
+		 * @param string $carrier The carrier code.
+		 * @param string $group   The catalogue group heading the method was listed under.
+		 *
+		 * @return string
+		 */
+		protected function carrier_name( string $carrier, string $group ): string {
+			$name = (string) $this->catalog()->get_carrier_name( $carrier );
+
+			return $name === $carrier ? $group : $name;
+		}
+
+		/**
+		 * The service part of a method code, i.e. the code without its
+		 * '<carrier>_' prefix.
+		 *
+		 * @param string $code    The method code, e.g. 'postnord_agent'.
+		 * @param string $carrier The carrier code, e.g. 'postnord'.
+		 *
+		 * @return string
+		 */
+		protected function service_code( string $code, string $carrier ): string {
+			$prefix = $carrier . '_';
+
+			return 0 === strpos( $code, $prefix ) ? substr( $code, strlen( $prefix ) ) : $code;
+		}
+
+		/**
+		 * A filtered carriers list, defensively normalized: anything that is
+		 * not a carrier with at least one service is dropped, every value is
+		 * cast, and 'addons' is always present as an array.
+		 *
+		 * @param array $carriers The filtered list.
+		 *
+		 * @return array
+		 */
+		protected function normalize_method_carriers( array $carriers ): array {
+			$normalized = array();
+
+			foreach ( $carriers as $carrier ) {
+				if ( ! is_array( $carrier ) || ! isset( $carrier['code'] ) || '' === (string) $carrier['code'] ) {
+					continue;
+				}
+
+				$code     = (string) $carrier['code'];
+				$services = array();
+
+				foreach ( isset( $carrier['services'] ) && is_array( $carrier['services'] ) ? $carrier['services'] : array() as $service ) {
+					if ( ! is_array( $service ) || ! isset( $service['code'] ) || '' === (string) $service['code'] ) {
+						continue;
+					}
+
+					$service_code = (string) $service['code'];
+					$name         = isset( $service['name'] ) ? (string) $service['name'] : '';
+
+					if ( '' === $name ) {
+						$name = $this->method_name( $code . '_' . $service_code );
+						$name = '' === $name ? $code . '_' . $service_code : $name;
+					}
+
+					$services[] = array(
+						'code'   => $service_code,
+						'name'   => $name,
+						'addons' => isset( $service['addons'] ) && is_array( $service['addons'] ) ? array_values( $service['addons'] ) : array(),
 					);
 				}
 
-				$groups[] = array(
-					'carrier' => (string) $carrier,
-					'options' => $options,
+				if ( array() === $services ) {
+					continue;
+				}
+
+				$name = isset( $carrier['name'] ) && '' !== (string) $carrier['name'] ? (string) $carrier['name'] : $this->carrier_name( $code, $code );
+
+				$normalized[] = array(
+					'code'     => $code,
+					'name'     => $name,
+					'services' => $services,
 				);
 			}
 
-			return $groups;
+			return $normalized;
+		}
+
+		/**
+		 * The order's own method always survives the filter: when the method
+		 * the order resolves to for this direction is no longer offered, it
+		 * is added back (to its carrier, or as a carrier of its own) so the
+		 * box never shows a selected value its drop-down cannot offer.
+		 *
+		 * @param array   $carriers  The filtered carriers list.
+		 * @param string  $selected  The method code the order resolves to ('' when none).
+		 * @param boolean $is_return Whether this is the return method list.
+		 *
+		 * @return array
+		 */
+		protected function ensure_method_offered( array $carriers, string $selected, bool $is_return ): array {
+			if ( '' === $selected ) {
+				return $carriers;
+			}
+
+			$method  = new SS_Shipping_Method_Code( $selected );
+			$carrier = $method->carrier();
+			$service = $this->service_code( $selected, $carrier );
+
+			foreach ( $carriers as $index => $row ) {
+				if ( $row['code'] !== $carrier ) {
+					continue;
+				}
+
+				foreach ( $row['services'] as $offered ) {
+					if ( $offered['code'] === $service ) {
+						return $carriers; // Still offered.
+					}
+				}
+
+				$carriers[ $index ]['services'][] = $this->method_service( $selected, $service );
+
+				SS_Shipping_Logger::debug(
+					'The smart_send_fulfillment_shipping_methods filter removed the method of the order - added back',
+					array(
+						'method'    => $selected,
+						'is_return' => $is_return,
+					)
+				);
+
+				return $carriers;
+			}
+
+			$carriers[] = array(
+				'code'     => $carrier,
+				'name'     => $this->carrier_name( $carrier, $carrier ),
+				'services' => array( $this->method_service( $selected, $service ) ),
+			);
+
+			SS_Shipping_Logger::debug(
+				'The smart_send_fulfillment_shipping_methods filter removed the carrier of the order - added back',
+				array(
+					'method'    => $selected,
+					'is_return' => $is_return,
+				)
+			);
+
+			return $carriers;
+		}
+
+		/**
+		 * A single service row of a method code, named from the catalogue.
+		 *
+		 * @param string $code    The full method code.
+		 * @param string $service The service part of it.
+		 *
+		 * @return array
+		 */
+		protected function method_service( string $code, string $service ): array {
+			$name = $this->method_name( $code );
+
+			return array(
+				'code'   => $service,
+				'name'   => '' === $name ? $code : $name,
+				'addons' => array(),
+			);
 		}
 
 		/**
