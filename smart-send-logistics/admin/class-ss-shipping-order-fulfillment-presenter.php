@@ -387,17 +387,18 @@ if ( ! class_exists( 'SS_Shipping_Order_Fulfillment_Presenter' ) ) :
 			// doubles as the hydration gate.
 			$html .= '<fieldset id="smart-send-fulfillment" class="smart-send-fulfillment__form" data-ss-form="fulfillment" data-ss-state="' . esc_attr( $box_state ) . '" data-ss-order-id="' . esc_attr( (string) $state['order_id'] ) . '" disabled>';
 
-			$callouts = '';
+			// Demo mode: a warning callout at the top of the box, in every state.
+			$callouts = $state['demo_mode'] ? $this->render_notice( 'warning', 'demo_mode', esc_html__( 'Demo mode active', 'smart-send-logistics' ) ) : '';
 
 			if ( self::STATE_NOT_CONNECTED === $box_state ) {
-				$callouts = $this->render_notice(
+				$callouts .= $this->render_notice(
 					'warning',
 					'not_connected',
 					esc_html__( 'Smart Send is not connected. Enter your API token in the settings to create labels.', 'smart-send-logistics' ),
 					'<a class="button" href="' . esc_url( $state['urls']['settings'] ) . '" data-ss-action="open-settings">' . esc_html__( 'Open settings', 'smart-send-logistics' ) . '</a>'
 				);
 			} elseif ( self::STATE_NO_METHOD === $box_state ) {
-				$callouts = $this->render_notice(
+				$callouts .= $this->render_notice(
 					'info',
 					'no_method',
 					esc_html__( 'Shipping method is not from the Smart Send plugin.', 'smart-send-logistics' )
@@ -909,7 +910,10 @@ if ( ! class_exists( 'SS_Shipping_Order_Fulfillment_Presenter' ) ) :
 
 		/**
 		 * A create-label button: the flow as its value and a data-ss-action
-		 * selector.
+		 * selector. While the method the flow needs is missing (no stored
+		 * shipping method / no configured return method) the button stays
+		 * enabled and explains itself in its title; the app shows the same
+		 * sentence as an error on click instead of sending a request.
 		 *
 		 * @param string  $flow    'outbound' or 'return'.
 		 * @param array   $state   The state.
@@ -921,12 +925,14 @@ if ( ! class_exists( 'SS_Shipping_Order_Fulfillment_Presenter' ) ) :
 			$is_return = 'return' === $flow;
 
 			if ( $is_return ) {
-				$text = $state['demo_mode'] ? __( 'DEMO MODE: Create return label', 'smart-send-logistics' ) : __( 'Create return label', 'smart-send-logistics' );
+				$text  = __( 'Create return label', 'smart-send-logistics' );
+				$title = null === $state['return']['method'] ? __( 'Select a return shipping method first', 'smart-send-logistics' ) : '';
 			} else {
-				$text = $state['demo_mode'] ? __( 'DEMO MODE: Create shipping label', 'smart-send-logistics' ) : __( 'Create shipping label', 'smart-send-logistics' );
+				$text  = __( 'Create shipping label', 'smart-send-logistics' );
+				$title = null === $state['delivery_details']['shipping_method'] ? __( 'Select a shipping method first', 'smart-send-logistics' ) : '';
 			}
 
-			return '<button type="button" class="button' . ( $primary ? ' button-primary' : '' ) . ' smart-send-fulfillment__action" name="smart_send[flow]" value="' . esc_attr( $flow ) . '" data-ss-action="' . ( $is_return ? 'create-return-label' : 'create-label' ) . '">' . esc_html( $text ) . '</button>';
+			return '<button type="button" class="button' . ( $primary ? ' button-primary' : '' ) . ' smart-send-fulfillment__action" name="smart_send[flow]" value="' . esc_attr( $flow ) . '" data-ss-action="' . ( $is_return ? 'create-return-label' : 'create-label' ) . '"' . ( '' === $title ? '' : ' title="' . esc_attr( $title ) . '"' ) . '>' . esc_html( $text ) . '</button>';
 		}
 
 		/**

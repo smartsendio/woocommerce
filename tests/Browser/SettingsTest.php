@@ -4,7 +4,7 @@
  * The plugin's general settings surface, end-to-end: the settings page
  * itself, the "Validate API Token" test-connection flow (success and
  * failure, against the mocked API), the debug log reaching the WooCommerce
- * log viewer, demo mode relabelling the label buttons, and the
+ * log viewer, demo mode announcing itself in the order meta box, and the
  * order-status-after-label setting taking effect.
  *
  * Settings-permutation depth deliberately lives in the Integration suite
@@ -107,24 +107,26 @@ PHP);
     }
 });
 
-it('demo mode relabels the label buttons', function () {
+it('demo mode shows a warning callout at the top of the meta box, with plain button labels', function () {
     $state = ss_browser_state();
 
-    // Demo mode on (the seeded default): the meta box buttons carry the
-    // DEMO MODE prefix.
+    // Demo mode on (the seeded default): the callout, the buttons unprefixed.
     login_as_admin()
         ->navigate(base_url(ss_browser_order_edit_path($state['orders'][0])))
-        ->assertSee('DEMO MODE: Create shipping label')
-        ->assertSee('DEMO MODE: Create return label');
+        ->assertSeeIn('[data-ss-notice="demo_mode"]', 'Demo mode active')
+        ->assertSeeIn('[data-ss-section="actions"]', 'Create shipping label')
+        ->assertSeeIn('[data-ss-section="actions"]', 'Create return label')
+        ->assertDontSee('DEMO MODE: Create');
 
-    // Demo mode off: the plain button text.
+    // Demo mode off: no callout.
     ss_browser_update_plugin_setting('demo', 'no');
 
     try {
         login_as_admin()
             ->navigate(base_url(ss_browser_order_edit_path($state['orders'][0])))
-            ->assertDontSee('DEMO MODE: Create shipping label')
-            ->assertSee('Create shipping label');
+            ->assertSeeIn('[data-ss-section="actions"]', 'Create shipping label')
+            ->assertNotPresent('[data-ss-notice="demo_mode"]')
+            ->assertDontSee('Demo mode active');
     } finally {
         ss_browser_update_plugin_setting('demo', 'yes');
     }

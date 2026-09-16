@@ -6,6 +6,9 @@
  * (booked, or failed with per-field errors) - rendering the section 1.2
  * states:
  *
+ *   (demo mode on: a "Demo mode active" warning callout at the top of the
+ *   box in every state)
+ *
  *   A not connected      notice + "Open settings", everything disabled
  *   B no Smart Send method   notice; the method rows read "None" + Edit
  *                            (the select behind Edit); the order is bookable
@@ -126,6 +129,9 @@ export default function App( { initialState, mount } ) {
 	const [ notices, setNotices ] = useState( [] ); // general error notices
 	const [ editing, setEditing ] = useState( { method: false, pickupPoint: false, returnMethod: false, parcels: false } );
 	const edit = ( key, value = true ) => setEditing( ( previous ) => ( { ...previous, [ key ]: value } ) );
+	// A select to focus after the next render (the guard below opens a
+	// method row's Edit state when an action is pressed without a method).
+	const [ focusField, setFocusField ] = useState( null );
 	const [ rebook, setRebook ] = useState( { outbound: false, return: false } ); // disclosure open
 	const [ confirmed, setConfirmed ] = useState( { outbound: false, return: false } ); // confirm checkbox
 
@@ -155,9 +161,22 @@ export default function App( { initialState, mount } ) {
 		bindHelpTips( mount );
 	} );
 
+	useEffect( () => {
+		if ( ! focusField ) {
+			return;
+		}
+		const control = mount.querySelector( '[data-ss-field="' + focusField + '"]' );
+		if ( control ) {
+			control.focus();
+		}
+		setFocusField( null );
+	}, [ mount, focusField ] );
+
 	const runEntry = ( direction ) => run.find( ( entry ) => entry.direction === direction ) || null;
 
 	const updateForm = ( patch ) => setForm( ( previous ) => ( { ...previous, ...patch } ) );
+
+	const dropNotice = ( key ) => setNotices( ( previous ) => previous.filter( ( notice ) => notice.key !== key ) );
 
 	const clearErrors = () => {
 		setFieldErrors( {} );
@@ -206,8 +225,39 @@ export default function App( { initialState, mount } ) {
 		};
 	};
 
+	// The return-only action and a combined run need a return method: the
+	// configured one or the one chosen in the return method row.
+	const noReturnMethod = ! state.return.method && ! form.returnMethod;
+
+	/**
+	 * The reason an action cannot run yet - the missing method - or null.
+	 * Both buttons stay enabled (a disabled button cannot explain itself
+	 * and is poor on touch): the sentence is the button's title and, on a
+	 * click, the error notice shown instead of sending a request. The REST
+	 * controller's 409s stay as the backstop.
+	 */
+	const missingMethod = ( flow ) => {
+		if ( flow === 'outbound' && ! form.shippingMethod ) {
+			return { field: 'shipping_method', notice: 'missing_method', message: __( 'Select a shipping method first', 'smart-send-logistics' ) };
+		}
+		if ( ( flow === 'return' || ( form.withReturn && ! state.return_shipment ) ) && noReturnMethod ) {
+			return { field: 'return_method', notice: 'missing_return_method', message: __( 'Select a return shipping method first', 'smart-send-logistics' ) };
+		}
+
+		return null;
+	};
+
 	const submit = async ( flow ) => {
 		clearErrors();
+
+		const missing = missingMethod( flow );
+		if ( missing ) {
+			setNotices( [ { key: missing.notice, message: missing.message, details: [], responseId: null } ] );
+			edit( missing.field === 'return_method' ? 'returnMethod' : 'method' );
+			setFocusField( missing.field );
+			return;
+		}
+
 		setSubmitting( flow );
 
 		let response;
@@ -262,23 +312,27 @@ export default function App( { initialState, mount } ) {
 		if ( submitting === flow ) {
 			return __( 'Creating label…', 'smart-send-logistics' );
 		}
-		const demo = state.demo_mode ? __( 'DEMO MODE: ', 'smart-send-logistics' ) : '';
 
-		return demo + ( flow === 'return' ? __( 'Create return label', 'smart-send-logistics' ) : __( 'Create shipping label', 'smart-send-logistics' ) );
+		return flow === 'return' ? __( 'Create return label', 'smart-send-logistics' ) : __( 'Create shipping label', 'smart-send-logistics' );
 	};
 
-	const createButton = ( flow, primary, extraDisabled = false ) => (
-		<Button
-			variant={ primary ? 'primary' : 'secondary' }
-			className="smart-send-fulfillment__action"
-			data-ss-action={ flow === 'return' ? 'create-return-label' : 'create-label' }
-			onClick={ () => submit( flow ) }
-			disabled={ disabled || extraDisabled }
-			isBusy={ submitting === flow }
-		>
-			{ buttonText( flow ) }
-		</Button>
-	);
+	const createButton = ( flow, primary, extraDisabled = false ) => {
+		const missing = missingMethod( flow );
+
+		return (
+			<Button
+				variant={ primary ? 'primary' : 'secondary' }
+				className="smart-send-fulfillment__action"
+				data-ss-action={ flow === 'return' ? 'create-return-label' : 'create-label' }
+				title={ missing ? missing.message : undefined }
+				onClick={ () => submit( flow ) }
+				disabled={ disabled || extraDisabled }
+				isBusy={ submitting === flow }
+			>
+				{ buttonText( flow ) }
+			</Button>
+		);
+	};
 
 	const generalNotices = notices.map( ( notice ) => (
 		<ErrorNotice
@@ -293,6 +347,13 @@ export default function App( { initialState, mount } ) {
 
 	const callouts = (
 		<Fragment>
+			{ state.demo_mode && (
+				<div className="smart-send-fulfillment__notice" data-ss-notice="demo_mode">
+					<Notice status="warning" isDismissible={ false }>
+						{ __( 'Demo mode active', 'smart-send-logistics' ) }
+					</Notice>
+				</div>
+			) }
 			{ current === STATE_NOT_CONNECTED && (
 				<div className="smart-send-fulfillment__notice" data-ss-notice="not_connected">
 					<Notice status="warning" isDismissible={ false }>
@@ -338,14 +399,15 @@ export default function App( { initialState, mount } ) {
 			editing={ editing.returnMethod }
 			editable={ editable }
 			onEdit={ () => edit( 'returnMethod' ) }
-			onChange={ ( value ) => updateForm( { returnMethod: value } ) }
+			onChange={ ( value ) => {
+				updateForm( { returnMethod: value } );
+				if ( value ) {
+					dropNotice( 'missing_return_method' );
+				}
+			} }
 			errors={ fieldErrors }
 		/>
 	);
-
-	// The return-only action needs a return method: the configured one or
-	// the one chosen in the return method row.
-	const noReturnMethod = ! state.return.method && ! form.returnMethod;
 
 	/**
 	 * The not-yet-booked form (states B, C, D) as its sections: the
@@ -368,7 +430,12 @@ export default function App( { initialState, mount } ) {
 						editing={ editing.method }
 						editable={ editable }
 						onEdit={ () => edit( 'method' ) }
-						onChange={ ( value ) => updateForm( { shippingMethod: value } ) }
+						onChange={ ( value ) => {
+							updateForm( { shippingMethod: value } );
+							if ( value ) {
+								dropNotice( 'missing_method' );
+							}
+						} }
 						errors={ fieldErrors }
 						debugItems={ state.debug && state.debug.enabled ? state.debug.shipping_items : [] }
 					/>
@@ -400,11 +467,12 @@ export default function App( { initialState, mount } ) {
 			/>
 			{ withActions && section( 'actions', (
 				<div className="smart-send-fulfillment__actions">
-					{ createButton( 'outbound', true, extraDisabled || ! form.shippingMethod || ( withReturnToggle && form.withReturn && noReturnMethod ) ) }
+					{ createButton( 'outbound', true, extraDisabled ) }
 					{ /* Both actions are always offered before booking: the
 					     primary outbound action and, as the secondary one, the
-					     return-only action (flow: return). */ }
-					{ withReturnToggle && createButton( 'return', false, extraDisabled || noReturnMethod ) }
+					     return-only action (flow: return). A missing method is
+					     explained on click (missingMethod), not by disabling. */ }
+					{ withReturnToggle && createButton( 'return', false, extraDisabled ) }
 				</div>
 			), 'actions' ) }
 			{ withReturnToggle && section( 'settings', (
@@ -450,7 +518,7 @@ export default function App( { initialState, mount } ) {
 						<Fragment>
 							{ returnMethodRow( 'smart-send-return-method-rebook' ) }
 							<div className="smart-send-fulfillment__actions">
-								{ createButton( 'return', false, ! confirmed.return || noReturnMethod ) }
+								{ createButton( 'return', false, ! confirmed.return ) }
 							</div>
 						</Fragment>
 					) : (
@@ -496,7 +564,7 @@ export default function App( { initialState, mount } ) {
 				</p>
 				{ returnMethodRow( 'smart-send-return-method-only' ) }
 				<div className="smart-send-fulfillment__actions">
-					{ createButton( 'return', false, noReturnMethod ) }
+					{ createButton( 'return', false ) }
 				</div>
 			</div>
 		);

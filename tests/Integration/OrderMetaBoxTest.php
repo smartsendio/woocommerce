@@ -153,17 +153,21 @@ it('renders the not-yet-booked form with the state inlined as JSON', function ()
         ->not->toContain('Default from the shipping method settings')
         // Both actions, always: the primary "Create shipping label" over the
         // secondary "Create return label" (a return leg on its own).
-        ->toContain('class="button button-primary smart-send-fulfillment__action" name="smart_send[flow]" value="outbound" data-ss-action="create-label"')
-        ->toContain('DEMO MODE: Create shipping label')
-        ->toContain('class="button smart-send-fulfillment__action" name="smart_send[flow]" value="return" data-ss-action="create-return-label"')
-        ->toContain('DEMO MODE: Create return label')
+        ->toContain('class="button button-primary smart-send-fulfillment__action" name="smart_send[flow]" value="outbound" data-ss-action="create-label">Create shipping label</button>')
+        ->toContain('class="button smart-send-fulfillment__action" name="smart_send[flow]" value="return" data-ss-action="create-return-label">Create return label</button>')
+        // Demo mode (the fixture default) is a warning callout at the top of
+        // the box, not a prefix on the buttons.
+        ->toContain('data-ss-section="details"><div class="notice notice-warning inline smart-send-fulfillment__notice" data-ss-notice="demo_mode"><p>Demo mode active</p></div>')
+        ->not->toContain('DEMO MODE')
         // Rendered disabled: the app enables the fieldset once mounted
         // (submission is JS-only, #182) - nothing of the AJAX bridge is left.
         ->toContain('data-ss-order-id="' . $order->get_id() . '" disabled>')
         ->not->toContain('ss-shipping-label-button')
         ->not->toContain('ss_shipping_label_nonce')
         ->not->toContain('ss_shipping_box_no')
-        ->not->toContain('data-ss-notice=');
+        // No state callout (only the demo one asserted above).
+        ->not->toContain('data-ss-notice="no_method"')
+        ->not->toContain('data-ss-notice="not_connected"');
 
     $state = inlined_meta_box_state();
     expect($state['order_id'])->toBe($order->get_id())
@@ -241,6 +245,8 @@ it('renders the not-connected callout over the read-only sections, without Edit 
         ->toContain('Smart Send is not connected.')
         ->toContain('data-ss-action="open-settings"')
         ->toContain('section=smart_send_shipping')
+        // Demo mode is off here: no demo callout.
+        ->not->toContain('data-ss-notice="demo_mode"')
         // The callout sits in the first section's padding, over the rows.
         ->toContain('data-ss-notice="not_connected"><p>Smart Send is not connected.')
         ->toContain('<span data-ss-value="shipping_method">PostNord: Select pickup point (MyPack Collect)</span>')
@@ -263,7 +269,7 @@ it('reads "None" with an Edit link for an order without a Smart Send shipping me
         ->toContain('Shipping method is not from the Smart Send plugin.')
         // The callout is inside the first section, over the method row,
         // which reads "None" with its Edit link (the select is the app's).
-        ->toContain('data-ss-section="details"><div class="notice notice-info inline smart-send-fulfillment__notice" data-ss-notice="no_method">')
+        ->toContain('data-ss-notice="demo_mode"><p>Demo mode active</p></div><div class="notice notice-info inline smart-send-fulfillment__notice" data-ss-notice="no_method">')
         ->toContain('<span class="smart-send-fulfillment__none" data-ss-value="shipping_method">None</span>')
         ->toContain('data-ss-action="edit-method"')
         ->not->toContain('data-ss-field="shipping_method"')
@@ -274,9 +280,11 @@ it('reads "None" with an Edit link for an order without a Smart Send shipping me
         ->toContain('data-ss-action="edit-return-method"')
         ->not->toContain('data-ss-field="return_method"')
         ->not->toContain('No return method configured')
-        // Both actions: the primary outbound one and the secondary return one.
-        ->toContain('class="button button-primary smart-send-fulfillment__action" name="smart_send[flow]" value="outbound" data-ss-action="create-label"')
-        ->toContain('class="button smart-send-fulfillment__action" name="smart_send[flow]" value="return" data-ss-action="create-return-label"');
+        // Both actions, enabled, each explaining its missing method in its
+        // title (the app shows the same sentence on click, no request sent).
+        ->toContain('class="button button-primary smart-send-fulfillment__action" name="smart_send[flow]" value="outbound" data-ss-action="create-label" title="Select a shipping method first">')
+        ->toContain('class="button smart-send-fulfillment__action" name="smart_send[flow]" value="return" data-ss-action="create-return-label" title="Select a return shipping method first">')
+        ->not->toContain('disabled=\'disabled\'');
 
     expect(inlined_meta_box_state()['delivery_details']['shipping_method'])->toBeNull();
 });

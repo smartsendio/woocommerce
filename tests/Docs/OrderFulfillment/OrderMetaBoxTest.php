@@ -89,6 +89,23 @@ it('shows the not-yet-booked box', function () {
     capture_doc_screenshot($page, 'OrderFulfillment', 'not-booked', false);
 });
 
+it('shows the demo mode callout', function () {
+    $page = visit(base_url('/wp-login.php'))
+        ->fill('#user_login', admin_username())
+        ->fill('#user_pass', admin_password())
+        ->click('#wp-submit')
+        ->assertPathContains('wp-admin')
+        ->navigate(docs_order_url(0));
+
+    $page->assertSeeIn('#woocommerce-ss-shipping-label .hndle', 'Smart Send')
+        ->assertSeeIn('[data-ss-notice="demo_mode"]', 'Demo mode active')
+        ->assertSeeIn('[data-ss-section="actions"]', 'Create shipping label');
+
+    highlight_element($page, '[data-ss-notice="demo_mode"]');
+
+    capture_doc_screenshot($page, 'OrderFulfillment', 'demo-mode', false);
+});
+
 it('shows the parcels section collapsed to its summary line', function () {
     $page = visit(base_url('/wp-login.php'))
         ->fill('#user_login', admin_username())
