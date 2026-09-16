@@ -317,6 +317,8 @@ The following meta fields are used by the plugin. The order meta keys and their 
     Hidden field used for storing the unique Smart Send id of the generated shipping label
 * **_ss_shipping_return_label_id**
     Hidden field used for storing the unique Smart Send id of the generated return shipping label
+* **_ss_shipping_labels** (since 9.0.0)
+    Hidden field holding the append-only list of every label booked for the order - one row per shipment with its direction, Smart Send shipment id and booking time - which the order screen shows as "Booked shipments"
 * **_ss_hs_code**
     Hidden field used to store the customs HS code for products in WooCommerce
 * **_ss_customs_desc**
@@ -352,7 +354,7 @@ No - this is by design. Neither deactivating nor uninstalling the plugin deletes
 == Screenshots ==
 
 1. Show closest pickup points during checkout
-2. Create shipping labels from the order screen - change the shipping method, pickup point and parcels before booking
+2. Create shipping labels from the order screen - change the shipping method, pickup point and parcels before booking, with every booked label listed under "Booked shipments"
 3. Once booked, the box confirms the shipment, links to it in the Smart Send app and lists the parcels with their tracking numbers, weight and dimensions
 4. Booking errors are shown on the field they belong to, with a response ID for support
 5. Add shipping methods to WooCommerce Shipping Zones
@@ -366,7 +368,7 @@ No - this is by design. Neither deactivating nor uninstalling the plugin deletes
 * New hook and filter API (smart_send_*) for every stage: shipping methods at checkout, fulfillment and booking. The version 8 hooks and filters no longer work - see the Developers section
 * Support for the WooCommerce Checkout Block: pickup point selection now works in the block-based checkout as well as the classic checkout
 * Support for High-Performance Order Storage (HPOS)
-* Rebuilt order-screen meta box: books without a page reload, lets you change the shipping method, pickup point and parcels (weight and dimensions per box) before booking, and books orders placed with another shipping method. Once booked it confirms the shipment, links to it in the Smart Send app and lists every parcel with its tracking number, weight and dimensions
+* Rebuilt order-screen meta box: books without a page reload, lets you change the shipping method, pickup point and parcels (weight and dimensions per box) before booking, and books orders placed with another shipping method. A booking is confirmed right in the box - the shipment with a link into the Smart Send app, every parcel with its tracking number, weight and dimensions, and the documents - and every label the order has is listed under "Booked shipments"; the form stays open, so another label is always one click away
 * Minimum required WordPress version raised to 6.5
 * Minimum required WooCommerce version raised from 4.7 to 8.2
 * Minimum required PHP version is 7.4 (unchanged since 8.2.0)

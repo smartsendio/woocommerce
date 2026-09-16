@@ -168,6 +168,15 @@ it('runs the full workflow on a successful outbound fulfillment', function () {
     expect($fresh->get_meta('_ss_shipping_label_id', true))->toBe('shipment-fulfill')
         ->and($fresh->get_status())->toBe('completed');
 
+    // The shipment-id step also appends exactly one row to the order's
+    // append-only booked-labels list (what the meta box's "Booked
+    // shipments" timeline renders).
+    $labels = SS_SHIPPING_WC()->shipment_ids()->labels($fresh);
+    expect($labels)->toHaveCount(1)
+        ->and($labels[0]['direction'])->toBe('outbound')
+        ->and($labels[0]['shipment_id'])->toBe('shipment-fulfill')
+        ->and($labels[0]['booked_at'])->not->toBeNull();
+
     $notes = wc_get_order_notes(['order_id' => $order->get_id()]);
     expect(implode("\n", wp_list_pluck($notes, 'content')))->toContain('Shipping label')
         ->toContain('TRACK-1234');
@@ -604,7 +613,10 @@ it('writes nothing when the booking fails', function () {
 
     $fresh = wc_get_order($order->get_id());
     expect($fresh->get_meta('_ss_shipping_label_id', true))->toBe('')
-        ->and($fresh->get_status())->toBe('processing');
+        ->and($fresh->get_status())->toBe('processing')
+        // ...and nothing lands on the booked-labels list either: a failed
+        // booking leaves the order's timeline untouched.
+        ->and(SS_SHIPPING_WC()->shipment_ids()->labels($fresh))->toBe([]);
 
     $notes = wc_get_order_notes(['order_id' => $order->get_id()]);
     expect(implode("\n", wp_list_pluck($notes, 'content')))->not->toContain('Shipping label');

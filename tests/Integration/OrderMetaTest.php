@@ -171,3 +171,68 @@ it('handles a missing order in every repository entry point without fatals', fun
 
     expect($repository->read($missing)->get_pickup_point())->toBeNull();
 });
+
+/*
+ * The append-only booked-labels list (#182 review, 2026-09-16): the two
+ * frozen id keys keep holding the LATEST id per direction, and every
+ * booked label is also appended to _ss_shipping_labels, which is what the
+ * order screen's "Booked shipments" timeline renders.
+ */
+
+it('appends every booked label to the labels list while the frozen id keys keep the latest id', function () {
+    $shipment_ids = SS_SHIPPING_WC()->shipment_ids();
+    $product = create_simple_product(['price' => 100, 'weight' => 1]);
+    $order   = create_order(['products' => [$product], 'shipping_method' => 'postnord_agent']);
+
+    expect($shipment_ids->labels($order))->toBe([]);
+
+    $shipment_ids->save($order, 'shipment-1', false, '2026-09-16T11:25:01+00:00');
+    $shipment_ids->save($order, 'return-1', true, '2026-09-16T11:25:04+00:00');
+    $shipment_ids->save($order, 'shipment-2', false, '2026-09-16T12:00:00+00:00');
+
+    $fresh = wc_get_order($order->get_id());
+
+    // Oldest first, one row per booking, with its direction and timestamp.
+    expect($shipment_ids->labels($fresh))->toBe([
+        ['direction' => 'outbound', 'shipment_id' => 'shipment-1', 'booked_at' => '2026-09-16T11:25:01+00:00'],
+        ['direction' => 'return', 'shipment_id' => 'return-1', 'booked_at' => '2026-09-16T11:25:04+00:00'],
+        ['direction' => 'outbound', 'shipment_id' => 'shipment-2', 'booked_at' => '2026-09-16T12:00:00+00:00'],
+    ]);
+
+    // The frozen keys are untouched in behaviour: the latest id per direction.
+    expect($fresh->get_meta('_ss_shipping_label_id', true))->toBe('shipment-2')
+        ->and($fresh->get_meta('_ss_shipping_return_label_id', true))->toBe('return-1')
+        ->and($shipment_ids->get($fresh, false))->toBe('shipment-2');
+});
+
+it('stamps a label booked without a timestamp with the current time, in ISO 8601 UTC', function () {
+    $product = create_simple_product(['price' => 100, 'weight' => 1]);
+    $order   = create_order(['products' => [$product], 'shipping_method' => 'postnord_agent']);
+
+    SS_SHIPPING_WC()->shipment_ids()->save($order, 'shipment-now', false);
+
+    $labels = SS_SHIPPING_WC()->shipment_ids()->labels($order);
+    expect($labels)->toHaveCount(1)
+        ->and($labels[0]['booked_at'])->toMatch('/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\+00:00$/')
+        ->and(abs(strtotime($labels[0]['booked_at']) - time()))->toBeLessThan(120);
+});
+
+it('caps the labels list at MAX_LABELS, keeping the newest entries', function () {
+    $shipment_ids = SS_SHIPPING_WC()->shipment_ids();
+    $product = create_simple_product(['price' => 100, 'weight' => 1]);
+    $order   = create_order(['products' => [$product], 'shipping_method' => 'postnord_agent']);
+
+    $total = SS_Shipping_Shipment_Ids::MAX_LABELS + 5;
+    for ($i = 1; $i <= $total; $i++) {
+        $shipment_ids->save($order, 'shipment-' . $i, false, '2026-09-16T11:00:00+00:00');
+    }
+
+    $labels = $shipment_ids->labels($order);
+    expect($labels)->toHaveCount(SS_Shipping_Shipment_Ids::MAX_LABELS)
+        ->and($labels[0]['shipment_id'])->toBe('shipment-6')
+        ->and(end($labels)['shipment_id'])->toBe('shipment-' . $total);
+});
+
+it('reads the labels list of a missing order as empty instead of fataling', function () {
+    expect(SS_SHIPPING_WC()->shipment_ids()->labels(999999999))->toBe([]);
+});

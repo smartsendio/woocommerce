@@ -129,8 +129,10 @@ if ( ! class_exists( 'SS_Shipping_Order_Fulfillment_Presenter' ) ) :
 		 *                                   'parcel_plan' => array|null (to_array()), 'addons' => array ),
 		 *     'methods'           => array( 'outbound' => array( array( 'carrier' => string, 'options' => array( array( 'code', 'name' ), ... ) ), ... ), 'return' => ... ),
 		 *     'return'            => array( 'method' => string|null, 'auto_default' => bool, 'uses_stored_pickup_point' => bool ),
-		 *     'outbound_shipment' => array( 'shipment_id' => string, 'app_url' => string, 'legacy' => true )|null,  // nothing but the id is persisted (Decisions, #182)
-		 *     'return_shipment'   => array( 'shipment_id' => string, 'app_url' => string, 'legacy' => true )|null,
+		 *     'outbound_shipment' => array( 'shipment_id' => string, 'app_url' => string )|null,  // the LATEST id of the direction (Decisions, #182: the booked DTO is not persisted)
+		 *     'return_shipment'   => array( 'shipment_id' => string, 'app_url' => string )|null,
+		 *     'timeline'          => array( array( 'direction' => 'outbound'|'return', 'shipment_id' => string, 'app_url' => string,
+		 *                                          'booked_at' => string|null, 'booked_at_display' => string|null ), ... ), // newest first
 		 *     'debug'             => array( 'enabled' => bool, 'shipping_items' => string[] ),
 		 *     'urls'              => array( 'settings' => string, 'rest' => string ),
 		 *   )
@@ -186,6 +188,7 @@ if ( ! class_exists( 'SS_Shipping_Order_Fulfillment_Presenter' ) ) :
 				),
 				'outbound_shipment' => $this->shipment_state( $order, false ),
 				'return_shipment'   => $this->shipment_state( $order, true ),
+				'timeline'          => $this->timeline( $order ),
 				'debug'             => array(
 					'enabled'        => $this->settings->debug_log(),
 					'shipping_items' => $shipping_items,
@@ -499,11 +502,11 @@ if ( ! class_exists( 'SS_Shipping_Order_Fulfillment_Presenter' ) ) :
 				);
 			}
 
-			if ( self::STATE_BOOKED === $box_state ) {
-				$html .= $this->render_booked( $state, $callouts );
-			} else {
-				$html .= $this->render_details_form( $state, $callouts, $editable );
-			}
+			// The form never closes (#182 review, 2026-09-16): booking a
+			// label adds a timeline entry and, in the client, the green
+			// result box of the run - the rows, the parcels and the actions
+			// stay exactly as they were.
+			$html .= $this->render_details_form( $state, $callouts, $editable );
 
 			$html .= '</fieldset></div>';
 
@@ -550,11 +553,15 @@ if ( ! class_exists( 'SS_Shipping_Order_Fulfillment_Presenter' ) ) :
 		}
 
 		/**
-		 * The not-yet-booked form (states A - read-only -, B and C; reused
-		 * inside the "Book again" disclosure of state E) as its sections:
-		 * the shipping section (callouts, then the shipping method, pickup
-		 * point and return method rows), the parcels section, the actions
-		 * and the settings section with the return checkbox.
+		 * The box, in every state (the form never closes - #182 review,
+		 * 2026-09-16), as its sections, top to bottom: the shipping section
+		 * (callouts, then the shipping method, pickup point and return
+		 * method rows), the parcels section, the actions (in the client the
+		 * green result boxes of the run just made sit above the two
+		 * buttons - they live in component memory only and are never
+		 * rendered here), the "Booked shipments" timeline of every label
+		 * this order has, and the grey settings section with the return
+		 * checkbox.
 		 *
 		 * @param array   $state    The state.
 		 * @param string  $callouts The (already escaped) notices for the first section.
@@ -563,29 +570,79 @@ if ( ! class_exists( 'SS_Shipping_Order_Fulfillment_Presenter' ) ) :
 		 * @return string HTML
 		 */
 		protected function render_details_form( array $state, string $callouts, bool $editable ): string {
-			// A return label already booked on its own: the outbound form
-			// books outbound only.
-			$with_return = null === $state['return_shipment'];
-
-			$details = $callouts . $this->render_details_rows( $state, $editable );
-			if ( $with_return ) {
-				$details .= $this->render_return_method_row( $state, $editable );
-			}
+			$details  = $callouts . $this->render_details_rows( $state, $editable );
+			$details .= $this->render_return_method_row( $state, $editable );
 
 			$html  = $this->render_section( 'details', $details );
 			$html .= $this->render_parcels_section( $state, $editable );
 
-			$actions = $this->render_button( 'outbound', $state, true );
-			if ( $with_return ) {
-				$actions .= $this->render_button( 'return', $state, false );
-			}
-			$html .= $this->render_section( 'actions', '<div class="smart-send-fulfillment__actions">' . $actions . '</div>', 'actions' );
+			$actions  = $this->render_button( 'outbound', $state, true );
+			$actions .= $this->render_button( 'return', $state, false );
+			$html    .= $this->render_section( 'actions', '<div class="smart-send-fulfillment__actions">' . $actions . '</div>', 'actions' );
 
-			if ( $with_return ) {
-				$html .= $this->render_section( 'settings', $this->render_return_toggle( $state ), 'settings' );
-			}
+			$html .= $this->render_timeline( $state );
+			$html .= $this->render_section( 'settings', $this->render_return_toggle( $state ), 'settings' );
 
 			return $html;
+		}
+
+		/**
+		 * The "Booked shipments" section: a light timeline of every label
+		 * this order has, newest first, each entry a link to the shipment in
+		 * the Smart Send app with the time it was booked under it. Rendered
+		 * from what is persisted on the order (state['timeline']), which is
+		 * why it is not detailed - the documents and tracking of the run
+		 * just made are the green result boxes in the actions section.
+		 *
+		 * Nothing booked yet: no section at all.
+		 *
+		 * @param array $state The state.
+		 *
+		 * @return string HTML
+		 */
+		protected function render_timeline( array $state ): string {
+			$entries = isset( $state['timeline'] ) ? $state['timeline'] : array();
+
+			if ( array() === $entries ) {
+				return '';
+			}
+
+			$rows = '';
+			foreach ( $entries as $entry ) {
+				$title = 'return' === $entry['direction']
+					? esc_html__( 'Return shipment', 'smart-send-logistics' )
+					: esc_html__( 'Shipment', 'smart-send-logistics' );
+
+				$rows .= '<a class="smart-send-fulfillment__timeline-row" href="' . esc_url( $entry['app_url'] ) . '" target="_blank" rel="noopener noreferrer" data-ss-timeline="' . esc_attr( $entry['direction'] ) . '" data-ss-shipment-id="' . esc_attr( $entry['shipment_id'] ) . '">';
+				$rows .= '<span class="smart-send-fulfillment__timeline-title">' . $title . $this->render_external_icon() . '</span>';
+
+				// An order booked before the booked-labels list existed
+				// carries only the frozen shipment ids: the entry is a link
+				// with no time under it.
+				if ( ! empty( $entry['booked_at_display'] ) ) {
+					$rows .= '<span class="smart-send-fulfillment__timeline-when">' . esc_html( $entry['booked_at_display'] ) . '</span>';
+				}
+
+				$rows .= '</a>';
+			}
+
+			$content  = '<div class="smart-send-fulfillment__timeline-label">' . esc_html__( 'Booked shipments', 'smart-send-logistics' ) . '</div>';
+			$content .= '<div class="smart-send-fulfillment__timeline">' . $rows . '</div>';
+
+			return $this->render_section( 'timeline', $content, 'timeline' );
+		}
+
+		/**
+		 * The small external-link icon of a timeline entry / a green result
+		 * box header (WordPress admin has no Dashicon at this size that
+		 * reads as "opens in the Smart Send app").
+		 *
+		 * @return string HTML
+		 */
+		protected function render_external_icon(): string {
+			return '<svg class="smart-send-fulfillment__external" width="11" height="11" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">'
+				. '<path d="M4.5 2H2.5v7.5H10V7.5"></path><path d="M7 2h3v3"></path><path d="M10 2 5.5 6.5"></path>'
+				. '</svg>';
 		}
 
 		/**
@@ -923,121 +980,6 @@ if ( ! class_exists( 'SS_Shipping_Order_Fulfillment_Presenter' ) ) :
 		}
 
 		/**
-		 * The booked state (#182 review, 2026-09-16): once anything is
-		 * booked the form closes. What is left is, per booked direction, a
-		 * green "Shipment booked" callout linking to the shipment in the
-		 * Smart Send app and - in the client, from the POST response - one
-		 * row per parcel plus the documents and codes; the action of the
-		 * direction that can still be booked (a return only while a return
-		 * method is configured, and it cannot be changed here); and a
-		 * "Reset" button at the very bottom that re-opens the form for
-		 * another booking.
-		 *
-		 * This first paint is the after-a-reload variant: only the shipment
-		 * id is persisted (Decisions, #182), so it carries the callout, the
-		 * app link and the pointer to the order notes - no parcel rows.
-		 *
-		 * @param array  $state    The state.
-		 * @param string $callouts The (already escaped) notices for the first section.
-		 *
-		 * @return string HTML
-		 */
-		protected function render_booked( array $state, string $callouts ): string {
-			$html = '';
-
-			if ( null !== $state['outbound_shipment'] ) {
-				$html    .= $this->render_section( 'outbound', $callouts . $this->render_booked_block( $state, false ) );
-				$callouts = '';
-			}
-
-			if ( null !== $state['return_shipment'] ) {
-				$html .= $this->render_section( 'return', $callouts . $this->render_booked_block( $state, true ) );
-			}
-
-			// The direction not booked yet keeps its action - the return one
-			// only while a return method is configured, and without any way
-			// to change it here.
-			$actions = '';
-			if ( null === $state['outbound_shipment'] ) {
-				$actions .= $this->render_button( 'outbound', $state, true );
-			}
-			if ( null === $state['return_shipment'] && null !== $state['return']['method'] ) {
-				$actions .= $this->render_button( 'return', $state, false );
-			}
-
-			if ( '' !== $actions ) {
-				$html .= $this->render_section( 'actions', '<div class="smart-send-fulfillment__actions">' . $actions . '</div>', 'actions' );
-			}
-
-			$html .= $this->render_section( 'reset', $this->render_reset(), 'settings' );
-
-			return $html;
-		}
-
-		/**
-		 * One booked shipment block: the green success callout with the
-		 * shipment id and the link into the Smart Send app, over the
-		 * pointer to the order notes (the id-only variant - the parcel
-		 * rows, documents and codes are the client's, from the POST
-		 * response).
-		 *
-		 * @param array   $state     The state.
-		 * @param boolean $is_return Which direction.
-		 *
-		 * @return string HTML
-		 */
-		protected function render_booked_block( array $state, bool $is_return ): string {
-			$shipment = $is_return ? $state['return_shipment'] : $state['outbound_shipment'];
-			$section  = $is_return ? 'return_shipment' : 'outbound_shipment';
-
-			$html  = '<div class="smart-send-fulfillment__booked" data-ss-section="' . esc_attr( $section ) . '">';
-			$html .= $this->render_booked_notice( $shipment, $is_return );
-			$html .= '<p class="description">' . esc_html__( 'Documents and tracking are in the order notes.', 'smart-send-logistics' ) . '</p>';
-			$html .= '</div>';
-
-			return $html;
-		}
-
-		/**
-		 * The green success callout of a booked shipment: "Shipment booked"
-		 * / "Return shipment booked" with the id, over the external link to
-		 * the shipment in the Smart Send app.
-		 *
-		 * @param array   $shipment  The state's shipment array (shipment_id, app_url).
-		 * @param boolean $is_return Which direction.
-		 *
-		 * @return string HTML
-		 */
-		protected function render_booked_notice( array $shipment, bool $is_return ): string {
-			$section = $is_return ? 'return_shipment' : 'outbound_shipment';
-
-			$message = ( $is_return ? esc_html__( 'Return shipment booked', 'smart-send-logistics' ) : esc_html__( 'Shipment booked', 'smart-send-logistics' ) )
-				. ' &middot; #<span data-ss-value="' . esc_attr( $section . '.shipment_id' ) . '">' . esc_html( $shipment['shipment_id'] ) . '</span>';
-
-			$link = empty( $shipment['app_url'] ) ? '' : '<a href="' . esc_url( $shipment['app_url'] ) . '" target="_blank" rel="noopener noreferrer" data-ss-action="view-shipment">' . esc_html__( 'View shipment', 'smart-send-logistics' ) . '</a>';
-
-			return $this->render_notice( 'success', $is_return ? 'booked_return' : 'booked', $message, $link );
-		}
-
-		/**
-		 * The "Reset" button at the very bottom of the booked box, in the
-		 * slot the return checkbox sits in before booking: it re-opens the
-		 * form for another booking (the client does that; a confirm gates
-		 * the booking itself, and the request carries confirm_rebook for a
-		 * direction that already has a shipment).
-		 *
-		 * @return string HTML
-		 */
-		protected function render_reset(): string {
-			$html  = '<div class="smart-send-fulfillment__row" data-ss-section="reset">';
-			$html .= '<button type="button" class="button smart-send-fulfillment__reset" data-ss-action="reset">' . esc_html__( 'Reset', 'smart-send-logistics' ) . '</button>';
-			$html .= '<p class="description">' . esc_html__( 'Re-opens the form to book this order again.', 'smart-send-logistics' ) . '</p>';
-			$html .= '</div>';
-
-			return $html;
-		}
-
-		/**
 		 * A create-label button: the flow as its value and a data-ss-action
 		 * selector. While the method the flow needs is missing (no stored
 		 * shipping method / no configured return method) the button stays
@@ -1111,16 +1053,14 @@ if ( ! class_exists( 'SS_Shipping_Order_Fulfillment_Presenter' ) ) :
 		}
 
 		/**
-		 * The stored shipment of a direction: only the id is persisted
-		 * (Decisions, #182), flagged legacy so the client shows the
-		 * reduced "see the order notes" variant - the success callout and
-		 * the link into the Smart Send app work from the id alone.
+		 * The stored shipment of a direction: the LATEST shipment id booked
+		 * for it (the frozen public meta key), with the link into the Smart
+		 * Send app. Nothing else of a booked shipment is persisted
+		 * (Decisions, #182) - the documents, tracking and parcels of a run
+		 * are shown from its response and live in the client's memory only.
 		 *
-		 * Persisting SS_Shipping_Booked_Shipment::to_array() here later
-		 * (a decision deliberately deferred in #182) is all it takes for
-		 * the full booked view - parcel rows, documents, codes - to light
-		 * up after a reload: the client renders the same shape whether it
-		 * comes from this state or from the POST response.
+		 * What survives a reload is this id and the "Booked shipments"
+		 * timeline (see timeline()).
 		 *
 		 * @param WC_Order $order     The order.
 		 * @param boolean  $is_return Which direction.
@@ -1137,8 +1077,78 @@ if ( ! class_exists( 'SS_Shipping_Order_Fulfillment_Presenter' ) ) :
 			return array(
 				'shipment_id' => $shipment_id,
 				'app_url'     => $this->app_url( $shipment_id ),
-				'legacy'      => true,
 			);
+		}
+
+		/**
+		 * The order's "Booked shipments" timeline, newest first: every label
+		 * this plugin booked for the order, from the append-only list
+		 * SS_Shipping_Shipment_Ids keeps (booking outcomes are its domain,
+		 * not the delivery-details repository's).
+		 *
+		 * Back-compat: an order booked before that list existed carries only
+		 * the two frozen id keys, with no timestamp. Such an id - one the
+		 * list does not mention - is appended as an entry WITHOUT a
+		 * booked_at, which the box renders as a link with no time under it.
+		 * The same fallback covers an order that carries both (booked
+		 * before the upgrade and again after it): only the ids the list
+		 * does not already carry are added.
+		 *
+		 * @param WC_Order $order The order.
+		 *
+		 * @return array[]
+		 */
+		public function timeline( WC_Order $order ): array {
+			$labels  = $this->shipment_ids->labels( $order );
+			$entries = array();
+
+			foreach ( array_reverse( $labels ) as $label ) {
+				$entries[] = array(
+					'direction'         => $label['direction'],
+					'shipment_id'       => $label['shipment_id'],
+					'app_url'           => $this->app_url( $label['shipment_id'] ),
+					'booked_at'         => $label['booked_at'],
+					'booked_at_display' => null === $label['booked_at'] ? null : $this->format_booked_at( $label['booked_at'] ),
+				);
+			}
+
+			$known = wp_list_pluck( $labels, 'shipment_id' );
+
+			foreach ( array( false, true ) as $is_return ) {
+				$shipment_id = $this->shipment_ids->get( $order, $is_return );
+
+				if ( '' === $shipment_id || in_array( $shipment_id, $known, true ) ) {
+					continue;
+				}
+
+				$entries[] = array(
+					'direction'         => $is_return ? 'return' : 'outbound',
+					'shipment_id'       => $shipment_id,
+					'app_url'           => $this->app_url( $shipment_id ),
+					'booked_at'         => null,
+					'booked_at_display' => null,
+				);
+			}
+
+			return $entries;
+		}
+
+		/**
+		 * A stored ISO 8601 booking timestamp as the box shows it: the
+		 * store's own timezone, "Y-m-d H:i:s".
+		 *
+		 * @param string $booked_at The ISO 8601 timestamp (UTC).
+		 *
+		 * @return string
+		 */
+		public function format_booked_at( string $booked_at ): string {
+			$time = strtotime( $booked_at );
+
+			if ( false === $time ) {
+				return $booked_at;
+			}
+
+			return wp_date( 'Y-m-d H:i:s', $time );
 		}
 
 		/**

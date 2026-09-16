@@ -15,15 +15,16 @@
  * move removed and the rest renumbered - the booking request carries the
  * parcels as edited), a pickup point override through the lookup route,
  * a method override to a non-agent method (no pickup point), a return
- * method override, a return booked from the booked state, booking again
- * behind "Reset" and a confirm, and an order placed without a Smart Send
+ * method override, a return booked from the same page, booking again
+ * behind one confirming click, and an order placed without a Smart Send
  * method booked with a chosen method (+ a chosen return method).
  *
- * Booked state (#182 review, 2026-09-16): once anything is booked the form
- * closes - what is left is the green "Shipment booked" callout with the
- * link into the Smart Send app, one row per parcel (tracking, weight,
- * dimensions, reference), the documents, the action of the direction that
- * can still be booked, and "Reset" at the bottom.
+ * Booked state (#182 review, 2026-09-16): the form NEVER closes. A booking
+ * adds the green result box of the run (title + "Open" into the Smart Send
+ * app, the time and the id, one row per parcel with tracking/weight/
+ * dimensions/reference, the documents) above the two actions, and an entry
+ * to the grey "Booked shipments" timeline. The result box is component
+ * memory only - a reload loses it and keeps the timeline.
  *
  * Layout (Option A): the shipping method, pickup point and return method
  * are read-only values - "None" when missing - each with an "Edit" link
@@ -85,6 +86,7 @@ echo json_encode(array(
     'return_label_id' => \$order ? \$order->get_meta('_ss_shipping_return_label_id', true) : null,
     'agent_no'        => \$order ? \$order->get_meta('ss_shipping_order_agent_no', true) : null,
     'parcels'         => \$order ? \$order->get_meta('ss_shipping_order_parcels', true) : null,
+    'labels'          => \$order ? \$order->get_meta('_ss_shipping_labels', true) : null,
 ));
 PHP);
 }
@@ -136,26 +138,35 @@ it('creates a shipping label from the meta box without a page reload and prepend
         ->hover('[data-ss-section="shipping_method"] .woocommerce-help-tip')
         ->assertSeeIn('#tiptip_holder', 'Shipping method used for booking of outgoing shipment')
         ->click('[data-ss-action="create-label"]')
-        // State E, rendered from the POST response: the green success
-        // callout with the link into the Smart Send app, one row per parcel
-        // (tracking + measures) and the documents.
-        ->assertSeeIn('[data-ss-notice="booked"]', 'Shipment booked')
-        ->assertAttributeContains('[data-ss-notice="booked"] .components-notice', 'class', 'is-success')
+        // The green result box of the run, rendered from the POST response
+        // above the actions: the header with "Open" into the Smart Send
+        // app, the booking time + id, one row per parcel (tracking +
+        // measures) and the documents.
+        ->assertSeeIn('[data-ss-result="outbound"] .smart-send-fulfillment__result-title', 'Shipment')
+        ->assertSeeIn('[data-ss-action="view-shipment"]', 'Open')
         ->assertAttribute('[data-ss-action="view-shipment"]', 'target', '_blank')
         ->assertAttribute('[data-ss-action="view-shipment"]', 'rel', 'noopener noreferrer')
-        ->assertSeeIn('[data-ss-section="parcels"]', 'Parcel 1')
         ->assertSeeIn('[data-ss-section="parcels"]', 'BROWSERTRACK1')
         ->assertSeeIn('[data-ss-section="parcels"]', '1 kg')
         ->assertSeeIn('[data-ss-section="documents"]', 'Download shipping label (PDF)')
-        // The form is gone: no method rows, no parcel editor, no return
-        // checkbox - only the pending return action and "Reset".
-        ->assertNotPresent('[data-ss-section="shipping_method"]')
-        ->assertNotPresent('[data-ss-section="parcel_plan"]')
-        ->assertNotPresent('[data-ss-field="with_return"]')
-        ->assertNotPresent('[data-ss-action="create-label"]')
-        ->assertNotPresent('[data-ss-action="edit-return-method"]')
+        // The form is still fully there: the method rows, the parcel
+        // editor, both actions and the return checkbox.
+        ->assertSeeIn('[data-ss-value="shipping_method"]', 'MyPack Collect')
+        ->assertPresent('[data-ss-section="pickup_point"]')
+        ->assertPresent('[data-ss-action="edit-return-method"]')
+        ->assertPresent('[data-ss-section="parcel_plan"]')
+        ->assertPresent('[data-ss-action="edit-parcels"]')
+        ->assertPresent('[data-ss-field="with_return"]')
+        ->assertPresent('[data-ss-action="create-label"]')
         ->assertPresent('[data-ss-action="create-return-label"]')
-        ->assertPresent('[data-ss-action="reset"]')
+        // ...and nothing of the closed booked box of the previous round.
+        ->assertNotPresent('[data-ss-action="reset"]')
+        ->assertDontSee('Documents and tracking are in the order notes.')
+        // A new entry appeared on the "Booked shipments" timeline.
+        ->assertPresent('[data-ss-section="timeline"]')
+        ->assertSeeIn('[data-ss-section="timeline"]', 'Booked shipments')
+        ->assertSeeIn('[data-ss-timeline="outbound"]', 'Shipment')
+        ->assertCount('[data-ss-timeline="outbound"]', 1)
         // The order note the server added was prepended to WooCommerce's list.
         ->assertSeeIn('ul.order_notes', 'Tracking number: BROWSERTRACK1')
         // Same URL: nothing reloaded.
@@ -167,7 +178,15 @@ it('creates a shipping label from the meta box without a page reload and prepend
 
     // The app link is built from the resolved API host (the demo store talks
     // to the production host), never hardcoded in the client.
-    $page->assertAttribute('[data-ss-action="view-shipment"]', 'href', 'https://app.smartsend.io/shipments/' . $meta['label_id']);
+    $page->assertAttribute('[data-ss-action="view-shipment"]', 'href', 'https://app.smartsend.io/shipments/' . $meta['label_id'])
+        ->assertAttribute('[data-ss-timeline="outbound"]', 'href', 'https://app.smartsend.io/shipments/' . $meta['label_id']);
+
+    // One row on the order's append-only labels list - what the timeline
+    // renders after a reload.
+    expect($meta['labels'])->toHaveCount(1)
+        ->and($meta['labels'][0]['direction'])->toBe('outbound')
+        ->and($meta['labels'][0]['shipment_id'])->toBe($meta['label_id'])
+        ->and($meta['labels'][0]['booked_at'])->not->toBeEmpty();
 
     $requests = ss_browser_api_requests('booking');
     expect($requests)->toHaveCount(1)
@@ -182,14 +201,18 @@ it('pre-ticks the return checkbox from the method setting and books both labels 
         ->assertChecked('[data-ss-field="with_return"]')
         ->assertSeeIn('[data-ss-value="return_method"]', 'Return Drop Off')
         ->click('[data-ss-action="create-label"]')
-        ->assertSeeIn('[data-ss-section="outbound_shipment"]', 'Shipment booked')
-        ->assertSeeIn('[data-ss-section="return_shipment"]', 'Return shipment booked')
-        ->assertSeeIn('[data-ss-section="return_shipment"]', 'Download return label (PDF)')
-        ->assertSeeIn('ul.order_notes', 'Download return shipping label');
+        ->assertPresent('[data-ss-result="outbound"]')
+        ->assertPresent('[data-ss-result="return"]')
+        ->assertSeeIn('[data-ss-result="return"]', 'Download return label (PDF)')
+        ->assertSeeIn('ul.order_notes', 'Download return shipping label')
+        // One timeline entry per leg, the return (newest) first.
+        ->assertPresent('[data-ss-timeline="outbound"]')
+        ->assertPresent('[data-ss-timeline="return"]');
 
     $meta = ss_browser_shipment_ids($order_id);
     expect($meta['label_id'])->toStartWith('browser-shipment-')
-        ->and($meta['return_label_id'])->toStartWith('browser-shipment-');
+        ->and($meta['return_label_id'])->toStartWith('browser-shipment-')
+        ->and(array_column($meta['labels'], 'direction'))->toBe(['outbound', 'return']);
 });
 
 it('creates only a return label from the secondary action before any outbound label exists', function () {
@@ -202,10 +225,15 @@ it('creates only a return label from the secondary action before any outbound la
         ->assertAttributeContains('[data-ss-action="create-label"]', 'class', 'is-primary')
         ->assertAttributeContains('[data-ss-action="create-return-label"]', 'class', 'is-secondary')
         ->click('[data-ss-action="create-return-label"]')
-        ->assertSeeIn('[data-ss-section="return_shipment"]', 'Return shipment booked')
-        ->assertSeeIn('[data-ss-section="return_shipment"]', 'Download return label (PDF)')
-        // The outbound side is still the form.
-        ->assertPresent('[data-ss-action="create-label"]');
+        ->assertSeeIn('[data-ss-result="return"] .smart-send-fulfillment__result-title', 'Return shipment')
+        ->assertSeeIn('[data-ss-result="return"]', 'Download return label (PDF)')
+        // Nothing of the form moved, and only the return leg is on the
+        // timeline.
+        ->assertPresent('[data-ss-action="create-label"]')
+        ->assertPresent('[data-ss-section="parcel_plan"]')
+        ->assertNotPresent('[data-ss-result="outbound"]')
+        ->assertPresent('[data-ss-timeline="return"]')
+        ->assertNotPresent('[data-ss-timeline="outbound"]');
 
     $meta = ss_browser_shipment_ids($order_id);
     expect($meta['return_label_id'])->toStartWith('browser-shipment-')
@@ -241,13 +269,13 @@ it('creates only a return label for an order placed without a Smart Send method 
         // Choosing one clears the error.
         ->assertNotPresent('[data-ss-notice="missing_return_method"]')
         ->click('[data-ss-action="create-return-label"]')
-        ->assertSeeIn('[data-ss-section="return_shipment"]', 'Return shipment booked')
-        // The form closed with the booking; the outbound label can still be
-        // created from its action, and "Reset" re-opens the form for it.
-        ->assertNotPresent('[data-ss-value="shipping_method"]')
-        ->assertNotPresent('[data-ss-action="edit-method"]')
+        ->assertPresent('[data-ss-result="return"]')
+        // The form is untouched by the booking: the method row still reads
+        // "None" with its Edit link and the outbound action is there.
+        ->assertSeeIn('[data-ss-value="shipping_method"]', 'None')
+        ->assertPresent('[data-ss-action="edit-method"]')
         ->assertPresent('[data-ss-action="create-label"]')
-        ->assertPresent('[data-ss-action="reset"]');
+        ->assertNotPresent('[data-ss-action="reset"]');
 
     $requests = ss_browser_api_requests('booking');
     expect($requests)->toHaveCount(1)
@@ -270,7 +298,8 @@ it('shows a validation failure on the field it belongs to, and the rest as a gen
             ->assertSeeIn('[data-ss-error="pickup_point.agent_no"]', 'The selected pickup point is not available for this carrier')
             // Still bookable: the form stays, no booked block.
             ->assertPresent('[data-ss-action="create-label"]')
-            ->assertNotPresent('[data-ss-section="outbound_shipment"]');
+            ->assertNotPresent('[data-ss-result="outbound"]')
+            ->assertNotPresent('[data-ss-section="timeline"]');
 
         // A field outside the box (the receiver address): the general notice.
         ss_browser_set_api_scenarios(['booking' => '422-wrong-zip']);
@@ -353,13 +382,15 @@ it('splits a line across boxes with the arrows, removes a box emptied by a move,
         ->assertPresent('[data-ss-action="edit-parcels"]')
         ->assertSeeIn('[data-ss-section="parcel_plan"]', '2 parcels · 4.50 kg')
         ->click('[data-ss-action="create-label"]')
-        ->assertSeeIn('[data-ss-section="outbound_shipment"]', 'Shipment booked')
+        ->assertPresent('[data-ss-result="outbound"]')
         // One booked row per parcel: tracking, and the weight each was
-        // booked with (box 1 the sum of its units, box 2 its explicit 2.5).
+        // booked with (box 1 the sum of its units, box 2 its explicit 2.5) -
+        // no parcel reference (it is the order number on every row).
         ->assertSeeIn('[data-ss-parcel="1"]', 'BROWSERTRACK1')
         ->assertSeeIn('[data-ss-parcel="1"]', '2 kg')
         ->assertSeeIn('[data-ss-parcel="2"]', 'BROWSERTRACK2')
-        ->assertSeeIn('[data-ss-parcel="2"]', '2.5 kg');
+        ->assertSeeIn('[data-ss-parcel="2"]', '2.5 kg')
+        ->assertDontSee('Ref.');
 
     // The booking request carried the two parcels as edited...
     $requests = ss_browser_api_requests('booking');
@@ -413,7 +444,7 @@ it('overrides the pickup point through the lookup and reports an unknown agent n
         ->assertNotPresent('[data-ss-field="pickup_point.agent_no"]')
         ->assertPresent('[data-ss-action="edit-pickup-point"]')
         ->click('[data-ss-action="create-label"]')
-        ->assertSeeIn('[data-ss-section="outbound_shipment"]', 'Shipment booked');
+        ->assertPresent('[data-ss-result="outbound"]');
 
     // Booked with, and stored after success, the overriding point.
     expect(ss_browser_api_requests('booking')[0]['body']['agent']['agent_no'])->toBe('5678')
@@ -435,7 +466,7 @@ it('hides the pickup point when the method is changed to a non-agent method and 
         ->select('[data-ss-field="shipping_method"]', 'postnord_homedelivery')
         ->assertNotPresent('[data-ss-section="pickup_point"]')
         ->click('[data-ss-action="create-label"]')
-        ->assertSeeIn('[data-ss-section="outbound_shipment"]', 'Shipment booked');
+        ->assertPresent('[data-ss-result="outbound"]');
 
     $body = ss_browser_api_requests('booking')[0]['body'];
     expect($body['shipping_carrier'])->toBe('postnord')
@@ -446,70 +477,94 @@ it('hides the pickup point when the method is changed to a non-agent method and 
     expect(ss_browser_shipment_ids($order_id)['agent_no'])->toBe('1234');
 });
 
-it('shows the id-only variant after a reload and books again behind Reset and a confirm', function () {
+it('keeps the timeline but not the green box after a reload, and books again behind one confirming click', function () {
     $order_id = ss_browser_state()['orders'][7];
 
     ss_browser_open_order($order_id)
+        ->assertNotPresent('[data-ss-section="timeline"]')
         ->click('[data-ss-action="create-label"]')
-        ->assertSeeIn('[data-ss-section="outbound_shipment"]', 'Shipment booked');
+        ->assertPresent('[data-ss-result="outbound"]');
 
     $first = ss_browser_shipment_ids($order_id)['label_id'];
     expect($first)->toStartWith('browser-shipment-');
 
-    // After a reload only the id is known (nothing but the id is persisted):
-    // the callout and the app link still work from it, the parcel rows and
-    // the documents do not.
+    // After a reload the green box is gone (it is the memory of the run
+    // just made, never persisted) - the timeline entry is what stays, with
+    // its link into the Smart Send app and the time it was booked.
     $page = ss_browser_open_order($order_id)
-        ->assertSeeIn('[data-ss-notice="booked"]', 'Shipment booked')
-        ->assertSeeIn('[data-ss-section="outbound_shipment"]', $first)
-        ->assertAttribute('[data-ss-action="view-shipment"]', 'href', 'https://app.smartsend.io/shipments/' . $first)
-        ->assertSeeIn('[data-ss-section="outbound_shipment"]', 'Documents and tracking are in the order notes.')
+        ->assertNotPresent('[data-ss-result="outbound"]')
         ->assertNotPresent('[data-ss-section="parcels"]')
         ->assertNotPresent('[data-ss-section="documents"]')
-        ->assertNotPresent('[data-ss-action="create-label"]')
-        // "Reset" at the bottom brings the whole form back behind a warning
-        // and a confirm; the action stays disabled until confirmed.
-        ->click('[data-ss-action="reset"]')
-        ->assertSeeIn('[data-ss-notice="rebook"]', 'A shipping label already exists for this order.')
+        ->assertSeeIn('[data-ss-section="timeline"]', 'Booked shipments')
+        ->assertAttribute('[data-ss-timeline="outbound"]', 'href', 'https://app.smartsend.io/shipments/' . $first)
+        ->assertAttribute('[data-ss-timeline="outbound"]', 'target', '_blank')
+        ->assertSeeIn('[data-ss-timeline="outbound"] .smart-send-fulfillment__timeline-when', ':')
+        // The form is all there, both actions included.
         ->assertSeeIn('[data-ss-value="shipping_method"]', 'MyPack Collect')
         ->assertPresent('[data-ss-section="parcel_plan"]')
         ->assertPresent('[data-ss-field="with_return"]')
-        ->assertDisabled('[data-ss-action="create-label"]')
-        ->check('[data-ss-field="confirm_rebook"]')
+        ->assertPresent('[data-ss-action="create-label"]')
+        // The first click on a direction that already has a label warns and
+        // relabels the button instead of booking...
         ->click('[data-ss-action="create-label"]')
-        ->assertSeeIn('[data-ss-section="documents"]', 'Download shipping label (PDF)');
-
-    $second = ss_browser_shipment_ids($order_id)['label_id'];
-    expect($second)->toStartWith('browser-shipment-')
-        ->and($second)->not->toBe($first);
-
-    // The form closed again on the new booking.
-    $page->assertSeeIn('[data-ss-section="outbound_shipment"]', $second)
-        ->assertNotPresent('[data-ss-action="create-label"]')
-        ->assertPresent('[data-ss-action="reset"]');
-});
-
-it('books a return label from the booked state, where the return method cannot be changed', function () {
-    $order_id = ss_browser_state()['orders'][12];
-    ss_browser_reset_api_requests();
-
-    ss_browser_open_order($order_id)
+        ->assertSeeIn('[data-ss-notice="rebook"]', 'This order already has a shipping label.')
+        ->assertSeeIn('[data-ss-action="create-label"]', 'Yes, create another')
+        ->assertNotPresent('[data-ss-result="outbound"]')
+        // ...and clicking anything else cancels it.
+        ->check('[data-ss-field="with_return"]')
+        ->assertSeeIn('[data-ss-action="create-label"]', 'Create shipping label')
+        ->uncheck('[data-ss-field="with_return"]')
+        // The second click on the relabelled button books.
         ->click('[data-ss-action="create-label"]')
-        ->assertSeeIn('[data-ss-notice="booked"]', 'Shipment booked')
-        // The booked state offers the return action only - no return method
-        // row, no select.
-        ->assertNotPresent('[data-ss-value="return_method"]')
-        ->assertNotPresent('[data-ss-field="return_method"]')
-        ->click('[data-ss-action="create-return-label"]')
-        ->assertSeeIn('[data-ss-notice="booked_return"]', 'Return shipment booked')
-        ->assertSeeIn('[data-ss-section="return_shipment"]', 'Download return label (PDF)')
-        // Both directions booked: no action left, just Reset.
-        ->assertNotPresent('[data-ss-action="create-return-label"]')
-        ->assertPresent('[data-ss-action="reset"]');
+        ->assertSeeIn('[data-ss-action="create-label"]', 'Yes, create another')
+        ->click('[data-ss-action="create-label"]')
+        ->assertSeeIn('[data-ss-section="documents"]', 'Download shipping label (PDF)')
+        ->assertSeeIn('[data-ss-action="create-label"]', 'Create shipping label');
 
     $meta = ss_browser_shipment_ids($order_id);
     expect($meta['label_id'])->toStartWith('browser-shipment-')
-        ->and($meta['return_label_id'])->toStartWith('browser-shipment-');
+        ->and($meta['label_id'])->not->toBe($first);
+
+    // A second timeline entry, newest first, and both on the labels list.
+    $page->assertCount('[data-ss-timeline="outbound"]', 2)
+        // Newest first: the re-booking heads the timeline.
+        ->assertScript(
+            'document.querySelector(\'[data-ss-section="timeline"] a\').getAttribute("data-ss-shipment-id")',
+            $meta['label_id']
+        );
+
+    expect(array_column($meta['labels'], 'shipment_id'))->toBe([$first, $meta['label_id']]);
+});
+
+it('books a return from the same page, adding its own timeline entry', function () {
+    $order_id = ss_browser_state()['orders'][12];
+    ss_browser_reset_api_requests();
+
+    $page = ss_browser_open_order($order_id)
+        ->click('[data-ss-action="create-label"]')
+        ->assertPresent('[data-ss-result="outbound"]')
+        // The form did not move: the return method row is still editable.
+        ->assertSeeIn('[data-ss-value="return_method"]', 'Return Drop Off')
+        ->assertPresent('[data-ss-action="edit-return-method"]')
+        ->click('[data-ss-action="create-return-label"]')
+        ->assertSeeIn('[data-ss-result="return"] .smart-send-fulfillment__result-title', 'Return shipment')
+        ->assertSeeIn('[data-ss-result="return"]', 'Download return label (PDF)')
+        // Only the run just made is shown as a green box; the outbound one
+        // of the previous run is gone with its response.
+        ->assertNotPresent('[data-ss-result="outbound"]')
+        // Both legs are on the timeline, the return (newest) first.
+        ->assertPresent('[data-ss-timeline="outbound"]')
+        ->assertPresent('[data-ss-timeline="return"]');
+
+    $page->assertScript(
+        'document.querySelector(\'[data-ss-section="timeline"] a\').getAttribute("data-ss-timeline")',
+        'return'
+    );
+
+    $meta = ss_browser_shipment_ids($order_id);
+    expect($meta['label_id'])->toStartWith('browser-shipment-')
+        ->and($meta['return_label_id'])->toStartWith('browser-shipment-')
+        ->and(array_column($meta['labels'], 'direction'))->toBe(['outbound', 'return']);
 
     $requests = ss_browser_api_requests('booking');
     expect($requests)->toHaveCount(2)
@@ -549,8 +604,8 @@ it('books an order placed without a Smart Send method once a method and a return
         ->assertVisible('[data-ss-field="return_method"]')
         ->select('[data-ss-field="return_method"]', 'postnord_returndropoff')
         ->click('[data-ss-action="create-label"]')
-        ->assertSeeIn('[data-ss-section="outbound_shipment"]', 'Shipment booked')
-        ->assertSeeIn('[data-ss-section="return_shipment"]', 'Return shipment booked');
+        ->assertPresent('[data-ss-result="outbound"]')
+        ->assertPresent('[data-ss-result="return"]');
 
     $requests = ss_browser_api_requests('booking');
     expect($requests)->toHaveCount(2)
@@ -574,8 +629,8 @@ it('books a return with another return method chosen behind the return method ro
         ->select('[data-ss-field="return_method"]', 'gls_returndropoff')
         ->check('[data-ss-field="with_return"]')
         ->click('[data-ss-action="create-label"]')
-        ->assertSeeIn('[data-ss-section="outbound_shipment"]', 'Shipment booked')
-        ->assertSeeIn('[data-ss-section="return_shipment"]', 'Return shipment booked');
+        ->assertPresent('[data-ss-result="outbound"]')
+        ->assertPresent('[data-ss-result="return"]');
 
     // The override is per booking: the return leg went out with the chosen
     // method, the order's configured one untouched.

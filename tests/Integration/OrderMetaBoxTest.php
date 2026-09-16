@@ -8,10 +8,12 @@
  * callout over the read-only sections, no Edit links), no Smart Send
  * method ("None" + Edit), not yet booked (the sectioned Option A layout:
  * read values with Edit links, the parcels collapsed to their summary,
- * the stacked actions, the grey settings section), booked from a stored
- * shipment id (the form closed: the green success callout with the link
- * into the Smart Send app, the pending return action and the Reset button)
- * - with the state inlined as JSON and every value escaped, and the built React app (build/order-fulfillment/) enqueued
+ * the stacked actions, the grey settings section) and booked (#182
+ * review, 2026-09-16: the form NEVER closes - the same sections plus the
+ * "Booked shipments" timeline built from the order's append-only labels
+ * list, with the legacy fallback for orders carrying only the frozen
+ * shipment ids, and never a green result box, which is the client's
+ * memory of the run it just made) - with the state inlined as JSON and every value escaped, and the built React app (build/order-fulfillment/) enqueued
  * from the render callback only, with every script dependency registered
  * on the running WordPress (the WP 6.5 floor has no react-jsx-runtime
  * handle, #183 - the app is built with the classic JSX runtime).
@@ -291,67 +293,119 @@ it('reads "None" with an Edit link for an order without a Smart Send shipping me
     expect(inlined_meta_box_state()['delivery_details']['shipping_method'])->toBeNull();
 });
 
-it('renders the booked state as the success callout, the app link, the pending return action and the Reset button', function () {
+it('keeps the whole form open once a label is booked and renders the timeline, never a green result box', function () {
     $order = create_meta_box_order();
-    SS_SHIPPING_WC()->shipment_ids()->save($order, 'shipment-old', false);
+    SS_SHIPPING_WC()->shipment_ids()->save($order, 'shipment-new', false, '2026-09-16T11:25:01+00:00');
 
+    $when = SS_SHIPPING_WC()->fulfillment_presenter()->format_booked_at('2026-09-16T11:25:01+00:00');
     $html = render_meta_box($order);
 
     expect($html)->toContain('data-ss-state="booked"')
-        ->toContain('data-ss-section="outbound_shipment"')
-        // The green success callout with the id and the external link into
-        // the Smart Send app.
-        ->toContain('<div class="notice notice-success inline smart-send-fulfillment__notice" data-ss-notice="booked">')
-        ->toContain('Shipment booked')
-        ->toContain('<span data-ss-value="outbound_shipment.shipment_id">shipment-old</span>')
-        ->toContain('<a href="https://app.smartsend.io/shipments/shipment-old" target="_blank" rel="noopener noreferrer" data-ss-action="view-shipment">View shipment</a>')
-        // Only the id is persisted: no parcel rows, the pointer to the notes.
-        ->toContain('Documents and tracking are in the order notes.')
-        ->not->toContain('data-ss-section="parcels"')
-        // The form is closed: no method rows, no parcel editor, no return
-        // checkbox, no "Book again" disclosure.
-        ->not->toContain('data-ss-section="shipping_method"')
-        ->not->toContain('data-ss-section="parcel_plan"')
-        ->not->toContain('data-ss-field="with_return"')
-        ->not->toContain('data-ss-section="rebook"')
-        ->not->toContain('Book again')
-        // The return can still be booked (a return method is configured) -
-        // the action only, no way to change the method here.
+        // The form NEVER closes (#182 review, 2026-09-16): the rows, the
+        // parcels section, both actions and the return checkbox are exactly
+        // what they are before booking.
+        ->toContain('data-ss-section="shipping_method"')
+        ->toContain('data-ss-section="return_method"')
+        ->toContain('data-ss-section="parcel_plan"')
+        ->toContain('data-ss-action="edit-method"')
+        ->toContain('data-ss-action="edit-return-method"')
+        ->toContain('data-ss-action="edit-parcels"')
+        ->toContain('data-ss-field="with_return"')
+        ->toContain('data-ss-action="create-label"')
         ->toContain('data-ss-action="create-return-label"')
-        ->not->toContain('data-ss-action="edit-return-method"')
-        ->not->toContain('data-ss-value="return_method"')
-        ->not->toContain('data-ss-action="create-label"')
-        // The Reset button at the very bottom, in the settings slot.
-        ->toContain('data-ss-section="reset"')
-        ->toContain('data-ss-action="reset"')
-        ->toContain('Re-opens the form to book this order again.');
+        // The green result box is the client's memory of the run it just
+        // made - the server never renders one - and the closed booked box
+        // of the previous round is gone with it.
+        ->not->toContain('smart-send-fulfillment__result')
+        ->not->toContain('Documents and tracking are in the order notes.')
+        ->not->toContain('data-ss-action="reset"')
+        ->not->toContain('data-ss-notice="booked"')
+        ->not->toContain('Book again')
+        // The "Booked shipments" timeline, from the order's labels list:
+        // the entry links into the Smart Send app and carries its time.
+        ->toContain('data-ss-section="timeline"')
+        ->toContain('Booked shipments')
+        ->toContain('<a class="smart-send-fulfillment__timeline-row" href="https://app.smartsend.io/shipments/shipment-new" target="_blank" rel="noopener noreferrer" data-ss-timeline="outbound" data-ss-shipment-id="shipment-new">')
+        ->toContain('<span class="smart-send-fulfillment__timeline-when">' . $when . '</span>');
 
-    expect(inlined_meta_box_state()['outbound_shipment'])->toBe([
-        'shipment_id' => 'shipment-old',
-        'app_url'     => 'https://app.smartsend.io/shipments/shipment-old',
-        'legacy'      => true,
-    ]);
-
-    // Both booked: both callouts, outbound first, and no action left.
-    SS_SHIPPING_WC()->shipment_ids()->save($order, 'return-old', true);
+    // A second, return label: both entries, newest first.
+    SS_SHIPPING_WC()->shipment_ids()->save($order, 'return-new', true, '2026-09-16T11:25:04+00:00');
     $html = render_meta_box($order);
 
-    expect($html)->toContain('<span data-ss-value="return_shipment.shipment_id">return-old</span>')
-        ->toContain('Return shipment booked')
-        ->toContain('data-ss-notice="booked_return"')
-        ->not->toContain('data-ss-action="create-return-label"')
-        ->toContain('data-ss-action="reset"');
+    expect(strpos($html, 'data-ss-shipment-id="return-new"'))
+        ->toBeLessThan(strpos($html, 'data-ss-shipment-id="shipment-new"'));
 
-    expect(strpos($html, 'data-ss-section="outbound_shipment"'))->toBeLessThan(strpos($html, 'data-ss-section="return_shipment"'));
+    // (The box was rendered twice above, so read the state from the
+    // presenter rather than the inlined script.)
+    $state = SS_SHIPPING_WC()->fulfillment_presenter()->state(wc_get_order($order->get_id()));
+    expect($state['outbound_shipment'])->toBe([
+        'shipment_id' => 'shipment-new',
+        'app_url'     => 'https://app.smartsend.io/shipments/shipment-new',
+    ])
+        ->and($state['timeline'])->toBe([
+            [
+                'direction'         => 'return',
+                'shipment_id'       => 'return-new',
+                'app_url'           => 'https://app.smartsend.io/shipments/return-new',
+                'booked_at'         => '2026-09-16T11:25:04+00:00',
+                'booked_at_display' => SS_SHIPPING_WC()->fulfillment_presenter()->format_booked_at('2026-09-16T11:25:04+00:00'),
+            ],
+            [
+                'direction'         => 'outbound',
+                'shipment_id'       => 'shipment-new',
+                'app_url'           => 'https://app.smartsend.io/shipments/shipment-new',
+                'booked_at'         => '2026-09-16T11:25:01+00:00',
+                'booked_at_display' => $when,
+            ],
+        ]);
 });
 
-it('leaves the return action out of the booked state when no return method is configured', function () {
-    $order = create_meta_box_order(['return_method' => '']);
-    SS_SHIPPING_WC()->shipment_ids()->save($order, 'shipment-old', false);
+it('falls back to the frozen shipment ids, without a time, for an order booked before the labels list existed', function () {
+    $order = create_meta_box_order();
 
+    // An order from before this round: the two frozen id keys only, no
+    // labels list and no timestamps anywhere.
+    $order->update_meta_data('_ss_shipping_label_id', 'legacy-shipment');
+    $order->update_meta_data('_ss_shipping_return_label_id', 'legacy-return');
+    $order->save();
+
+    $timeline = SS_SHIPPING_WC()->fulfillment_presenter()->timeline(wc_get_order($order->get_id()));
+
+    expect($timeline)->toBe([
+        [
+            'direction'         => 'outbound',
+            'shipment_id'       => 'legacy-shipment',
+            'app_url'           => 'https://app.smartsend.io/shipments/legacy-shipment',
+            'booked_at'         => null,
+            'booked_at_display' => null,
+        ],
+        [
+            'direction'         => 'return',
+            'shipment_id'       => 'legacy-return',
+            'app_url'           => 'https://app.smartsend.io/shipments/legacy-return',
+            'booked_at'         => null,
+            'booked_at_display' => null,
+        ],
+    ]);
+
+    // Rendered as links with no time line under them.
     expect(render_meta_box($order))
-        ->toContain('Shipment booked')
-        ->not->toContain('data-ss-action="create-return-label"');
+        ->toContain('data-ss-shipment-id="legacy-shipment"')
+        ->toContain('data-ss-shipment-id="legacy-return"')
+        ->not->toContain('smart-send-fulfillment__timeline-when');
+
+    // Booking again adds the new label to the list; the legacy ids the list
+    // does not carry keep their place at the end.
+    SS_SHIPPING_WC()->shipment_ids()->save($order, 'shipment-after', false, '2026-09-16T12:00:00+00:00');
+
+    expect(array_column(SS_SHIPPING_WC()->fulfillment_presenter()->timeline(wc_get_order($order->get_id())), 'shipment_id'))
+        ->toBe(['shipment-after', 'legacy-return']);
+});
+
+it('renders no timeline section for an order that has never been booked', function () {
+    expect(render_meta_box(create_meta_box_order()))
+        ->not->toContain('data-ss-section="timeline"')
+        ->not->toContain('Booked shipments');
 });
 
 it('builds the link to the shipment in the Smart Send app from the filtered API host', function () {

@@ -353,7 +353,6 @@ it('books from the JSON body: the delivery details reach the booking payload and
         // The link into the Smart Send app is built from the resolved API
         // host, so it works from the stored id alone after a reload.
         'app_url'     => 'https://app.smartsend.io/shipments/rest-shipment-1',
-        'legacy'      => true,
     ])
         ->and($data['state'])->toBe(fulfillment_get($order->get_id())->get_data());
 });

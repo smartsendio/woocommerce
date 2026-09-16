@@ -56,6 +56,22 @@ export function bindHelpTips( root ) {
 }
 
 /**
+ * The small external-link icon of a link that opens the Smart Send app (a
+ * timeline entry, a green result box's "Open", a document download) - the
+ * same markup the server first paint renders
+ * (SS_Shipping_Order_Fulfillment_Presenter::render_external_icon()).
+ */
+export function ExternalIcon() {
+	return (
+		<svg className="smart-send-fulfillment__external" width="11" height="11" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" focusable="false">
+			<path d="M4.5 2H2.5v7.5H10V7.5" />
+			<path d="M7 2h3v3" />
+			<path d="M10 2 5.5 6.5" />
+		</svg>
+	);
+}
+
+/**
  * A 16px map pin, in front of a pickup point.
  */
 export function PinIcon() {

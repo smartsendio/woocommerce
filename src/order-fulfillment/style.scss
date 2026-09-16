@@ -82,8 +82,7 @@
 		margin-left: auto;
 	}
 
-	&__edit,
-	&__reset {
+	&__edit {
 		&.button-link {
 			font-size: 12px;
 			text-decoration: none;
@@ -97,10 +96,6 @@
 				text-decoration: underline;
 			}
 		}
-	}
-
-	&__reset.button-link {
-		font-size: 13px;
 	}
 
 	&__done.components-button.is-small {
@@ -341,12 +336,19 @@
 		text-align: center;
 	}
 
-	&__booked + &__actions,
+	&__result + &__actions,
 	&__row + &__actions {
 		margin-top: 10px;
 	}
 
-	&__booked {
+	// The green result box of a shipment the run just booked: the header
+	// (title, "Open" right-aligned), the grey "<booked at> · #<id>" line,
+	// the parcel rows and, under a green divider, the documents.
+	&__result {
+		background: #f0f8f1;
+		border: 1px solid #b8e0bd;
+		border-left: 4px solid #00a32a;
+		padding: 10px 12px;
 		margin: 0 0 8px;
 
 		p {
@@ -354,8 +356,53 @@
 		}
 	}
 
+	&__result-head {
+		display: flex;
+		align-items: baseline;
+		gap: 8px;
+		min-width: 0;
+	}
+
+	&__result-title {
+		font-weight: 600;
+		flex: 1 1 auto;
+		min-width: 0;
+	}
+
+	&__result-meta {
+		color: #50575e;
+		font-size: 12px;
+		margin-top: 1px;
+	}
+
+	// A link that opens something outside WordPress (the Smart Send app, a
+	// document): the small arrow icon trails the text.
+	&__external-link {
+		display: inline-flex;
+		align-items: center;
+		gap: 3px;
+		flex: 0 0 auto;
+		font-size: 12px;
+	}
+
+	&__external {
+		flex: 0 0 auto;
+	}
+
 	&__outputs {
-		margin: 0 0 8px;
+		border-top: 1px solid #b8e0bd;
+		margin-top: 8px;
+		padding-top: 8px;
+	}
+
+	&__documents {
+		display: flex;
+		flex-direction: column;
+		gap: 4px;
+	}
+
+	&__codes {
+		margin: 6px 0 0;
 
 		dt {
 			font-weight: 600;
@@ -373,34 +420,86 @@
 		margin: 4px 0;
 	}
 
-	// One row per parcel of a booked shipment: the tracking number on the
-	// label line, the measures under it in grey.
+	// One row per parcel of a booked shipment: the tracking number as a
+	// link over the measures in grey.
 	&__parcels {
-		margin: 0 0 8px;
+		margin: 8px 0 0;
 	}
 
-	&__parcel + &__parcel {
-		margin-top: 6px;
-		padding-top: 6px;
-		border-top: 1px solid #f0f0f1;
+	&__parcel {
+		padding: 6px 0;
+		border-top: 1px solid #dcdcde;
+
+		&:first-child {
+			border-top: 0;
+			padding-top: 0;
+		}
 	}
 
-	&__parcel-head {
-		display: flex;
-		align-items: baseline;
-		justify-content: space-between;
-		gap: 8px;
+	&__parcel-measures {
+		display: block;
+		color: #50575e;
+		font-size: 12px;
+		margin-top: 1px;
 	}
 
-	&__parcel-name {
+	// The "Booked shipments" timeline: a thin rail with a dot per entry.
+	&__timeline-label {
 		font-weight: 600;
-		flex: 0 0 auto;
-	}
-
-	&__reset.components-button,
-	&__reset.button {
+		font-size: 11px;
+		text-transform: uppercase;
+		letter-spacing: .04em;
+		color: #50575e;
 		margin-bottom: 4px;
 	}
+
+	&__timeline {
+		position: relative;
+		padding-left: 14px;
+
+		&:before {
+			content: "";
+			position: absolute;
+			left: 3px;
+			top: 10px;
+			bottom: 10px;
+			width: 1px;
+			background: #dcdcde;
+		}
+	}
+
+	&__timeline-row {
+		position: relative;
+		display: block;
+		padding: 5px 0;
+		text-decoration: none;
+
+		&:before {
+			content: "";
+			position: absolute;
+			left: -14px;
+			top: 9px;
+			width: 7px;
+			height: 7px;
+			border-radius: 50%;
+			background: #c3c4c7;
+			border: 1px solid #f0f0f1;
+		}
+	}
+
+	&__timeline-title {
+		display: inline-flex;
+		align-items: center;
+		gap: 4px;
+	}
+
+	&__timeline-when {
+		display: block;
+		color: #787c82;
+		font-size: 12px;
+		margin-top: 1px;
+	}
+
 }
 
 #smart-send-fulfillment[disabled] .components-button {
