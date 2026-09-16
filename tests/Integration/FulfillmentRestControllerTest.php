@@ -270,8 +270,15 @@ it('books from the JSON body: the delivery details reach the booking payload and
     save_order_pickup_point($order->get_id(), sample_agent());
     as_rest_user();
 
+    // One response parcel per request parcel, as the API answers a split.
     $capture = mock_smart_send_api(function () {
-        return ss_api_response(200, ['data' => ss_api_shipment_data(['shipment_id' => 'rest-shipment-1'])]);
+        return ss_api_response(200, ['data' => ss_api_shipment_data([
+            'shipment_id' => 'rest-shipment-1',
+            'parcels'     => [
+                ['parcel_internal_id' => 1, 'tracking_code' => 'TRACK-1', 'tracking_link' => 'https://tracking.example.test/1'],
+                ['parcel_internal_id' => 2, 'tracking_code' => 'TRACK-2', 'tracking_link' => 'https://tracking.example.test/2'],
+            ],
+        ])]);
     });
 
     $response = fulfillment_post($order->get_id(), [
@@ -317,6 +324,14 @@ it('books from the JSON body: the delivery details reach the booking payload and
         ->and($data['shipments'][0]['direction'])->toBe('outbound')
         ->and($data['shipments'][0]['status'])->toBe('fulfilled')
         ->and($data['shipments'][0]['shipment']['shipment_id'])->toBe('rest-shipment-1')
+        // The booked shipment is enriched for the box: the link into the
+        // Smart Send app and, per parcel, the weight the parcel was booked
+        // with in the store's unit (the two-box split above).
+        ->and($data['shipments'][0]['shipment']['app_url'])->toBe('https://app.smartsend.io/shipments/rest-shipment-1')
+        ->and($data['shipments'][0]['shipment']['parcels'][0]['weight_display'])->toBe('1 kg')
+        ->and($data['shipments'][0]['shipment']['parcels'][0]['dimensions_display'])->toBeNull()
+        ->and($data['shipments'][0]['shipment']['parcels'][1]['weight_display'])->toBe('7.5 kg')
+        ->and($data['shipments'][0]['shipment']['parcels'][1]['dimensions_display'])->toBe('40 × 30 × 20 cm')
         ->and($data['shipments'][0]['steps']['order_note'])->toBeTrue();
 
     // order_note.id is the note actually added, and .html is WooCommerce's
@@ -333,7 +348,13 @@ it('books from the JSON body: the delivery details reach the booking payload and
         ->toEndWith('</li>');
 
     // The state after the run equals a subsequent GET and now shows the shipment.
-    expect($data['state']['outbound_shipment'])->toBe(['shipment_id' => 'rest-shipment-1', 'legacy' => true])
+    expect($data['state']['outbound_shipment'])->toBe([
+        'shipment_id' => 'rest-shipment-1',
+        // The link into the Smart Send app is built from the resolved API
+        // host, so it works from the stored id alone after a reload.
+        'app_url'     => 'https://app.smartsend.io/shipments/rest-shipment-1',
+        'legacy'      => true,
+    ])
         ->and($data['state'])->toBe(fulfillment_get($order->get_id())->get_data());
 });
 

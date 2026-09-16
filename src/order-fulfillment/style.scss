@@ -373,29 +373,33 @@
 		margin: 4px 0;
 	}
 
-	&__rebook {
-		margin-top: 8px;
+	// One row per parcel of a booked shipment: the tracking number on the
+	// label line, the measures under it in grey.
+	&__parcels {
+		margin: 0 0 8px;
 	}
 
-	&__rebook-panel {
-		margin-top: 8px;
-		padding-top: 8px;
-		border-top: 1px dashed #dcdcde;
+	&__parcel + &__parcel {
+		margin-top: 6px;
+		padding-top: 6px;
+		border-top: 1px solid #f0f0f1;
+	}
 
-		// The form's sections nested inside the disclosure keep their
-		// dividers but not the horizontal padding.
-		.smart-send-fulfillment__section {
-			padding: 10px 0;
+	&__parcel-head {
+		display: flex;
+		align-items: baseline;
+		justify-content: space-between;
+		gap: 8px;
+	}
 
-			&:first-child {
-				border-top: 0;
-				padding-top: 0;
-			}
+	&__parcel-name {
+		font-weight: 600;
+		flex: 0 0 auto;
+	}
 
-			&--settings {
-				padding: 10px 8px;
-			}
-		}
+	&__reset.components-button,
+	&__reset.button {
+		margin-bottom: 4px;
 	}
 }
 

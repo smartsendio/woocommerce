@@ -1,20 +1,28 @@
 /** @jsxRuntime classic */
 /** @jsx createElement */
 /**
- * A booked shipment block (section 1.2-E/F). Two variants:
+ * A booked shipment block (section 1.2-E/F, rebuilt in the #182 review of
+ * 2026-09-16). Once anything is booked the form closes, and what a booked
+ * direction shows is:
  *
- *  - right after booking, from the POST response's fulfilled entry: every
- *    document as a download link, every code (value, image, instructions,
- *    expiry), tracking per parcel and the shipment-level tracking, the
- *    number of parcels, plus any step warnings (e.g. the uploads copy
- *    could not be saved - the label is booked regardless);
- *  - after a page reload, from the state's { shipment_id, legacy: true }:
- *    the id and a pointer to the order notes, since nothing but the id is
- *    persisted (Decisions, #182).
+ *  - a green "Shipment booked" / "Return shipment booked" callout with the
+ *    shipment id and an external link to the shipment in the Smart Send app
+ *    (shipment.app_url - built server side from the same host the API
+ *    client talks to, so a sandbox override follows);
+ *  - one row per parcel: its tracking number as a link (plain text without
+ *    a url) and, in grey, the weight, dimensions and reference it was
+ *    booked with (formatted server side in the store's units);
+ *  - the documents and codes of the shipment.
+ *
+ * After a page reload only the shipment id is persisted (Decisions, #182),
+ * so the block falls back to the callout, the app link and a pointer to
+ * the order notes (`legacy`). Persisting
+ * SS_Shipping_Booked_Shipment::to_array() later would light the full view
+ * up on reload without a change here: the shape is the same.
  */
-import { createElement } from '@wordpress/element';
+import { createElement, Fragment } from '@wordpress/element';
 import { Notice } from '@wordpress/components';
-import { __, _n, sprintf } from '@wordpress/i18n';
+import { __, sprintf } from '@wordpress/i18n';
 
 function documentLabel( document, isReturn ) {
 	const format = ( document.format || '' ).toUpperCase();
@@ -32,106 +40,150 @@ function documentLabel( document, isReturn ) {
 	return type.charAt( 0 ).toUpperCase() + type.slice( 1 ) + ( format ? ' (' + format + ')' : '' );
 }
 
-export default function BookedShipment( { isReturn, shipment, steps, warnings = [], legacy = false, children } ) {
+/**
+ * The grey measures line of a parcel: weight, dimensions and reference,
+ * whichever the parcel carries.
+ */
+function parcelMeta( parcel ) {
+	return [
+		parcel.weight_display || null,
+		parcel.dimensions_display || null,
+		parcel.reference
+			? /* translators: %s: the parcel reference. */
+			  sprintf( __( 'Ref. %s', 'smart-send-logistics' ), parcel.reference )
+			: null,
+	]
+		.filter( Boolean )
+		.join( ' · ' );
+}
+
+function TrackingLink( { code, url } ) {
+	if ( ! url ) {
+		return code;
+	}
+
+	return (
+		<a href={ url } target="_blank" rel="noopener noreferrer">
+			{ code } ↗
+		</a>
+	);
+}
+
+export default function BookedShipment( { isReturn, shipment, steps, warnings = [], legacy = false } ) {
 	const section = isReturn ? 'return_shipment' : 'outbound_shipment';
-	const title = isReturn ? __( 'Return label', 'smart-send-logistics' ) : __( 'Shipping label', 'smart-send-logistics' );
+	const title = isReturn ? __( 'Return shipment booked', 'smart-send-logistics' ) : __( 'Shipment booked', 'smart-send-logistics' );
+	const parcels = shipment.parcels || [];
+	// v1 derives the shipment-level tracking from the first parcel; show it
+	// only when it is something the parcel rows do not already carry.
+	const showShipmentTracking =
+		!! shipment.tracking_code && ! parcels.some( ( parcel ) => parcel.tracking_code === shipment.tracking_code );
 
 	return (
 		<div className="smart-send-fulfillment__booked" data-ss-section={ section }>
-			<p>
-				<strong>{ title }</strong>{ ' ' }
-				<span data-ss-value={ section + '.status' }>
-					{ __( 'Booked', 'smart-send-logistics' ) + ' · #' }
-					<span data-ss-value={ section + '.shipment_id' }>{ shipment.shipment_id }</span>
-				</span>
-			</p>
+			<div className="smart-send-fulfillment__notice" data-ss-notice={ isReturn ? 'booked_return' : 'booked' }>
+				<Notice status="success" isDismissible={ false }>
+					<p>
+						{ title }
+						{ ' · #' }
+						<span data-ss-value={ section + '.shipment_id' }>{ shipment.shipment_id }</span>
+					</p>
+					{ shipment.app_url && (
+						<p>
+							<a href={ shipment.app_url } target="_blank" rel="noopener noreferrer" data-ss-action="view-shipment">
+								{ __( 'View shipment', 'smart-send-logistics' ) } ↗
+							</a>
+						</p>
+					) }
+				</Notice>
+			</div>
 
 			{ legacy ? (
 				<p className="description">{ __( 'Documents and tracking are in the order notes.', 'smart-send-logistics' ) }</p>
 			) : (
-				<dl className="smart-send-fulfillment__outputs">
-					{ shipment.documents && shipment.documents.length > 0 && (
-						<div data-ss-section="documents">
-							<dt>{ __( 'Documents', 'smart-send-logistics' ) }</dt>
-							{ shipment.documents.map( ( document, index ) => (
-								<dd key={ index }>
-									<a className="button button-small" href={ document.local_url || document.url } target="_blank" rel="noopener noreferrer" data-ss-document={ document.type }>
-										{ documentLabel( document, isReturn ) }
-									</a>
-								</dd>
-							) ) }
-						</div>
-					) }
+				<Fragment>
+					{ ( parcels.length > 0 || showShipmentTracking ) && (
+						<div className="smart-send-fulfillment__parcels" data-ss-section="parcels">
+							{ parcels.map( ( parcel, index ) => {
+								const meta = parcelMeta( parcel );
 
-					{ shipment.codes && shipment.codes.length > 0 && (
-						<div data-ss-section="codes">
-							<dt>{ __( 'Codes', 'smart-send-logistics' ) }</dt>
-							{ shipment.codes.map( ( code, index ) => (
-								<dd key={ index } data-ss-code={ code.type }>
-									<strong>{ code.value }</strong>
-									{ code.image_url && <img src={ code.image_url } alt={ code.value || code.type } className="smart-send-fulfillment__code-image" /> }
-									{ code.instructions && <span className="description"> { code.instructions }</span> }
-									{ code.expires_at && (
-										<span className="description">
-											{ ' ' }
-											{
-												/* translators: %s: expiry date/time. */
-												sprintf( __( '(until %s)', 'smart-send-logistics' ), code.expires_at )
-											}
-										</span>
-									) }
-								</dd>
-							) ) }
-						</div>
-					) }
-
-					{ ( ( shipment.parcels && shipment.parcels.some( ( parcel ) => parcel.tracking_code ) ) || shipment.tracking_code ) && (
-						<div data-ss-section="tracking">
-							<dt>{ __( 'Tracking', 'smart-send-logistics' ) }</dt>
-							{ ( shipment.parcels || [] ).map( ( parcel, index ) =>
-								parcel.tracking_code ? (
-									<dd key={ index } data-ss-parcel={ parcel.parcel_id }>
-										{
-											/* translators: %d: parcel number. */
-											sprintf( __( 'Parcel %d', 'smart-send-logistics' ), index + 1 )
-										}{ ' ' }
-										{ parcel.tracking_url ? (
-											<a href={ parcel.tracking_url } target="_blank" rel="noopener noreferrer">
-												{ parcel.tracking_code } ↗
-											</a>
-										) : (
-											parcel.tracking_code
+								return (
+									<div className="smart-send-fulfillment__parcel" data-ss-parcel={ parcel.parcel_id || String( index + 1 ) } key={ index }>
+										<div className="smart-send-fulfillment__parcel-head">
+											<span className="smart-send-fulfillment__parcel-name">
+												{
+													/* translators: %d: parcel number. */
+													sprintf( __( 'Parcel %d', 'smart-send-logistics' ), index + 1 )
+												}
+											</span>
+											<span data-ss-value="tracking_code">
+												{ parcel.tracking_code ? (
+													<TrackingLink code={ parcel.tracking_code } url={ parcel.tracking_url } />
+												) : (
+													<span className="smart-send-fulfillment__none">{ __( 'No tracking number', 'smart-send-logistics' ) }</span>
+												) }
+											</span>
+										</div>
+										{ meta && (
+											<div className="description" data-ss-value="parcel_measures">
+												{ meta }
+											</div>
 										) }
-									</dd>
-								) : null
-							) }
-							{ shipment.tracking_code && ( ! shipment.parcels || shipment.parcels.length !== 1 || shipment.parcels[ 0 ].tracking_code !== shipment.tracking_code ) && (
-								<dd data-ss-value="tracking_code">
-									{ __( 'Shipment', 'smart-send-logistics' ) }{ ' ' }
-									{ shipment.tracking_url ? (
-										<a href={ shipment.tracking_url } target="_blank" rel="noopener noreferrer">
-											{ shipment.tracking_code } ↗
-										</a>
-									) : (
-										shipment.tracking_code
-									) }
-								</dd>
+									</div>
+								);
+							} ) }
+
+							{ showShipmentTracking && (
+								<div className="smart-send-fulfillment__parcel" data-ss-parcel="shipment">
+									<div className="smart-send-fulfillment__parcel-head">
+										<span className="smart-send-fulfillment__parcel-name">{ __( 'Shipment', 'smart-send-logistics' ) }</span>
+										<span data-ss-value="tracking_code">
+											<TrackingLink code={ shipment.tracking_code } url={ shipment.tracking_url } />
+										</span>
+									</div>
+								</div>
 							) }
 						</div>
 					) }
 
-					{ shipment.parcels && shipment.parcels.length > 0 && (
-						<div>
-							<dd className="description" data-ss-value="parcel_count">
-								{ sprintf(
-									/* translators: %d: number of parcels. */
-									_n( 'Shipped as %d parcel', 'Shipped as %d parcels', shipment.parcels.length, 'smart-send-logistics' ),
-									shipment.parcels.length
-								) }
-							</dd>
-						</div>
+					{ ( ( shipment.documents && shipment.documents.length > 0 ) || ( shipment.codes && shipment.codes.length > 0 ) ) && (
+						<dl className="smart-send-fulfillment__outputs">
+							{ shipment.documents && shipment.documents.length > 0 && (
+								<div data-ss-section="documents">
+									<dt>{ __( 'Documents', 'smart-send-logistics' ) }</dt>
+									{ shipment.documents.map( ( document, index ) => (
+										<dd key={ index }>
+											<a className="button button-small" href={ document.local_url || document.url } target="_blank" rel="noopener noreferrer" data-ss-document={ document.type }>
+												{ documentLabel( document, isReturn ) }
+											</a>
+										</dd>
+									) ) }
+								</div>
+							) }
+
+							{ shipment.codes && shipment.codes.length > 0 && (
+								<div data-ss-section="codes">
+									<dt>{ __( 'Codes', 'smart-send-logistics' ) }</dt>
+									{ shipment.codes.map( ( code, index ) => (
+										<dd key={ index } data-ss-code={ code.type }>
+											<strong>{ code.value }</strong>
+											{ code.image_url && <img src={ code.image_url } alt={ code.value || code.type } className="smart-send-fulfillment__code-image" /> }
+											{ code.instructions && <span className="description"> { code.instructions }</span> }
+											{ code.expires_at && (
+												<span className="description">
+													{ ' ' }
+													{
+														/* translators: %s: expiry date/time. */
+														sprintf( __( '(until %s)', 'smart-send-logistics' ), code.expires_at )
+													}
+												</span>
+											) }
+										</dd>
+									) ) }
+								</div>
+							) }
+						</dl>
 					) }
-				</dl>
+				</Fragment>
 			) }
 
 			{ steps && steps.order_status && (
@@ -150,8 +202,6 @@ export default function BookedShipment( { isReturn, shipment, steps, warnings = 
 					</Notice>
 				</div>
 			) ) }
-
-			{ children }
 		</div>
 	);
 }

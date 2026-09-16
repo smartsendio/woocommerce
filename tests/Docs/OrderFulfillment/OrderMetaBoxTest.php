@@ -10,7 +10,8 @@
 | not-yet-booked box (the sectioned Option A layout), the parcels section
 | collapsed to its summary and expanded into the editor, the pickup point
 | row in its edit state and with a looked-up point, the shipping method
-| select, a booked outbound label, outbound + return booked in one run, a
+| select, a booked outbound label with its parcel row and documents, the
+| reduced booked box after a reload, outbound + return booked in one run, a
 | booking failure shown on the field it belongs to, an order placed
 | without a Smart Send method, and the not-connected notice.
 |
@@ -196,7 +197,7 @@ it('shows the shipping method select', function () {
     capture_doc_screenshot($page, 'OrderFulfillment', 'method-change', false);
 });
 
-it('shows a booked shipping label with its documents and tracking', function () {
+it('shows a booked shipping label with its parcels and documents', function () {
     $page = visit(base_url('/wp-login.php'))
         ->fill('#user_login', admin_username())
         ->fill('#user_pass', admin_password())
@@ -204,14 +205,39 @@ it('shows a booked shipping label with its documents and tracking', function () 
         ->assertPathContains('wp-admin')
         ->navigate(docs_order_url(2));
 
+    // The booked state: the form closes, and what is left is the green
+    // callout with the link into the Smart Send app, the parcel row and the
+    // documents.
     $page->assertSeeIn('#woocommerce-ss-shipping-label .hndle', 'Smart Send')
         ->click('[data-ss-action="create-label"]')
-        ->assertSeeIn('[data-ss-section="outbound_shipment"]', 'Booked')
-        ->assertSeeIn('[data-ss-section="documents"]', 'Download shipping label (PDF)');
+        ->assertSeeIn('[data-ss-notice="booked"]', 'Shipment booked')
+        ->assertSeeIn('[data-ss-section="parcels"]', 'BROWSERTRACK1')
+        ->assertSeeIn('[data-ss-section="documents"]', 'Download shipping label (PDF)')
+        ->assertPresent('[data-ss-action="reset"]');
 
     highlight_element($page, '[data-ss-section="outbound_shipment"]');
 
     capture_doc_screenshot($page, 'OrderFulfillment', 'booked-outbound', false);
+});
+
+it('shows the booked box after a page reload, where only the shipment id is known', function () {
+    $page = visit(base_url('/wp-login.php'))
+        ->fill('#user_login', admin_username())
+        ->fill('#user_pass', admin_password())
+        ->click('#wp-submit')
+        ->assertPathContains('wp-admin')
+        ->navigate(docs_order_url(2))
+        // Order 2 carries the label the test above booked (the WordPress
+        // database is what carries state between these tests); navigating
+        // again is the reload: only the shipment id is persisted, so the
+        // box falls back to the reduced variant.
+        ->assertSeeIn('[data-ss-notice="booked"]', 'Shipment booked')
+        ->navigate(docs_order_url(2))
+        ->assertSeeIn('[data-ss-section="outbound_shipment"]', 'Documents and tracking are in the order notes.');
+
+    highlight_element($page, '#smart-send-fulfillment');
+
+    capture_doc_screenshot($page, 'OrderFulfillment', 'booked-reload', false);
 });
 
 it('shows outbound and return labels booked in one run', function () {
@@ -225,8 +251,8 @@ it('shows outbound and return labels booked in one run', function () {
     $page->assertSeeIn('#woocommerce-ss-shipping-label .hndle', 'Smart Send')
         ->assertChecked('[data-ss-field="with_return"]')
         ->click('[data-ss-action="create-label"]')
-        ->assertSeeIn('[data-ss-section="outbound_shipment"]', 'Booked')
-        ->assertSeeIn('[data-ss-section="return_shipment"]', 'Booked');
+        ->assertSeeIn('[data-ss-section="outbound_shipment"]', 'Shipment booked')
+        ->assertSeeIn('[data-ss-section="return_shipment"]', 'Return shipment booked');
 
     highlight_element($page, '#smart-send-fulfillment');
 

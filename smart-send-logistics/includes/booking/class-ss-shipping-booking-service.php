@@ -140,7 +140,9 @@ if ( ! class_exists( 'SS_Shipping_Booking_Service' ) ) :
 		 * shipment: one "label" document in "pdf" format from pdf->link
 		 * (with the inline base64 bytes as its transient inline_content),
 		 * no codes (v1 never produces any), one booked parcel per
-		 * parcels[] entry, and shipment-level tracking taken from the
+		 * parcels[] entry - enriched with the weight, dimensions and
+		 * reference of the request parcel at the same index, which the API
+		 * does not echo back -, and shipment-level tracking taken from the
 		 * first parcel when the API gives none (v1 tracks per parcel).
 		 * The carrier and method codes fall back to what was requested
 		 * when the response does not repeat them.
@@ -161,12 +163,41 @@ if ( ! class_exists( 'SS_Shipping_Booking_Service' ) ) :
 				->set_state( SS_Shipping_Booked_Shipment::STATE_BOOKED )
 				->set_booked_at( gmdate( 'c' ) );
 
-			foreach ( isset( $data->parcels ) ? (array) $data->parcels : array() as $parcel ) {
+			$response_parcels = isset( $data->parcels ) ? array_values( (array) $data->parcels ) : array();
+			// The API returns one response parcel per request parcel, in the
+			// order they were sent, and echoes none of their measures back:
+			// the weight, dimensions and reference come from the request
+			// parcel at the same index. A count mismatch is not fatal - the
+			// booking succeeded - so it is logged and the measures of the
+			// unmatched parcels are left out.
+			$request_parcels = array_values( $shipment->get_parcels() );
+
+			if ( count( $request_parcels ) !== count( $response_parcels ) ) {
+				SS_Shipping_Logger::warning(
+					'The Smart Send API returned a different number of parcels than were booked - the booked parcels carry no weight, dimensions or reference.',
+					array(
+						'shipment_id'      => $booked->get_shipment_id(),
+						'request_parcels'  => count( $request_parcels ),
+						'response_parcels' => count( $response_parcels ),
+					)
+				);
+
+				$request_parcels = array();
+			}
+
+			foreach ( $response_parcels as $index => $parcel ) {
+				$requested = isset( $request_parcels[ $index ] ) ? $request_parcels[ $index ] : null;
+
 				$booked->add_parcel(
 					new SS_Shipping_Booked_Parcel(
 						isset( $parcel->parcel_internal_id ) ? (string) $parcel->parcel_internal_id : null,
 						isset( $parcel->tracking_code ) ? (string) $parcel->tracking_code : null,
-						isset( $parcel->tracking_link ) ? (string) $parcel->tracking_link : null
+						isset( $parcel->tracking_link ) ? (string) $parcel->tracking_link : null,
+						null === $requested ? null : $requested->get_weight(),
+						null === $requested ? null : $requested->get_length(),
+						null === $requested ? null : $requested->get_width(),
+						null === $requested ? null : $requested->get_height(),
+						null === $requested ? null : $requested->get_internal_reference()
 					)
 				);
 			}

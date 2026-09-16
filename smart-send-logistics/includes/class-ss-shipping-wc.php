@@ -407,7 +407,7 @@ if ( ! class_exists( 'SS_Shipping_WC' ) ) :
 				$this->method_resolver        = new SS_Shipping_Method_Resolver( $this->settings );
 				$this->shipment_ids           = new SS_Shipping_Shipment_Ids();
 				$this->pickup_point_validator = new SS_Shipping_Pickup_Point_Validator( $this->order_meta, $this->method_resolver, $this->pickup_point_lookup );
-				$this->fulfillment_presenter  = new SS_Shipping_Order_Fulfillment_Presenter( $this->order_meta, $this->method_resolver, $this->shipment_ids, $this->pickup_point_formatter, $this->settings );
+				$this->fulfillment_presenter  = new SS_Shipping_Order_Fulfillment_Presenter( $this->order_meta, $this->method_resolver, $this->shipment_ids, $this->pickup_point_formatter, $this->settings, new SS_Shipping_Api_Factory( $this->settings ) );
 				$this->meta_box               = new SS_Shipping_Order_Meta_Box( $this->fulfillment_presenter );
 				$this->fulfillment_service    = new SS_Shipping_Fulfillment_Service(
 					$this->order_meta,

@@ -9,7 +9,9 @@
  * method ("None" + Edit), not yet booked (the sectioned Option A layout:
  * read values with Edit links, the parcels collapsed to their summary,
  * the stacked actions, the grey settings section), booked from a stored
- * shipment id - with the state inlined as JSON and every value escaped, and the built React app (build/order-fulfillment/) enqueued
+ * shipment id (the form closed: the green success callout with the link
+ * into the Smart Send app, the pending return action and the Reset button)
+ * - with the state inlined as JSON and every value escaped, and the built React app (build/order-fulfillment/) enqueued
  * from the render callback only, with every script dependency registered
  * on the running WordPress (the WP 6.5 floor has no react-jsx-runtime
  * handle, #183 - the app is built with the classic JSX runtime).
@@ -289,7 +291,7 @@ it('reads "None" with an Edit link for an order without a Smart Send shipping me
     expect(inlined_meta_box_state()['delivery_details']['shipping_method'])->toBeNull();
 });
 
-it('renders the booked block from a stored shipment id with the book-again disclosure and the return action', function () {
+it('renders the booked state as the success callout, the app link, the pending return action and the Reset button', function () {
     $order = create_meta_box_order();
     SS_SHIPPING_WC()->shipment_ids()->save($order, 'shipment-old', false);
 
@@ -297,35 +299,92 @@ it('renders the booked block from a stored shipment id with the book-again discl
 
     expect($html)->toContain('data-ss-state="booked"')
         ->toContain('data-ss-section="outbound_shipment"')
+        // The green success callout with the id and the external link into
+        // the Smart Send app.
+        ->toContain('<div class="notice notice-success inline smart-send-fulfillment__notice" data-ss-notice="booked">')
+        ->toContain('Shipment booked')
         ->toContain('<span data-ss-value="outbound_shipment.shipment_id">shipment-old</span>')
+        ->toContain('<a href="https://app.smartsend.io/shipments/shipment-old" target="_blank" rel="noopener noreferrer" data-ss-action="view-shipment">View shipment</a>')
+        // Only the id is persisted: no parcel rows, the pointer to the notes.
         ->toContain('Documents and tracking are in the order notes.')
-        ->toContain('data-ss-section="rebook"')
-        ->toContain('A shipping label already exists for this order.')
-        ->toContain('name="smart_send[confirm_rebook]" value="1"')
-        ->toContain('data-ss-action="create-label"')
-        // No return yet: the separate action in its own section, with the
-        // return method row (the configured one, editable).
-        ->toContain('<div class="smart-send-fulfillment__section" data-ss-section="return">')
-        ->toContain('data-ss-section="return_shipment"')
-        ->toContain('not created')
-        ->toContain('<span data-ss-value="return_method">PostNord: Return from pickup point (Return Drop Off)</span>')
-        ->toContain('data-ss-action="edit-return-method"')
+        ->not->toContain('data-ss-section="parcels"')
+        // The form is closed: no method rows, no parcel editor, no return
+        // checkbox, no "Book again" disclosure.
+        ->not->toContain('data-ss-section="shipping_method"')
+        ->not->toContain('data-ss-section="parcel_plan"')
+        ->not->toContain('data-ss-field="with_return"')
+        ->not->toContain('data-ss-section="rebook"')
+        ->not->toContain('Book again')
+        // The return can still be booked (a return method is configured) -
+        // the action only, no way to change the method here.
         ->toContain('data-ss-action="create-return-label"')
-        ->not->toContain('data-ss-section="rebook_return"')
-        // The disclosure re-opens the form's sections inside its panel.
-        ->toContain('<div class="smart-send-fulfillment__rebook-panel">')
-        ->toContain('data-ss-value="parcel_plan.summary">1 parcel · 1.00 kg</span>');
+        ->not->toContain('data-ss-action="edit-return-method"')
+        ->not->toContain('data-ss-value="return_method"')
+        ->not->toContain('data-ss-action="create-label"')
+        // The Reset button at the very bottom, in the settings slot.
+        ->toContain('data-ss-section="reset"')
+        ->toContain('data-ss-action="reset"')
+        ->toContain('Re-opens the form to book this order again.');
 
-    expect(inlined_meta_box_state()['outbound_shipment'])->toBe(['shipment_id' => 'shipment-old', 'legacy' => true]);
+    expect(inlined_meta_box_state()['outbound_shipment'])->toBe([
+        'shipment_id' => 'shipment-old',
+        'app_url'     => 'https://app.smartsend.io/shipments/shipment-old',
+        'legacy'      => true,
+    ]);
 
-    // Both booked: both blocks, each with its own disclosure.
+    // Both booked: both callouts, outbound first, and no action left.
     SS_SHIPPING_WC()->shipment_ids()->save($order, 'return-old', true);
     $html = render_meta_box($order);
 
     expect($html)->toContain('<span data-ss-value="return_shipment.shipment_id">return-old</span>')
-        ->toContain('data-ss-section="rebook_return"')
-        ->toContain('A return label already exists for this order.')
-        ->not->toContain('not created');
+        ->toContain('Return shipment booked')
+        ->toContain('data-ss-notice="booked_return"')
+        ->not->toContain('data-ss-action="create-return-label"')
+        ->toContain('data-ss-action="reset"');
+
+    expect(strpos($html, 'data-ss-section="outbound_shipment"'))->toBeLessThan(strpos($html, 'data-ss-section="return_shipment"'));
+});
+
+it('leaves the return action out of the booked state when no return method is configured', function () {
+    $order = create_meta_box_order(['return_method' => '']);
+    SS_SHIPPING_WC()->shipment_ids()->save($order, 'shipment-old', false);
+
+    expect(render_meta_box($order))
+        ->toContain('Shipment booked')
+        ->not->toContain('data-ss-action="create-return-label"');
+});
+
+it('builds the link to the shipment in the Smart Send app from the filtered API host', function () {
+    $presenter = SS_SHIPPING_WC()->fulfillment_presenter();
+
+    expect($presenter->app_url('shipment-old'))->toBe('https://app.smartsend.io/shipments/shipment-old')
+        ->and($presenter->app_url(''))->toBe('');
+
+    $sandbox = fn () => 'https://app.smartsend.dev';
+    add_filter('smart_send_api_endpoint', $sandbox);
+
+    try {
+        expect($presenter->app_url('shipment-old'))->toBe('https://app.smartsend.dev/shipments/shipment-old');
+    } finally {
+        remove_filter('smart_send_api_endpoint', $sandbox);
+    }
+});
+
+it('enriches a booked shipment for the response with the app link and the parcel display strings', function () {
+    $shipment = new SS_Shipping_Booked_Shipment('shipment-resp');
+    $shipment->add_parcel(new SS_Shipping_Booked_Parcel('1', 'TRACK-1', 'https://tracking.example.test/1', 2.0, null, null, null, '4711'));
+    $shipment->add_parcel(new SS_Shipping_Booked_Parcel('2', 'TRACK-2', null, 2.5, 40.0, 30.0, 20.0, '4711'));
+
+    $enriched = SS_SHIPPING_WC()->fulfillment_presenter()->shipment_response($shipment->to_array());
+
+    expect($enriched['app_url'])->toBe('https://app.smartsend.io/shipments/shipment-resp')
+        // The store's units (kg / cm by default), dimensions only when all
+        // three are there.
+        ->and($enriched['parcels'][0]['weight_display'])->toBe('2 kg')
+        ->and($enriched['parcels'][0]['dimensions_display'])->toBeNull()
+        ->and($enriched['parcels'][0]['reference'])->toBe('4711')
+        ->and($enriched['parcels'][1]['weight_display'])->toBe('2.5 kg')
+        ->and($enriched['parcels'][1]['dimensions_display'])->toBe('40 × 30 × 20 cm');
 });
 
 it('renders the stored parcel split as the collapsed parcels summary, an explicit box weight winning over the computed one', function () {

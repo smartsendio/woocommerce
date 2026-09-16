@@ -272,7 +272,7 @@ The request and the result:
 * **smart_send_booking_failed** `( SS_Shipping_Booking_Exception $exception, SS_Shipping_Shipment $shipment, WC_Order $order )` (since 9.0.0)
     Action when the API rejected the shipment, right before the exception is thrown. `$exception->getMessage()` is the API message, `errors()` the per-field validation errors (field => list of messages), `response_id()` the Smart Send Response-ID for support, `getPrevious()` the API client exception
 
-The booked shipment (`SS_Shipping_Booked_Shipment`) carries `get_shipment_id()`, `get_carrier()` (the carrier code, e.g. `postnord`), `get_service_code()`, `is_return()`, `get_state()`, `get_booked_at()`, shipment-level `get_tracking_code()`/`get_tracking_url()`, `parcels()` (`SS_Shipping_Booked_Parcel`: parcel id, tracking code and URL), `documents()` (`SS_Shipping_Shipment_Document`: type such as `label` or `customs_declaration`, format such as `pdf` or `zpl`, layout, `get_url()`, and `get_local_url()`/`get_local_path()` when fulfillment stored a copy - `download_url()` prefers that copy) and `codes()` (`SS_Shipping_Shipment_Code`: type such as `qr_code`, value, image URL, expiry, instructions). Documents and codes are lists on the shipment, never on a parcel - do not assume one PDF; `label_document()` is a shortcut to the first label document, or null. `to_array()`/`from_array()` round-trip every field. Today (API v1) a booking yields exactly one `label`/`pdf` document and no codes; API v2 will add QR codes, label codes and ZPL/customs documents without changing this contract.
+The booked shipment (`SS_Shipping_Booked_Shipment`) carries `get_shipment_id()`, `get_carrier()` (the carrier code, e.g. `postnord`), `get_service_code()`, `is_return()`, `get_state()`, `get_booked_at()`, shipment-level `get_tracking_code()`/`get_tracking_url()`, `parcels()` (`SS_Shipping_Booked_Parcel`: parcel id, tracking code and URL, plus the weight, dimensions and reference it was booked with - carried over from the request parcel, since the API does not echo them back), `documents()` (`SS_Shipping_Shipment_Document`: type such as `label` or `customs_declaration`, format such as `pdf` or `zpl`, layout, `get_url()`, and `get_local_url()`/`get_local_path()` when fulfillment stored a copy - `download_url()` prefers that copy) and `codes()` (`SS_Shipping_Shipment_Code`: type such as `qr_code`, value, image URL, expiry, instructions). Documents and codes are lists on the shipment, never on a parcel - do not assume one PDF; `label_document()` is a shortcut to the first label document, or null. `to_array()`/`from_array()` round-trip every field. Today (API v1) a booking yields exactly one `label`/`pdf` document and no codes; API v2 will add QR codes, label codes and ZPL/customs documents without changing this contract.
 
 Example: react to a completed booking and to a rejected one:
 
@@ -353,7 +353,7 @@ No - this is by design. Neither deactivating nor uninstalling the plugin deletes
 
 1. Show closest pickup points during checkout
 2. Create shipping labels from the order screen - change the shipping method, pickup point and parcels before booking
-3. See the booked label's documents and tracking right on the order, with an order note added automatically
+3. Once booked, the box confirms the shipment, links to it in the Smart Send app and lists the parcels with their tracking numbers, weight and dimensions
 4. Booking errors are shown on the field they belong to, with a response ID for support
 5. Add shipping methods to WooCommerce Shipping Zones
 6. Connect WooCommerce to Smart Send by entering the API Token
@@ -366,7 +366,7 @@ No - this is by design. Neither deactivating nor uninstalling the plugin deletes
 * New hook and filter API (smart_send_*) for every stage: shipping methods at checkout, fulfillment and booking. The version 8 hooks and filters no longer work - see the Developers section
 * Support for the WooCommerce Checkout Block: pickup point selection now works in the block-based checkout as well as the classic checkout
 * Support for High-Performance Order Storage (HPOS)
-* Rebuilt order-screen meta box: books without a page reload, lets you change the shipping method, pickup point and parcels (weight and dimensions per box) before booking, and books orders placed with another shipping method
+* Rebuilt order-screen meta box: books without a page reload, lets you change the shipping method, pickup point and parcels (weight and dimensions per box) before booking, and books orders placed with another shipping method. Once booked it confirms the shipment, links to it in the Smart Send app and lists every parcel with its tracking number, weight and dimensions
 * Minimum required WordPress version raised to 6.5
 * Minimum required WooCommerce version raised from 4.7 to 8.2
 * Minimum required PHP version is 7.4 (unchanged since 8.2.0)

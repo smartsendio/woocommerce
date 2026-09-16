@@ -161,14 +161,28 @@ add_filter('pre_http_request', function ($pre, $args, $url) {
             return $error;
         }
 
+        // One response parcel per request parcel, in the order they were
+        // sent (what the real API does): the plugin correlates the two by
+        // index to carry the booked weight/dimensions/reference onto the
+        // booked parcels, so a split booking must answer with a split.
+        $sent = json_decode(isset($args['body']) ? (string) $args['body'] : '', true);
+        $count = (isset($sent['parcels']) && is_array($sent['parcels'])) ? max(1, count($sent['parcels'])) : 1;
+
+        $parcels = array();
+        for ($i = 1; $i <= $count; $i++) {
+            $parcels[] = array(
+                'parcel_internal_id' => $i,
+                'tracking_code'      => 'BROWSERTRACK' . $i,
+                'tracking_link'      => 'https://mock.smartsend.test/track/' . $i,
+            );
+        }
+
         return $respond(array('data' => array(
             'shipment_id'  => 'browser-shipment-' . uniqid(),
             'carrier_name' => 'PostNord',
             'carrier_code' => 'postnord',
             'pdf'          => array('link' => 'https://mock.smartsend.test/labels/label.pdf', 'base_64_encoded' => base64_encode('%PDF-label')),
-            'parcels'      => array(
-                array('parcel_internal_id' => 1, 'tracking_code' => 'BROWSERTRACK1', 'tracking_link' => 'https://mock.smartsend.test/track/1'),
-            ),
+            'parcels'      => $parcels,
         )));
     }
 

@@ -16,11 +16,16 @@
  *                        "Create shipping label" (primary) next to "Create
  *                        return label" (secondary, books a return leg only)
  *   D parcel editor      opened from C's "Edit"
- *   E/F booked           the full documents/codes/tracking block right after
- *                        booking (from the POST response); after a reload the
- *                        id + "see the order notes" (only the id is persisted)
- *   G book again         a disclosure re-opening the form with a confirm
- *                        checkbox; the request carries confirm_rebook
+ *   E/F booked           the form closes: per booked direction a green
+ *                        "Shipment booked" callout linking to the shipment in
+ *                        the Smart Send app, one row per parcel (tracking,
+ *                        weight, dimensions, reference) and the documents and
+ *                        codes - all from the POST response; after a reload
+ *                        the callout + link + "see the order notes" (only the
+ *                        id is persisted)
+ *   G book again         the "Reset" button at the bottom re-opens the form
+ *                        behind a confirm checkbox; the request carries
+ *                        confirm_rebook
  *   H submitting         fieldset disabled, spinner, "Creating label…"
  *   I failures           per-field errors from error.form_fields, a general
  *                        notice for the rest + the Response ID
@@ -132,8 +137,10 @@ export default function App( { initialState, mount } ) {
 	// A select to focus after the next render (the guard below opens a
 	// method row's Edit state when an action is pressed without a method).
 	const [ focusField, setFocusField ] = useState( null );
-	const [ rebook, setRebook ] = useState( { outbound: false, return: false } ); // disclosure open
-	const [ confirmed, setConfirmed ] = useState( { outbound: false, return: false } ); // confirm checkbox
+	// The booked state closes the form; "Reset" re-opens it for another
+	// booking, behind a confirm so a stray click cannot double-book.
+	const [ resetting, setResetting ] = useState( false );
+	const [ confirmReset, setConfirmReset ] = useState( false );
 
 	const current = boxState( state );
 	const agentMethod = isAgentMethod( form.shippingMethod );
@@ -213,7 +220,9 @@ export default function App( { initialState, mount } ) {
 			flow,
 			with_return: isReturn ? null : ( state.return_shipment ? false : form.withReturn ),
 			return_method: ! isReturn && form.withReturn ? returnMethodOverride : null,
-			confirm_rebook: !! confirmed[ flow ],
+			// The server's 409 guard stays in force: only a confirmed reset
+			// books a direction that already has a shipment id.
+			confirm_rebook: confirmReset,
 			delivery_details: {
 				// A return leg books with the configured return method unless
 				// one was chosen in the box (the order has none - state B - or
@@ -293,8 +302,8 @@ export default function App( { initialState, mount } ) {
 		setNotices( generalNotices );
 		setRun( entries );
 		setState( response.state );
-		setRebook( { outbound: false, return: false } );
-		setConfirmed( { outbound: false, return: false } );
+		setResetting( false );
+		setConfirmReset( false );
 
 		if ( response.state && response.state.delivery_details ) {
 			// The booking persisted the submitted pickup point and split;
@@ -414,7 +423,7 @@ export default function App( { initialState, mount } ) {
 	 * shipping section (with the callouts), the parcels section, the
 	 * actions and the settings section with the return checkbox.
 	 */
-	const detailsForm = ( withActions = true, extraDisabled = false, withCallouts = true ) => {
+	const detailsForm = ( withActions = true, extraDisabled = false, withCallouts = true, extra = null ) => {
 		// A return label already booked on its own: the outbound form
 		// books outbound only.
 		const withReturnToggle = ! state.return_shipment;
@@ -424,6 +433,7 @@ export default function App( { initialState, mount } ) {
 			{ section( 'details', (
 				<Fragment>
 					{ withCallouts && callouts }
+					{ extra }
 					<MethodField
 						groups={ state.methods.outbound }
 						value={ form.shippingMethod }
@@ -487,52 +497,61 @@ export default function App( { initialState, mount } ) {
 	};
 
 	/**
-	 * The "Book again" disclosure of a booked direction (state G).
+	 * The confirm a reset books behind: the warning callout and the "I
+	 * understand" checkbox, rendered at the top of the re-opened form.
 	 */
-	const rebookDisclosure = ( flow ) => (
-		<div className="smart-send-fulfillment__rebook" data-ss-section={ flow === 'return' ? 'rebook_return' : 'rebook' }>
-			<Button variant="link" size="small" data-ss-action={ flow === 'return' ? 'rebook-return' : 'rebook' } onClick={ () => setRebook( ( previous ) => ( { ...previous, [ flow ]: ! previous[ flow ] } ) ) } disabled={ disabled } aria-expanded={ rebook[ flow ] }>
-				{ ( rebook[ flow ] ? '▾ ' : '▸ ' ) + __( 'Book again (creates a new shipment)', 'smart-send-logistics' ) }
+	const resetConfirm = (
+		<Fragment>
+			<div className="smart-send-fulfillment__notice" data-ss-notice="rebook">
+				<Notice status="warning" isDismissible={ false }>
+					{ __( 'A shipping label already exists for this order. Booking again creates a new shipment at Smart Send; the old one is not cancelled.', 'smart-send-logistics' ) }
+				</Notice>
+			</div>
+			<label className="smart-send-fulfillment__row smart-send-fulfillment__check">
+				<input
+					type="checkbox"
+					data-ss-field="confirm_rebook"
+					checked={ confirmReset }
+					onChange={ ( event ) => setConfirmReset( event.target.checked ) }
+					disabled={ disabled }
+					autoComplete="off"
+				/>
+				<span className="smart-send-fulfillment__check-text">{ __( 'I understand, create a new shipment', 'smart-send-logistics' ) }</span>
+			</label>
+		</Fragment>
+	);
+
+	/**
+	 * The bottom "Reset" row of the booked state - the slot the return
+	 * checkbox sits in before booking. It toggles the form back open
+	 * (state G); while the form is open the same row cancels.
+	 */
+	const resetRow = (
+		<div className="smart-send-fulfillment__row" data-ss-section="reset">
+			<Button
+				variant="secondary"
+				className="smart-send-fulfillment__reset"
+				data-ss-action={ resetting ? 'reset-cancel' : 'reset' }
+				onClick={ () => {
+					setResetting( ! resetting );
+					setConfirmReset( false );
+				} }
+				disabled={ disabled }
+				aria-expanded={ resetting }
+			>
+				{ resetting ? __( 'Cancel', 'smart-send-logistics' ) : __( 'Reset', 'smart-send-logistics' ) }
 			</Button>
-			{ rebook[ flow ] && (
-				<div className="smart-send-fulfillment__rebook-panel">
-					<div className="smart-send-fulfillment__notice" data-ss-notice="rebook">
-						<Notice status="warning" isDismissible={ false }>
-							{ flow === 'return'
-								? __( 'A return label already exists for this order. Booking again creates a new shipment at Smart Send; the old one is not cancelled.', 'smart-send-logistics' )
-								: __( 'A shipping label already exists for this order. Booking again creates a new shipment at Smart Send; the old one is not cancelled.', 'smart-send-logistics' ) }
-						</Notice>
-					</div>
-					<label className="smart-send-fulfillment__row smart-send-fulfillment__check">
-						<input
-							type="checkbox"
-							data-ss-field={ flow === 'return' ? 'confirm_rebook_return' : 'confirm_rebook' }
-							checked={ confirmed[ flow ] }
-							onChange={ ( event ) => setConfirmed( ( previous ) => ( { ...previous, [ flow ]: event.target.checked } ) ) }
-							disabled={ disabled }
-							autoComplete="off"
-						/>
-						<span className="smart-send-fulfillment__check-text">{ __( 'I understand, create a new shipment', 'smart-send-logistics' ) }</span>
-					</label>
-					{ flow === 'return' ? (
-						<Fragment>
-							{ returnMethodRow( 'smart-send-return-method-rebook' ) }
-							<div className="smart-send-fulfillment__actions">
-								{ createButton( 'return', false, ! confirmed.return ) }
-							</div>
-						</Fragment>
-					) : (
-						detailsForm( true, ! confirmed.outbound, false )
-					) }
-				</div>
-			) }
+			<p className="description">
+				{ resetting
+					? __( 'Closes the form again and keeps the booked shipment.', 'smart-send-logistics' )
+					: __( 'Re-opens the form to book this order again.', 'smart-send-logistics' ) }
+			</p>
 		</div>
 	);
 
 	/**
-	 * One direction of the booked state: the fresh block from the run, a
-	 * failed leg's error next to it, the legacy id-only block, or - for a
-	 * direction not booked yet - its action.
+	 * One booked direction: the fresh block from the run (callout, parcel
+	 * rows, documents and codes), or the id-only block after a reload.
 	 */
 	const bookedBlock = ( flow ) => {
 		const isReturn = flow === 'return';
@@ -540,50 +559,50 @@ export default function App( { initialState, mount } ) {
 		const stored = isReturn ? state.return_shipment : state.outbound_shipment;
 
 		if ( entry && entry.status === 'fulfilled' ) {
-			return (
-				<BookedShipment isReturn={ isReturn } shipment={ entry.shipment } steps={ entry.steps } warnings={ entry.warnings || [] }>
-					{ rebookDisclosure( flow ) }
-				</BookedShipment>
-			);
+			return <BookedShipment isReturn={ isReturn } shipment={ entry.shipment } steps={ entry.steps } warnings={ entry.warnings || [] } />;
 		}
 
-		if ( stored ) {
-			return (
-				<BookedShipment isReturn={ isReturn } shipment={ stored } legacy>
-					{ rebookDisclosure( flow ) }
-				</BookedShipment>
-			);
-		}
-
-		// The return not booked yet: its row with the return method and
-		// the return-only action.
-		return (
-			<div className="smart-send-fulfillment__row" data-ss-section="return_shipment">
-				<p>
-					<strong>{ __( 'Return label', 'smart-send-logistics' ) }</strong> { __( 'not created', 'smart-send-logistics' ) }
-				</p>
-				{ returnMethodRow( 'smart-send-return-method-only' ) }
-				<div className="smart-send-fulfillment__actions">
-					{ createButton( 'return', false ) }
-				</div>
-			</div>
-		);
+		return <BookedShipment isReturn={ isReturn } shipment={ stored } legacy />;
 	};
 
 	if ( current === STATE_BOOKED ) {
+		// "Reset" re-opened the form: the whole not-yet-booked form behind
+		// the confirm, with the cancel row at the bottom.
+		if ( resetting ) {
+			return (
+				<Fragment>
+					{ detailsForm( true, ! confirmReset, true, resetConfirm ) }
+					{ section( 'reset', resetRow, 'settings' ) }
+				</Fragment>
+			);
+		}
+
+		// The direction not booked yet keeps its action - the return one
+		// only while a return method is configured, and it cannot be
+		// changed here (#182 review).
+		const pendingActions = [
+			state.outbound_shipment ? null : createButton( 'outbound', true ),
+			state.return_shipment || ! state.return.method ? null : createButton( 'return', false ),
+		].filter( Boolean );
+
 		return (
 			<Fragment>
-				{ state.outbound_shipment
-					? section( 'outbound', (
+				{ state.outbound_shipment &&
+					section( 'outbound', (
 						<Fragment>
 							{ callouts }
 							{ bookedBlock( 'outbound' ) }
 						</Fragment>
-					) )
-					// Return booked on its own, outbound not yet: the outbound
-					// form's sections (with the callouts).
-					: detailsForm() }
-				{ section( 'return', bookedBlock( 'return' ) ) }
+					) ) }
+				{ state.return_shipment &&
+					section( 'return', (
+						<Fragment>
+							{ ! state.outbound_shipment && callouts }
+							{ bookedBlock( 'return' ) }
+						</Fragment>
+					) ) }
+				{ pendingActions.length > 0 && section( 'actions', <div className="smart-send-fulfillment__actions">{ pendingActions }</div>, 'actions' ) }
+				{ section( 'reset', resetRow, 'settings' ) }
 			</Fragment>
 		);
 	}

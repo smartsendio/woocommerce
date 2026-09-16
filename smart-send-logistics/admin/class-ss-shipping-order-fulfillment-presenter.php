@@ -90,18 +90,29 @@ if ( ! class_exists( 'SS_Shipping_Order_Fulfillment_Presenter' ) ) :
 		protected ?SS_Shipping_Method_Catalog $catalog = null;
 
 		/**
+		 * API client factory - used for its host resolution only (the
+		 * smart_send_api_endpoint filter), which is where the link to a
+		 * shipment in the Smart Send app comes from.
+		 *
+		 * @var SS_Shipping_Api_Factory
+		 */
+		protected SS_Shipping_Api_Factory $api_factory;
+
+		/**
 		 * @param SS_Shipping_Order_Meta             $order_meta             Order meta repository.
 		 * @param SS_Shipping_Method_Resolver        $method_resolver        Shipping method resolver.
 		 * @param SS_Shipping_Shipment_Ids           $shipment_ids           Booked shipment id accessor.
 		 * @param SS_Shipping_Pickup_Point_Formatter $pickup_point_formatter Pickup point display formatter.
 		 * @param SS_Shipping_Settings|null          $settings               Typed plugin settings reader (stateless; a fresh default is safe).
+		 * @param SS_Shipping_Api_Factory|null       $api_factory            API client factory (stateless; a fresh default is safe).
 		 */
-		public function __construct( SS_Shipping_Order_Meta $order_meta, SS_Shipping_Method_Resolver $method_resolver, SS_Shipping_Shipment_Ids $shipment_ids, SS_Shipping_Pickup_Point_Formatter $pickup_point_formatter, ?SS_Shipping_Settings $settings = null ) {
+		public function __construct( SS_Shipping_Order_Meta $order_meta, SS_Shipping_Method_Resolver $method_resolver, SS_Shipping_Shipment_Ids $shipment_ids, SS_Shipping_Pickup_Point_Formatter $pickup_point_formatter, ?SS_Shipping_Settings $settings = null, ?SS_Shipping_Api_Factory $api_factory = null ) {
 			$this->order_meta             = $order_meta;
 			$this->method_resolver        = $method_resolver;
 			$this->shipment_ids           = $shipment_ids;
 			$this->pickup_point_formatter = $pickup_point_formatter;
 			$this->settings               = null === $settings ? new SS_Shipping_Settings() : $settings;
+			$this->api_factory            = null === $api_factory ? new SS_Shipping_Api_Factory( $this->settings ) : $api_factory;
 		}
 
 		/**
@@ -118,8 +129,8 @@ if ( ! class_exists( 'SS_Shipping_Order_Fulfillment_Presenter' ) ) :
 		 *                                   'parcel_plan' => array|null (to_array()), 'addons' => array ),
 		 *     'methods'           => array( 'outbound' => array( array( 'carrier' => string, 'options' => array( array( 'code', 'name' ), ... ) ), ... ), 'return' => ... ),
 		 *     'return'            => array( 'method' => string|null, 'auto_default' => bool, 'uses_stored_pickup_point' => bool ),
-		 *     'outbound_shipment' => array( 'shipment_id' => string, 'legacy' => true )|null,  // nothing but the id is persisted (Decisions, #182)
-		 *     'return_shipment'   => array( 'shipment_id' => string, 'legacy' => true )|null,
+		 *     'outbound_shipment' => array( 'shipment_id' => string, 'app_url' => string, 'legacy' => true )|null,  // nothing but the id is persisted (Decisions, #182)
+		 *     'return_shipment'   => array( 'shipment_id' => string, 'app_url' => string, 'legacy' => true )|null,
 		 *     'debug'             => array( 'enabled' => bool, 'shipping_items' => string[] ),
 		 *     'urls'              => array( 'settings' => string, 'rest' => string ),
 		 *   )
@@ -206,8 +217,9 @@ if ( ! class_exists( 'SS_Shipping_Order_Fulfillment_Presenter' ) ) :
 		 * The REST response of a fulfillment run (section 3.2 of #182):
 		 *
 		 *   array( 'order_id' => int, 'flow' => 'outbound'|'return', 'success' => bool,
-		 *          'shipments' => SS_Shipping_Fulfillment_Result::to_array() with 'order_note.html' rendered
-		 *                         and 'error.form_fields' (the API field errors mapped onto form fields) added,
+		 *          'shipments' => SS_Shipping_Fulfillment_Result::to_array() with 'order_note.html' rendered,
+		 *                         the booked shipment enriched for display (shipment_response()) and
+		 *                         'error.form_fields' (the API field errors mapped onto form fields) added,
 		 *          'state' => state( $order ) after the run )
 		 *
 		 * @param SS_Shipping_Fulfillment_Result $result The completed run.
@@ -222,6 +234,7 @@ if ( ! class_exists( 'SS_Shipping_Order_Fulfillment_Presenter' ) ) :
 			foreach ( $shipments as &$row ) {
 				if ( 'fulfilled' === $row['status'] ) {
 					$row['order_note']['html'] = null === $row['order_note']['id'] ? null : $this->render_order_note( (int) $row['order_note']['id'] );
+					$row['shipment']           = $this->shipment_response( $row['shipment'] );
 				} else {
 					$row['error']['form_fields'] = $this->map_api_fields( $row['error']['fields'] );
 				}
@@ -239,6 +252,87 @@ if ( ! class_exists( 'SS_Shipping_Order_Fulfillment_Presenter' ) ) :
 				'shipments' => $shipments,
 				'state'     => $this->state( $order ),
 			);
+		}
+
+		/**
+		 * A booked shipment as the meta box renders it: its to_array()
+		 * form plus the link into the Smart Send app and, per parcel, the
+		 * weight and dimensions formatted in the store's units (the DTO
+		 * carries kg and cm, the units Smart Send books in).
+		 *
+		 * @param array $shipment SS_Shipping_Booked_Shipment::to_array().
+		 *
+		 * @return array
+		 */
+		public function shipment_response( array $shipment ): array {
+			$shipment['app_url'] = $this->app_url( isset( $shipment['shipment_id'] ) ? (string) $shipment['shipment_id'] : '' );
+
+			foreach ( isset( $shipment['parcels'] ) ? array_keys( $shipment['parcels'] ) : array() as $index ) {
+				$shipment['parcels'][ $index ] = array_merge(
+					(array) $shipment['parcels'][ $index ],
+					$this->parcel_display( (array) $shipment['parcels'][ $index ] )
+				);
+			}
+
+			return $shipment;
+		}
+
+		/**
+		 * The display strings of a booked parcel: its weight in the store's
+		 * weight unit and its dimensions as "40 x 30 x 20 cm" in the store's
+		 * dimension unit - null when the parcel carries no weight / not all
+		 * three dimensions (the box renders only what is there).
+		 *
+		 * @param array $parcel SS_Shipping_Booked_Parcel::to_array().
+		 *
+		 * @return array{weight_display: string|null, dimensions_display: string|null}
+		 */
+		public function parcel_display( array $parcel ): array {
+			$number = static function ( $key ) use ( $parcel ): ?float {
+				return isset( $parcel[ $key ] ) && null !== $parcel[ $key ] && '' !== $parcel[ $key ] ? (float) $parcel[ $key ] : null;
+			};
+
+			$weight_unit    = (string) get_option( 'woocommerce_weight_unit', 'kg' );
+			$dimension_unit = (string) get_option( 'woocommerce_dimension_unit', 'cm' );
+
+			$weight     = $number( 'weight' );
+			$dimensions = array( $number( 'length' ), $number( 'width' ), $number( 'height' ) );
+
+			$display_dimensions = null;
+			if ( ! in_array( null, $dimensions, true ) ) {
+				$display_dimensions = implode(
+					' × ',
+					array_map(
+						static function ( $value ) use ( $dimension_unit ): string {
+							return (string) wc_format_localized_decimal( wc_get_dimension( (float) $value, $dimension_unit, 'cm' ) );
+						},
+						$dimensions
+					)
+				) . ' ' . $dimension_unit;
+			}
+
+			return array(
+				'weight_display'     => null === $weight ? null : wc_format_localized_decimal( wc_get_weight( $weight, $weight_unit, 'kg' ) ) . ' ' . $weight_unit,
+				'dimensions_display' => $display_dimensions,
+			);
+		}
+
+		/**
+		 * The link to a shipment in the Smart Send app: the same host the
+		 * API client talks to (SS_Shipping_Api_Factory::resolve_api_host(),
+		 * which runs the smart_send_api_endpoint filter), so a sandbox
+		 * override follows here too - never a hardcoded production host.
+		 *
+		 * @param string $shipment_id The Smart Send shipment id.
+		 *
+		 * @return string The URL, '' for an empty shipment id.
+		 */
+		public function app_url( string $shipment_id ): string {
+			if ( '' === $shipment_id ) {
+				return '';
+			}
+
+			return rtrim( $this->api_factory->resolve_api_host(), '/' ) . '/shipments/' . rawurlencode( $shipment_id );
 		}
 
 		/**
@@ -829,11 +923,19 @@ if ( ! class_exists( 'SS_Shipping_Order_Fulfillment_Presenter' ) ) :
 		}
 
 		/**
-		 * State E: the booked outbound and/or return shipment (id + a pointer
-		 * to the order notes - nothing but the id is persisted), the
-		 * separate "Create return label" action while no return exists, and
-		 * a "Book again" disclosure per booked direction re-opening the form
-		 * with a confirm notice - one section per direction.
+		 * The booked state (#182 review, 2026-09-16): once anything is
+		 * booked the form closes. What is left is, per booked direction, a
+		 * green "Shipment booked" callout linking to the shipment in the
+		 * Smart Send app and - in the client, from the POST response - one
+		 * row per parcel plus the documents and codes; the action of the
+		 * direction that can still be booked (a return only while a return
+		 * method is configured, and it cannot be changed here); and a
+		 * "Reset" button at the very bottom that re-opens the form for
+		 * another booking.
+		 *
+		 * This first paint is the after-a-reload variant: only the shipment
+		 * id is persisted (Decisions, #182), so it carries the callout, the
+		 * app link and the pointer to the order notes - no parcel rows.
 		 *
 		 * @param array  $state    The state.
 		 * @param string $callouts The (already escaped) notices for the first section.
@@ -841,29 +943,43 @@ if ( ! class_exists( 'SS_Shipping_Order_Fulfillment_Presenter' ) ) :
 		 * @return string HTML
 		 */
 		protected function render_booked( array $state, string $callouts ): string {
+			$html = '';
+
 			if ( null !== $state['outbound_shipment'] ) {
-				$html = $this->render_section( 'outbound', $callouts . $this->render_booked_block( $state, false ) );
-			} else {
-				// Return booked on its own, outbound not yet: the outbound form.
-				$html = $this->render_details_form( $state, $callouts, true );
+				$html    .= $this->render_section( 'outbound', $callouts . $this->render_booked_block( $state, false ) );
+				$callouts = '';
 			}
 
 			if ( null !== $state['return_shipment'] ) {
-				$html .= $this->render_section( 'return', $this->render_booked_block( $state, true ) );
-			} else {
-				$block  = '<div class="smart-send-fulfillment__row" data-ss-section="return_shipment"><p><strong>' . esc_html__( 'Return label', 'smart-send-logistics' ) . '</strong> ' . esc_html__( 'not created', 'smart-send-logistics' ) . '</p>';
-				$block .= $this->render_return_method_row( $state, true );
-				$block .= '<div class="smart-send-fulfillment__actions">' . $this->render_button( 'return', $state, false ) . '</div></div>';
-				$html  .= $this->render_section( 'return', $block );
+				$html .= $this->render_section( 'return', $callouts . $this->render_booked_block( $state, true ) );
 			}
+
+			// The direction not booked yet keeps its action - the return one
+			// only while a return method is configured, and without any way
+			// to change it here.
+			$actions = '';
+			if ( null === $state['outbound_shipment'] ) {
+				$actions .= $this->render_button( 'outbound', $state, true );
+			}
+			if ( null === $state['return_shipment'] && null !== $state['return']['method'] ) {
+				$actions .= $this->render_button( 'return', $state, false );
+			}
+
+			if ( '' !== $actions ) {
+				$html .= $this->render_section( 'actions', '<div class="smart-send-fulfillment__actions">' . $actions . '</div>', 'actions' );
+			}
+
+			$html .= $this->render_section( 'reset', $this->render_reset(), 'settings' );
 
 			return $html;
 		}
 
 		/**
-		 * One booked shipment block (the v8-style id-only variant, since
-		 * the booked shipment DTO is not persisted) with its "Book again"
-		 * disclosure.
+		 * One booked shipment block: the green success callout with the
+		 * shipment id and the link into the Smart Send app, over the
+		 * pointer to the order notes (the id-only variant - the parcel
+		 * rows, documents and codes are the client's, from the POST
+		 * response).
 		 *
 		 * @param array   $state     The state.
 		 * @param boolean $is_return Which direction.
@@ -875,34 +991,47 @@ if ( ! class_exists( 'SS_Shipping_Order_Fulfillment_Presenter' ) ) :
 			$section  = $is_return ? 'return_shipment' : 'outbound_shipment';
 
 			$html  = '<div class="smart-send-fulfillment__booked" data-ss-section="' . esc_attr( $section ) . '">';
-			$html .= '<p><strong>' . ( $is_return ? esc_html__( 'Return label', 'smart-send-logistics' ) : esc_html__( 'Shipping label', 'smart-send-logistics' ) ) . '</strong> ';
-			$html .= sprintf(
-				/* translators: %s: Smart Send shipment id. */
-				esc_html__( 'Booked · #%s', 'smart-send-logistics' ),
-				'<span data-ss-value="' . esc_attr( $section . '.shipment_id' ) . '">' . esc_html( $shipment['shipment_id'] ) . '</span>'
-			);
-			$html .= '<br><span class="description">' . esc_html__( 'Documents and tracking are in the order notes.', 'smart-send-logistics' ) . '</span></p>';
+			$html .= $this->render_booked_notice( $shipment, $is_return );
+			$html .= '<p class="description">' . esc_html__( 'Documents and tracking are in the order notes.', 'smart-send-logistics' ) . '</p>';
+			$html .= '</div>';
 
-			$html .= '<details class="smart-send-fulfillment__rebook" data-ss-section="' . esc_attr( $is_return ? 'rebook_return' : 'rebook' ) . '">';
-			$html .= '<summary>' . esc_html__( 'Book again (creates a new shipment)', 'smart-send-logistics' ) . '</summary>';
-			$html .= '<div class="smart-send-fulfillment__rebook-panel">';
-			$html .= $this->render_notice(
-				'warning',
-				'rebook',
-				$is_return
-					? esc_html__( 'A return label already exists for this order. Booking again creates a new shipment at Smart Send; the old one is not cancelled.', 'smart-send-logistics' )
-					: esc_html__( 'A shipping label already exists for this order. Booking again creates a new shipment at Smart Send; the old one is not cancelled.', 'smart-send-logistics' )
-			);
-			$html .= '<input type="hidden" name="smart_send[confirm_rebook]" value="1" data-ss-field="confirm_rebook">';
+			return $html;
+		}
 
-			if ( $is_return ) {
-				$html .= $this->render_return_method_row( $state, true );
-				$html .= '<div class="smart-send-fulfillment__actions">' . $this->render_button( 'return', $state, false ) . '</div>';
-			} else {
-				$html .= $this->render_details_form( $state, '', true );
-			}
+		/**
+		 * The green success callout of a booked shipment: "Shipment booked"
+		 * / "Return shipment booked" with the id, over the external link to
+		 * the shipment in the Smart Send app.
+		 *
+		 * @param array   $shipment  The state's shipment array (shipment_id, app_url).
+		 * @param boolean $is_return Which direction.
+		 *
+		 * @return string HTML
+		 */
+		protected function render_booked_notice( array $shipment, bool $is_return ): string {
+			$section = $is_return ? 'return_shipment' : 'outbound_shipment';
 
-			$html .= '</div></details>';
+			$message = ( $is_return ? esc_html__( 'Return shipment booked', 'smart-send-logistics' ) : esc_html__( 'Shipment booked', 'smart-send-logistics' ) )
+				. ' &middot; #<span data-ss-value="' . esc_attr( $section . '.shipment_id' ) . '">' . esc_html( $shipment['shipment_id'] ) . '</span>';
+
+			$link = empty( $shipment['app_url'] ) ? '' : '<a href="' . esc_url( $shipment['app_url'] ) . '" target="_blank" rel="noopener noreferrer" data-ss-action="view-shipment">' . esc_html__( 'View shipment', 'smart-send-logistics' ) . '</a>';
+
+			return $this->render_notice( 'success', $is_return ? 'booked_return' : 'booked', $message, $link );
+		}
+
+		/**
+		 * The "Reset" button at the very bottom of the booked box, in the
+		 * slot the return checkbox sits in before booking: it re-opens the
+		 * form for another booking (the client does that; a confirm gates
+		 * the booking itself, and the request carries confirm_rebook for a
+		 * direction that already has a shipment).
+		 *
+		 * @return string HTML
+		 */
+		protected function render_reset(): string {
+			$html  = '<div class="smart-send-fulfillment__row" data-ss-section="reset">';
+			$html .= '<button type="button" class="button smart-send-fulfillment__reset" data-ss-action="reset">' . esc_html__( 'Reset', 'smart-send-logistics' ) . '</button>';
+			$html .= '<p class="description">' . esc_html__( 'Re-opens the form to book this order again.', 'smart-send-logistics' ) . '</p>';
 			$html .= '</div>';
 
 			return $html;
@@ -984,7 +1113,14 @@ if ( ! class_exists( 'SS_Shipping_Order_Fulfillment_Presenter' ) ) :
 		/**
 		 * The stored shipment of a direction: only the id is persisted
 		 * (Decisions, #182), flagged legacy so the client shows the
-		 * reduced "see the order notes" variant.
+		 * reduced "see the order notes" variant - the success callout and
+		 * the link into the Smart Send app work from the id alone.
+		 *
+		 * Persisting SS_Shipping_Booked_Shipment::to_array() here later
+		 * (a decision deliberately deferred in #182) is all it takes for
+		 * the full booked view - parcel rows, documents, codes - to light
+		 * up after a reload: the client renders the same shape whether it
+		 * comes from this state or from the POST response.
 		 *
 		 * @param WC_Order $order     The order.
 		 * @param boolean  $is_return Which direction.
@@ -1000,6 +1136,7 @@ if ( ! class_exists( 'SS_Shipping_Order_Fulfillment_Presenter' ) ) :
 
 			return array(
 				'shipment_id' => $shipment_id,
+				'app_url'     => $this->app_url( $shipment_id ),
 				'legacy'      => true,
 			);
 		}
