@@ -489,11 +489,11 @@ if ( ! class_exists( 'SS_Shipping_WC' ) ) :
 		 * @return    array
 		 */
 		public static function plugin_action_links( $links ) {
+			$settings_url   = admin_url( 'admin.php?page=wc-settings&tab=shipping&section=smart_send_shipping' );
+			$settings_label = esc_attr__( 'View WooCommerce settings', 'smart-send-logistics' );
+
 			$action_links = array(
-				'settings' => '<a href="' . admin_url( 'admin.php?page=wc-settings&tab=shipping&section=smart_send_shipping' ) . '" aria-label="' . esc_attr__(
-					'View WooCommerce settings',
-					'smart-send-logistics'
-				) . '">' . esc_html__( 'Settings', 'smart-send-logistics' ) . '</a>',
+				'settings' => '<a href="' . $settings_url . '" aria-label="' . $settings_label . '">' . esc_html__( 'Settings', 'smart-send-logistics' ) . '</a>',
 			);
 
 			return array_merge( $action_links, $links );
@@ -509,35 +509,14 @@ if ( ! class_exists( 'SS_Shipping_WC' ) ) :
 		public function ss_shipping_plugin_row_meta( $links, $file ) {
 
 			if ( SS_SHIPPING_PLUGIN_BASENAME == $file ) { // phpcs:ignore Universal.Operators.StrictComparisons.LooseEqual -- pre-existing loose comparison; tightening is a behaviour change out of scope for this formatting pass.
+				$configuration_url   = apply_filters( 'smart_send_configuration_url', 'https://smartsend.io/woocommerce/configuration/' );
+				$support_url         = apply_filters( 'smart_send_support_url', 'https://smartsend.io/support/' );
+				$configuration_label = __( 'Configuration guide', 'smart-send-logistics' );
+				$support_label       = __( 'Support', 'smart-send-logistics' );
+
 				$row_meta = array(
-					'configuration' => '<a href="' . esc_url(
-						apply_filters(
-							'smart_send_configuration_url',
-							'https://smartsend.io/woocommerce/configuration/'
-						)
-					) . '" title="' . esc_attr(
-						__(
-							'Configuration guide',
-							'smart-send-logistics'
-						)
-					) . '" target="_blank">' . __(
-						'Configuration guide',
-						'smart-send-logistics'
-					) . '</a>',
-					'support'       => '<a href="' . esc_url(
-						apply_filters(
-							'smart_send_support_url',
-							'https://smartsend.io/support/'
-						)
-					) . '" title="' . esc_attr(
-						__(
-							'Support',
-							'smart-send-logistics'
-						)
-					) . '" target="_blank">' . __(
-						'Support',
-						'smart-send-logistics'
-					) . '</a>',
+					'configuration' => '<a href="' . esc_url( $configuration_url ) . '" title="' . esc_attr( $configuration_label ) . '" target="_blank">' . $configuration_label . '</a>',
+					'support'       => '<a href="' . esc_url( $support_url ) . '" title="' . esc_attr( $support_label ) . '" target="_blank">' . $support_label . '</a>',
 				);
 
 				return array_merge( $links, $row_meta );
