@@ -510,10 +510,10 @@ if ( ! class_exists( 'SS_Shipping_WC' ) ) :
          * @param    mixed $file Plugin Base file
          * @return    array
          */
-        function ss_shipping_plugin_row_meta($links, $file)
+        public function ss_shipping_plugin_row_meta($links, $file)
         {
 
-            if (SS_SHIPPING_PLUGIN_BASENAME == $file) {
+            if (SS_SHIPPING_PLUGIN_BASENAME == $file) { // phpcs:ignore Universal.Operators.StrictComparisons.LooseEqual -- pre-existing loose comparison; tightening is a behaviour change out of scope for this formatting pass.
                 $row_meta = array(
                     'configuration' => '<a href="' . esc_url(apply_filters('smart_send_configuration_url',
                             'https://smartsend.io/woocommerce/configuration/')) . '" title="' . esc_attr(__('Configuration guide',
@@ -550,7 +550,7 @@ if ( ! class_exists( 'SS_Shipping_WC' ) ) :
         {
             ?>
             <div class="error">
-                <p><?php _e('Smart Send Shipping requires WooCommerce 2.6 and above to be installed and activated!',
+                <p><?php esc_html_e('Smart Send Shipping requires WooCommerce 2.6 and above to be installed and activated!',
                         'smart-send-logistics'); ?></p>
             </div>
             <?php
