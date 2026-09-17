@@ -79,10 +79,9 @@ class Pickup_Point_Formatter {
 	}
 
 	/**
-	 * Format a pickup point for display: the checkout drop-down labels
-	 * (format id 0 reads the "Dropdown display format" setting) and the
-	 * order-details/email block (format id -1, the multi-line default
-	 * template).
+	 * Format a pickup point label (format id 0 reads the "Dropdown display
+	 * format" setting). Negative ids retain the default block template;
+	 * order pages and emails use format_order_address() for output escaping.
 	 *
 	 * @param Pickup_Point|object $pickup_point The pickup point (value object or plain agent object).
 	 * @param int                             $format_id    The format id; 0 resolves the setting, negative forces the default block template.
@@ -189,6 +188,28 @@ class Pickup_Point_Formatter {
 		 * @return string The plain-text label to render.
 		 */
 		return apply_filters( 'smart_send_pickup_point_label', $formatted_address, $this->normalize( $pickup_point ) );
+	}
+
+	/**
+	 * The full address for order pages and emails, independent of the
+	 * checkout's abbreviated label setting and label filter.
+	 *
+	 * @param Pickup_Point $pickup_point Selected pickup point.
+	 * @param bool         $plain_text   Whether to return plain text instead of escaped HTML.
+	 * @return string
+	 */
+	public function format_order_address( Pickup_Point $pickup_point, bool $plain_text = false ): string {
+		$lines = array(
+			$pickup_point->get_company(),
+			$pickup_point->get_address_line1(),
+			trim( $pickup_point->get_country() . ' ' . $pickup_point->get_postal_code() . ' ' . $pickup_point->get_city() ),
+		);
+
+		if ( $plain_text ) {
+			return wp_strip_all_tags( html_entity_decode( implode( "\n", $lines ), ENT_QUOTES | ENT_HTML5, 'UTF-8' ) );
+		}
+
+		return implode( '<br>', array_map( 'esc_html', $lines ) );
 	}
 
 	/**

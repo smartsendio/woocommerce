@@ -95,8 +95,8 @@ class Checkout {
 		add_action( 'woocommerce_after_shipping_rate', array( $this, 'display_ss_pickup_points' ), 10, 2 );
 		add_action( 'woocommerce_after_checkout_validation', array( $this, 'validate_agent_selected' ), 10, 2 );
 		add_action( 'woocommerce_checkout_create_order', array( $this, 'process_ss_pickup_points' ), 10, 2 );
-		add_action( 'woocommerce_order_details_after_order_table', array( $this, 'display_ss_shipping_agent' ), 10, 2 );
-		add_action( 'woocommerce_email_after_order_table', array( $this, 'display_ss_shipping_agent' ), 10, 2 );
+		add_action( 'woocommerce_order_details_after_order_table', array( $this, 'display_ss_shipping_agent' ) );
+		add_action( 'woocommerce_email_after_order_table', array( $this, 'display_email_pickup_point' ), 10, 3 );
 	}
 
 	/**
@@ -615,27 +615,53 @@ class Checkout {
 	}
 
 	/**
-	 * Display the Smart Sent Pickup Point on Thank You order details
+	 * Display the pickup point on customer order pages.
+	 *
+	 * @param WC_Order|mixed $order Order supplied by WooCommerce.
+	 * @return void
 	 */
 	public function display_ss_shipping_agent( $order ) {
-
-		$order_id             = $this->get_order_id( $order );
-		$ordered_pickup_point = $this->order_meta->read( $order_id )->get_pickup_point();
-
-		if ( null !== $ordered_pickup_point && $ordered_pickup_point->get_agent_no() ) {
-
-			$formatted_address = $this->pickup_point_formatter->format( $ordered_pickup_point, -1 );
-			// Display in block instead of one line
-			$formatted_address = str_replace( ',', '<br/>', $formatted_address );
-
-			// phpcs:disable WordPress.Security.EscapeOutput.OutputNotEscaped -- pre-existing behaviour: the formatted pickup point address deliberately carries <br/> markup; escaping is a behaviour change out of scope for the #43 move.
-			echo '<h2>' . __( 'Pickup Point', 'smart-send-logistics' ) . '</h2>'
-				. '<address>' . $formatted_address . '</address>';
-			// phpcs:enable WordPress.Security.EscapeOutput.OutputNotEscaped
-		}
+		$this->display_order_pickup_point( $order, false );
 	}
 
-	protected function get_order_id( $order ) {
-		return $order->get_id();
+	/**
+	 * Render pickup details in the format requested by the email template.
+	 *
+	 * @param WC_Order|mixed $order         Order supplied by WooCommerce, possibly a preview.
+	 * @param bool           $sent_to_admin Whether this is an admin email.
+	 * @param bool           $plain_text    Whether the email uses plain text.
+	 * @return void
+	 */
+	public function display_email_pickup_point( $order, $sent_to_admin = false, $plain_text = false ) {
+		$this->display_order_pickup_point( $order, (bool) $plain_text );
+	}
+
+	/**
+	 * Shared pickup retrieval and rendering for customer pages and emails.
+	 *
+	 * @param WC_Order|mixed $order      Order supplied by WooCommerce.
+	 * @param bool           $plain_text Whether to render plain text.
+	 * @return void
+	 */
+	protected function display_order_pickup_point( $order, bool $plain_text ): void {
+		if ( ! $order instanceof WC_Order || ! $order->get_id() ) {
+			return;
+		}
+
+		$pickup_point = $this->order_meta->read( $order->get_id() )->get_pickup_point();
+		if ( null === $pickup_point || ! $pickup_point->get_agent_no() ) {
+			return;
+		}
+
+		$address = $this->pickup_point_formatter->format_order_address( $pickup_point, $plain_text );
+		if ( $plain_text ) {
+			// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Plain-text email content: HTML escaping would introduce entities.
+			echo "\n" . wp_strip_all_tags( html_entity_decode( __( 'Pickup Point', 'smart-send-logistics' ), ENT_QUOTES | ENT_HTML5, 'UTF-8' ) ) . "\n" . $address . "\n\n";
+			return;
+		}
+
+		echo '<h2>' . esc_html__( 'Pickup Point', 'smart-send-logistics' ) . '</h2>';
+		// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- The formatter escapes every address line and adds only fixed <br> separators.
+		echo '<address>' . $address . '</address>';
 	}
 }

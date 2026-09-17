@@ -72,6 +72,80 @@ it('renders nothing for an order without an agent', function () {
     expect(capture_agent_display($order))->toBe('');
 });
 
+it('renders the selected pickup address through WooCommerce email templates', function (bool $plain_text, bool $sent_to_admin) {
+    $order = create_order(['shipping_method' => 'postnord_agent']);
+    save_order_pickup_point($order->get_id(), sample_agent([
+        'company' => 'Møller &amp; Søn, "Kiosken"',
+        'address_line1' => 'Main Street 1, 2nd floor',
+        'city' => 'København',
+    ]));
+
+    $output = wc_get_template_html('emails/' . ($plain_text ? 'plain/' : '') . 'email-order-details.php', [
+        'order' => $order,
+        'sent_to_admin' => $sent_to_admin,
+        'plain_text' => $plain_text,
+        'email' => new WC_Email(),
+    ]);
+
+    expect(substr_count($output, 'Pickup Point'))->toBe(1);
+    if ($plain_text) {
+        expect($output)->toContain("\nPickup Point\nMøller & Søn, \"Kiosken\"\nMain Street 1, 2nd floor\nDK 2300 København\n\n")
+            ->not->toContain('<address>', '<br', '&amp;', '&quot;');
+    } else {
+        expect($output)->toContain('<h2>Pickup Point</h2><address>Møller &amp; Søn, &quot;Kiosken&quot;<br>Main Street 1, 2nd floor<br>DK 2300 København</address>');
+    }
+})->with([
+    'customer plain text' => [true, false],
+    'admin plain text' => [true, true],
+    'customer HTML' => [false, false],
+    'admin HTML' => [false, true],
+]);
+
+it('escapes stored pickup data on order pages and HTML emails', function () {
+    $order = create_order(['shipping_method' => 'postnord_agent']);
+    save_order_pickup_point($order->get_id(), sample_agent([
+        'company' => '<img src=x onerror=alert(1)> Shop & Sons',
+        'address_line1' => 'Main Street <b>1</b>',
+        'city' => 'Copenhagen &lt;script&gt;alert(2)&lt;/script&gt;',
+    ]));
+
+    foreach (['woocommerce_order_details_after_order_table', 'woocommerce_email_after_order_table'] as $hook) {
+        ob_start();
+        do_action($hook, $order, false, false, null);
+        $output = ob_get_clean();
+        expect($output)->toContain('&lt;img src=x onerror=alert(1)&gt; Shop &amp; Sons')
+            ->toContain('Main Street &lt;b&gt;1&lt;/b&gt;')
+            ->toContain('Copenhagen &lt;script&gt;alert(2)&lt;/script&gt;')
+            ->not->toContain('<img', '<b>', '<script');
+    }
+
+    ob_start();
+    do_action('woocommerce_email_after_order_table', $order, false, true, null);
+    expect(ob_get_clean())->toBe("\nPickup Point\nShop & Sons\nMain Street 1\nDK 2300 Copenhagen\n\n");
+});
+
+it('omits pickup details from emails without a selected point', function (bool $plain_text) {
+    $order = create_order(['shipping_method' => 'postnord_homedelivery']);
+    ob_start();
+    do_action('woocommerce_email_after_order_table', $order, false, $plain_text, null);
+    expect(ob_get_clean())->toBe('');
+})->with([true, false]);
+
+it('ignores invalid order values in both email formats and on order pages', function ($order) {
+    ob_start();
+    // Core's order-again callback requires WC_Order, so invalid third-party
+    // values exercise our order-page callback directly, not that core callback.
+    frontend()->display_ss_shipping_agent($order);
+    do_action('woocommerce_email_after_order_table', $order, false, true, null);
+    do_action('woocommerce_email_after_order_table', $order, true, false, null);
+    expect(ob_get_clean())->toBe('');
+})->with([
+    'null' => [null],
+    'failed lookup' => [false],
+    'non-order object' => [new stdClass()],
+    'preview order' => fn () => [new WC_Order()],
+]);
+
 it('renders nothing for an order that does not exist in the database', function () {
     // Regression for #60: WooCommerce's email preview fires the order-details
     // hooks (woocommerce_email_after_order_table etc.) with a placeholder

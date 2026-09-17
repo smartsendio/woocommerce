@@ -114,11 +114,11 @@ class Order_Bulk_Actions {
 	 * @param string $sendback
 	 * @param string $doaction
 	 * @param array $items
-	 * @return string|void
+	 * @return string
 	 */
-	public function handle_bulk_order_actions( string $sendback, string $doaction, array $items ) {
-		if ( ! in_array( $doaction, array_keys( $this->get_bulk_actions() ) ) ) { // phpcs:ignore WordPress.PHP.StrictInArray.MissingTrueStrict -- pre-existing loose in_array; tightening is a behaviour change out of scope for the #43 move.
-			return;
+	public function handle_bulk_order_actions( string $sendback, string $doaction, array $items ): string {
+		if ( ! in_array( $doaction, array_keys( $this->get_bulk_actions() ), true ) ) {
+			return $sendback;
 		}
 
 		$array_messages         = array();
