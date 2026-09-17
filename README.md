@@ -224,7 +224,9 @@ Releases go to the WordPress.org SVN repository, not GitHub:
 bash bin/svn-deploy.sh
 ```
 
-The script is interactive: it copies `smart-send-logistics/` into an SVN checkout's trunk, tags the version and commits. Before running it, bump the version in three places in lockstep — the `Version:` header in `smart-send-logistics/smart-send-logistics.php`, the `$version` property in `smart-send-logistics/includes/class-plugin.php`, and `Stable tag:` in `smart-send-logistics/readme.txt` — and add a changelog entry under `== Changelog ==` in `readme.txt`.
+The script is interactive: it copies the committed `smart-send-logistics/` payload into a clean SVN checkout's trunk, schedules added and removed files, tags the version and asks before committing. Commit all plugin changes first; modified tracked plugin files are rejected and untracked local files are excluded. Before running it, bump the version in three places in lockstep — the `Version:` header in `smart-send-logistics/smart-send-logistics.php`, the `$version` property in `smart-send-logistics/includes/class-plugin.php`, and `Stable tag:` in `smart-send-logistics/readme.txt` — and add a changelog entry under `== Changelog ==` in `readme.txt`.
+
+The release-tool regression check runs with `bash tests/Release/svn-deploy.sh` (requires `svn` and `svnadmin`). It uses disposable local repositories to verify trunk and tag contents; it never publishes to WordPress.org. CI runs it when the release script or its tests change.
 
 After rebuilding the JavaScript, regenerate the translation template from the shipped plugin (WP-CLI with its i18n command):
 

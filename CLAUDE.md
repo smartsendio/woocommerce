@@ -157,7 +157,7 @@ Extension points are `smart_send_*` filters/actions, organised by the three stag
 
 ## Releasing
 
-Releases go to the WordPress.org SVN repo, not GitHub. Use `bash bin/svn-deploy.sh` (interactive; copies `smart-send-logistics/` into an SVN checkout's trunk, tags, commits).
+Releases go to the WordPress.org SVN repo, not GitHub. Use `bash bin/svn-deploy.sh` (interactive; exports the committed `smart-send-logistics/` payload into a clean SVN checkout's trunk, schedules additions/deletions, tags and asks before committing). Commit plugin changes first; modified tracked plugin files are rejected and untracked local files are excluded. `bash tests/Release/svn-deploy.sh` verifies the release workflow against disposable local SVN repositories, without publishing; CI runs it for release-tool changes.
 
 A version bump must update **three places in lockstep**:
 - `smart-send-logistics/smart-send-logistics.php`: the `Version:` header
