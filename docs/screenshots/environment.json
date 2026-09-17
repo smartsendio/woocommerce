@@ -1,0 +1,1297 @@
+{
+    "wordpress": "7.1",
+    "woocommerce": "11.1.0",
+    "plugin": "9.0.0",
+    "theme": "storefront",
+    "theme_version": "4.6.2",
+    "php": "8.4.23",
+    "url": "http://127.0.0.1:8182",
+    "disposable_docs_store": true,
+    "plugin_language_pack": "installed",
+    "translation_assets": [
+        {
+            "file": "wp-content/languages/admin-da_DK.l10n.php",
+            "sha256": "859d0637a37124bc9a0df7cb54ad5d6e4e96741e1a0e4a6d6a732fa48966f9f3"
+        },
+        {
+            "file": "wp-content/languages/admin-da_DK.mo",
+            "sha256": "6a4f898829c69bb7ea56db5f1d7c94c876d8fb9bcb16651df8fb1841c0b779a4"
+        },
+        {
+            "file": "wp-content/languages/admin-da_DK.po",
+            "sha256": "b0db065974e35b96ecdd0ff9ab4e54eb42e48e5f9cf99ff2a18c9f73fc4195f8"
+        },
+        {
+            "file": "wp-content/languages/admin-network-da_DK.l10n.php",
+            "sha256": "d2aa7405ec0af28805952fc7ef1eec366d7272b658900b60b775af56e6232e34"
+        },
+        {
+            "file": "wp-content/languages/admin-network-da_DK.mo",
+            "sha256": "2aa03cf2e03d8fda10358ad957dc899038583b04df570cd7392fa39455c5e3e8"
+        },
+        {
+            "file": "wp-content/languages/admin-network-da_DK.po",
+            "sha256": "2af98c584c9b3eeda0ae00868e2fa1973af43741aafd20e5a34cc36b136c8b01"
+        },
+        {
+            "file": "wp-content/languages/continents-cities-da_DK.l10n.php",
+            "sha256": "bafe47735c39ab5ac9af7b1b5b4322c32a09f1bf519ba1d3d122288695492516"
+        },
+        {
+            "file": "wp-content/languages/continents-cities-da_DK.mo",
+            "sha256": "d1c9dbfc7d6149ca93ab266c2d34b3fe7f1b81dd6e6479db501444f919b916fd"
+        },
+        {
+            "file": "wp-content/languages/continents-cities-da_DK.po",
+            "sha256": "569a1ce9fb5d8486a94bd75552ab68280abb91a90b773201250440edf944e12a"
+        },
+        {
+            "file": "wp-content/languages/da_DK-0cc31205f20441b3df1d1b46100f6b8d.json",
+            "sha256": "89b9a8d3218bddb05aebf36c3dfd2b31261ad471dc6765165075565d4a9d8f22"
+        },
+        {
+            "file": "wp-content/languages/da_DK-0eebe503220d4a00341eb011b92769b4.json",
+            "sha256": "fe2f222ad53eafb32bd2a49cc97132451e72bfb5ffa537e11b9a21283edcb3b8"
+        },
+        {
+            "file": "wp-content/languages/da_DK-17179a5f2930647c89151e365f843b6e.json",
+            "sha256": "ec7452651a9dc541c5f526793951ec70fceccb31ba0b14dbe6ad384a11c26c46"
+        },
+        {
+            "file": "wp-content/languages/da_DK-1780a2033cf98d69ce13c2e5c8510004.json",
+            "sha256": "07ba1a03328ac6a078fe3ad1dfb188fb3417725543edad6f46e83d963a55dc48"
+        },
+        {
+            "file": "wp-content/languages/da_DK-1a0cd6a7128913b15c1a10dd68951869.json",
+            "sha256": "041246b9e6486bf0c2ee8ef7f086046a05542a8683571e91e530313568b80dff"
+        },
+        {
+            "file": "wp-content/languages/da_DK-1bba9045bb07c89671c88a3f328548e8.json",
+            "sha256": "83c11a90649a713613720cffb7888507d5b375fc49f89b62f25734de3127d1cf"
+        },
+        {
+            "file": "wp-content/languages/da_DK-1c4303f02ff93b290e9faad991eeb06f.json",
+            "sha256": "cc505d29d544dd6f94842a928991df58b991823c63841a43697b8bbbf2e76b0b"
+        },
+        {
+            "file": "wp-content/languages/da_DK-1d17475f620f63a92e2c5d2681c51ee8.json",
+            "sha256": "ca051ed74724b529b7ebad2e4a4f42b2a64f190f7ac605c6d3c90d7407f36f00"
+        },
+        {
+            "file": "wp-content/languages/da_DK-2617ce121227a46077ede6c69aa9fcb5.json",
+            "sha256": "3b29f1da2983ad10da161d7e8df472f48f5ae4db292c2ac98dc06acafb5a82de"
+        },
+        {
+            "file": "wp-content/languages/da_DK-270d72d1cff17227d37f3244759cbecb.json",
+            "sha256": "fc32aee7241e47a89a6ea51e3d29506c1fb3f3e1d229c3b452ca9766d9dbb09c"
+        },
+        {
+            "file": "wp-content/languages/da_DK-28b3c3d595952907e08d98287077426c.json",
+            "sha256": "790075f1e85380b919a85412f0907effe0813c53ace12fd929a3206271ec7d29"
+        },
+        {
+            "file": "wp-content/languages/da_DK-2b390f85a3048c5b4255fb45960b6514.json",
+            "sha256": "cf2920a0dc1872e9d0271039fccf73304bba125cff64642b22be1649ebc14c2c"
+        },
+        {
+            "file": "wp-content/languages/da_DK-2c252afff0e8890ebb18cb9af5372ddc.json",
+            "sha256": "f999440a7e96959057c852df3527d0f4b6d1e72b1415dd8bc40248895ed9f253"
+        },
+        {
+            "file": "wp-content/languages/da_DK-2c5d274ea625dd91556554ad82901529.json",
+            "sha256": "5cce65b596e69a9f6985390ac3581dee6261cf8c7507db514b4fae5980b84837"
+        },
+        {
+            "file": "wp-content/languages/da_DK-320f4ad9792aaa6dedb1e71cbdf85d57.json",
+            "sha256": "88729e7bb4f3184119f744cb73f4568c5230117541da5ba96bfe7bd23c7b5e6e"
+        },
+        {
+            "file": "wp-content/languages/da_DK-3a4b349b56f7cf0cb4f3ff011262cd32.json",
+            "sha256": "6fbd0e371b0377b3793d43d9c8dc5dd1661388fd5e8b2d70ff6bec08a8ed41f5"
+        },
+        {
+            "file": "wp-content/languages/da_DK-440127dd25bde48a531ded36f33e927b.json",
+            "sha256": "7cf106478967a489c4c9d95855e598f53124732c458ccb3bdc66795e77542580"
+        },
+        {
+            "file": "wp-content/languages/da_DK-49c6d4acf36cf3aca9f0b2a77617304f.json",
+            "sha256": "1645777a8001d972378c23e4ae360bc85667fb9adcd9b7123d219ad0d65882ff"
+        },
+        {
+            "file": "wp-content/languages/da_DK-4a38fe1c0c45989e44682ba6109d9f46.json",
+            "sha256": "99f6bd8eb11c3666e1017f8e443288d8d9398cce45dd732f81071a518106b532"
+        },
+        {
+            "file": "wp-content/languages/da_DK-4bfa11da57ff2600004bb500368247f4.json",
+            "sha256": "9f2f4ebc07b2ee1e5cc8dbdb5733ddfb3d884abeb3dda8f0ce8faa48105d90dc"
+        },
+        {
+            "file": "wp-content/languages/da_DK-50278328b502f4eb3f2b8b7ab49324a1.json",
+            "sha256": "5c87d24856e1e48b97b640178501f9065706a0a283c15800e0bf16de7e6b4d72"
+        },
+        {
+            "file": "wp-content/languages/da_DK-5251f7623766a714c8207c7edb938628.json",
+            "sha256": "96383e8fae7852f4d3196d0c9d96f4baba0d882218f2677dea0b663eef3f1456"
+        },
+        {
+            "file": "wp-content/languages/da_DK-529362903a5a05b34b06b5e793fb4cf8.json",
+            "sha256": "3bd1263940ddc68646fa3e564b5cf2979da85ec6e1b37ecb8bc7ce5d930cc455"
+        },
+        {
+            "file": "wp-content/languages/da_DK-569e85ef168299eb8c8f24d8ef8c8a78.json",
+            "sha256": "093c208927c1f89dcd5162a8e3b0d7b0926291ec7302dfdeca71b32555eff5ad"
+        },
+        {
+            "file": "wp-content/languages/da_DK-6025add6bde16aaeb12787d250f9b414.json",
+            "sha256": "cdcf0b480d0748a52a6645f723a9cc501f72b2f4ff67b802c188c58738c4acea"
+        },
+        {
+            "file": "wp-content/languages/da_DK-60d06fac6f98e8e8f0ec5a945738b660.json",
+            "sha256": "e6808978fab38eba7924bc5651fd2899a97a37fb6365b5440f901b19d8042c75"
+        },
+        {
+            "file": "wp-content/languages/da_DK-68f2cec7514bf8563c723a4d675fcfe6.json",
+            "sha256": "bd0bc2ebe63c54a62fb9b74922dda3df22d7541454b71ba0762c8f2ad05f1576"
+        },
+        {
+            "file": "wp-content/languages/da_DK-6e044bf800ae9cc61d72cd2b4d478ea0.json",
+            "sha256": "92086333c164bf593bd83dc78f70bf78efa089ed15fcb3208ab707140162f4bc"
+        },
+        {
+            "file": "wp-content/languages/da_DK-7233008897033de5ee0d14f86a42a65a.json",
+            "sha256": "f8842a36f380fc24db8345e6e0dca881f262d5b8ee7db844781df04c417cdb6d"
+        },
+        {
+            "file": "wp-content/languages/da_DK-7289286ed59e90a8f36ae797df62220b.json",
+            "sha256": "2d5d075255e95797dfefdc8e64436346d3f340d6c89c4f42d3c04e614814b204"
+        },
+        {
+            "file": "wp-content/languages/da_DK-7436b7ee9e4f11ac0d618d8cc886eb66.json",
+            "sha256": "df6dddfaa3396070969e34fd2f50e512c8c108fcdeab4e5f03c6d54707abf2b6"
+        },
+        {
+            "file": "wp-content/languages/da_DK-77324aff2ed7b08f8a592e0b09d8f3b5.json",
+            "sha256": "6d5aa2595ccf883a6814982e7f4e813c3fbe042cc931fe6cc402c53eeeb83b35"
+        },
+        {
+            "file": "wp-content/languages/da_DK-77fdfadaf2e1ca3a027d1956b910bc50.json",
+            "sha256": "519aa975cd7f707e59aee291c089607b088149640e1883eeec6aea89ef2f4945"
+        },
+        {
+            "file": "wp-content/languages/da_DK-7b74c8457eaa7fcc50db41b431f8a003.json",
+            "sha256": "01d6eddd38db2603fe233290cda1fbbb95ab22b4524048433e8d775461853128"
+        },
+        {
+            "file": "wp-content/languages/da_DK-7c90cd4398ee2d9d3628c387a87a70e5.json",
+            "sha256": "07748061d6b46527e47a372b51f097158c2d7529b04c80e78850f121e81e738c"
+        },
+        {
+            "file": "wp-content/languages/da_DK-7d5ca435e60d92f024d46c9257aaa0f7.json",
+            "sha256": "5be5fda54b35ff5ed79d55ae1c74b58a19309c671ef0ea24721313930c4c0056"
+        },
+        {
+            "file": "wp-content/languages/da_DK-7e88418f8c879966422e72224333672a.json",
+            "sha256": "7d77704d0506a8f2dc69a26efef0dfdb75cc1d7e08145a67adca53685f22756a"
+        },
+        {
+            "file": "wp-content/languages/da_DK-7f13c36c641b114bf18cd0bcc9ecc7e0.json",
+            "sha256": "32c1c5c277775789b7ca259831026bb6948674dd7eedfbe3fdcd8fc484f27f2d"
+        },
+        {
+            "file": "wp-content/languages/da_DK-803bf1ce2131e13efc590c1bc47851fc.json",
+            "sha256": "35957ff45a01e1f441cd039e82d0f73871b578058dc4a62affe2b1418f9e0af7"
+        },
+        {
+            "file": "wp-content/languages/da_DK-81c889563f09dd13de1701135dc62941.json",
+            "sha256": "0c75fd2ace474773d2cf0228390da54c29916269ab0e1a0ba9dca90a2493dec1"
+        },
+        {
+            "file": "wp-content/languages/da_DK-81d6f084cb273e02e15b01bd9ece87f7.json",
+            "sha256": "8470c78abc83e165a146d13e856909ada21f8aba80c14038ef4c8cf16999ec6e"
+        },
+        {
+            "file": "wp-content/languages/da_DK-8240df461220d1d3a028a9a4c5652a5b.json",
+            "sha256": "e53b250510acd45c1a26c6c8497ee97ab2f212820a3e4fa02dcb919cb84495ca"
+        },
+        {
+            "file": "wp-content/languages/da_DK-8860e58c20c6a2ab5876a0f07be43bd9.json",
+            "sha256": "bb65eae137780affb9c8ee7584e646842eb16b206ce8a959f4c2c7577de22d64"
+        },
+        {
+            "file": "wp-content/languages/da_DK-8de7565937737b229f49e43517dc708a.json",
+            "sha256": "9476b5edfbb69f7fe168d66ae1eaa8d43f4525b0c2e2cda3218259b4a5a664c7"
+        },
+        {
+            "file": "wp-content/languages/da_DK-93882e8f9976382d7f724ac595ed7151.json",
+            "sha256": "ffea903eb7f454e082d8589ebd1267cc56247ffcfebc8fc8a9fbd1d4c3d1df3f"
+        },
+        {
+            "file": "wp-content/languages/da_DK-947c76bb5095da30e16668eec15406b2.json",
+            "sha256": "e1d0cd84aa1b21ea39cc2b0d6b187130dbbfc3221c87a1dc512050dc2aff5796"
+        },
+        {
+            "file": "wp-content/languages/da_DK-9b256ea9cd54df92095e04c76758ceb0.json",
+            "sha256": "f3692e315962173bf9a83e4d0a07550e5106146fb5aad5ac85ff29392f3c1f38"
+        },
+        {
+            "file": "wp-content/languages/da_DK-9c3519f4870fac83dc0dbf18cb6bd4c4.json",
+            "sha256": "537f0b5d156217f28722cb84fe9f953595831bf9805847cd36a8b8dc7a7c6544"
+        },
+        {
+            "file": "wp-content/languages/da_DK-9d47a87c240c1d10701cd6a02b28aa1b.json",
+            "sha256": "227deb5bd487a0ee209bb9a1708e7b2eb1888b22e48f79a16d42d514df715512"
+        },
+        {
+            "file": "wp-content/languages/da_DK-a25d1cc7bf7ca0b4e114f6bea64943f4.json",
+            "sha256": "5facd5517682c878951762f41428d49f170750ccffe54ecf9d4c364fc560f423"
+        },
+        {
+            "file": "wp-content/languages/da_DK-a2796e57f680e25d84c4b352ee6d7280.json",
+            "sha256": "6cc1bd9b4af66f5f780b81f680369375ba67d2473b8ec88ec401f096bcdc6d3b"
+        },
+        {
+            "file": "wp-content/languages/da_DK-a9dc201dcd011fe71849743133052619.json",
+            "sha256": "d69430aac2fd067cce5ce73c74e82d12169b78b5ed8aab9318d74714d5a29d16"
+        },
+        {
+            "file": "wp-content/languages/da_DK-aabfce98c410957228848dc581e3c420.json",
+            "sha256": "1248795bac39e15e41ce151cc0a74cb87a9f3d888cd68d5f80c92468ade80a82"
+        },
+        {
+            "file": "wp-content/languages/da_DK-b52fc6263c111a63a5f99c3d807473a0.json",
+            "sha256": "a3dccd7b3b2879be0cac5b269194aae75083b2b862eb72da92aef56966717223"
+        },
+        {
+            "file": "wp-content/languages/da_DK-bf0f094965d3d4a95b47babcb35fc136.json",
+            "sha256": "af96faf835686eec230df06298aa50ee577c7a6cd2241dbbab958b8aba52bda7"
+        },
+        {
+            "file": "wp-content/languages/da_DK-bf23b24175490c2e46aaf92ff6a0c70f.json",
+            "sha256": "d1bec87738a2d37853f34fef4a67b2a20371c5573f57621b5567c2039f4d8f21"
+        },
+        {
+            "file": "wp-content/languages/da_DK-c31d5f185753910c14afebc6deb2ce24.json",
+            "sha256": "6420d979d52394d771012013dcc910db266a90fe04ad4e4d463bc42ca00aba4c"
+        },
+        {
+            "file": "wp-content/languages/da_DK-c4213cfff8824692c5f6df4b7278e5a9.json",
+            "sha256": "3e15b8c24cdd2aad6a9787e4f7a2c546a0a016fbfba4166dbd6457a37274eb70"
+        },
+        {
+            "file": "wp-content/languages/da_DK-ca28138671823450e87dfd354f7afc6b.json",
+            "sha256": "8dae0e00aed72e195b99f3647ee37abb39410078901ed9b3983cd6c9404eebb3"
+        },
+        {
+            "file": "wp-content/languages/da_DK-daeb084aab42199d26393a56c3465bc0.json",
+            "sha256": "de121cb67b8719488307836f0f6db5349e9ba6e7d1df85dc42a89ea33e6b5fa6"
+        },
+        {
+            "file": "wp-content/languages/da_DK-e2791ba830489d23043be8650a22a22b.json",
+            "sha256": "7919253a7ab808078297aeb96fa706e5b8bdb3845f017a2606b037de71752128"
+        },
+        {
+            "file": "wp-content/languages/da_DK-e27bebe3fddf8417462a3872bb213dd5.json",
+            "sha256": "734923a2c46bd1ed7ec51f8bf0fd13cd7ae9453d142f26e11bdc7b7341599ca0"
+        },
+        {
+            "file": "wp-content/languages/da_DK-e2e4c4b80f3adf2c70b431bfdb1b4872.json",
+            "sha256": "ebe9a920fc539046d827a3ed42613b832134c062943273eefd4586aeaec578d8"
+        },
+        {
+            "file": "wp-content/languages/da_DK-e35e15f2dd86507a8dbe95210cad54c2.json",
+            "sha256": "be469e362560b48df44d97e7f97073f85230d9e48b562410f84ae7667113d6b2"
+        },
+        {
+            "file": "wp-content/languages/da_DK-e53526243551a102928735ec9eed4edf.json",
+            "sha256": "fd23927bac9e638309a851dd642552d919c85181e2a968ad23d62cba4cd142f4"
+        },
+        {
+            "file": "wp-content/languages/da_DK-f575f481034e90e21d832e415fd95fcf.json",
+            "sha256": "7385c5ea83dcc404a014d9484a4ebf86c2bfcaea3df039dd744b0646c9f2685e"
+        },
+        {
+            "file": "wp-content/languages/da_DK-f70806bf0c7d62f2908bd5a1c3fe4efc.json",
+            "sha256": "81fd1b687798b0bc4a42c3c6093cc4e57e29ea9d4d057b09f039f42248e86d02"
+        },
+        {
+            "file": "wp-content/languages/da_DK-f8f49d9fc4a9cf7d78ec99285417bd9c.json",
+            "sha256": "7b5b8ee531191af4b8294267e03042cd15e09ff3bf7ffd6bf08a6322187f5acb"
+        },
+        {
+            "file": "wp-content/languages/da_DK.l10n.php",
+            "sha256": "a509f69b452f0af0a095c278e389ae1ab5d141f71d11b9b1ed3f1055df451df2"
+        },
+        {
+            "file": "wp-content/languages/da_DK.mo",
+            "sha256": "a3340acadd18fb3a5a151bdd3d25a3006d458f6ebcfe59d392863523d788c412"
+        },
+        {
+            "file": "wp-content/languages/da_DK.po",
+            "sha256": "f433c716e9f94b37ebdd3adaac101398a9040371ade38532bceb94847eaccad1"
+        },
+        {
+            "file": "wp-content/languages/plugins/woocommerce-da_DK-04928f3cadfae9e0174101d5c19e28a1.json",
+            "sha256": "4dbdb5cb5cd461c22c39dccfa3704263fa7d122ed68d8bd95f4e1a7dd32b7e86"
+        },
+        {
+            "file": "wp-content/languages/plugins/woocommerce-da_DK-051b948ebeb4e5c14867979a392b0fc3.json",
+            "sha256": "572b70d8fff7741070c610516be06e07f2a4ca738c24b654695d874bda2dd07e"
+        },
+        {
+            "file": "wp-content/languages/plugins/woocommerce-da_DK-063f50ef07c9b6341ea4e817bf32be5b.json",
+            "sha256": "80f55c2ec1ce70b9671d8237b04f879a602971d4e40500bea66a1994580fe339"
+        },
+        {
+            "file": "wp-content/languages/plugins/woocommerce-da_DK-06430b92a9c3d31960c3fa7daac1670e.json",
+            "sha256": "14d92978d1b6d69eb4c5dfb812d4006eba1fe769e749e19d4035eb7b8b0f0b94"
+        },
+        {
+            "file": "wp-content/languages/plugins/woocommerce-da_DK-077c5bb7545347e905aab54d7eb15734.json",
+            "sha256": "7838de0681fbd77e1d0c257f0c2d0f69ae6d0d8bc20a33204c9797c07a652d53"
+        },
+        {
+            "file": "wp-content/languages/plugins/woocommerce-da_DK-0a0188c1a49e75d2af172be062aac004.json",
+            "sha256": "ccf3cf303a36f1d9adb03b8bb9866fe663b067334052d9031054a0b7ca3c55c5"
+        },
+        {
+            "file": "wp-content/languages/plugins/woocommerce-da_DK-0a7669f29f4dfdf71a895be5b3a92095.json",
+            "sha256": "dddc0499b83afd38f499e64cd8ce0fea6a042e74b656eca84ff083a55781bda9"
+        },
+        {
+            "file": "wp-content/languages/plugins/woocommerce-da_DK-0bb004e3be5093765234741d468c1a6c.json",
+            "sha256": "54114a81f0829199366300b5a92d02d90ba1329f5b88c1fa6d4486d9d91cabf8"
+        },
+        {
+            "file": "wp-content/languages/plugins/woocommerce-da_DK-0c6d24e76fb42f9c601d7dd21391d326.json",
+            "sha256": "c717f6805a0916a05bd66231ad5dfc0d9e70ab842534ddcf79d8c8ad83aa83d9"
+        },
+        {
+            "file": "wp-content/languages/plugins/woocommerce-da_DK-0cab04d899898b549abdf367e66168ce.json",
+            "sha256": "9dab292be09e302b86bb4813088af2743483262131393415bcf5ac3b01208900"
+        },
+        {
+            "file": "wp-content/languages/plugins/woocommerce-da_DK-0d6604f2b4e5dcbcc7fb3013a9a6d17d.json",
+            "sha256": "f15dc79b4847448a722cbffab31c07d69f10385b81525c9d4b7e7a12b3d0b894"
+        },
+        {
+            "file": "wp-content/languages/plugins/woocommerce-da_DK-0e111f57f4566f72854dd71ddfa4c3c1.json",
+            "sha256": "e36268e9f7440981259391c32aada3f7f62300c1bff8016f1276b4dbe0a452fb"
+        },
+        {
+            "file": "wp-content/languages/plugins/woocommerce-da_DK-0e46a6f38358aa2ddb3c70deeddaab15.json",
+            "sha256": "2b94b627120944dcb77940572bea6e7cf8e32a107d2b813429dca8c2b11d53cf"
+        },
+        {
+            "file": "wp-content/languages/plugins/woocommerce-da_DK-0e8440226802a9e3adb55b2756a72274.json",
+            "sha256": "020101e4b0e201227f29b6376c8463680c33de2d72cefa46ac3c22a5fc87ad74"
+        },
+        {
+            "file": "wp-content/languages/plugins/woocommerce-da_DK-11819b527241962c70b08cf35d34a104.json",
+            "sha256": "518f3784e8f749fa37d098b7a549e86dda42e480c8d7d8cc0055d5ccc28e5607"
+        },
+        {
+            "file": "wp-content/languages/plugins/woocommerce-da_DK-12d195cdcdd08cd46e20ff463e2ae83e.json",
+            "sha256": "4a47375eb3dfe768223fea3be0b9cae9bffae8eb2263d517636c92f70c1e8386"
+        },
+        {
+            "file": "wp-content/languages/plugins/woocommerce-da_DK-13b98984f6788c5a905ec4e2e2b9bb86.json",
+            "sha256": "a74cef63d22f98a21c73c16cf8c8e464d8db43624c6a54691018ba83015bc114"
+        },
+        {
+            "file": "wp-content/languages/plugins/woocommerce-da_DK-1635acaa3eb10c788d39b8dba143ee8d.json",
+            "sha256": "182c236f641fb6b2b1e14f04894c49820885d95d5fba3a3c456286e097a07b1d"
+        },
+        {
+            "file": "wp-content/languages/plugins/woocommerce-da_DK-17d8a3906e1db301a3b82cf72031a656.json",
+            "sha256": "4016ed1e9c062fb9260b89039e99e1316b8fba04c8c5ab11acf75b6f432943f7"
+        },
+        {
+            "file": "wp-content/languages/plugins/woocommerce-da_DK-181ce41a6826e43d33e176d72f1da0dd.json",
+            "sha256": "de24ed89d2f91c6fddb93472321b66ef7aadd1cfb97aa7591ae7004143d7280c"
+        },
+        {
+            "file": "wp-content/languages/plugins/woocommerce-da_DK-18975947e5f6c21b5a1c42ae1b151ac9.json",
+            "sha256": "1a96b8efaf7bd3809d54af61c173c4ef310d2a87d25cb10c3c1266ee9a5e5eb5"
+        },
+        {
+            "file": "wp-content/languages/plugins/woocommerce-da_DK-1946967fff98663eed939b1b2e6e3340.json",
+            "sha256": "6ef05ed3180c2103b1a2bf95857306fdbbf9dc18212933099afe8e66eae3a93b"
+        },
+        {
+            "file": "wp-content/languages/plugins/woocommerce-da_DK-1a8f53117c16a3508e6cd4b45fc4c5f7.json",
+            "sha256": "66e74de3326c02683a4f069565a4eec2c80f8db9a0bdd2445033b11db9a5458c"
+        },
+        {
+            "file": "wp-content/languages/plugins/woocommerce-da_DK-1aed6581698e804c5de30080895ea91e.json",
+            "sha256": "b13a1c9d75a9b79b8b559c4b72012b850ed6ed896ccf2cc2cd15ae76cb136396"
+        },
+        {
+            "file": "wp-content/languages/plugins/woocommerce-da_DK-1b48a41aeb3290448ede10e6210481e4.json",
+            "sha256": "7aaf831d6e3f52782282836f7471641642c510be81caad08ce604451a9c4d57e"
+        },
+        {
+            "file": "wp-content/languages/plugins/woocommerce-da_DK-1bb96e0bebe36fe6bd94960d3cdcfa7a.json",
+            "sha256": "f459252091ca075692f223a6ecbf6de45e79f19562018ca52f4440233cc4d57c"
+        },
+        {
+            "file": "wp-content/languages/plugins/woocommerce-da_DK-1d36dd58e9841b6509a2e3f0d219e98b.json",
+            "sha256": "9ace5b8aff96a38385ea37949c2dfa51bdb1fc2a1c2768cefca52a7ff77f716f"
+        },
+        {
+            "file": "wp-content/languages/plugins/woocommerce-da_DK-1dee949f3bc3eacc1513cb13c32c60bd.json",
+            "sha256": "4941d1cf9f2459a19e4da1218216263dc8aa6a9039d9766e7c2d74b3d6ae8f94"
+        },
+        {
+            "file": "wp-content/languages/plugins/woocommerce-da_DK-21c97cf1edd07c594d1e7952ca60a50e.json",
+            "sha256": "086986bf82823cad173f7ff5af3f19ec0f221fccd8d0c46f0bb38c4b6626b019"
+        },
+        {
+            "file": "wp-content/languages/plugins/woocommerce-da_DK-21db0a202cf860c0d667914e5c3ff04f.json",
+            "sha256": "7a375d08042aff5de69b1ca6d0fedcdcd0c78afb39a2031c61a85573f17bbee9"
+        },
+        {
+            "file": "wp-content/languages/plugins/woocommerce-da_DK-222ba99c0ab9979a199b79f82f1a52f9.json",
+            "sha256": "bfe782b6fcfecf1281bb9863aff72d563a79a705240cd34d65fd671d10500e1d"
+        },
+        {
+            "file": "wp-content/languages/plugins/woocommerce-da_DK-2445bfbce6188dfc1e617e7506a894ce.json",
+            "sha256": "12cdd156f8ee659cc5c06da109fb930b2cf5000adbf27ea4ba9600396e5bf985"
+        },
+        {
+            "file": "wp-content/languages/plugins/woocommerce-da_DK-25bbc2754ddee320a72967950691df90.json",
+            "sha256": "245a9ca42d2a9e1ed6ef75c2f70991830342ecb2f0d771bf2763d1fcb1d39ef8"
+        },
+        {
+            "file": "wp-content/languages/plugins/woocommerce-da_DK-268d1111eddac83f6cfa3013b0277955.json",
+            "sha256": "324aa10906230f03eb79e2ca9645f2c94ef77bc572d196f156cd7a01f9e23e56"
+        },
+        {
+            "file": "wp-content/languages/plugins/woocommerce-da_DK-279fa10060c1cf9b6f0ce3c1488f35ea.json",
+            "sha256": "32f7d9eada7012849116cd21409a8cf80e3cd7f7caa356ae5f93bd2c2a86b34b"
+        },
+        {
+            "file": "wp-content/languages/plugins/woocommerce-da_DK-29cb655bfff7249a9003f5b01d38605c.json",
+            "sha256": "5f17639e163183d9277a8d7fbce935c73f03738d76cbc7baa4ab9c09f66b79c0"
+        },
+        {
+            "file": "wp-content/languages/plugins/woocommerce-da_DK-2b2538420122030cea7c8d36028faff6.json",
+            "sha256": "6aa23a1e78d8966ed25369398b8a576cb432b9172f58afaeecf081416213ff23"
+        },
+        {
+            "file": "wp-content/languages/plugins/woocommerce-da_DK-2b32bbc4963015931b7c821ff3ac61b9.json",
+            "sha256": "587aa57b930e57a1789b52876abef4f301ba12c8fad0976001bfe833cca3c428"
+        },
+        {
+            "file": "wp-content/languages/plugins/woocommerce-da_DK-2b9ad1ee5266e82cfc566a86f6541d13.json",
+            "sha256": "e10b9e302633cdd3eb25f6ebe1a3155a0647422a2ec041bfa56aab5c1e1519de"
+        },
+        {
+            "file": "wp-content/languages/plugins/woocommerce-da_DK-2c06722f600263a208d0239e1bee3a8d.json",
+            "sha256": "64ce31e4e85a7fea7ede9e27b70bc4aa238cb542e16c4820ee76242a3c388b6e"
+        },
+        {
+            "file": "wp-content/languages/plugins/woocommerce-da_DK-2c99303d18ce23c3379a94c74d3a5726.json",
+            "sha256": "ac4dd62a34f13642020bd8a420c3244b0ef23e49ef9e2ec123f285f18d5ba4e3"
+        },
+        {
+            "file": "wp-content/languages/plugins/woocommerce-da_DK-2ce1ccfb028a87015cd02b9b1a2b40bc.json",
+            "sha256": "4b64bf47fc89186157d4ae34a47f3d59f3b0be5066d6879467eaa1809f163a0d"
+        },
+        {
+            "file": "wp-content/languages/plugins/woocommerce-da_DK-2ee48a4d2c0072a5ffeac6de3c673670.json",
+            "sha256": "256d074d8e04776c64cad067558735e8eeef904b8983e6d78acb9469d43973a5"
+        },
+        {
+            "file": "wp-content/languages/plugins/woocommerce-da_DK-2f278f06b0f8da97a92d1521751dca84.json",
+            "sha256": "48553853002621e2010d6347e69728cd43b1bbf5d42569555d76bc983b54654e"
+        },
+        {
+            "file": "wp-content/languages/plugins/woocommerce-da_DK-2fac73fdff6dd90596aa9a51631aeef3.json",
+            "sha256": "ba7e9b6ff1526b3709f0d6346337f8de3d362799a3746d7661eb70e260ce3ee9"
+        },
+        {
+            "file": "wp-content/languages/plugins/woocommerce-da_DK-30c7f6b9e786ba39013f7d90b417e417.json",
+            "sha256": "08655e907e4004539239cc62702c4bc9f3d2174e44a2386531a0eb4ce4131e90"
+        },
+        {
+            "file": "wp-content/languages/plugins/woocommerce-da_DK-30eecad5aa15cff72eb58125ba5d85d7.json",
+            "sha256": "46d503563eef9277ee40b2f3550398ac08fb26e1cde62d7da8a85c48a5a3ef80"
+        },
+        {
+            "file": "wp-content/languages/plugins/woocommerce-da_DK-31ef9d00b21b6f004ab50657c9191072.json",
+            "sha256": "22f233037e91e28567d6fc49721ba9d81da7d1fddbcc7b4a077a8275d8d555fd"
+        },
+        {
+            "file": "wp-content/languages/plugins/woocommerce-da_DK-35badc913c2594f0b9f19d36b58b9cce.json",
+            "sha256": "b60bb6321b4cd2210fc6bcf54b9d22bec16cd45e68ab44bf5c5b26ada74e5a5f"
+        },
+        {
+            "file": "wp-content/languages/plugins/woocommerce-da_DK-35f5d74f2007b126eeef3c73a7c819a6.json",
+            "sha256": "a08680f2d3694560db4dfb29d0679bdffe09e71ec1429ee5fb9424d535b73fa0"
+        },
+        {
+            "file": "wp-content/languages/plugins/woocommerce-da_DK-36152654eb641415901d4638770bae18.json",
+            "sha256": "42ef9e5274e8bcccc58e0b030389702209e24ac3ac8635083d481e5f2bc61352"
+        },
+        {
+            "file": "wp-content/languages/plugins/woocommerce-da_DK-3819305314c698924728d966720aaca7.json",
+            "sha256": "0d4e340565068f95d9ac620b341f77902c096a79952c259b02877440c12fcbbc"
+        },
+        {
+            "file": "wp-content/languages/plugins/woocommerce-da_DK-3822e084584af73b3534ef184ec8d114.json",
+            "sha256": "026c85919713f988fecc748ecab81b59c5f095de0cacb716dc772f2f643d0bb6"
+        },
+        {
+            "file": "wp-content/languages/plugins/woocommerce-da_DK-39d4b99786986c8785a60df484b86f21.json",
+            "sha256": "6f8e4c34de3719a7e8a7463efd7da63d875aee30bc46c6ebbf8e65791627841a"
+        },
+        {
+            "file": "wp-content/languages/plugins/woocommerce-da_DK-3f1e25ac30728e4df6f092b159c47875.json",
+            "sha256": "0f49ef5acd0beab6575df94ffdb0970801760d2709b246fea54c666cfb6e45a9"
+        },
+        {
+            "file": "wp-content/languages/plugins/woocommerce-da_DK-403dcd6a366f8d33e75b08cf7779b241.json",
+            "sha256": "8b3ed99f652a964e454ae5b223fb36a07e06434961bb0315a55c6c7c1b351f35"
+        },
+        {
+            "file": "wp-content/languages/plugins/woocommerce-da_DK-4177fc623b181279c609293ff5085ae0.json",
+            "sha256": "c6a17e6ebd26519c489902b516c3a4367d0afa99b3fac012590bc3864d364991"
+        },
+        {
+            "file": "wp-content/languages/plugins/woocommerce-da_DK-41c967d2b4e928033877e0063828c441.json",
+            "sha256": "8cfa7647fab7b045261e447f78a851b8edc6bda577af9eee0869f27600a693e3"
+        },
+        {
+            "file": "wp-content/languages/plugins/woocommerce-da_DK-42f875d1d5f4fc0dc6d5e7f27026c87d.json",
+            "sha256": "47e72d0144f8b9529f56143941b36d7bc1522242decf3bcf05d978dd135757e8"
+        },
+        {
+            "file": "wp-content/languages/plugins/woocommerce-da_DK-437fd0de081e2abc79b4baa55ec087a4.json",
+            "sha256": "998cd0096ad23a72c127c8bbaefe4e0f4b6f850ae4302d0743d4b3514ccd1d92"
+        },
+        {
+            "file": "wp-content/languages/plugins/woocommerce-da_DK-440e3f94950fd71495d4bcb332ee639f.json",
+            "sha256": "a137a8fc44c567087ffc527e968d8cebbdc0858f63d37f38ce89220fa995bc69"
+        },
+        {
+            "file": "wp-content/languages/plugins/woocommerce-da_DK-452ce70241ca22cfa3d369e7eaf12b03.json",
+            "sha256": "7a4c19d298f605d2a04d5e5cdaf6c28706eee166e03b5f4c337281c60c3d9536"
+        },
+        {
+            "file": "wp-content/languages/plugins/woocommerce-da_DK-471a3ad765cae270d0a25210d8a53ab8.json",
+            "sha256": "1caadb57cef94f17b4235de924fd4ec586217984a53eb3722ab793fa1a6789f4"
+        },
+        {
+            "file": "wp-content/languages/plugins/woocommerce-da_DK-4722b63f6b580b10ebd10d293a0b6765.json",
+            "sha256": "4880aff79b3bd367569381d1b924d236606cec64cdcfd38edad5f1a1a65a3ffe"
+        },
+        {
+            "file": "wp-content/languages/plugins/woocommerce-da_DK-47334b38fd482809419fbd389607b05e.json",
+            "sha256": "3ba815bd53603089d832f4dbb2f436027cd9fdde803d9ca11378fea04dd413d9"
+        },
+        {
+            "file": "wp-content/languages/plugins/woocommerce-da_DK-4960ed60135ea5260a9baabe3c0e60bb.json",
+            "sha256": "01b7347a0f9a2d2d1c90fef91f7784c98c599c7b24f92c90e059301c756b1e8c"
+        },
+        {
+            "file": "wp-content/languages/plugins/woocommerce-da_DK-4ab6442e99b7c2a178f27791cdd43f56.json",
+            "sha256": "e3853a69054ccf168fdd741c2f4898253c8c72b123ac504d8164c20b224af4bf"
+        },
+        {
+            "file": "wp-content/languages/plugins/woocommerce-da_DK-4b4bedddc357cca74c563904688f2e6e.json",
+            "sha256": "3c8b91ed7504cca94e2e02bd98be7bd188a78523250f71195ce6de1660c76d49"
+        },
+        {
+            "file": "wp-content/languages/plugins/woocommerce-da_DK-4d4fa55da406b60dff2c54bd3e1bdf3a.json",
+            "sha256": "c65f735cba5c66bcd73341061d40a9734fb8fc0e93ff01d9ef3824764217db63"
+        },
+        {
+            "file": "wp-content/languages/plugins/woocommerce-da_DK-4dd8144c2ddfb2012dbf7b3702cf00cc.json",
+            "sha256": "34eae78ebe6176c22da7a3ad26a152e11c37425e9c5fd324c6d75be38b2c03fc"
+        },
+        {
+            "file": "wp-content/languages/plugins/woocommerce-da_DK-4ef3118a4b5a865d0934d771a1a875a5.json",
+            "sha256": "4b28f18c3b140a9420a4ff79784bb5a9274faaabba73d682c99b0a2df69ff685"
+        },
+        {
+            "file": "wp-content/languages/plugins/woocommerce-da_DK-507f1208a3dc15ee33256209b516fa76.json",
+            "sha256": "61d745783935389f31f8c5b6da7ea3d98e907a3bde2b1eafd25451626af93d4c"
+        },
+        {
+            "file": "wp-content/languages/plugins/woocommerce-da_DK-511a8cb1b07adbc84063d25a9a41a108.json",
+            "sha256": "a10f6911141375f33df514a49e273639219079d9c9da16d3c714189cb3461eab"
+        },
+        {
+            "file": "wp-content/languages/plugins/woocommerce-da_DK-5598a099319118a77b5e42860bea0251.json",
+            "sha256": "e9e1d5e70d786bf2321108c826dfec1696763dbe9ea3cfb2fad9fb6cbe3c69d1"
+        },
+        {
+            "file": "wp-content/languages/plugins/woocommerce-da_DK-561e9f72569a5002eee2e2cedee244ee.json",
+            "sha256": "4f9b954b356753ef4b8ccbb7933e8fbab913cec93d1038b0a54172ba58004671"
+        },
+        {
+            "file": "wp-content/languages/plugins/woocommerce-da_DK-56ac046978a89f98fa741a4dc37373f4.json",
+            "sha256": "c9b5c1ba611c62f79cad49b71a40e0f09da89c5c67183cafb0fc1402f4802a79"
+        },
+        {
+            "file": "wp-content/languages/plugins/woocommerce-da_DK-573efe44b68d764cde33f42f47d1c7b1.json",
+            "sha256": "8177d7d6cd0d4a656ca99cea2dfd2e18fa20067c61677d4c19565fa61bd178f3"
+        },
+        {
+            "file": "wp-content/languages/plugins/woocommerce-da_DK-5771b62744bce3727cc7578423dbffc6.json",
+            "sha256": "a37f588e1141cc8ec685fcd576d963c729cb6c184f362a4803723e8bda20fdab"
+        },
+        {
+            "file": "wp-content/languages/plugins/woocommerce-da_DK-58c7172a70cb6d278edebe8468c37490.json",
+            "sha256": "36456580eb5b485750daec62a02947521b79294212f34f07c17bb7d612064d10"
+        },
+        {
+            "file": "wp-content/languages/plugins/woocommerce-da_DK-58eb230d6d2fe31c63044647ca8823cb.json",
+            "sha256": "a438eab2328fc90d2f9e8c22bff951206fc1acf9c43cd3e2e534334baee6d771"
+        },
+        {
+            "file": "wp-content/languages/plugins/woocommerce-da_DK-5a05849642c703a3ea8822e1e6723d99.json",
+            "sha256": "71560a6425140776dfc0ad680ea8121e5d8287c3a3c0441fb22f3b343a2f950a"
+        },
+        {
+            "file": "wp-content/languages/plugins/woocommerce-da_DK-5a46c0880461d4dc5eb91cd66679410c.json",
+            "sha256": "21473f92fda61f08ef199bfd3570afa26df10ffc4977b532a0015c7859567a9b"
+        },
+        {
+            "file": "wp-content/languages/plugins/woocommerce-da_DK-5b726c421e65b41da4efd79e48415627.json",
+            "sha256": "e06fdb84a0ef74b355d6269cf5f53af0c345f65dffa83852d0d204a7a95a8991"
+        },
+        {
+            "file": "wp-content/languages/plugins/woocommerce-da_DK-5d01323fef6997040e0487ea97c888de.json",
+            "sha256": "8d0de12d160e1bc5c8cb767e164386d7a63b51d268dfd76bd174c0611389f634"
+        },
+        {
+            "file": "wp-content/languages/plugins/woocommerce-da_DK-5d44b68974722f8f33f1e09db8c8c52a.json",
+            "sha256": "bfb85620b32b2fda9d68517dca48525d9106b71231f6d4eb59e210d48ebac215"
+        },
+        {
+            "file": "wp-content/languages/plugins/woocommerce-da_DK-5d95e88589c1e26aec733d311a5f6208.json",
+            "sha256": "43bc3c4cb188ce7a3deff5dbed7bb63b617542245cbfdabe97373c3a740852e3"
+        },
+        {
+            "file": "wp-content/languages/plugins/woocommerce-da_DK-5ded173cf46874e83f1a63c347e98cca.json",
+            "sha256": "df10bd5ea0e6bd6caaef84a6ccdc692615c54b1d1945e821fb2cf1009ff1a314"
+        },
+        {
+            "file": "wp-content/languages/plugins/woocommerce-da_DK-5f6ee80394b027c1967bb1d1220e0254.json",
+            "sha256": "9c149d6c61d2b0c8385f302c49cf0ebb5e2da703d24812c6c9a2c48e5f4afb41"
+        },
+        {
+            "file": "wp-content/languages/plugins/woocommerce-da_DK-61ff17b10b4ff22e2725e50533ffc3a5.json",
+            "sha256": "f29045f69b3fa0266247058e02d4d056fc64c4bd2200ce496f03912fe6395ec9"
+        },
+        {
+            "file": "wp-content/languages/plugins/woocommerce-da_DK-6296dae5ec247d37f3785f7f81b3e8a4.json",
+            "sha256": "3b7fec394857815b21366463ad075213061cd8c06e49be536866799d5bc81395"
+        },
+        {
+            "file": "wp-content/languages/plugins/woocommerce-da_DK-62d404bf6e393bbb546940dd814b9f26.json",
+            "sha256": "579effe3db8ba80d21d6ec00a87539e07d51e46fe33c44890fc729b3ba2d85b8"
+        },
+        {
+            "file": "wp-content/languages/plugins/woocommerce-da_DK-638616813127815eec836b38d70517f5.json",
+            "sha256": "0b788d10216c37d39f3168ab286faa21c4cae01b705254ba3beb7614c2372c07"
+        },
+        {
+            "file": "wp-content/languages/plugins/woocommerce-da_DK-641fd4df4e377ec54b0d9354f920fbb3.json",
+            "sha256": "39b1bae47448bea742c2fcdf378aa6333dbed6eeb1502562a3cee6073cee457c"
+        },
+        {
+            "file": "wp-content/languages/plugins/woocommerce-da_DK-64f0d663cfe62dfbb0c8052400e9d423.json",
+            "sha256": "e4f47b6ae4df1816bd2d517fa1fe90073dc48a47a35951fb0997b7f2424d7b44"
+        },
+        {
+            "file": "wp-content/languages/plugins/woocommerce-da_DK-65c453b99754c5ecb86a000f47491ca5.json",
+            "sha256": "2e73ee56921076b56b52de28f95ef82417c22f92813454780f0be0e7bfa25a03"
+        },
+        {
+            "file": "wp-content/languages/plugins/woocommerce-da_DK-662856f1e67ffbd99e3457a4873e2b18.json",
+            "sha256": "13f7991a7f1cfa681d324469e059b21719db835d73157b448bc223380f80cdc9"
+        },
+        {
+            "file": "wp-content/languages/plugins/woocommerce-da_DK-66eb0f8993f9a1f59f27ad5b75ea6077.json",
+            "sha256": "4947522bcc48486468844ceaa25274fdef8ab1b1c295afb2365fa1ab2fdccafc"
+        },
+        {
+            "file": "wp-content/languages/plugins/woocommerce-da_DK-68a8734e0fd9c2469e6826be62a31e90.json",
+            "sha256": "405b53a716f8ef445271005a17be2a14cdef325675cbf4eff270a2c19a172579"
+        },
+        {
+            "file": "wp-content/languages/plugins/woocommerce-da_DK-68c914976cd9142d845f8487db3e9cbd.json",
+            "sha256": "f3ad8d3793b303d87aa91ae7714cfa9db3c1cf55cf13c8670529a7d765452c27"
+        },
+        {
+            "file": "wp-content/languages/plugins/woocommerce-da_DK-6981a62352e23b738855adcf01c58d39.json",
+            "sha256": "d48a242852510e9808e5c3da0d14b8670b18fb5d849c75652d7d3b3f2d28a8ac"
+        },
+        {
+            "file": "wp-content/languages/plugins/woocommerce-da_DK-6b163e771738c554beb5fdb549b507c6.json",
+            "sha256": "b578c4fd95f7acda65a3f83f27cf91f841d2db21b59aab09ee6b2e5724f80656"
+        },
+        {
+            "file": "wp-content/languages/plugins/woocommerce-da_DK-6b252174a3e91d81c283352772a134e4.json",
+            "sha256": "fc53f2fd8ccf7cae032de9d68d2d5e446fa8615106cd2ff08e4428b3caeef320"
+        },
+        {
+            "file": "wp-content/languages/plugins/woocommerce-da_DK-7191abc3e5ae6aba1378c2d2b593e25a.json",
+            "sha256": "3eba39d43d5a49527080ec9032ddc502496fa28b487e896a39417a1c34e254ee"
+        },
+        {
+            "file": "wp-content/languages/plugins/woocommerce-da_DK-73a78fe6884e2ce9cd23e3af73a3b52f.json",
+            "sha256": "e9c161a369f61f859b75e8b80bf44d4c4d7d4ccc00bd1bc5a1a7e6dc35c27521"
+        },
+        {
+            "file": "wp-content/languages/plugins/woocommerce-da_DK-74b6fb60d0b88b06aae7413389f85544.json",
+            "sha256": "89e67b518c8db526a8ec20c255c5fbc73ed456a5b3649354e4b87397d2f3001c"
+        },
+        {
+            "file": "wp-content/languages/plugins/woocommerce-da_DK-750143815c8f43588af17c98ace49c88.json",
+            "sha256": "dc8cd52ed9619c745c2115eea31ea183e51b0035862e6eb7ec3f813f6f1b3f7c"
+        },
+        {
+            "file": "wp-content/languages/plugins/woocommerce-da_DK-753733dacbf958ee7471d7a26d5dd84e.json",
+            "sha256": "f0870318b250b74571693e6dc8d89a269855d54f12e47d70aa494b3c46d1a913"
+        },
+        {
+            "file": "wp-content/languages/plugins/woocommerce-da_DK-75478d27162f9793b21b8408f1996bf1.json",
+            "sha256": "1ec6e5bcd174c49177dbabbc0206904b1dcefb5ee7bb569e7bd4c8dd4fd69099"
+        },
+        {
+            "file": "wp-content/languages/plugins/woocommerce-da_DK-757198d5c65cf0b2bf9ab296ce632dd2.json",
+            "sha256": "d9b793a55d5088ce692076f9dcb9c5f987164964f8f1e36f7cf1499dbfe1d793"
+        },
+        {
+            "file": "wp-content/languages/plugins/woocommerce-da_DK-762d02a1afb327baad73e17fed1f08e6.json",
+            "sha256": "3df71917ee5a15d1e7d9a0c271f4d5f7e781b219d36b87b0ac4f344edfac5fbd"
+        },
+        {
+            "file": "wp-content/languages/plugins/woocommerce-da_DK-76de108c0680bf620d1bde32df485ae5.json",
+            "sha256": "7a57a5ce53630515dace01c3048db64776bbd39952cf40a2120ca54b6e0cf9e0"
+        },
+        {
+            "file": "wp-content/languages/plugins/woocommerce-da_DK-78028b4b612742fc96407a351e0198e9.json",
+            "sha256": "c0502d9e413d60d1fb8bee02eb1f369c1336113cdc1ec08d2e90b1c5283486c5"
+        },
+        {
+            "file": "wp-content/languages/plugins/woocommerce-da_DK-7951b083e84d8324bfbc01920a7950b6.json",
+            "sha256": "c4bdea4c464f98d45a5f0a79a9757ecc2a6a259a8c71352bd8b9116d372e7c02"
+        },
+        {
+            "file": "wp-content/languages/plugins/woocommerce-da_DK-7adf6d6cef2831670666cc53b0643bf7.json",
+            "sha256": "a65f29dc0a9eaf8782b0318752ed908324ee23839ebcc72349c6c084756b25f0"
+        },
+        {
+            "file": "wp-content/languages/plugins/woocommerce-da_DK-7d1c83d014474814d1024f6062f40ddc.json",
+            "sha256": "5e4466d2c5ab8e7ca25dd6bfb1a51d30c468f23d27758c600addceeb9b642053"
+        },
+        {
+            "file": "wp-content/languages/plugins/woocommerce-da_DK-7db1c7831a17345b259dedf12fa5c4e7.json",
+            "sha256": "94a0b3206f9ae7150c667089d1c0e90d11de2ebbb65a10bf72840261abc5d917"
+        },
+        {
+            "file": "wp-content/languages/plugins/woocommerce-da_DK-7e7b2d3190060637abf939d03599ae3e.json",
+            "sha256": "aac9297ad168a18d87788937ba660a4d30aa65158516f7e171f1ef698f0682e9"
+        },
+        {
+            "file": "wp-content/languages/plugins/woocommerce-da_DK-7e9f53f8275f2428f994fbcd6b09f9cb.json",
+            "sha256": "b0e9b3b6c00f550eb908600f81f48a30ad5a314204c1bc410f5d630df05436b5"
+        },
+        {
+            "file": "wp-content/languages/plugins/woocommerce-da_DK-7fdaf32d435835d6f63f776731e6588f.json",
+            "sha256": "bddf9f3342a5f1450daf2a444dc306ffac298abd85fa5dbe12ad389f0533fe48"
+        },
+        {
+            "file": "wp-content/languages/plugins/woocommerce-da_DK-809dea67f83eb6ab2c3be36b9cb37563.json",
+            "sha256": "3e195f0f4709a7435415a198eb3acf7355abd2cc68150cc280e4ce5a16e77e56"
+        },
+        {
+            "file": "wp-content/languages/plugins/woocommerce-da_DK-80b8c3927dd55611294f2ed06b21d04f.json",
+            "sha256": "91399a9bf842ec7a932aa5e7a83da3715b1fd24e1bf2366df34c88f3a69201c4"
+        },
+        {
+            "file": "wp-content/languages/plugins/woocommerce-da_DK-81207f2e1817637c08b11cae7cc01024.json",
+            "sha256": "a3de9a8f205f74ba112d1fa45145dc9a78259b951ed76a677b677928334c0850"
+        },
+        {
+            "file": "wp-content/languages/plugins/woocommerce-da_DK-85f8b8cc67d62cedf7d528975a786993.json",
+            "sha256": "255feb4e14bc0c73ff9ccc8a146fa0aa2ddc47497e10d17b5359e1359c59dcde"
+        },
+        {
+            "file": "wp-content/languages/plugins/woocommerce-da_DK-882736e017c8f1454484ee689148c0d3.json",
+            "sha256": "41f6954e75b4d27aa4f3a3b709d4e8bc4f077fbddb7335bc66885549649edcbe"
+        },
+        {
+            "file": "wp-content/languages/plugins/woocommerce-da_DK-886530422d9a9bd5cc3f01ca3442c00e.json",
+            "sha256": "62c5b47cde2c4bc13745e0a55ce948e925d6eacb93887bfbf4629e748007c20e"
+        },
+        {
+            "file": "wp-content/languages/plugins/woocommerce-da_DK-89c940ba657aa36c29c09038d08129e1.json",
+            "sha256": "6349da61c5ff93580ccef88a99c1fc14d9e181e5b6bf6ed893e53ceead0df3a5"
+        },
+        {
+            "file": "wp-content/languages/plugins/woocommerce-da_DK-8aae233d6340dd7cca1b1cb672956a2f.json",
+            "sha256": "e06f44412321ed1794688c56abb20827b9d5b28c294c3c6ed5b931734ab6ddce"
+        },
+        {
+            "file": "wp-content/languages/plugins/woocommerce-da_DK-8ac70ecf9ac8f6c68deba22867d20f3a.json",
+            "sha256": "235725766578fb47dfaaeb11c701bfe12dc9e390a6e2ddf35d283c3253695faf"
+        },
+        {
+            "file": "wp-content/languages/plugins/woocommerce-da_DK-8ddaedc262566002ae5b7f852892b013.json",
+            "sha256": "9600465623eefa833f518e8e9a4745d38f0fb85e3b64c3b11c32e3582bb29dff"
+        },
+        {
+            "file": "wp-content/languages/plugins/woocommerce-da_DK-8e81191cdf588c98c4e6f12adbf9c1f4.json",
+            "sha256": "e720cdc2398c072b7e70cd8f434c278ab05e1d493e9b0504c2faf1752c42dc26"
+        },
+        {
+            "file": "wp-content/languages/plugins/woocommerce-da_DK-8f3de6d4b9b4778f6857ae2496328901.json",
+            "sha256": "c9e6861fcc5764e239b359559151da3a8f1f7e868a7f17ebbbf57f8fb8fea2ce"
+        },
+        {
+            "file": "wp-content/languages/plugins/woocommerce-da_DK-921754054d88d50626fa24baf6ec95c0.json",
+            "sha256": "6085ead8c1ec6d51a15763b9321b8fd2b34ad2cffe55b4672822e076450ddeb3"
+        },
+        {
+            "file": "wp-content/languages/plugins/woocommerce-da_DK-921db1a8fef5d13b74b5d975c8298175.json",
+            "sha256": "467debf6638eba601dbf9797387c6732dfac8a820562f82fd3446317440542e8"
+        },
+        {
+            "file": "wp-content/languages/plugins/woocommerce-da_DK-95153b79e17e44b1ed819e36ca7ff7db.json",
+            "sha256": "02d18a0f6088108dfa2482d5f9e49419bd314cadd78dbb87098ff0998b08acb8"
+        },
+        {
+            "file": "wp-content/languages/plugins/woocommerce-da_DK-969f290929cfa89f79981c270405c556.json",
+            "sha256": "7a4b6ef437041d0d7b40d55aa73bf2e5a8a6a61c487171722892547d7b52ccfe"
+        },
+        {
+            "file": "wp-content/languages/plugins/woocommerce-da_DK-97022ed97b431dec2d18f580612470f8.json",
+            "sha256": "adb250b11241da7f6f4e42d37193f2ca071dbb7828266b5469515e64508248a0"
+        },
+        {
+            "file": "wp-content/languages/plugins/woocommerce-da_DK-98a8fb20e4e5f75bcfb26995589650e8.json",
+            "sha256": "d9efcae8714716d94c92b612fc97c9f5825e138a3abfeca26c65336ca62d6cf1"
+        },
+        {
+            "file": "wp-content/languages/plugins/woocommerce-da_DK-98cb3428b01292ea31f2d1e0394acaaa.json",
+            "sha256": "f413e49645a1198cce821e7c7a22b4d31360e28eba5ad88b27be52878955292f"
+        },
+        {
+            "file": "wp-content/languages/plugins/woocommerce-da_DK-99bba7c9e29ac75f0c5c84b12eb52ccf.json",
+            "sha256": "f0a24436a8a3ef79c9f98fed582d9acd33fb0344a21ece5976277a2b6d551aa6"
+        },
+        {
+            "file": "wp-content/languages/plugins/woocommerce-da_DK-9aa7620f7c09b927ab1e512da142330d.json",
+            "sha256": "e161745cf516f959a9252b74ee48d1fa40496eefa791351bc6ad98ea7e4fd2ac"
+        },
+        {
+            "file": "wp-content/languages/plugins/woocommerce-da_DK-9b585b1dd861f8b980f1e1f4de634039.json",
+            "sha256": "d5ebb6237744d7211a574d9928a4c311cf677555635ffeeb7fe940e7ffc6ad0e"
+        },
+        {
+            "file": "wp-content/languages/plugins/woocommerce-da_DK-9d59fc010f6d8ff895aa009384b04b57.json",
+            "sha256": "c0a5db94f7441bab66d0ea3cfd3924dff4bee1e0f1fb4e203f894586c85f20dc"
+        },
+        {
+            "file": "wp-content/languages/plugins/woocommerce-da_DK-9db63b5c87e9e44dad1d40a287c8036f.json",
+            "sha256": "72d511408df773562bb2ffa82b9857986c8a074db268c22b4e80550be0d9f816"
+        },
+        {
+            "file": "wp-content/languages/plugins/woocommerce-da_DK-9ddadd10c78683d1f77ef328a876511d.json",
+            "sha256": "6f881506c9797e9c5989b68a7834a8a71981b3a6ec318956b46aa0a54440be82"
+        },
+        {
+            "file": "wp-content/languages/plugins/woocommerce-da_DK-9df0c77ff5ef89f72faabf3d50ae98be.json",
+            "sha256": "79e1acbde42811b248b282215cdd9db854880b8826c6e0fcfe4dacae4e8775aa"
+        },
+        {
+            "file": "wp-content/languages/plugins/woocommerce-da_DK-9e8d6ecac19f170d6b64158ce8af2687.json",
+            "sha256": "f1e405b4a02269a17dea1f8cc34ecdb40bb09d42d2a7c9fc0116a7f6978d2813"
+        },
+        {
+            "file": "wp-content/languages/plugins/woocommerce-da_DK-9ea6effa3bb32821f8c8c1893f375b04.json",
+            "sha256": "0d8f929234b118015ce0d29dc1ee8b83b80531e0c5fc559ef6fcd796aae3cf3c"
+        },
+        {
+            "file": "wp-content/languages/plugins/woocommerce-da_DK-9eb70574a494cfafbd9c764dc7477388.json",
+            "sha256": "9bce9611f4acf8ee182df73843d966429819c2fe83f06080dde12bc7acb11446"
+        },
+        {
+            "file": "wp-content/languages/plugins/woocommerce-da_DK-9f86fcce972590b11091b30f1bab42de.json",
+            "sha256": "710475bbbcf362ddac043ca78e5e82571a2e0d04e7f9d55cfe6db03eba3fb166"
+        },
+        {
+            "file": "wp-content/languages/plugins/woocommerce-da_DK-a047c3f6dc8ba2aadd1a8f6ef6adc6ac.json",
+            "sha256": "473209f5810733f5fe6392941ca2493f133e01da13e414ff1fed279000b60f99"
+        },
+        {
+            "file": "wp-content/languages/plugins/woocommerce-da_DK-a0795582e2b29b03e38e7ba1a368ae57.json",
+            "sha256": "f38fb77ed173177b46ea2fa6f0545d2e441df9cd88890a0c98d5ea1f2f4c4f7c"
+        },
+        {
+            "file": "wp-content/languages/plugins/woocommerce-da_DK-a0fac9bd8e1383f3c9dd13e437167139.json",
+            "sha256": "738c44eb52becb7bce3b81d28af1560066ebe2a57122ecdcde7555c48a6091b2"
+        },
+        {
+            "file": "wp-content/languages/plugins/woocommerce-da_DK-a1a204c1bc328c93d4fc0c72978f468a.json",
+            "sha256": "968e8ba83147243cf5aa794a4e098eb999d232a489555e623ee9c82732dc521f"
+        },
+        {
+            "file": "wp-content/languages/plugins/woocommerce-da_DK-a203202ed09c67675354ffb2e6a13401.json",
+            "sha256": "d70486e5b467d7a82b269e1a39568a1b89bc60b3f6121d67b322ac161a661b98"
+        },
+        {
+            "file": "wp-content/languages/plugins/woocommerce-da_DK-a212db00ff473412f7919ea5f0bc97d1.json",
+            "sha256": "610f36dcad0bb9e5c502e12c2a2fcaa702ee711e2cd906db730bfa31582c2dfc"
+        },
+        {
+            "file": "wp-content/languages/plugins/woocommerce-da_DK-a2a398d67a089e6e5d0b2ceacab7b453.json",
+            "sha256": "6f0ec2310989ec43594b54d5547d15e8deede49b54c881eb70ec37fe18d9fedc"
+        },
+        {
+            "file": "wp-content/languages/plugins/woocommerce-da_DK-a39951e43e2c22f8b8575dc64b1adf6d.json",
+            "sha256": "03339288642968df4390bb57da5c7faa4ae25a29181eaf8dc30f94a9a612bf04"
+        },
+        {
+            "file": "wp-content/languages/plugins/woocommerce-da_DK-a4c4feaa7af452f3806490e2597f9014.json",
+            "sha256": "1387b8e436c22fda61b81714454f94223fb609ee13375faeb8dc9cd72f3f7b3d"
+        },
+        {
+            "file": "wp-content/languages/plugins/woocommerce-da_DK-a5172fd12c10e6598faed8b2c4cd0a49.json",
+            "sha256": "b98ba2ea22df7132074334361386c421edf80d089767dc2d655648025860d16a"
+        },
+        {
+            "file": "wp-content/languages/plugins/woocommerce-da_DK-a5eaf2e219eebf99f469a6a08d0060c5.json",
+            "sha256": "36ebb9617760b6a31cfce5f707be9f3313a94f8e036cc97b01c6dad82386c0f6"
+        },
+        {
+            "file": "wp-content/languages/plugins/woocommerce-da_DK-a6ff84a2a96718f5931b714ed4385ee4.json",
+            "sha256": "38cf5f040ec38c09d0bab5b2553d73c14dbe6cac3329e3a2fab9c3d7d790092f"
+        },
+        {
+            "file": "wp-content/languages/plugins/woocommerce-da_DK-a774ade9a14e03f8650b90217755c77c.json",
+            "sha256": "84c5dea0eb5460eb860a7b0ca0f225ced52279c9be904c50ffdb5e3e7b159a8b"
+        },
+        {
+            "file": "wp-content/languages/plugins/woocommerce-da_DK-a857888aed6730e8bb4dd6a2d8b3d2ef.json",
+            "sha256": "9773930f7c17c4061d5aa33a525f4b0e189fc2d3c076394c3d6338ee807ea6d6"
+        },
+        {
+            "file": "wp-content/languages/plugins/woocommerce-da_DK-a94d296015dbfc58ebdacf6bc560866e.json",
+            "sha256": "7e01815ed3438ade36b87ff55b17908a600d2faa78ec45ab2aa00e4546770b8e"
+        },
+        {
+            "file": "wp-content/languages/plugins/woocommerce-da_DK-aaab1afd48a07f2ab36bf4f71658d0cb.json",
+            "sha256": "9383c487ee6634c7d9f959f0d488d936008866ac3cdcfd753a6444f0e5987e5f"
+        },
+        {
+            "file": "wp-content/languages/plugins/woocommerce-da_DK-ab7e39ee8dd353418b18f38948e1d98f.json",
+            "sha256": "0110974146be582c1a6ac83547e476f3ca325b63b027b5ebdc522fed4779c0c8"
+        },
+        {
+            "file": "wp-content/languages/plugins/woocommerce-da_DK-ac4c75230d29f7a426c9a5dcd8f33102.json",
+            "sha256": "fb18c7e76710757fbbc77f49b159c1cb4becf9b21828fb812c5799e69b0aceb0"
+        },
+        {
+            "file": "wp-content/languages/plugins/woocommerce-da_DK-aecb3c67a29773449e558eff12fa4238.json",
+            "sha256": "5a2fa2aa3e1872dcad250b360b46201ec143cdcd33cb14eb6dd027baf6cf5b09"
+        },
+        {
+            "file": "wp-content/languages/plugins/woocommerce-da_DK-af1de7be2ed0d3aba150f744bf0f82ae.json",
+            "sha256": "758cc58aa6866cc853fa4e541c150f831626f6dfa59e0d3b7423f092096e92e3"
+        },
+        {
+            "file": "wp-content/languages/plugins/woocommerce-da_DK-b04131f0c7f4bd0670184286dcea650c.json",
+            "sha256": "8ae8d3760f7f3a30b03712f8cf8ec84ec09cf062b1528c3e0571d62da3684e84"
+        },
+        {
+            "file": "wp-content/languages/plugins/woocommerce-da_DK-b1bcdce7f4708f9ce10fa4fb41d5114d.json",
+            "sha256": "49de779b3a3c0194cb2ab58f69237353272b466e6991a01f3f61796ff248a8f4"
+        },
+        {
+            "file": "wp-content/languages/plugins/woocommerce-da_DK-b473e3a32670309b75207dfacdaed4ae.json",
+            "sha256": "7317c8b8452b6752cf7f956c0e839760036280d4767ef5ef2f7a979fe012d985"
+        },
+        {
+            "file": "wp-content/languages/plugins/woocommerce-da_DK-b5eb9d1d4f5c11dc23eb22d8a5a026ff.json",
+            "sha256": "3b4ce626eefeffa7d8e1a244326f4a9598b328eb7d890a1110a17eb12e8c49ec"
+        },
+        {
+            "file": "wp-content/languages/plugins/woocommerce-da_DK-b660710d20aa544ac71a551eec7101a4.json",
+            "sha256": "bd5f718724398906bfaff30d1045184f6dc3933bdc880ce1103376dca531a392"
+        },
+        {
+            "file": "wp-content/languages/plugins/woocommerce-da_DK-b78943e8ad17b8ddd6cc226def1e15df.json",
+            "sha256": "5bf5f5cc5752a15d07017dd2f1a1209df668d8f14f01ff27bb2065ead96d0549"
+        },
+        {
+            "file": "wp-content/languages/plugins/woocommerce-da_DK-b7d8e475857e46ba9c434d35b0153f90.json",
+            "sha256": "87c9d3bbe15b495f04e5f376915dff7e29837fdefcb9a47e23516b58f57bdadf"
+        },
+        {
+            "file": "wp-content/languages/plugins/woocommerce-da_DK-b89a01ddb2b6fc2148a2c4e1828ccb87.json",
+            "sha256": "ecc5c7a8dc7310a67dea31ac8478b3251d84890ff55a044072a6f91af1de804d"
+        },
+        {
+            "file": "wp-content/languages/plugins/woocommerce-da_DK-b95e3c9f215868cd25b8c5ad28106861.json",
+            "sha256": "5c68dbcd50254c52fa40c11fce5509c146bbb1e3b1af0d1a7b7ffcdd950cc051"
+        },
+        {
+            "file": "wp-content/languages/plugins/woocommerce-da_DK-b96517b2db03f7c61e573a05e38e268c.json",
+            "sha256": "7dee9751ffa5036416cea0fc4f7c8f8154d8ee3876195e213cdf4d55f7dac14a"
+        },
+        {
+            "file": "wp-content/languages/plugins/woocommerce-da_DK-bd132b0816b6a1cf2bd394282b8994c4.json",
+            "sha256": "2f9f40f04a6276247345ff6822bff9e7abe8946f53e97cfab61f4b5cdd3b485e"
+        },
+        {
+            "file": "wp-content/languages/plugins/woocommerce-da_DK-c2394a0736134d667e4a1433bd9ef288.json",
+            "sha256": "46dff4e39dcc522bf81bd3f9daed7f3d4bac633d3e62eba83ce84173087b39b9"
+        },
+        {
+            "file": "wp-content/languages/plugins/woocommerce-da_DK-c29610f8145dddacaacc3361e77a1274.json",
+            "sha256": "3575a1c61c01808c1d9fd0c15209c3ee0df022c3bec2ce091f180ae2d4b4bbe5"
+        },
+        {
+            "file": "wp-content/languages/plugins/woocommerce-da_DK-c3f34099ea855a1d401ca9f78793085e.json",
+            "sha256": "05e2d45276a173ca9c01d918a419604f8a9a7079da10d3c61e3454cf0e7757f9"
+        },
+        {
+            "file": "wp-content/languages/plugins/woocommerce-da_DK-c476dc5974245d3c32e0df2678e152e1.json",
+            "sha256": "cd1dc63993af33a24352adf547e78fd4bfbaf0ba54b6aa8023fe5b4c82304a5d"
+        },
+        {
+            "file": "wp-content/languages/plugins/woocommerce-da_DK-c4efd78f874161e4ccd3e4de7b666251.json",
+            "sha256": "984c780d2770809e3c5351c65ca85838b01c0fec30da6b67ce27de997d26469c"
+        },
+        {
+            "file": "wp-content/languages/plugins/woocommerce-da_DK-c58638c50f7298ef6598e7bd0a1ad65c.json",
+            "sha256": "69fe8615e1767d0ed07b8eb89d85f91dafe24904b8dda8bd9a00f211c26978d2"
+        },
+        {
+            "file": "wp-content/languages/plugins/woocommerce-da_DK-c65ba3a598d6018a8291ad8bc4225668.json",
+            "sha256": "0d5a21c6c05ae845accec10c832405b4845c197dcf506c0e5d28ee49183b4be9"
+        },
+        {
+            "file": "wp-content/languages/plugins/woocommerce-da_DK-c694cf4a44b23f6c531a507792121e9e.json",
+            "sha256": "d09d4966329c287df40cd688e7783c666902b8294158e24975a66ea978a9d809"
+        },
+        {
+            "file": "wp-content/languages/plugins/woocommerce-da_DK-c79dfe679b87123eba25f5a0c688b1d5.json",
+            "sha256": "de5e724640a8759c0c083a2fabcfdda6b76dbf294be3236e71c4bb294fd507bc"
+        },
+        {
+            "file": "wp-content/languages/plugins/woocommerce-da_DK-c82d261e7ee918daf590ebaf0e1b1da4.json",
+            "sha256": "7f86ee126aeea6c32184fa47ffe8aa5913ae0ea3be0284fa1831593864b72b03"
+        },
+        {
+            "file": "wp-content/languages/plugins/woocommerce-da_DK-c9aa30dc38bbe30edca1fe99018864fe.json",
+            "sha256": "787f9d180c34452366ea25b6dc890689f64e62b50d051dd484fce839c79feb2b"
+        },
+        {
+            "file": "wp-content/languages/plugins/woocommerce-da_DK-cba04a1e66c0055a5e9b2e0192e85968.json",
+            "sha256": "05d93e2aa4ec885a8398156241481b33090e94743005fa6caa6e93c7e2aaba2d"
+        },
+        {
+            "file": "wp-content/languages/plugins/woocommerce-da_DK-cc81f776e921d7763aa7bc30036177f1.json",
+            "sha256": "268a6df2a1b9451c0e61ac0a10ad3d821eea9dce109135d2736be1e7925ae7c4"
+        },
+        {
+            "file": "wp-content/languages/plugins/woocommerce-da_DK-ce3d3ec7111282dcdf3cfeb11c558277.json",
+            "sha256": "fb3268aa3ce611ef30643a44ba63a5d03f3f0a65a0d4f51aafa2a2463df7c933"
+        },
+        {
+            "file": "wp-content/languages/plugins/woocommerce-da_DK-ce807318848ea2ecc90a25faf264cb35.json",
+            "sha256": "af270be37f51389f8c7adde1784e9b155e2569464669f7c408269235aa217a02"
+        },
+        {
+            "file": "wp-content/languages/plugins/woocommerce-da_DK-ced1cf96a63c0084b9bc30fc7511b78f.json",
+            "sha256": "b4f828eefeb4b514e8fb44745b3a7a580a6f4abce6673bde692424ef0bab1e46"
+        },
+        {
+            "file": "wp-content/languages/plugins/woocommerce-da_DK-cff9e44defb88755b784b7f92a6c4f85.json",
+            "sha256": "5b13f990cc8346cc52784a10b30b7d2799bf01c11b3437a3e161358d94524ec7"
+        },
+        {
+            "file": "wp-content/languages/plugins/woocommerce-da_DK-d0258ce98e6189fd6bb704d043ce34fc.json",
+            "sha256": "525dc6a5e9319a6dd44d4f34246356eb715506770d37c7c4d2f4b9858508c390"
+        },
+        {
+            "file": "wp-content/languages/plugins/woocommerce-da_DK-d6056d63ae9915b6e6dee9a09b277858.json",
+            "sha256": "9e2dea7cc2bbbbb337369d79f99fc5fea95021a9db5e68fe3844b07d269b9428"
+        },
+        {
+            "file": "wp-content/languages/plugins/woocommerce-da_DK-d680950596efddfda2a5fc5e01ae9957.json",
+            "sha256": "a47ff208eed3e650594ff5607b801604115cdb6c497d3554a28ededf30cdbea2"
+        },
+        {
+            "file": "wp-content/languages/plugins/woocommerce-da_DK-d8234f4b8220bdb74a7d7270633ddaf0.json",
+            "sha256": "9b1c35a2274abf968ebd0034b514cab28e7c90590b6879ecb13348158c617e31"
+        },
+        {
+            "file": "wp-content/languages/plugins/woocommerce-da_DK-d86a9d2b180b67f45930be95f4bf26a9.json",
+            "sha256": "9264a2c2a32ed3e3a967c1f1dde29425fc66910b0102e34caf6df44d4e64886e"
+        },
+        {
+            "file": "wp-content/languages/plugins/woocommerce-da_DK-daa6202fe25b709061afd2099f4a8eda.json",
+            "sha256": "3bebbc35870c2696f77b4ceecd32a4762f50824eb1b57634ab938b5be2bfbc12"
+        },
+        {
+            "file": "wp-content/languages/plugins/woocommerce-da_DK-db94500835f22877cd6350c589b541b1.json",
+            "sha256": "2ffea719ec0e56fa2992acca35bc0b872230f56beae106b1db4c2e086171e9aa"
+        },
+        {
+            "file": "wp-content/languages/plugins/woocommerce-da_DK-ddc852e3baa9cc9f15df8f712b00e24c.json",
+            "sha256": "c80bb17c17ddaca049b9ab8f67b6411408305aa6ec05f42f5a290b7085d6abc9"
+        },
+        {
+            "file": "wp-content/languages/plugins/woocommerce-da_DK-de3c7cc410529a47f2ffbea53e330c90.json",
+            "sha256": "ddaaa68b971c8b4acceebe55871f81c6a340157553a38705594b845ada740a1b"
+        },
+        {
+            "file": "wp-content/languages/plugins/woocommerce-da_DK-de90ea7046630a8ac03dc3df92869d2e.json",
+            "sha256": "7a04ede26b0c4eaa8ab8f458c9acef2cd1d6e6e9c666cf5efe19a4326044993c"
+        },
+        {
+            "file": "wp-content/languages/plugins/woocommerce-da_DK-de92539e8e5af5b3e531b35314479783.json",
+            "sha256": "3d79aeab2e039882d7b17ace12ef1c3089726c1117d04cec7c5a54f0145fb55f"
+        },
+        {
+            "file": "wp-content/languages/plugins/woocommerce-da_DK-e0bc0ec28810dbbc72532e28e7bcc58d.json",
+            "sha256": "7d14426b2d895b6dec667be1b61b64de435dd4009a609292c29e75d412b810bb"
+        },
+        {
+            "file": "wp-content/languages/plugins/woocommerce-da_DK-e20617995f4ef68fe7e29c970faab75f.json",
+            "sha256": "0261596f73be668e6316ec5f343bebe86b19ab3e584dcb984ba8c8f89b338a62"
+        },
+        {
+            "file": "wp-content/languages/plugins/woocommerce-da_DK-e416b6125c77a248e69f6df5e00abc0e.json",
+            "sha256": "992930bb913c3ef961732d8c7645bcd94f00ebbf56fb86d796a17343b308ab74"
+        },
+        {
+            "file": "wp-content/languages/plugins/woocommerce-da_DK-e9da8c17aa451807d92b07bc51a8029b.json",
+            "sha256": "d58daf491390de8e048b0eef305f4158ce2d65cf2a1cef998d12849c86593c61"
+        },
+        {
+            "file": "wp-content/languages/plugins/woocommerce-da_DK-ead3615c9f3649630c8776fd33e2f70e.json",
+            "sha256": "2de5196fb359c87d52c8449c72241f2cb1f0b8254f08c1cfdb8e1e475650177d"
+        },
+        {
+            "file": "wp-content/languages/plugins/woocommerce-da_DK-eedcababc7b65c05eaa9556915eb39b5.json",
+            "sha256": "af5984fd3d025b4da7081507d2d70d7f9f515ead2c5cc770523136e980638cde"
+        },
+        {
+            "file": "wp-content/languages/plugins/woocommerce-da_DK-f0956c00c9e045d83f878249d69958bd.json",
+            "sha256": "eaed03383cac3ce16ab3fa05ae8ed3488baa26286a977337da6ea937969388f6"
+        },
+        {
+            "file": "wp-content/languages/plugins/woocommerce-da_DK-f3309e0d7d8931aa22517c7bd90accc9.json",
+            "sha256": "30b91638a9ef23489f74b031218b149acb56a2c1fb575b41e37673bcf5cc31dd"
+        },
+        {
+            "file": "wp-content/languages/plugins/woocommerce-da_DK-f34beaf9c94fc969fe091bdb0a3d06e7.json",
+            "sha256": "e6624e032dbc7421a5a4d20eb512ee92ae383d640010712d024d7e119ae78a09"
+        },
+        {
+            "file": "wp-content/languages/plugins/woocommerce-da_DK-f3d56d487c73ae81566d748b519628b4.json",
+            "sha256": "51684166e757c2b9dbef53946aa69ab84009170050185e8c7f06bc7b7192ade2"
+        },
+        {
+            "file": "wp-content/languages/plugins/woocommerce-da_DK-f4437fa5b46b2fb788f1ab16c52bebb0.json",
+            "sha256": "ec13fe0ef6f00e1684f82ad33e7b74e18c827bbacdd56d6dcb9ad52efcb4e207"
+        },
+        {
+            "file": "wp-content/languages/plugins/woocommerce-da_DK-f4b497bea2fed715e659fcc394cbe060.json",
+            "sha256": "a4f743f010cb4b832a69b02f7d45e625aca2cfc6cc03dde5b7282d462b309b49"
+        },
+        {
+            "file": "wp-content/languages/plugins/woocommerce-da_DK-f59fc99258fa76f6a00ffa61267dafed.json",
+            "sha256": "728b26511f94a512a220ddd88eb7da4edd2f2f37842447dec8b9a591b8346035"
+        },
+        {
+            "file": "wp-content/languages/plugins/woocommerce-da_DK-f741e37c066635f270eb1b78c8cff82b.json",
+            "sha256": "ad252ea68a565994dec4fa09a46d5b83e6fcc8a0008924318d9ae9ed249b39d9"
+        },
+        {
+            "file": "wp-content/languages/plugins/woocommerce-da_DK-f7b627e82983c90afb41d5218d3681d6.json",
+            "sha256": "a16a5a9754dac482b37f9099e4a513a7f68ef9bf7cf848ba438f7151c89f2c50"
+        },
+        {
+            "file": "wp-content/languages/plugins/woocommerce-da_DK-fbeb96f8164c2403e759d3c4be2d472b.json",
+            "sha256": "18c76e8e788b7ad2c958ddfe5ae2339ccd10f3f302794b50d9f57044b14037f9"
+        },
+        {
+            "file": "wp-content/languages/plugins/woocommerce-da_DK-fc7887bbe75b0041310c11444355aabf.json",
+            "sha256": "e80d73cb8fdb6c5fc54c05ed3ce9cd6378afe10b20c36d6307e8f321955787c9"
+        },
+        {
+            "file": "wp-content/languages/plugins/woocommerce-da_DK-fdb6cc3870aada55ace0bee4e4032e85.json",
+            "sha256": "ee7677dd59e390280ae761e4cacb17d008ea484f5f0d78ae96b2c07b0017cd1a"
+        },
+        {
+            "file": "wp-content/languages/plugins/woocommerce-da_DK-fdeb81b791b5fb3b71e8060816a37c11.json",
+            "sha256": "ade030e439e7f3146a2b1f927c2fc59a61057b1ed5a8b0c72622e433e2e72515"
+        },
+        {
+            "file": "wp-content/languages/plugins/woocommerce-da_DK-fe5bd46cad4d94d410bb4f072377120f.json",
+            "sha256": "9406b82e9db98d2c1ecc3b1bbf5277da0c200f4b7cbef3c7aff5fe36223c17ed"
+        },
+        {
+            "file": "wp-content/languages/plugins/woocommerce-da_DK-ff089c9f663fae28db4e4e9a3cd81140.json",
+            "sha256": "3573bff5146c220888b16443b3cda73f0a894e8bf309a2abf97443a4529aea87"
+        },
+        {
+            "file": "wp-content/languages/plugins/woocommerce-da_DK-ff1380fa8e9e3d530704e431ea4c7528.json",
+            "sha256": "002cfffb405bcdc27e459934e0c9c9146ccff05d605c3fdceb545cb8acd4c2de"
+        },
+        {
+            "file": "wp-content/languages/plugins/woocommerce-da_DK-ff89c3b4a2ed00af1fe7978dc748be9c.json",
+            "sha256": "be9fdd46ad3580394e34896ab73e1d3e6bf6d81339d4bd9fb3cc2a359c042a43"
+        },
+        {
+            "file": "wp-content/languages/plugins/woocommerce-da_DK-wc-admin-app.json",
+            "sha256": "9686f3b957cfbbb3da77364e101ebb5355bbb232f7d91c4197fbd6d302e5b79d"
+        },
+        {
+            "file": "wp-content/languages/plugins/woocommerce-da_DK.l10n.php",
+            "sha256": "744695027c3488d8ce72b95df83ef6a7d3f8b09a34b064496f5f6902c141bdca"
+        },
+        {
+            "file": "wp-content/languages/plugins/woocommerce-da_DK.mo",
+            "sha256": "b21e9969704f775ea1d249faa1f15318c9aaeb89af1888a492de3f0dcb30f84a"
+        },
+        {
+            "file": "wp-content/languages/plugins/woocommerce-da_DK.po",
+            "sha256": "ff3115fec93ba9d65ab8e875c66e5b0f05f21904d802bcfc1416e671f4d80edf"
+        },
+        {
+            "file": "wp-content/languages/plugins/smart-send-logistics-da_DK.l10n.php",
+            "sha256": "b6c105f342bac392d7ed2c8adea7cf7f535c0e320615b06aa1411d4f30cb0b4b"
+        },
+        {
+            "file": "wp-content/languages/plugins/smart-send-logistics-da_DK.mo",
+            "sha256": "236c7b9dcf79da561b0af7a142ca1a9e630e944969b47cb7233963aa5f7af0f2"
+        },
+        {
+            "file": "wp-content/languages/plugins/smart-send-logistics-da_DK.po",
+            "sha256": "a7751407035163e856a846cf25e1fbfc81a859a2f6ccb8fc9adf41e07d25cab0"
+        },
+        {
+            "file": "wp-content/languages/themes/storefront-da_DK.l10n.php",
+            "sha256": "919050d16e02260aca28b67902075a4407ae720625bd756700e7c91dcf72b6d8"
+        },
+        {
+            "file": "wp-content/languages/themes/storefront-da_DK.mo",
+            "sha256": "ca7228017368ae7c9e33a6f58abfcff33a17044b634ed5bd4de72fc947b03af7"
+        },
+        {
+            "file": "wp-content/languages/themes/storefront-da_DK.po",
+            "sha256": "3d1b6141e9204792124ccb862a530ac7819cb94fd5d6facb92c95d316cbd5244"
+        }
+    ]
+}
