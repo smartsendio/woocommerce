@@ -344,7 +344,7 @@ class Plugin {
 			$this->test_connection        = new Test_Connection( new API_Factory( $this->settings ) );
 			$this->rate_sorter            = new Rate_Sorter( $this->settings );
 			$this->bulk_actions           = new Order_Bulk_Actions( $this->method_resolver, $this->fulfillment_service, $this->admin_notices );
-			$this->subscriptions_compat   = new Subscriptions_Compat();
+			$this->subscriptions_compat   = new Subscriptions_Compat( $this->order_meta );
 
 			$this->block_checkout = new Block_Checkout();
 			$this->store_api      = new Store_API( $this->pickup_point_lookup, $this->pickup_point_formatter, $this->settings, $this->order_meta, $this->checkout_options );

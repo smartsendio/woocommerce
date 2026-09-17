@@ -151,6 +151,8 @@ vendor/bin/pest --testsuite=Browser      # you serve the store yourself in this 
 
 Browser fixtures and the integration bootstrap share `WP_PATH` (resolved relative to the repository root), with `WP_DEV_PATH` retained as a fallback. Use `WP_URL` for the matching store URL. The Browser/Docs suites recover saved fixture snapshots before their first test, including after a killed attempt: a clean store without a snapshot is left untouched, and shipping methods/settings are restored before the baseline checks run.
 
+`SubscriptionsCompatTest` verifies the documented WooCommerce Subscriptions 4.9+ renewal-copy hook contract using real WooCommerce orders under HPOS and posts. Its fixture dispatches the metadata/items/created hooks in their documented order, reloads persisted state and checks exact item-ID mapping. It does not install the commercial Subscriptions plugin or run its scheduled-renewal/payment engine; that validation remains unavailable. The API floor comes from WooCommerce's [Subscriptions HPOS guidance](https://developer.woocommerce.com/2023/03/07/woocommerce-subscriptions-hpos-understanding-next-steps/), not a tested commercial-plugin version matrix.
+
 ### Rules for tests
 
 - **No refactor merges without tests covering the moved behaviour.** The Integration suite contains characterization tests that pin the current behaviour of the core flows (shipment payload golden tests, rate calculation, order meta on legacy and HPOS storage, label generation, pick-up point display). Keep them green and extend them in the same PR for any code you move that is not yet covered.

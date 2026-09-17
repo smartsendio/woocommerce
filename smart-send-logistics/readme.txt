@@ -360,6 +360,14 @@ Example: react to a completed booking and to a rejected one:
 * **ss_in_plugin_update_message** `( string $notice_html )`
     Retained legacy filter on the major-version upgrade notice in the plugins list. Return trusted, safe HTML; the filtered result is rendered as HTML. This notice filter is separate from the replaced version 8 shipping and booking hooks
 
+= WooCommerce Subscriptions =
+
+The renewal integration targets the documented APIs available in WooCommerce Subscriptions 4.9 and later. Subscriptions must also meet its own WordPress/WooCommerce requirements. Smart Send uses the [HPOS-compatible data-copy hooks](https://developer.woocommerce.com/2023/03/07/woocommerce-subscriptions-hpos-understanding-next-steps/), without the deprecated SQL-query filters or pre-2.0 compatibility branch.
+
+Renewals retain pickup-point configuration and receive their own shipping labels: previous shipment IDs, booking history and WooCommerce Shipment Tracking entries are excluded from copied metadata. Notes and document files are not duplicated by this integration.
+
+A subscription's parcel plan must reference that subscription's own order-item IDs. During renewal, the exact source item identities are carried through the item-copy hook and replaced with the renewal's new IDs; products and line positions are never used to guess correspondence. Temporary item markers are removed afterward. If a plan is old, stale or cannot be matched unambiguously, the renewal requires "Reset to one parcel" and a new allocation before booking. Pickup-point data remains available. Parcel weights and dimensions remain per booking.
+
 = Meta fields =
 
 The following meta fields are used by the plugin. Version 9 changes the parcel allocation format described below. The other meta keys and stored formats remain unchanged, including the pickup point selection under **ss_shipping_order_agent_no** (the pickup point number) and **_ss_shipping_order_agent** (the stored pickup point object). Read and write them through the hooks above rather than directly where you can (`smart_send_delivery_details` sees the pickup point and parcel split; `smart_send_order_fulfilled` sees the booked shipment ids):
@@ -440,6 +448,7 @@ No - this is by design. Neither deactivating nor uninstalling the plugin deletes
 * Save booking notes through WooCommerce's order-note API and show them in its native history after a reload, while the Smart Send box confirms the booking immediately
 * Render pickup-point addresses as readable text in plain-text order emails and escaped HTML in HTML emails and customer order pages
 * Preserve other plugins' redirect URLs and result parameters when they handle bulk order actions
+* Use WooCommerce Subscriptions 4.9+ renewal data hooks, exclude previous labels/history/tracking, and rebind parcel allocations to the renewal's new order-item IDs; require an explicit reset when correspondence cannot be established
 * Parcel allocations now use WooCommerce order-item IDs, keeping repeated purchases of the same product separate and requiring every ordered unit to be allocated exactly once. Item quantities and discounted amounts are aggregated per line and parcel, with rounding that preserves line totals
 * Replace the old product-ID parcel split format with a canonical parcel plan. Existing splits must be reset and entered again; parcel weights and dimensions remain per booking
 * Deleted products and variations display as "Deleted" without a SKU. Existing booked labels remain accessible; new bookings require an explicit parcel weight when a product's weight is unavailable
@@ -801,6 +810,7 @@ Version 9 is a complete rewrite of the plugin. Make a full site backup and [revi
 * Parcel splits saved in the old product-ID format are not migrated. On affected orders, choose "Reset to one parcel" and enter the allocation again before creating another shipping or return label. Custom integrations must use `order_item_id` and allocate every ordered unit exactly once. Parcel weights and dimensions still apply only to the current booking.
 * Products or variations deleted since the order was placed display as "Deleted" with no SKU. Enter an explicit parcel weight before booking them; missing customs data is not reconstructed. This does not remove access to labels already booked.
 * Requires WordPress 6.5, WooCommerce 8.2 and PHP 7.4 or newer. Sites on older versions should stay on the 8.x series.
+* The optional WooCommerce Subscriptions integration now targets its 4.9+ data-copy APIs. Renewals do not inherit prior labels or tracking. Custom subscription parcel plans must use the subscription's own item IDs; old or unmatched plans require an explicit reset on the renewal before booking.
 * Free shipping no longer makes a shipping method available for a cart weight outside the configured weight table; the weight table alone decides when the method is offered, and free shipping only zeroes the price. Check your weight tables if you relied on the free-shipping threshold to cover heavy carts.
 * The bulk label actions on the Orders screen process one selected order at a time. Bulk printing of several orders returns in a later 9.x release; if you need it now, stay on version 8.x.
 

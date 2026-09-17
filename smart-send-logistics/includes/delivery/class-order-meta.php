@@ -164,9 +164,9 @@ class Order_Meta {
 	 * Meta keys describing the delivery configuration (pickup point and
 	 * parcel structure).
 	 *
-	 * These SHOULD copy to subscription renewal orders - a renewal ships
-	 * the same way as its parent (same pickup point, same parcel setup);
-	 * it just has not been booked yet.
+	 * These copy to subscription renewal orders, but parcel allocations
+	 * must be rebound to the renewal's new item IDs after its items are
+	 * copied. Subscriptions_Compat handles that correspondence explicitly.
 	 *
 	 * @return string[]
 	 */
