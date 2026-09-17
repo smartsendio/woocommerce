@@ -221,7 +221,7 @@ class Fulfillment_REST_Controller {
 				'default'     => null,
 			),
 			'confirm_rebook'   => array(
-				'description' => __( 'Must be true to book again when the order already has a shipment for the flow.', 'smart-send-logistics' ),
+				'description' => __( 'Must be true to book again when the order already has a shipment for any direction included in this request.', 'smart-send-logistics' ),
 				'type'        => 'boolean',
 				'default'     => false,
 			),
@@ -416,17 +416,42 @@ class Fulfillment_REST_Controller {
 			return $this->not_connected_error();
 		}
 
-		$existing = $this->shipment_ids->get( $order, $is_return );
+		$requested_with_return = $request->get_param( 'with_return' );
+		$requested_with_return = is_bool( $requested_with_return ) ? $requested_with_return : null;
+		// Resolve the configured default before checking any shipment ids, then
+		// pass this concrete decision to the service for the same booking run.
+		$with_return = ! $is_return && ( null === $requested_with_return
+			? $this->method_resolver->is_auto_return_enabled( $order )
+			: $requested_with_return );
+		$directions  = $is_return ? array( 'return' ) : ( $with_return ? array( 'outbound', 'return' ) : array( 'outbound' ) );
+		$existing    = array();
 
-		if ( '' !== $existing && true !== $request->get_param( 'confirm_rebook' ) ) {
+		foreach ( $directions as $direction ) {
+			$shipment_id = $this->shipment_ids->get( $order, 'return' === $direction );
+			if ( '' !== $shipment_id ) {
+				$existing[] = array(
+					'direction'   => $direction,
+					'shipment_id' => $shipment_id,
+				);
+			}
+		}
+
+		if ( array() !== $existing && true !== $request->get_param( 'confirm_rebook' ) ) {
+			if ( count( $existing ) > 1 ) {
+				$message = __( 'This order already has shipping and return labels. Booking again creates new shipments at Smart Send; the old ones are not cancelled.', 'smart-send-logistics' );
+			} else {
+				$message = 'return' === $existing[0]['direction']
+					? __( 'This order already has a return label. Booking again creates a new shipment at Smart Send; the old one is not cancelled.', 'smart-send-logistics' )
+					: __( 'This order already has a shipping label. Booking again creates a new shipment at Smart Send; the old one is not cancelled.', 'smart-send-logistics' );
+			}
 			return new WP_Error(
 				'smart_send_already_booked',
-				$is_return
-					? __( 'A return label already exists for this order. Confirm to book again; the existing shipment is not cancelled.', 'smart-send-logistics' )
-					: __( 'A shipping label already exists for this order. Confirm to book again; the existing shipment is not cancelled.', 'smart-send-logistics' ),
+				$message,
 				array(
-					'status'      => 409,
-					'shipment_id' => $existing,
+					'status'               => 409,
+					'shipment_id'          => $existing[0]['shipment_id'],
+					'requested_directions' => $directions,
+					'already_booked'       => $existing,
 				)
 			);
 		}
@@ -440,9 +465,6 @@ class Fulfillment_REST_Controller {
 
 		$method = $this->method_for_flow( $order, $details, $is_return );
 
-		$with_return = $request->get_param( 'with_return' );
-		$with_return = is_bool( $with_return ) ? $with_return : null;
-
 		// A return method submitted for the return leg of a combined
 		// outbound + return run (state B: an order without a Smart Send
 		// method has no configured return method).
@@ -454,7 +476,7 @@ class Fulfillment_REST_Controller {
 			$return_overrides->set_shipping_method( $submitted_return_method );
 		}
 
-		if ( $is_return || true === $with_return ) {
+		if ( $is_return || true === $requested_with_return ) {
 			// A return is explicitly requested: fail the request, not the
 			// leg, when no return method is resolvable and none was
 			// submitted. (A null with_return follows the setting, whose

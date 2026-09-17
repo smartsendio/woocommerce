@@ -610,7 +610,7 @@ class Fulfillment_Service {
 	 *
 	 * @param WC_Order                          $order           The WooCommerce order.
 	 * @param Booked_Shipment       $shipment        The booked shipment.
-	 * @param boolean                           $save_order_note Whether the caller wants the order note saved (the REST response then carries the note the meta box prepends client-side).
+	 * @param boolean                           $save_order_note Whether the caller wants the order note saved for WooCommerce's native history.
 	 * @param Delivery_Details|null $persist         The submitted delivery details to persist (see persistable_overrides()), or null when the request carried none.
 	 *
 	 * @return array A run entry in the shape Fulfillment_Result documents.

@@ -240,8 +240,8 @@ class Order_Fulfillment_Presenter {
 	 * The REST response of a fulfillment run (section 3.2 of #182):
 	 *
 	 *   array( 'order_id' => int, 'flow' => 'outbound'|'return', 'success' => bool,
-	 *          'shipments' => Fulfillment_Result::to_array() with 'order_note.html' rendered,
-	 *                         the booked shipment enriched for display (shipment_response()) and
+	 *          'shipments' => Fulfillment_Result::to_array() with the booked shipment enriched
+	 *                         for display (shipment_response()) and
 	 *                         'error.form_fields' (the API field errors mapped onto form fields) added,
 	 *          'state' => state( $order ) after the run )
 	 *
@@ -256,8 +256,7 @@ class Order_Fulfillment_Presenter {
 
 		foreach ( $shipments as &$row ) {
 			if ( 'fulfilled' === $row['status'] ) {
-				$row['order_note']['html'] = null === $row['order_note']['id'] ? null : $this->render_order_note( (int) $row['order_note']['id'] );
-				$row['shipment']           = $this->shipment_response( $row['shipment'] );
+				$row['shipment'] = $this->shipment_response( $row['shipment'] );
 			} else {
 				$row['error']['form_fields'] = $this->map_api_fields( $row['error']['fields'] );
 			}
@@ -439,38 +438,6 @@ class Order_Fulfillment_Presenter {
 		}
 
 		return $mapped;
-	}
-
-	/**
-	 * Render an order note as the list item WooCommerce's order-notes
-	 * meta box renders, so the client can prepend it to ul.order_notes
-	 * and WooCommerce's own delete handler keeps working. Uses
-	 * WooCommerce's own view (includes/admin/meta-boxes/views/html-order-notes.php,
-	 * the template WC_Meta_Box_Order_Notes renders the list with) for a
-	 * one-note list and returns its <li>.
-	 *
-	 * @param integer $note_id The order note (comment) id.
-	 *
-	 * @return string The <li> markup, or '' when the note does not exist.
-	 */
-	public function render_order_note( int $note_id ): string {
-		$note = wc_get_order_note( $note_id );
-
-		if ( ! $note ) {
-			return '';
-		}
-
-		$notes = array( $note ); // Read by the included view.
-
-		ob_start();
-		include WC()->plugin_path() . '/includes/admin/meta-boxes/views/html-order-notes.php';
-		$html = (string) ob_get_clean();
-
-		if ( preg_match( '/<li\b.*<\/li>/s', $html, $m ) ) {
-			return trim( $m[0] );
-		}
-
-		return '';
 	}
 
 	/**

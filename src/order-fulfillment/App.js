@@ -19,8 +19,8 @@
  *                        the "Booked shipments" timeline; every row, the
  *                        parcel editor, both actions and the return
  *                        checkbox stay exactly as they were
- *   G book again         normal: the first click on an action whose
- *                        direction already has a label warns and relabels
+ *   G book again         normal: the first click on an action with any
+ *                        already-booked direction warns and relabels
  *                        the button, the second one books with
  *                        confirm_rebook
  *   H submitting         fieldset disabled, spinner, "Creating label…"
@@ -39,10 +39,9 @@
  * This app is the box's ONLY renderer: PHP inlines the state and renders
  * the mount point with a placeholder in it, nothing more.
  *
- * Every request is POST …/fulfillment via apiFetch; a fulfilled leg's
- * order note is prepended to WooCommerce's ul.order_notes (both the HPOS
- * and the legacy screen render it) and the box re-renders from the state
- * the response carries. No page reload anywhere.
+ * Every request is POST …/fulfillment via apiFetch. The box immediately
+ * renders the booking result; WooCommerce renders persisted order notes
+ * in its native history after the merchant reloads the page.
  */
 import { createElement, Fragment, useEffect, useRef, useState } from '@wordpress/element';
 import { Button, Notice } from '@wordpress/components';
@@ -85,33 +84,6 @@ function formFromState( state ) {
 }
 
 /**
- * Prepend a rendered order note (WooCommerce's own <li>) to the order
- * notes list, replacing the "no notes yet" placeholder when present.
- */
-function prependOrderNote( html ) {
-	const list = document.querySelector( 'ul.order_notes' );
-
-	if ( ! list || ! html ) {
-		return;
-	}
-
-	const template = document.createElement( 'template' );
-	template.innerHTML = html.trim();
-	const item = template.content.firstElementChild;
-
-	if ( ! item ) {
-		return;
-	}
-
-	const placeholder = list.querySelector( 'li.no-items' );
-	if ( placeholder ) {
-		placeholder.remove();
-	}
-
-	list.insertBefore( item, list.firstChild );
-}
-
-/**
  * The general notice content of a rejected apiFetch call ({ code,
  * message, data }) or a transport failure.
  */
@@ -137,13 +109,16 @@ export default function App( { initialState, mount } ) {
 	const [ fieldErrors, setFieldErrors ] = useState( {} );
 	const [ notices, setNotices ] = useState( [] ); // general error notices
 	const [ editing, setEditing ] = useState( { method: false, pickupPoint: false, returnMethod: false, parcels: false } );
-	// The direction waiting for its re-book confirmation: the first click on
-	// an action whose direction already has a label warns and relabels the
+	// The flow waiting for its re-book confirmation: the first click on
+	// an action with any already-booked direction warns and relabels the
 	// button, the second one books (with confirm_rebook). Any other click
 	// cancels it.
 	const [ pendingConfirm, setPendingConfirm ] = useState( null );
 
-	const cancelConfirm = () => setPendingConfirm( null );
+	const cancelConfirm = () => {
+		setPendingConfirm( null );
+		setNotices( ( previous ) => previous.filter( ( notice ) => notice.key !== 'rebook' ) );
+	};
 	const edit = ( key, value = true ) => {
 		cancelConfirm();
 		setEditing( ( previous ) => ( { ...previous, [ key ]: value } ) );
@@ -284,11 +259,27 @@ export default function App( { initialState, mount } ) {
 	};
 
 	/**
-	 * Whether the flow's direction already carries a booked label - a
-	 * second one is a new shipment (and a new cost), so it goes behind one
-	 * confirming click.
+	 * Existing labels in every requested direction, including a return
+	 * accompanying an outbound booking. Each duplicate needs confirmation.
 	 */
-	const alreadyBooked = ( flow ) => ( flow === 'return' ? !! state.return_shipment : !! state.outbound_shipment );
+	const rebookingMessage = ( flow ) => {
+		const outbound = flow === 'outbound' && !! state.outbound_shipment;
+		const returning = ( flow === 'return' || form.withReturn ) && !! state.return_shipment;
+		if ( outbound && returning ) {
+			return __( 'This order already has shipping and return labels. Booking again creates new shipments at Smart Send; the old ones are not cancelled.', 'smart-send-logistics' );
+		}
+		if ( returning ) {
+			return __( 'This order already has a return label. Booking again creates a new shipment at Smart Send; the old one is not cancelled.', 'smart-send-logistics' );
+		}
+		return outbound
+			? __( 'This order already has a shipping label. Booking again creates a new shipment at Smart Send; the old one is not cancelled.', 'smart-send-logistics' )
+			: null;
+	};
+
+	const requireConfirmation = ( flow, message ) => {
+		setPendingConfirm( flow );
+		setNotices( [ { key: 'rebook', status: 'warning', message, details: [], responseId: null } ] );
+	};
 
 	const submit = async ( flow ) => {
 		if ( lookupPending ) {
@@ -310,22 +301,9 @@ export default function App( { initialState, mount } ) {
 			return;
 		}
 
-		// First click on an already-booked direction: warn and relabel the
-		// button; the next click on it books.
-		if ( alreadyBooked( flow ) && pendingConfirm !== flow ) {
-			setPendingConfirm( flow );
-			setNotices( [
-				{
-					key: 'rebook',
-					status: 'warning',
-					message:
-						flow === 'return'
-							? __( 'This order already has a return label. Booking again creates a new shipment at Smart Send; the old one is not cancelled.', 'smart-send-logistics' )
-							: __( 'This order already has a shipping label. Booking again creates a new shipment at Smart Send; the old one is not cancelled.', 'smart-send-logistics' ),
-					details: [],
-					responseId: null,
-				},
-			] );
+		const confirmation = rebookingMessage( flow );
+		if ( confirmation && pendingConfirm !== flow ) {
+			requireConfirmation( flow, confirmation );
 			return;
 		}
 
@@ -335,6 +313,13 @@ export default function App( { initialState, mount } ) {
 		try {
 			response = await fulfill( state.urls.rest, requestBody( flow ) );
 		} catch ( error ) {
+			// Another screen may have booked since this one loaded. The
+			// server blocks the request before booking and supplies the warning.
+			if ( error && error.code === 'smart_send_already_booked' ) {
+				requireConfirmation( flow, error.message );
+				setSubmitting( null );
+				return;
+			}
 			const content = requestErrorContent( error );
 			const fields = error && error.data && error.data.form_fields ? error.data.form_fields : {};
 			setFieldErrors( fields );
@@ -350,9 +335,6 @@ export default function App( { initialState, mount } ) {
 
 		entries.forEach( ( entry ) => {
 			if ( entry.status === 'fulfilled' ) {
-				if ( entry.order_note && entry.order_note.html ) {
-					prependOrderNote( entry.order_note.html );
-				}
 				return;
 			}
 
@@ -417,7 +399,13 @@ export default function App( { initialState, mount } ) {
 			message={ notice.message }
 			details={ notice.details }
 			responseId={ notice.responseId }
-			onDismiss={ () => setNotices( ( previous ) => previous.filter( ( other ) => other !== notice ) ) }
+			onDismiss={ () => {
+				if ( notice.key === 'rebook' ) {
+					cancelConfirm();
+				} else {
+					setNotices( ( previous ) => previous.filter( ( other ) => other !== notice ) );
+				}
+			} }
 		/>
 	) );
 

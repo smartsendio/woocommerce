@@ -417,18 +417,13 @@ it('books from the JSON body: the delivery details reach the booking payload and
         ->and($data['shipments'][0]['shipment']['parcels'][1]['dimensions_display'])->toBe('40 × 30 × 20 cm')
         ->and($data['shipments'][0]['steps']['order_note'])->toBeTrue();
 
-    // order_note.id is the note actually added, and .html is WooCommerce's
-    // own order-note list item for it.
+    // The response identifies the persisted note; WooCommerce owns its markup.
     $note_id = $data['shipments'][0]['order_note']['id'];
     expect($note_id)->toBeInt();
     $notes = wc_get_order_notes(['order_id' => $order->get_id()]);
     expect(array_map('intval', wp_list_pluck($notes, 'id')))->toContain($note_id);
-    expect($data['shipments'][0]['order_note']['html'])->toStartWith('<li rel="' . $note_id . '"')
-        ->toContain('class="note"')
-        ->toContain('<div class="note_content">')
-        ->toContain('https://api.example.test/labels/label.pdf')
-        ->toContain('delete_note')
-        ->toEndWith('</li>');
+    expect($data['shipments'][0]['order_note'])->toBe(['id' => $note_id])
+        ->and(wc_get_order_note($note_id)->content)->toContain('https://api.example.test/labels/label.pdf');
 
     // The state after the run equals a subsequent GET and now shows the shipment.
     expect($data['state']['outbound_shipment'])->toBe([
@@ -869,8 +864,12 @@ it('revalidates legacy pickup metadata whose carrier context was not stored', fu
 it('reports a structured pickup error when a server hook supplies an unresolvable point', function () {
     $order = create_rest_order();
     as_rest_user();
-    with_filter('smart_send_delivery_details', function ($details) {
+    $filter = static function ($details) {
         return $details->set_pickup_point((new \Smart_Send\Delivery\Pickup_Point())->set_agent_no('9999'));
+    };
+    add_filter('smart_send_delivery_details', $filter);
+    remember_cleanup_callback(static function () use ($filter): void {
+        remove_filter('smart_send_delivery_details', $filter);
     });
     $capture = mock_api_with_agent_lookup(null);
 
@@ -880,4 +879,107 @@ it('reports a structured pickup error when a server hook supplies an unresolvabl
         ->and($response->get_data()['shipments'][0]['error']['form_fields'])->toHaveKey('pickup_point.agent_no')
         ->and($capture->requests)->toHaveCount(1)
         ->and($capture->requests[0]['url'])->toContain('/agents/');
+});
+
+it('requires confirmation for every already booked direction in the effective request before making any API call', function (array $booked, array $request, string $auto_return, array $directions) {
+    $order = create_rest_order(['auto_return' => $auto_return]);
+    $ids = SS_SHIPPING_WC()->shipment_ids();
+    foreach ($booked as $direction) {
+        $ids->save($order, 'existing-' . $direction, $direction === 'return');
+    }
+    $before = $ids->labels($order);
+    as_rest_user();
+    $capture = mock_smart_send_api();
+    // A pickup lookup would be needed too; the confirmation guard must run
+    // before either lookup or booking starts, even when the admin state is stale.
+    $request['delivery_details']['pickup_point'] = ['agent_no' => 'unresolved-point'];
+    $response = fulfillment_post($order->get_id(), $request);
+    $expected_existing = array_map(static fn (string $direction): array => [
+        'direction' => $direction,
+        'shipment_id' => 'existing-' . $direction,
+    ], array_values(array_intersect($directions, $booked)));
+
+    expect($response->get_status())->toBe(409)
+        ->and($response->get_data()['code'])->toBe('smart_send_already_booked')
+        ->and($response->get_data()['data']['requested_directions'])->toBe($directions)
+        ->and($response->get_data()['data']['already_booked'])->toBe($expected_existing)
+        ->and($capture->requests)->toBe([])
+        ->and($ids->labels(wc_get_order($order->get_id())))->toBe($before);
+    if (count($expected_existing) === 2) {
+        expect($response->get_data()['message'])->toContain('shipping and return labels');
+    } else {
+        expect($response->get_data()['message'])->toContain($expected_existing[0]['direction'] === 'return' ? 'This order already has a return label' : 'This order already has a shipping label');
+    }
+})->with([
+    'return first, explicit combined request' => [['return'], ['flow' => 'outbound', 'with_return' => true], 'no', ['outbound', 'return']],
+    'outbound first, explicit combined request' => [['outbound'], ['flow' => 'outbound', 'with_return' => true], 'no', ['outbound', 'return']],
+    'both already booked' => [['outbound', 'return'], ['flow' => 'outbound', 'with_return' => true], 'no', ['outbound', 'return']],
+    'return first, null follows configured auto return' => [['return'], ['flow' => 'outbound', 'with_return' => null], 'yes', ['outbound', 'return']],
+    'return first, omitted follows configured auto return' => [['return'], ['flow' => 'outbound'], 'yes', ['outbound', 'return']],
+    'outbound override retains order auto return' => [['return'], ['flow' => 'outbound', 'delivery_details' => ['shipping_method' => 'gls_homedelivery']], 'yes', ['outbound', 'return']],
+    'return-only rebooking' => [['return'], ['flow' => 'return'], 'no', ['return']],
+    'outbound-only rebooking' => [['outbound'], ['flow' => 'outbound', 'with_return' => false], 'yes', ['outbound']],
+]);
+
+it('does not require confirmation for a booked direction excluded from the effective request', function (string $booked, array $request, string $auto_return, string $expected_direction) {
+    $order = create_rest_order(['auto_return' => $auto_return]);
+    SS_SHIPPING_WC()->shipment_ids()->save($order, 'existing-' . $booked, $booked === 'return');
+    as_rest_user();
+    $capture = mock_smart_send_api();
+    $response = fulfillment_post($order->get_id(), $request);
+    expect($response->get_status())->toBe(200)
+        ->and($response->get_data()['success'])->toBeTrue()
+        ->and(array_column($response->get_data()['shipments'], 'direction'))->toBe([$expected_direction])
+        ->and($capture->requests)->toHaveCount(1)
+        ->and(SS_SHIPPING_WC()->shipment_ids()->get(wc_get_order($order->get_id()), $booked === 'return'))->toBe('existing-' . $booked);
+})->with([
+    'explicit false overrides auto return' => ['return', ['flow' => 'outbound', 'with_return' => false], 'yes', 'outbound'],
+    'return flow ignores with_return' => ['outbound', ['flow' => 'return', 'with_return' => true], 'yes', 'return'],
+    'submitted return method alone does not enable return' => ['return', ['flow' => 'outbound', 'with_return' => null, 'return_method' => 'gls_returndropoff'], 'no', 'outbound'],
+]);
+
+it('requires confirmation before a combined rebooking and preserves the booked outbound when the return leg fails', function () {
+    $order = create_rest_order(['auto_return' => 'yes']);
+    $ids = SS_SHIPPING_WC()->shipment_ids();
+    $ids->save($order, 'existing-return', true);
+    as_rest_user();
+    $bookings = 0;
+    $capture = mock_smart_send_api(function () use (&$bookings) {
+        $bookings++;
+        return $bookings === 1
+            ? ss_api_response(200, ['data' => ss_api_shipment_data(['shipment_id' => 'new-outbound'])])
+            : ss_api_response(500, ['message' => 'Return booking failed.']);
+    });
+    $body = ['flow' => 'outbound', 'with_return' => null];
+    $refused = fulfillment_post($order->get_id(), $body);
+    expect($refused->get_status())->toBe(409)->and($capture->requests)->toBe([]);
+
+    $confirmed = fulfillment_post($order->get_id(), $body + ['confirm_rebook' => true]);
+    $fresh = wc_get_order($order->get_id());
+    expect($confirmed->get_status())->toBe(200)
+        ->and($confirmed->get_data()['success'])->toBeFalse()
+        ->and(array_column($confirmed->get_data()['shipments'], 'status'))->toBe(['fulfilled', 'failed'])
+        ->and(array_column($confirmed->get_data()['shipments'], 'direction'))->toBe(['outbound', 'return'])
+        ->and($capture->requests)->toHaveCount(2)
+        ->and($ids->get($fresh, false))->toBe('new-outbound')
+        ->and($ids->get($fresh, true))->toBe('existing-return')
+        ->and(array_column($ids->labels($fresh), 'shipment_id'))->toBe(['existing-return', 'new-outbound']);
+
+    // A fresh request must be confirmed again; approval is never stored on
+    // the order, including after a partially successful combined booking.
+    $again = fulfillment_post($order->get_id(), $body);
+    expect($again->get_status())->toBe(409)
+        ->and(array_column($again->get_data()['data']['already_booked'], 'direction'))->toBe(['outbound', 'return'])
+        ->and($capture->requests)->toHaveCount(2);
+});
+
+it('keeps configured auto-return missing-method failures as a partial run after a first outbound booking', function () {
+    $order = create_rest_order(['auto_return' => 'yes', 'return_method' => '']);
+    as_rest_user();
+    $capture = mock_smart_send_api();
+    $response = fulfillment_post($order->get_id(), ['flow' => 'outbound', 'with_return' => null]);
+    expect($response->get_status())->toBe(200)
+        ->and(array_column($response->get_data()['shipments'], 'status'))->toBe(['fulfilled', 'failed'])
+        ->and(array_column($response->get_data()['shipments'], 'direction'))->toBe(['outbound', 'return'])
+        ->and($capture->requests)->toHaveCount(1);
 });

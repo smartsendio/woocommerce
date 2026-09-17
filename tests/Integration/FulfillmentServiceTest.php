@@ -1176,8 +1176,7 @@ it('exposes the run as the canonical to_array() shape, with structured failures 
                 'order_status'   => 'wc-completed',
             ],
             'order_note' => [
-                'id'   => $result->get_order_note_id($shipment),
-                'html' => null,
+                'id' => $result->get_order_note_id($shipment),
             ],
             'warnings'   => [],
         ])
@@ -1207,7 +1206,7 @@ it('exposes the run as the canonical to_array() shape, with structured failures 
     $order_b  = create_fulfillable_order();
     $result_b = fulfillment_service()->fulfill_outbound($order_b->get_id(), false, null, false);
     expect($result_b->get_order_note_id($result_b->get_outbound_shipment()))->toBeNull()
-        ->and($result_b->to_array()[0]['order_note'])->toBe(['id' => null, 'html' => null]);
+        ->and($result_b->to_array()[0]['order_note'])->toBe(['id' => null]);
 
     // The whole result (incl. failures) is a plain serializable DTO.
     assert_no_raw_api_objects($result);
