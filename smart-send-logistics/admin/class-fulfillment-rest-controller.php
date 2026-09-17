@@ -14,7 +14,6 @@ use Smart_Send\Fulfillment\Fulfillment_Service;
 use Smart_Send\Fulfillment\Shipment_IDs;
 use Smart_Send\Shipping_Method\Method_Code;
 use Smart_Send\Support\Logger;
-use Smart_Send\Support\Settings;
 use WC_Order;
 use WP_Error;
 use WP_REST_Request;
@@ -112,29 +111,20 @@ class Fulfillment_REST_Controller {
 	protected Order_Meta $order_meta;
 
 	/**
-	 * Typed plugin settings reader.
-	 *
-	 * @var Settings
-	 */
-	protected Settings $settings;
-
-	/**
 	 * @param Fulfillment_Service         $fulfillment_service The fulfillment service.
 	 * @param Order_Fulfillment_Presenter $presenter           The meta box presenter.
 	 * @param Shipment_IDs                $shipment_ids        Booked shipment id accessor.
 	 * @param Method_Resolver             $method_resolver     Shipping method resolver.
 	 * @param Pickup_Point_Lookup         $pickup_point_lookup Shared pickup point lookup.
 	 * @param Order_Meta                  $order_meta          Order meta repository.
-	 * @param Settings|null               $settings            Typed plugin settings reader (stateless; a fresh default is safe).
 	 */
-	public function __construct( Fulfillment_Service $fulfillment_service, Order_Fulfillment_Presenter $presenter, Shipment_IDs $shipment_ids, Method_Resolver $method_resolver, Pickup_Point_Lookup $pickup_point_lookup, Order_Meta $order_meta, ?Settings $settings = null ) {
+	public function __construct( Fulfillment_Service $fulfillment_service, Order_Fulfillment_Presenter $presenter, Shipment_IDs $shipment_ids, Method_Resolver $method_resolver, Pickup_Point_Lookup $pickup_point_lookup, Order_Meta $order_meta ) {
 		$this->fulfillment_service = $fulfillment_service;
 		$this->presenter           = $presenter;
 		$this->shipment_ids        = $shipment_ids;
 		$this->method_resolver     = $method_resolver;
 		$this->pickup_point_lookup = $pickup_point_lookup;
 		$this->order_meta          = $order_meta;
-		$this->settings            = null === $settings ? new Settings() : $settings;
 	}
 
 	/**

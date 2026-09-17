@@ -32,6 +32,8 @@
  *                        Created order ids come back in state 'orders'.
  */
 
+require_once __DIR__ . '/zone-methods.php';
+
 $config = json_decode(isset($args[0]) ? $args[0] : '{}', true);
 $config = is_array($config) ? $config : array();
 $config += array('settings' => array(), 'orders' => array());
@@ -45,6 +47,15 @@ $state_option = isset($args[1]) ? $args[1] : 'ss_browser_test_state';
 $previous_state = get_option($state_option);
 $previous_state = is_array($previous_state) ? $previous_state : array();
 
+// Persist the originals before the first mutation: a process killed halfway
+// through fixture creation must still have enough information to undo it.
+$state = $previous_state + array(
+    'original_settings' => get_option('woocommerce_smart_send_shipping_settings'),
+    'original_cod_settings' => get_option('woocommerce_cod_settings'),
+    'original_checkout_page' => get_option('woocommerce_checkout_page_id'),
+);
+update_option($state_option, $state);
+
 // The uncleaned seed's fixture pages would otherwise leak (fresh ones are
 // created below and the state option only tracks the newest ids).
 if (!empty($previous_state['checkout_page_id'])) {
@@ -54,9 +65,7 @@ if (!empty($previous_state['block_checkout_page_id'])) {
     wp_delete_post($previous_state['block_checkout_page_id'], true);
 }
 
-$original_settings = array_key_exists('original_settings', $previous_state)
-    ? $previous_state['original_settings']
-    : get_option('woocommerce_smart_send_shipping_settings');
+$original_settings = $state['original_settings'];
 update_option('woocommerce_smart_send_shipping_settings', array_merge(array(
     'api_token' => 'ss-mock-api-token', 'ss_debug' => 'no', 'include_order_comment' => 'no',
     'save_shipping_labels_in_uploads' => 'no', 'dropdown_display_format' => '4',
@@ -70,9 +79,7 @@ delete_option('ss_test_api_scenario');
 
 // Cash on delivery so the checkout can be completed.
 $cod = get_option('woocommerce_cod_settings', array());
-$cod_was_enabled = array_key_exists('cod_was_enabled', $previous_state)
-    ? $previous_state['cod_was_enabled']
-    : (isset($cod['enabled']) ? $cod['enabled'] : 'no');
+$cod_was_enabled = isset($state['original_cod_settings']['enabled']) ? $state['original_cod_settings']['enabled'] : 'no';
 $cod['enabled'] = 'yes';
 update_option('woocommerce_cod_settings', $cod);
 
@@ -94,6 +101,12 @@ if (!$zone_id) {
     $zone_id = $zone->get_id();
 }
 $zone = new WC_Shipping_Zone($zone_id);
+$state['zone_id'] = $zone_id;
+if (!array_key_exists('original_zone_methods', $state)) {
+    $state['original_zone_methods'] = ss_browser_capture_zone($zone);
+}
+update_option($state_option, $state);
+
 $instance_id = 0;
 foreach ($zone->get_shipping_methods() as $iid => $method) {
     if ($method->id === 'smart_send_shipping') {
@@ -143,6 +156,9 @@ global $wpdb;
 $wpdb->update("{$wpdb->prefix}woocommerce_shipping_zone_methods", array('method_order' => 1), array('instance_id' => $flat_instance));
 $wpdb->update("{$wpdb->prefix}woocommerce_shipping_zone_methods", array('method_order' => 2), array('instance_id' => $instance_id));
 
+$state += array('instance_id' => $instance_id, 'flat_instance' => $flat_instance);
+update_option($state_option, $state);
+
 // A classic (shortcode) checkout page; the pickup point selector only
 // renders in the classic checkout.
 $page_id = wp_insert_post(array(
@@ -152,9 +168,9 @@ $page_id = wp_insert_post(array(
     'post_status'  => 'publish',
     'post_type'    => 'page',
 ));
-$original_checkout_page = array_key_exists('original_checkout_page', $previous_state)
-    ? $previous_state['original_checkout_page']
-    : get_option('woocommerce_checkout_page_id');
+$original_checkout_page = $state['original_checkout_page'];
+$state['checkout_page_id'] = $page_id;
+update_option($state_option, $state);
 update_option('woocommerce_checkout_page_id', $page_id);
 
 // A product to buy.
@@ -169,11 +185,16 @@ if (!$product_id) {
     $product_id = $product->get_id();
 }
 
+$state['product_id'] = $product_id;
+update_option($state_option, $state);
+
 // Orders for the admin label tests, built like checkout would build them.
-$make_order = function ($spec) use ($product_id) {
+$make_order = function ($spec) use ($product_id, &$state, $state_option) {
     $auto_return = !empty($spec['auto_return']);
     $quantity = isset($spec['quantity']) ? max(1, (int) $spec['quantity']) : 1;
     $order = wc_create_order(array('status' => 'processing', 'created_via' => 'ss-browser-test'));
+    $state['orders'][] = $order->get_id();
+    update_option($state_option, $state);
     $order->add_product(wc_get_product($product_id), $quantity);
     $address = array(
         'first_name' => 'Browser', 'last_name' => 'Test', 'address_1' => 'Islands Brygge 39',
@@ -218,8 +239,8 @@ foreach ($config['orders'] as $spec) {
 
 $hpos = Automattic\WooCommerce\Utilities\OrderUtil::custom_orders_table_usage_is_enabled();
 
-$state = array(
-    'original_settings'      => $original_settings === false ? null : $original_settings,
+$state = array_merge($state, array(
+    'original_settings'      => $original_settings,
     'zone_id'                => $zone_id,
     'instance_id'            => $instance_id,
     'created_instance'       => $created_instance,
@@ -232,6 +253,6 @@ $state = array(
     'orders'                 => $order_ids,
     'orders_list_path'       => $hpos ? '/wp-admin/admin.php?page=wc-orders' : '/wp-admin/edit.php?post_type=shop_order',
     'hpos'                   => $hpos ? 1 : 0,
-);
+));
 update_option($state_option, $state);
 echo json_encode($state);

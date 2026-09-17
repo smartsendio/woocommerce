@@ -64,7 +64,7 @@ PHP);
 });
 
 afterAll(function (): void {
-    if (!ss_browser_store_manageable() || empty($GLOBALS['ss_method_setup_state'])) {
+    if (!ss_browser_store_manageable()) {
         return;
     }
 

@@ -49,6 +49,7 @@ ADMIN_EMAIL="dev@smartsend.io"
 
 FORCE="false"
 SKIP_SEED="false"
+DISPOSABLE="false"
 
 # Checkout page type (classic|block) and whether product prices are entered
 # including or excluding tax (include|exclude). Resolution order for each:
@@ -82,6 +83,10 @@ Options:
   --env <name>          Read defaults from .env.<name> instead of .env
                         (e.g. --env testing -> .env.testing, the disposable
                         store rebuilt by every composer test:* run)
+  --disposable         Mark this as a disposable test/CI store and disable
+                        automatic WordPress, plugin and theme updates.
+                        Implied by --env testing; ordinary dev stores keep
+                        their existing update policy
 
   --checkout <type>     Checkout page type: "classic" (the [woocommerce_checkout]
                         shortcode) or "block" (the WooCommerce Checkout block).
@@ -97,8 +102,10 @@ Options:
                         install. Default: the WP_ORDER_STORAGE environment
                         variable or env file entry, else default
 
-  --wp-version <v>      WordPress version to install (default: latest)
-  --wc-version <v>      WooCommerce version to install (default: latest)
+  --wp-version <v>      WordPress version to install (default: latest).
+                        Explicit pins must also match an existing install
+  --wc-version <v>      WooCommerce version to install (default: latest).
+                        Explicit pins must also match an existing install
 
   --db-engine <engine>  Database engine: sqlite or mysql (default: sqlite)
   --db-name <name>      MySQL database name (default: smartsend_woo_dev)
@@ -149,11 +156,16 @@ while [[ $# -gt 0 ]]; do
         --prices-tax)   PRICES_TAX="$2"; PRICES_FROM_FLAG="true"; shift 2 ;;
         --order-storage) ORDER_STORAGE="$2"; ORDER_STORAGE_FROM_FLAG="true"; shift 2 ;;
         --skip-seed)    SKIP_SEED="true"; shift ;;
+        --disposable)   DISPOSABLE="true"; shift ;;
         --force)        FORCE="true"; shift ;;
         -h|--help)      usage; exit 0 ;;
         *) echo "Unknown option: $1" >&2; usage; exit 1 ;;
     esac
 done
+
+if [[ "$ENV_NAME" == "testing" ]]; then
+    DISPOSABLE="true"
+fi
 
 if [[ "$DB_ENGINE" != "sqlite" && "$DB_ENGINE" != "mysql" ]]; then
     echo "Error: --db-engine must be 'sqlite' or 'mysql' (got '$DB_ENGINE')" >&2
@@ -266,7 +278,7 @@ mkdir -p "$INSTALL_PATH"
 INSTALL_PATH="$(cd "$INSTALL_PATH" && pwd)"
 
 # ------------------------------------------------------------------------------
-# WP-CLI bootstrap (pinned phar, independent of any globally installed wp)
+# WP-CLI bootstrap (local phar, independent of any globally installed wp)
 # ------------------------------------------------------------------------------
 PHP_BIN="${PHP_BIN:-php}"
 if ! command -v "$PHP_BIN" >/dev/null 2>&1; then
@@ -296,6 +308,32 @@ wp() {
         2> >(grep -vE '^(Deprecated|Notice): ' >&2 || true)
 }
 
+# A reused store may have been upgraded since it was first provisioned. Do not
+# silently claim coverage of a pinned floor against that newer installation.
+# "latest" is intentionally unpinned; still report its effective version.
+require_version() {
+    local component="$1" requested="$2" installed="$3"
+    if [[ -z "$installed" || ( "$requested" != "latest" && "$installed" != "$requested" ) ]]; then
+        echo "Error: $component version mismatch: requested '$requested', installed '${installed:-unknown}' at $INSTALL_PATH." >&2
+        if [[ "$DISPOSABLE" == "true" ]]; then
+            echo "Rebuild this disposable store with --force, or select an installation matching the requested version." >&2
+        else
+            echo "Select a separate installation directory or a version matching this existing store." >&2
+        fi
+        exit 1
+    fi
+}
+
+verify_wordpress_version() {
+    INSTALLED_WP_VERSION="$(wp core version)"
+    require_version "WordPress" "$WP_VERSION" "$INSTALLED_WP_VERSION"
+}
+
+verify_woocommerce_version() {
+    INSTALLED_WC_VERSION="$(wp plugin get woocommerce --field=version --skip-plugins --skip-themes)"
+    require_version "WooCommerce" "$WC_VERSION" "$INSTALLED_WC_VERSION"
+}
+
 # ------------------------------------------------------------------------------
 # Fresh start?
 # ------------------------------------------------------------------------------
@@ -317,6 +355,7 @@ else
         wp core download --version="$WP_VERSION"
     fi
 fi
+verify_wordpress_version
 
 # ------------------------------------------------------------------------------
 # 2. SQLite drop-in (before wp-config, so the config check uses SQLite too)
@@ -364,6 +403,15 @@ define( 'FS_METHOD', 'direct' );
 PHP
 fi
 
+# This belongs to the disposable installation, never to the distributed plugin.
+# Set it before any command boots WordPress, including core is-installed, so a
+# cron-triggered update cannot replace pinned core/plugin versions during setup
+# or between CI requests. Re-apply it when reusing a disposable store as well.
+if [[ "$DISPOSABLE" == "true" ]]; then
+    log "Disabling automatic updates in the disposable test store"
+    wp config set AUTOMATIC_UPDATER_DISABLED true --raw >/dev/null
+fi
+
 # ------------------------------------------------------------------------------
 # 4. Create database (MySQL only) and install WordPress
 # ------------------------------------------------------------------------------
@@ -388,8 +436,9 @@ fi
 # ------------------------------------------------------------------------------
 # 5. Install WooCommerce
 # ------------------------------------------------------------------------------
-if wp plugin is-installed woocommerce 2>/dev/null; then
+if wp plugin is-installed woocommerce --skip-plugins --skip-themes 2>/dev/null; then
     log "WooCommerce already installed, skipping"
+    verify_woocommerce_version
 else
     log "Installing WooCommerce ($WC_VERSION)"
     if [[ "$WC_VERSION" == "latest" ]]; then
@@ -397,6 +446,7 @@ else
     else
         wp plugin install woocommerce --version="$WC_VERSION" --activate
     fi
+    verify_woocommerce_version
 fi
 wp plugin activate woocommerce >/dev/null 2>&1 || true
 
@@ -586,6 +636,11 @@ wp option update woocommerce_extended_task_list_hidden "yes" >/dev/null 2>&1 || 
 
 wp cache flush >/dev/null 2>&1 || true
 
+# Check again immediately before reporting success. The same validation covers
+# both fresh installs and reused stores, including explicit floor-version pins.
+verify_wordpress_version
+verify_woocommerce_version
+
 # ------------------------------------------------------------------------------
 # Done
 # ------------------------------------------------------------------------------
@@ -611,8 +666,9 @@ Local development store is ready!
   URL:         $SITE_URL
   Admin:       $SITE_URL/wp-admin ($ADMIN_USER / $ADMIN_PASS)
   Database:    $DB_ENGINE$( [[ "$DB_ENGINE" == "mysql" ]] && echo " ($DB_NAME @ $DB_HOST)" )
-  WordPress:   $(wp core version 2>/dev/null)
-  WooCommerce: $(wp plugin get woocommerce --field=version 2>/dev/null)
+  WordPress:   $INSTALLED_WP_VERSION (requested: $WP_VERSION)
+  WooCommerce: $INSTALLED_WC_VERSION (requested: $WC_VERSION)
+  Auto-update: $( [[ "$DISPOSABLE" == "true" ]] && echo "disabled (disposable test store)" || echo "existing store policy" )
   Smart Send:  symlinked from $PLUGIN_SRC
   Checkout:    $CHECKOUT_TYPE (--checkout / WP_CHECKOUT)
   Prices:      entered $( [[ "$PRICES_TAX" == "include" ]] && echo "including" || echo "excluding" ) tax (--prices-tax / WP_PRICES_TAX)

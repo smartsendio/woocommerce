@@ -339,12 +339,11 @@ class Plugin {
 				$this->shipment_ids,
 				$this->method_resolver,
 				$this->pickup_point_lookup,
-				$this->order_meta,
-				$this->settings
+				$this->order_meta
 			);
 			$this->test_connection        = new Test_Connection( new API_Factory( $this->settings ) );
 			$this->rate_sorter            = new Rate_Sorter( $this->settings );
-			$this->bulk_actions           = new Order_Bulk_Actions( $this->method_resolver, $this->fulfillment_service, $this->admin_notices, $this->settings );
+			$this->bulk_actions           = new Order_Bulk_Actions( $this->method_resolver, $this->fulfillment_service, $this->admin_notices );
 			$this->subscriptions_compat   = new Subscriptions_Compat();
 
 			$this->block_checkout = new Block_Checkout();

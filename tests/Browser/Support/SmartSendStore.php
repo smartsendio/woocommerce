@@ -17,7 +17,7 @@
 | all test files into one process.
 |
 | These helpers need filesystem + WP-CLI access to the store installation
-| (WP_DEV_PATH, default ./local-dev/wordpress) in addition to WP_BASE_URL;
+| (WP_PATH, with WP_DEV_PATH as a fallback) in addition to WP_URL;
 | tests using them are skipped when the installation is not reachable,
 | e.g. when the suite targets a remote store.
 |
@@ -25,7 +25,7 @@
 
 function ss_browser_wp_path(): string
 {
-    return rtrim(getenv('WP_DEV_PATH') ?: dirname(__DIR__, 3) . '/local-dev/wordpress', '/');
+    return ss_test_wp_path();
 }
 
 function ss_browser_store_manageable(): bool
@@ -42,7 +42,7 @@ function ss_browser_store_manageable(): bool
 function ss_browser_skip_unless_store_manageable($test): void
 {
     if (!ss_browser_store_manageable()) {
-        $test->markTestSkipped('The WordPress installation is not reachable from the test process (WP_DEV_PATH).');
+        $test->markTestSkipped('The WordPress installation is not reachable from the test process (WP_PATH or WP_DEV_PATH).');
     }
 }
 
@@ -108,60 +108,70 @@ function ss_browser_wp_eval_file(string $snippet, array $args = []): array
  */
 function ss_browser_snapshot_and_clear_zone_methods(int $zoneId, string $optionName): void
 {
+    $snippet = var_export(__DIR__ . '/Snippets/zone-methods.php', true);
     $encodedOption = var_export($optionName, true);
 
     ss_browser_wp_eval(<<<PHP
-        \$zone = new WC_Shipping_Zone({$zoneId});
-        \$snapshot = array();
-        foreach (\$zone->get_shipping_methods() as \$method) {
-            \$snapshot[] = array(
-                'method_id' => \$method->id,
-                'settings'  => get_option('woocommerce_' . \$method->id . '_' . \$method->instance_id . '_settings'),
-                'enabled'   => \$method->enabled,
-                'order'     => isset(\$method->method_order) ? (int) \$method->method_order : 0,
-            );
-            \$zone->delete_shipping_method(\$method->instance_id);
-        }
-        update_option({$encodedOption}, \$snapshot);
-        echo json_encode(array('snapshotted' => count(\$snapshot)));
+        require_once {$snippet};
+        echo json_encode(array('snapshotted' => ss_browser_snapshot_and_clear_saved_zone({$zoneId}, {$encodedOption})));
+        PHP);
+}
+
+/** Restore only a saved zone snapshot; an absent snapshot never clears a zone. */
+function ss_browser_restore_zone_methods(int $zoneId, string $optionName): void
+{
+    $snippet = var_export(__DIR__ . '/Snippets/zone-methods.php', true);
+    $encodedOption = var_export($optionName, true);
+
+    ss_browser_wp_eval(<<<PHP
+        require_once {$snippet};
+        echo json_encode(array('restored' => ss_browser_restore_saved_zone({$zoneId}, {$encodedOption})));
         PHP);
 }
 
 /**
- * Remove whatever the calling suite configured on the given zone and restore
- * the methods snapshotted by ss_browser_snapshot_and_clear_zone_methods()
- * (fresh instance ids, same configuration).
+ * Recover persisted fixtures left by a killed test process before the next
+ * suite reaches its baseline checks. Safe to call again on a clean store.
  */
-function ss_browser_restore_zone_methods(int $zoneId, string $optionName): void
+function ss_browser_recover_store(int $zone_id = 1): void
 {
-    $encodedOption = var_export($optionName, true);
+    if (!ss_browser_store_manageable()) {
+        return;
+    }
 
-    ss_browser_wp_eval(<<<PHP
-        \$zone = new WC_Shipping_Zone({$zoneId});
-        foreach (\$zone->get_shipping_methods() as \$method) {
-            \$zone->delete_shipping_method(\$method->instance_id);
+    ss_browser_wp_eval(<<<'PHP'
+$stash = get_option('ss_browser_activation_original');
+if (is_array($stash) && array_key_exists('settings', $stash)) {
+    if ($stash['settings'] === false) {
+        delete_option('woocommerce_smart_send_shipping_settings');
+    } else {
+        update_option('woocommerce_smart_send_shipping_settings', $stash['settings']);
+    }
+    delete_option('ss_browser_activation_original');
+}
+if (is_array(get_option('ss_method_setup_zone_snapshot'))) {
+    foreach (array('SS-UI-LIGHT', 'SS-UI-HEAVY') as $sku) {
+        $product_id = wc_get_product_id_by_sku($sku);
+        if ($product_id) {
+            wc_get_product($product_id)->delete(true);
         }
-        global \$wpdb;
-        foreach (get_option({$encodedOption}, array()) as \$entry) {
-            \$instance_id = \$zone->add_shipping_method(\$entry['method_id']);
-            if (is_array(\$entry['settings'])) {
-                update_option('woocommerce_' . \$entry['method_id'] . '_' . \$instance_id . '_settings', \$entry['settings']);
-            }
-            // add_shipping_method() appends (enabled, next order); restore the
-            // snapshotted order and enabled flag so the store's rate ordering -
-            // which determines the preselected method at checkout - survives.
-            \$wpdb->update(
-                "{\$wpdb->prefix}woocommerce_shipping_zone_methods",
-                array(
-                    'method_order' => isset(\$entry['order']) ? (int) \$entry['order'] : 0,
-                    'is_enabled'   => (isset(\$entry['enabled']) && 'yes' !== \$entry['enabled']) ? 0 : 1,
-                ),
-                array('instance_id' => \$instance_id)
-            );
-        }
-        delete_option({$encodedOption});
-        echo json_encode(array('restored' => true));
-        PHP);
+    }
+}
+echo json_encode(array('recovered' => true));
+PHP);
+
+    ss_browser_restore_zone_methods($zone_id, 'ss_method_setup_zone_snapshot');
+    ss_browser_restore_zone_methods($zone_id, 'ss_docs_zone_snapshot');
+    ss_browser_cleanup_store();
+}
+
+function ss_browser_recover_store_once(): void
+{
+    static $recovered = false;
+    if (!$recovered) {
+        ss_browser_recover_store();
+        $recovered = true;
+    }
 }
 
 function ss_browser_mu_plugin_path(): string
@@ -352,7 +362,7 @@ function ss_browser_seed_store(array $config = []): array
  */
 function ss_browser_create_block_checkout_page(): int
 {
-    $result = ss_browser_wp_eval_file(__DIR__ . '/Snippets/create-block-checkout-page.php');
+    $result = ss_browser_wp_eval_file(__DIR__ . '/Snippets/create-block-checkout-page.php', ['ss_browser_test_state']);
 
     return (int) $result['page_id'];
 }
@@ -371,11 +381,10 @@ function ss_browser_delete_block_checkout_page(int $page_id): void
  */
 function ss_browser_cleanup_store(): void
 {
-    if (empty($GLOBALS['ss_browser_state'])) {
+    $result = ss_browser_wp_eval_file(__DIR__ . '/Snippets/cleanup-store.php');
+    if (!$result['cleaned']) {
         return;
     }
-
-    ss_browser_wp_eval_file(__DIR__ . '/Snippets/cleanup-store.php');
 
     ss_browser_remove_api_mock();
     ss_browser_remove_methods_filter();
