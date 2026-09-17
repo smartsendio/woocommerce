@@ -11,35 +11,20 @@ namespace Smart_Send\Delivery;
 
 use Smart_Send\Booking\Parcel;
 use Smart_Send\Booking\Shipment_Builder;
-use WC_Order;
+use InvalidArgumentException;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit; // Exit if accessed directly.
 }
 
 /**
- * One planned parcel (#139): the INPUT side of the parcel domain.
+ * One planned parcel, with optional measurements and order-line allocations.
  *
- * Every field is optional by design - a shop must be able to declare
- * (via the smart_send_delivery_details filter) "2 parcels of size
- * X/Y/Z and weight W" with no item information at all. An explicit
- * weight always wins over any item-sum when the plan is resolved
- * (packaging weight is real). The resolved OUTPUT side is
- * Parcel, produced by Shipment_Builder.
- *
- * Item allocations are rows of the shape
- * array( 'id' => product/variation id, 'quantity' => units, 'name' => label|null ).
- *
- * to_array()/from_array() are the canonical JSON form of a spec (#182):
- * array( 'reference' => string|null, 'weight' => float|null, 'length'
- * => float|null, 'width' => float|null, 'height' => float|null, 'items'
- * => array( array( 'id', 'quantity', 'name' ), ... ) ). Every scalar
- * is optional on the way in - an absent or null weight means "compute
- * it from the items" (see the smart_send_parcel_default_weight filter
- * in Shipment_Builder), absent dimensions mean "none".
- *
- * Serializable, with no live WC_Order or WordPress dependency
- * (Phase 7 queues delivery details).
+ * Allocations identify a WooCommerce order item, never a catalog product:
+ * array( 'order_item_id' => positive int, 'quantity' => positive int,
+ * 'name' => display label|null ). The name never determines identity.
+ * An explicit weight overrides the allocated items' combined weight.
+ * The canonical JSON form is produced by to_array().
  */
 class Parcel_Spec {
 
@@ -72,53 +57,48 @@ class Parcel_Spec {
 	protected ?float $length = null;
 
 	/**
-	 * Reference label of the spec inside its plan - for a plan built
-	 * from the stored "Split into parcels" meta this is the box number
-	 * ('1'-'9'), preserved so a read-modify-write round-trips the
-	 * frozen meta format.
+	 * Reference label of this parcel inside its plan.
 	 *
 	 * @var string|null
 	 */
 	protected ?string $reference = null;
 
 	/**
-	 * Item allocations: id, quantity, name (label) per row.
+	 * Item allocations: order_item_id, quantity, name (label) per row.
 	 *
 	 * @var array[]
 	 */
 	protected array $items = array();
 
 	/**
-	 * Build a spec from its to_array() form (the canonical JSON shape).
+	 * Parse the canonical shape without accepting legacy product-id rows.
 	 *
-	 * Every key is optional: a missing or null 'weight', 'length',
-	 * 'width', 'height' or 'reference' stays null; 'items' defaults to
-	 * no allocations. An item row needs an 'id'; 'quantity' defaults to
-	 * 1 and 'name' to null (rows without an id are dropped).
-	 *
-	 * @param array $data The array produced by to_array() (or the decoded JSON of a request).
-	 *
+	 * @param array $data Canonical parcel data.
 	 * @return self
+	 * @throws InvalidArgumentException When the shape or an allocation is invalid.
 	 */
 	public static function from_array( array $data ): self {
-		$spec = new self();
+		$allowed = array( 'reference', 'weight', 'length', 'width', 'height', 'items' );
+		if ( array_diff( array_keys( $data ), $allowed ) ) {
+			self::invalid( 'Parcel data contains unsupported fields.' );
+		}
+		if ( array_key_exists( 'items', $data ) && ! is_array( $data['items'] ) ) {
+			self::invalid( 'Parcel items must be an array of order-item allocations.' );
+		}
 
+		$spec = new self();
 		$spec->set_reference( isset( $data['reference'] ) ? $data['reference'] : null )
 			->set_weight( self::float_or_null( $data, 'weight' ) )
 			->set_length( self::float_or_null( $data, 'length' ) )
 			->set_width( self::float_or_null( $data, 'width' ) )
 			->set_height( self::float_or_null( $data, 'height' ) );
 
-		foreach ( isset( $data['items'] ) && is_array( $data['items'] ) ? $data['items'] : array() as $item ) {
-			if ( ! is_array( $item ) || ! isset( $item['id'] ) ) {
-				continue;
+		foreach ( isset( $data['items'] ) ? $data['items'] : array() as $item ) {
+			if ( ! is_array( $item ) || ! isset( $item['order_item_id'], $item['quantity'] )
+				|| array_diff( array_keys( $item ), array( 'order_item_id', 'quantity', 'name' ) ) ) {
+				self::invalid( 'Each parcel item requires an order_item_id and quantity; legacy product-id rows are not supported.' );
 			}
-
-			$spec->add_item(
-				$item['id'],
-				isset( $item['quantity'] ) ? (int) $item['quantity'] : 1,
-				isset( $item['name'] ) ? (string) $item['name'] : null
-			);
+			$spec->add_item( $item['order_item_id'], $item['quantity'], isset( $item['name'] ) ? $item['name'] : null );
 		}
 
 		return $spec;
@@ -153,7 +133,7 @@ class Parcel_Spec {
 			return null;
 		}
 
-		return (float) $data[ $key ];
+		return self::measurement( $data[ $key ] );
 	}
 
 	/**
@@ -174,7 +154,7 @@ class Parcel_Spec {
 	 * @return self
 	 */
 	public function set_weight( $weight ): self {
-		$this->weight = null === $weight ? null : (float) $weight;
+		$this->weight = self::measurement( $weight );
 
 		return $this;
 	}
@@ -196,7 +176,7 @@ class Parcel_Spec {
 	 * @return self
 	 */
 	public function set_height( $height ): self {
-		$this->height = null === $height ? null : (float) $height;
+		$this->height = self::measurement( $height );
 
 		return $this;
 	}
@@ -218,7 +198,7 @@ class Parcel_Spec {
 	 * @return self
 	 */
 	public function set_width( $width ): self {
-		$this->width = null === $width ? null : (float) $width;
+		$this->width = self::measurement( $width );
 
 		return $this;
 	}
@@ -240,14 +220,13 @@ class Parcel_Spec {
 	 * @return self
 	 */
 	public function set_length( $length ): self {
-		$this->length = null === $length ? null : (float) $length;
+		$this->length = self::measurement( $length );
 
 		return $this;
 	}
 
 	/**
-	 * Get the reference label of the spec (the box number for plans
-	 * built from the stored parcel-split meta).
+	 * Get the reference label of the spec.
 	 *
 	 * @return string|null
 	 */
@@ -263,34 +242,87 @@ class Parcel_Spec {
 	 * @return self
 	 */
 	public function set_reference( $reference ): self {
+		if ( null !== $reference && ! is_scalar( $reference ) ) {
+			self::invalid( 'A parcel reference must be a scalar label.' );
+		}
 		$this->reference = null === $reference ? null : (string) $reference;
 
 		return $this;
 	}
 
 	/**
-	 * Allocate items to the parcel.
+	 * Allocate a positive whole number of units of one order item.
 	 *
-	 * @param int|string  $id       Product or variation id of the order line.
-	 * @param int         $quantity Number of units of that line in this parcel.
-	 * @param string|null $name     Display label of the allocation, kept so the frozen meta rows round-trip.
-	 *
+	 * @param int|string  $order_item_id WooCommerce order-item identifier.
+	 * @param int|string  $quantity      Allocated units of that order line.
+	 * @param string|null $name          Optional display label.
 	 * @return self
+	 * @throws InvalidArgumentException When identity or quantity is invalid or the order item is already allocated here.
 	 */
-	public function add_item( $id, $quantity = 1, $name = null ): self {
+	public function add_item( $order_item_id, $quantity = 1, $name = null ): self {
+		if ( ! self::is_positive_integer( $order_item_id ) || ! self::is_positive_integer( $quantity ) ) {
+			self::invalid( 'Parcel order_item_id and quantity must be positive integers.' );
+		}
+		if ( null !== $name && ! is_string( $name ) ) {
+			self::invalid( 'A parcel item name must be a string or null.' );
+		}
+		foreach ( $this->items as $item ) {
+			if ( $item['order_item_id'] === (int) $order_item_id ) {
+				self::invalid( 'Each order item may appear only once in a parcel; use its quantity to allocate multiple units.' );
+			}
+		}
+
 		$this->items[] = array(
-			'id'       => $id,
-			'quantity' => (int) $quantity,
-			'name'     => $name,
+			'order_item_id' => (int) $order_item_id,
+			'quantity'      => (int) $quantity,
+			'name'          => $name,
 		);
 
 		return $this;
 	}
 
 	/**
+	 * Recognize integer input without truncating fractions or overflowing.
+	 *
+	 * @param mixed $value Candidate identity or quantity.
+	 * @return bool
+	 */
+	public static function is_positive_integer( $value ): bool {
+		return ( is_int( $value ) || is_string( $value ) )
+			&& false !== filter_var( $value, FILTER_VALIDATE_INT, array( 'options' => array( 'min_range' => 1 ) ) );
+	}
+
+	/**
+	 * Normalize an optional non-negative finite measurement.
+	 *
+	 * @param mixed $value Measurement in kg or cm.
+	 * @return float|null
+	 */
+	protected static function measurement( $value ) {
+		if ( null === $value ) {
+			return null;
+		}
+		if ( ! is_numeric( $value ) || ! is_finite( (float) $value ) || (float) $value < 0 ) {
+			self::invalid( 'Parcel measurements must be non-negative finite numbers or null.' );
+		}
+		return (float) $value;
+	}
+
+	/**
+	 * Reject invalid data at a boundary, without silently losing allocations.
+	 *
+	 * @param string $message Plain-text validation failure.
+	 * @throws InvalidArgumentException Always.
+	 */
+	protected static function invalid( string $message ): void {
+		// phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- Boundary catches this plain-text data exception before rendering.
+		throw new InvalidArgumentException( $message );
+	}
+
+	/**
 	 * Get the item allocations.
 	 *
-	 * @return array[] Rows of id, quantity, name.
+	 * @return array[] Rows of order_item_id, quantity, name.
 	 */
 	public function get_items(): array {
 		return $this->items;

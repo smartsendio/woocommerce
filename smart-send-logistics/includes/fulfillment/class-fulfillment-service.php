@@ -167,7 +167,7 @@ class Fulfillment_Service {
 	 * @param int|WC_Order                      $order              Order id or order object.
 	 * @param boolean                           $save_order_note    Whether to save an order note with information about the label.
 	 * @param Delivery_Details|null $delivery_overrides Partial delivery details submitted with the request (e.g. from the order meta box): a submitted field wins over the stored/derived value, and what has storage (pickup point, parcel item rows) is persisted only after the booking succeeded.
-	 * @param boolean|null                      $with_return        Whether to also create the return label: null follows the order's shipping method's auto-generate-return-label setting (what bulk passes), true/false override it. The return leg reads the freshly persisted details and the order's return method; the outbound overrides are per outbound booking.
+	 * @param boolean|null                      $with_return        Whether to also create the return label: null follows the order's shipping method's auto-generate-return-label setting (what bulk passes), true/false override it. The return leg reads the freshly persisted details and the order's return method, retaining the submitted parcel plan's per-booking measurements unless a separate return plan was submitted.
 	 * @param Delivery_Details|null $return_overrides   Partial delivery details for the return leg of the same run (#182): a submitted return method wins over the configured one, which is how an order without a Smart Send method books outbound and return in one run. Null keeps the configured return method.
 	 *
 	 * @return Fulfillment_Result
@@ -192,6 +192,14 @@ class Fulfillment_Service {
 		// failed used to silently skip the configured auto-return label; now the
 		// return label is still attempted and both outcomes are reported.
 		if ( $outbound_booked && $with_return ) {
+			// Parcel measurements are per booking and absent from persisted meta.
+			// Keep the submitted plan for both legs without copying outbound methods
+			// or pickup overrides, and let an explicitly submitted return plan win.
+			if ( null !== $delivery_overrides && null !== $delivery_overrides->get_parcel_plan()
+				&& ( null === $return_overrides || null === $return_overrides->get_parcel_plan() ) ) {
+				$return_overrides = null === $return_overrides ? new Delivery_Details() : clone $return_overrides;
+				$return_overrides->set_parcel_plan( Parcel_Plan::from_array( $delivery_overrides->get_parcel_plan()->to_array() ) );
+			}
 			$entries[] = $this->fulfill_leg( $order, true, $save_order_note, $return_booked, $return_overrides );
 		}
 
@@ -505,8 +513,8 @@ class Fulfillment_Service {
 			 * about how the order ships: override the shipping method,
 			 * clear or replace the pickup point (Pickup_Point),
 			 * or declare a parcel plan (Parcel_Plan of
-			 * Parcel_Spec rows - specs may carry dimensions
-			 * and an explicit weight with no item allocations at all).
+			 * Parcel_Spec rows - a single itemless spec includes all items
+			 * and can supply dimensions and an explicit weight).
 			 *
 			 * Replaces the removed smart_send_shipping_label_args,
 			 * smart_send_order_parcels, smart_send_order_pickup_point and
@@ -522,7 +530,18 @@ class Fulfillment_Service {
 			 */
 			$details = apply_filters( 'smart_send_delivery_details', $details, $order, $is_return );
 
+			if ( null === $details->get_parcel_plan() ) {
+				$parcel_error = $this->order_meta->parcel_plan_error( $order );
+				if ( null !== $parcel_error ) {
+					// phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- Recorded as error data and escaped by the presentation layer.
+					throw new Booking_Exception( $parcel_error, array( 'parcel_plan' => array( $parcel_error ) ) );
+				}
+			}
+
 			$shipment = $this->booking_service->book( $order, $details, $is_return );
+		} catch ( \InvalidArgumentException $e ) {
+			$message = __( 'The parcel plan is invalid. Reset it and allocate the current order items again.', 'smart-send-logistics' );
+			return Fulfillment_Result::failed_entry( $is_return, $message, '', array( 'parcel_plan' => array( $message ) ) );
 		} catch ( Booking_Exception $e ) {
 			// The booking failed. Record the error as data, so it can be shown to the user.
 			return Fulfillment_Result::failed_entry( $is_return, $e->getMessage(), $this->format_booking_error( $e ), $e->errors(), $e->response_id() );

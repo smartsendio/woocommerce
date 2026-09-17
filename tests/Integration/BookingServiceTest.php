@@ -221,10 +221,10 @@ it('carries the weight, dimensions and reference of each request parcel onto the
 
     // Two boxes: the second with explicit measures.
     $plan = new \Smart_Send\Delivery\Parcel_Plan();
-    $plan->add_spec((new \Smart_Send\Delivery\Parcel_Spec())->add_item($product->get_id(), 2));
+    $plan->add_spec((new \Smart_Send\Delivery\Parcel_Spec())->add_item(order_item_id_for_product($order, $product), 2));
     $plan->add_spec(
         (new \Smart_Send\Delivery\Parcel_Spec())
-            ->add_item($product->get_id(), 1)
+            ->add_item(order_item_id_for_product($order, $product), 1)
             ->set_weight(2.5)
             ->set_length(40)
             ->set_width(30)
@@ -272,8 +272,8 @@ it('degrades gracefully when the API answers with a different number of parcels 
     $order   = create_order(['products' => [[$product, 2]], 'shipping_method' => 'postnord_agent']);
 
     $plan = new \Smart_Send\Delivery\Parcel_Plan();
-    $plan->add_spec((new \Smart_Send\Delivery\Parcel_Spec())->add_item($product->get_id(), 1)->set_weight(1.5));
-    $plan->add_spec((new \Smart_Send\Delivery\Parcel_Spec())->add_item($product->get_id(), 1)->set_weight(2.5));
+    $plan->add_spec((new \Smart_Send\Delivery\Parcel_Spec())->add_item(order_item_id_for_product($order, $product), 1)->set_weight(1.5));
+    $plan->add_spec((new \Smart_Send\Delivery\Parcel_Spec())->add_item(order_item_id_for_product($order, $product), 1)->set_weight(2.5));
 
     mock_smart_send_api(function () {
         return ss_api_response(200, ['data' => ss_api_shipment_data([

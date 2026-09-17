@@ -97,45 +97,67 @@ export function emptyBox() {
 /**
  * The editor's boxes and per-unit assignment from a stored parcel plan:
  * walks every spec's allocations and hands the order's units out by
- * product id, in order (the same walk
- * Smart_Send\Admin\Order_Fulfillment_Presenter::stored_box_numbers() does).
- * Units the plan does not mention land in the first box; an empty plan is
- * one box holding everything.
+ * order item id. An empty plan or a single itemless spec means one box
+ * holding everything. Every explicit allocation must account for exactly
+ * the current order's units; stale or legacy plans require an explicit reset.
  *
  * @param {Array}       units The order's units (state.order.units).
  * @param {Object|null} plan  The stored plan (state.delivery_details.parcel_plan).
- * @return {{boxes: Array, assignment: number[]}} The boxes and, per unit index, its box index.
+ * @return {{boxes: Array, assignment: number[], error: boolean}} The boxes, assignments and invalid-plan flag.
  */
 export function boxesFromPlan( units, plan ) {
-	const specs = plan && Array.isArray( plan.specs ) ? plan.specs : [];
+	const fallback = {
+		boxes: [ emptyBox() ],
+		assignment: units.map( () => 0 ),
+		error: false,
+	};
+	if ( plan === null || plan === undefined ) {
+		return fallback;
+	}
+	if ( ! Array.isArray( plan.specs ) ) {
+		return { ...fallback, error: true };
+	}
+	const specs = plan.specs;
 
 	if ( specs.length === 0 ) {
-		return {
-			boxes: [ emptyBox() ],
-			assignment: units.map( () => 0 ),
-		};
+		return fallback;
 	}
 
-	const remaining = {};
+	const remaining = new Map();
 	units.forEach( ( unit, index ) => {
-		const id = String( unit.id );
-		remaining[ id ] = remaining[ id ] || [];
-		remaining[ id ].push( index );
+		const id = String( unit.order_item_id );
+		if ( ! remaining.has( id ) ) {
+			remaining.set( id, [] );
+		}
+		remaining.get( id ).push( index );
 	} );
 
-	const assignment = units.map( () => 0 );
+	const assignment = units.map( () => null );
+	let error = false;
 	const boxes = specs.map( ( spec, boxIndex ) => {
-		( spec.items || [] ).forEach( ( item ) => {
-			const id = String( item.id );
-			const quantity = parseInt( item.quantity, 10 ) || 1;
+		if ( ! spec || ! Array.isArray( spec.items ) ) {
+			error = true;
+			return emptyBox();
+		}
+		if ( specs.length === 1 && spec.items.length === 0 ) {
+			assignment.fill( 0 );
+		}
+		spec.items.forEach( ( item ) => {
+			const id = item && Number( item.order_item_id );
+			const quantity = item && Number( item.quantity );
+			const available = remaining.get( String( id ) );
+			if ( ! Number.isInteger( id ) || id <= 0 || ! Number.isInteger( quantity ) || quantity <= 0 || ! available || available.length < quantity ) {
+				error = true;
+				return;
+			}
 
 			for ( let unit = 0; unit < quantity; unit++ ) {
-				if ( ! remaining[ id ] || remaining[ id ].length === 0 ) {
-					break;
-				}
-				assignment[ remaining[ id ].shift() ] = boxIndex;
+				assignment[ available.shift() ] = boxIndex;
 			}
 		} );
+		if ( specs.length > 1 && ! assignment.includes( boxIndex ) && units.length > 0 ) {
+			error = true;
+		}
 
 		return {
 			weight: numberToInput( spec.weight ),
@@ -145,12 +167,15 @@ export function boxesFromPlan( units, plan ) {
 		};
 	} );
 
-	return { boxes, assignment };
+	if ( error || assignment.includes( null ) ) {
+		return { ...fallback, error: true };
+	}
+	return { boxes, assignment, error: false };
 }
 
 /**
  * The parcel plan to submit for the editor's boxes: one spec per box with
- * the units grouped into { id, quantity } allocations (names are filled
+ * the units grouped into { order_item_id, quantity } allocations (names are filled
  * server-side) and the optional weight/dimensions as numbers. A single
  * box without an explicit weight or dimension is the "one parcel" default
  * and submits an empty specs list, which clears a stored split.
@@ -173,12 +198,12 @@ export function planFromBoxes( units, boxes, assignment ) {
 				return;
 			}
 
-			const existing = items.find( ( item ) => String( item.id ) === String( unit.id ) );
+			const existing = items.find( ( item ) => String( item.order_item_id ) === String( unit.order_item_id ) );
 
 			if ( existing ) {
 				existing.quantity += 1;
 			} else {
-				items.push( { id: unit.id, quantity: 1 } );
+				items.push( { order_item_id: unit.order_item_id, quantity: 1 } );
 			}
 		} );
 
@@ -196,7 +221,7 @@ export function planFromBoxes( units, boxes, assignment ) {
 }
 
 /**
- * The product lines of a box: one row per product id that has units in
+ * The order lines of a box: one row per order item id that has units in
  * the box, with the count in the box and the line's total on the order
  * (the editor shows "× count / of total"). Order of first appearance in
  * the units list.
@@ -210,7 +235,7 @@ export function boxLines( units, assignment, boxIndex ) {
 	const lines = [];
 
 	units.forEach( ( unit, unitIndex ) => {
-		const id = String( unit.id );
+		const id = String( unit.order_item_id );
 		let line = lines.find( ( other ) => other.id === id );
 
 		if ( ! line ) {
@@ -234,13 +259,13 @@ export function boxLines( units, assignment, boxIndex ) {
  *
  * @param {Array}    units      The order's units.
  * @param {number[]} assignment Per unit index, its box index.
- * @param {string}   id         The product id.
+ * @param {string}   id         The order item id.
  * @param {number}   from       The source box index.
  * @param {number}   to         The target box index.
  * @return {number[]} The new assignment.
  */
 export function moveOneUnit( units, assignment, id, from, to ) {
-	const unitIndex = units.findIndex( ( unit, index ) => String( unit.id ) === String( id ) && assignment[ index ] === from );
+	const unitIndex = units.findIndex( ( unit, index ) => String( unit.order_item_id ) === String( id ) && assignment[ index ] === from );
 
 	if ( unitIndex === -1 ) {
 		return assignment;
@@ -279,11 +304,15 @@ export function dropBoxIfEmpty( boxes, assignment, boxIndex ) {
  * @param {Array}    units      The order's units.
  * @param {number[]} assignment Per unit index, its box index.
  * @param {number}   boxIndex   The box.
- * @return {number} Weight in kg.
+ * @return {number|null} Weight in kg, or null when an allocated weight is unknown.
  */
 export function computedBoxWeight( units, assignment, boxIndex ) {
 	return units.reduce( ( sum, unit, unitIndex ) => {
-		return assignment[ unitIndex ] === boxIndex ? sum + ( parseFloat( unit.unit_weight ) || 0 ) : sum;
+		if ( assignment[ unitIndex ] !== boxIndex ) {
+			return sum;
+		}
+		const weight = parseFloat( unit.unit_weight );
+		return sum === null || ! Number.isFinite( weight ) ? null : sum + weight;
 	}, 0 );
 }
 
@@ -294,13 +323,14 @@ export function computedBoxWeight( units, assignment, boxIndex ) {
  * @param {Array}    units      The order's units.
  * @param {Array}    boxes      The editor's boxes.
  * @param {number[]} assignment Per unit index, its box index.
- * @return {number} Weight in kg.
+ * @return {number|null} Weight in kg, or null when a parcel needs an explicit weight.
  */
 export function totalWeight( units, boxes, assignment ) {
 	return boxes.reduce( ( sum, box, boxIndex ) => {
 		const explicit = inputToNumber( box.weight );
+		const weight = explicit === null ? computedBoxWeight( units, assignment, boxIndex ) : explicit;
 
-		return sum + ( explicit === null ? computedBoxWeight( units, assignment, boxIndex ) : explicit );
+		return sum === null || weight === null ? null : sum + weight;
 	}, 0 );
 }
 

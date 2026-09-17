@@ -57,7 +57,9 @@ function sample_representation_data(array $overrides = []): array
                 'freetext'           => null,
                 'items'              => [
                     [
-                        'id'                => '456',
+                        'order_item_id'     => '456',
+                        'product_id'        => 789,
+                        'variation_id'      => 0,
                         'sku'               => 'SKU-1',
                         'name'              => 'Sample Product',
                         'description'       => null,

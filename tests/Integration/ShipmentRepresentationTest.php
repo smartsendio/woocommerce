@@ -172,7 +172,7 @@ it('reconciles item-line totals with the order subtotal for a fixed-product coup
 
     // Only product A's line is discounted, by exactly the fixed amount.
     $product_a_id = $product_a->get_id();
-    $line_a       = current(array_filter($items, fn ($item) => $item['id'] === $product_a_id));
+    $line_a       = current(array_filter($items, fn ($item) => $item['product_id'] === $product_a_id));
 
     expect($line_a['total_net_amount'])->toEqual(45.0)
         ->and($item_sum)->toEqual($representation->get_subtotal_net_amount())

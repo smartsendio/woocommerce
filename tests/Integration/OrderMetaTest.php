@@ -57,8 +57,8 @@ function assert_order_meta_repository_roundtrip(): void
     $reloaded->read_meta_data(true);
     expect($reloaded->get_meta(\Smart_Send\Delivery\Order_Meta::META_AGENT, true))->toBe('');
 
-    // Parcel plan: write() persists the frozen row shape...
-    $rows = [['id' => $product->get_id(), 'name' => 'Integration Test Product', 'value' => '1']];
+    // Parcel plan: write() persists the canonical order-item plan shape...
+    $rows = (new \Smart_Send\Delivery\Parcel_Plan())->add_spec((new \Smart_Send\Delivery\Parcel_Spec())->set_reference('1')->add_item(order_item_id_for_product($order, $product), 1, 'Integration Test Product'))->to_array();
     save_order_parcels($order_id, $rows);
     expect(wc_get_order($order_id)->get_meta('ss_shipping_order_parcels', true))->toEqual($rows);
 
@@ -67,11 +67,11 @@ function assert_order_meta_repository_roundtrip(): void
     expect($plan)->toBeInstanceOf(\Smart_Send\Delivery\Parcel_Plan::class)
         ->and($plan->get_specs())->toHaveCount(1)
         ->and($plan->get_specs()[0]->get_reference())->toBe('1')
-        ->and($plan->to_box_rows())->toEqual($rows);
+        ->and($plan->to_array())->toEqual($rows);
 
     // ...and an explicitly empty plan clears the stored split.
     save_order_parcels($order_id, []);
-    expect(wc_get_order($order_id)->get_meta('ss_shipping_order_parcels', true))->toEqual([])
+    expect(wc_get_order($order_id)->get_meta('ss_shipping_order_parcels', true))->toEqual(['specs' => []])
         ->and($repository->read($order_id)->get_parcel_plan())->toBeNull();
 
     // A partial write (parcel plan only) leaves the pickup point meta alone.

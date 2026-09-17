@@ -267,8 +267,9 @@ class Fulfillment_REST_Controller {
 											'items' => array(
 												'type'     => 'object',
 												'properties' => array(
-													'id'   => array(
-														'type' => array( 'integer', 'string' ),
+													'order_item_id' => array(
+														'type' => 'integer',
+														'minimum' => 1,
 													),
 													'quantity' => array(
 														'type'    => 'integer',
@@ -278,7 +279,8 @@ class Fulfillment_REST_Controller {
 														'type' => array( 'string', 'null' ),
 													),
 												),
-												'required' => array( 'id' ),
+												'required' => array( 'order_item_id', 'quantity' ),
+												'additionalProperties' => false,
 											),
 										),
 									),
@@ -310,10 +312,9 @@ class Fulfillment_REST_Controller {
 
 	/**
 	 * Validate the delivery_details argument: the schema first, then
-	 * every parcel must contain at least one item (a
-	 * parcel_plan.specs[N].items error) and every parcel allocation must
-	 * reference an item of the order (the builder would silently skip an
-	 * unknown id; here it is a parcel_plan.specs[N].items[M].id error).
+	 * allocations must reference this order's lines and cover every unit
+	 * exactly once. An empty plan or one itemless spec includes all items.
+	 * The booking builder enforces the same rules for non-REST callers.
 	 *
 	 * @param mixed           $value   The submitted value.
 	 * @param WP_REST_Request $request The request.
@@ -339,39 +340,22 @@ class Fulfillment_REST_Controller {
 			return true; // The permission callback reports the missing order.
 		}
 
-		$order_item_ids = array_map( 'strval', array_unique( wp_list_pluck( $this->presenter->order_units( $order ), 'id' ) ) );
-
-		foreach ( array_values( $value['parcel_plan']['specs'] ) as $spec_index => $spec ) {
-			// A parcel without items: the box cannot produce one (an emptied
-			// box is removed), so reject it here. The DTO itself still
-			// allows box-only specs - the smart_send_delivery_details
-			// filter may build them programmatically, outside this schema.
-			if ( empty( $spec['items'] ) || ! is_array( $spec['items'] ) ) {
-				return new WP_Error(
-					'rest_invalid_param',
-					sprintf(
-						/* translators: %s: the form field. */
-						__( '%s: A parcel must contain at least one item.', 'smart-send-logistics' ),
-						sprintf( 'parcel_plan.specs[%d].items', $spec_index )
-					)
-				);
+		try {
+			$plan = Parcel_Plan::from_array( $value['parcel_plan'] );
+		} catch ( \InvalidArgumentException $e ) {
+			return new WP_Error( 'rest_invalid_param', __( 'The parcel plan must use order_item_id and quantity. Reset it and enter the allocation again.', 'smart-send-logistics' ) );
+		}
+		$quantities = array();
+		foreach ( $order->get_items() as $item ) {
+			$quantities[ $item->get_id() ] = $item->get_quantity();
+		}
+		$errors = $plan->validation_errors( $quantities );
+		if ( $errors ) {
+			$messages = array();
+			foreach ( $errors as $field => $field_errors ) {
+				$messages[] = $this->presenter->map_api_field( $field ) . ': ' . implode( ' ', $field_errors );
 			}
-
-			foreach ( array_values( $spec['items'] ) as $item_index => $item ) {
-				if ( ! isset( $item['id'] ) || in_array( (string) $item['id'], $order_item_ids, true ) ) {
-					continue;
-				}
-
-				return new WP_Error(
-					'rest_invalid_param',
-					sprintf(
-						/* translators: 1: the form field, 2: the product id. */
-						__( '%1$s: the order has no item with id %2$s.', 'smart-send-logistics' ),
-						sprintf( 'parcel_plan.specs[%1$d].items[%2$d].id', $spec_index, $item_index ),
-						$item['id']
-					)
-				);
-			}
+			return new WP_Error( 'rest_invalid_param', implode( ' ', $messages ) );
 		}
 
 		return true;
@@ -447,7 +431,11 @@ class Fulfillment_REST_Controller {
 			);
 		}
 
-		$details = Delivery_Details::from_array( (array) $request->get_param( 'delivery_details' ) );
+		try {
+			$details = Delivery_Details::from_array( (array) $request->get_param( 'delivery_details' ) );
+		} catch ( \InvalidArgumentException $e ) {
+			return new WP_Error( 'rest_invalid_param', __( 'The parcel plan must use order_item_id and quantity. Reset it and enter the allocation again.', 'smart-send-logistics' ), array( 'status' => 400 ) );
+		}
 		$this->fill_item_names( $details, $order );
 
 		$method = $this->method_for_flow( $order, $details, $is_return );
@@ -626,8 +614,8 @@ class Fulfillment_REST_Controller {
 	}
 
 	/**
-	 * items[].name is not accepted from the client: the frozen parcel
-	 * meta rows need the label, so fill it from the order line.
+	 * Fill allocation labels from the current order presentation rather
+	 * than trusting client-supplied names, including deleted placeholders.
 	 *
 	 * @param Delivery_Details $details The submitted details (modified in place).
 	 * @param WC_Order                     $order   The order.
@@ -643,7 +631,7 @@ class Fulfillment_REST_Controller {
 
 		$names = array();
 		foreach ( $this->presenter->order_units( $order ) as $unit ) {
-			$names[ (string) $unit['id'] ] = $unit['name'];
+			$names[ (string) $unit['order_item_id'] ] = $unit['name'];
 		}
 
 		$named = new Parcel_Plan();
@@ -651,8 +639,8 @@ class Fulfillment_REST_Controller {
 			$copy = Parcel_Spec::from_array( array_merge( $spec->to_array(), array( 'items' => array() ) ) );
 
 			foreach ( $spec->get_items() as $item ) {
-				$id = (string) $item['id'];
-				$copy->add_item( $item['id'], $item['quantity'], isset( $names[ $id ] ) ? $names[ $id ] : $item['name'] );
+				$id = (string) $item['order_item_id'];
+				$copy->add_item( $item['order_item_id'], $item['quantity'], isset( $names[ $id ] ) ? $names[ $id ] : $item['name'] );
 			}
 
 			$named->add_spec( $copy );

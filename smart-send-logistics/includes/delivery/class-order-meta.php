@@ -2,6 +2,7 @@
 
 namespace Smart_Send\Delivery;
 
+use InvalidArgumentException;
 use Smart_Send\Delivery_Options\Pickup_Point_Validator;
 use Smart_Send\Fulfillment\Shipment_IDs;
 use Smart_Send\Support\Logger;
@@ -20,12 +21,13 @@ if ( ! defined( 'ABSPATH' ) ) {
  * (possibly partial) details object back - a null field means "not
  * specified, leave the stored value alone".
  *
- * The meta KEYS and their stored formats are the frozen public contract
- * (documented in readme.txt's Developers section): the pickup point is a
+ * The meta keys are the public contract (documented in readme.txt's
+ * Developers section): the pickup point is a
  * plain agent object under _ss_shipping_order_agent plus its number
  * under ss_shipping_order_agent_no, and the parcel plan is the
- * "Split into parcels" rows (id/name/value, one row per unit) under
- * ss_shipping_order_parcels. Booked shipment ids are fulfillment
+ * canonical Parcel_Plan array with order-item allocations under
+ * ss_shipping_order_parcels. Old parcel formats require an explicit reset.
+ * Booked shipment ids are fulfillment
  * OUTCOMES, not delivery configuration - their accessor is the separate
  * Shipment_IDs, but their keys stay classified here so the
  * subscription-renewal exclusion has one vocabulary.
@@ -182,12 +184,49 @@ class Order_Meta {
 
 		$details->set_pickup_point( $this->read_pickup_point( $order ) );
 
-		$parcel_rows = $order->get_meta( self::META_PARCELS, true );
-		if ( ! empty( $parcel_rows ) && is_array( $parcel_rows ) ) {
-			$details->set_parcel_plan( Parcel_Plan::from_box_rows( $parcel_rows ) );
+		$stored_plan = $order->get_meta( self::META_PARCELS, true );
+		if ( ! empty( $stored_plan ) && is_array( $stored_plan ) ) {
+			try {
+				$plan = Parcel_Plan::from_array( $stored_plan );
+				if ( ! $plan->is_empty() ) {
+					$details->set_parcel_plan( $plan );
+				}
+			} catch ( InvalidArgumentException $e ) {
+				// An unsupported plan is surfaced by parcel_plan_error(), never migrated.
+				return $details;
+			}
 		}
 
 		return $details;
+	}
+
+	/**
+	 * Explain why a stored allocation must be reset before another booking.
+	 *
+	 * @param WC_Order $order The order whose stored plan is checked.
+	 * @return string|null A merchant-facing reset instruction, or null.
+	 */
+	public function parcel_plan_error( WC_Order $order ): ?string {
+		$stored = $order->get_meta( self::META_PARCELS, true );
+		if ( empty( $stored ) ) {
+			return null;
+		}
+		try {
+			if ( ! is_array( $stored ) ) {
+				return __( 'This parcel plan uses an unsupported format. Reset it to one parcel and enter the allocation again.', 'smart-send-logistics' );
+			}
+			$plan = Parcel_Plan::from_array( $stored );
+		} catch ( InvalidArgumentException $e ) {
+			return __( 'This parcel plan uses an unsupported format. Reset it to one parcel and enter the allocation again.', 'smart-send-logistics' );
+		}
+		$quantities = array();
+		foreach ( $order->get_items() as $item ) {
+			$quantities[ $item->get_id() ] = $item->get_quantity();
+		}
+		if ( $plan->validation_errors( $quantities ) ) {
+			return __( 'The stored parcel allocation no longer matches the order. Reset it to one parcel and enter the allocation again.', 'smart-send-logistics' );
+		}
+		return null;
 	}
 
 	/**
@@ -200,7 +239,7 @@ class Order_Meta {
 	 * split (one parcel containing everything). The resolved shipping
 	 * method and addons are derived data and are not stored, and a
 	 * parcel spec's weight and dimensions are per booking only - the
-	 * frozen box rows carry item allocations alone (#182).
+	 * stored plan retains allocations without those measurements (#182).
 	 *
 	 * @param integer|WC_Order            $order   Order (or order id).
 	 * @param Delivery_Details $details The delivery configuration to persist.
@@ -228,7 +267,16 @@ class Order_Meta {
 
 		$parcel_plan = $details->get_parcel_plan();
 		if ( null !== $parcel_plan ) {
-			$order->update_meta_data( self::META_PARCELS, $parcel_plan->to_box_rows() );
+			$stored_plan = $parcel_plan->to_array();
+			// Dimensions and explicit weight remain per booking, as before.
+			foreach ( $stored_plan['specs'] as &$spec ) {
+				$spec['weight'] = null;
+				$spec['length'] = null;
+				$spec['width']  = null;
+				$spec['height'] = null;
+			}
+			unset( $spec );
+			$order->update_meta_data( self::META_PARCELS, $stored_plan );
 			$changed = true;
 		}
 

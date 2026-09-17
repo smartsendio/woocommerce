@@ -141,7 +141,7 @@ class Shipment_Builder {
 			$order_note = $this->order_reader->get_order_note();
 		}
 
-		$parcels = $this->resolve_parcels( $details->get_parcel_plan(), $items_data, $totals, $order_note );
+		$parcels = $this->resolve_parcels( $details->get_parcel_plan(), $items_data, $order_note );
 
 		$shipment = new Shipment();
 		$shipment->set_internal_id( $this->value_or_null( $order_id ) )
@@ -164,87 +164,65 @@ class Shipment_Builder {
 	}
 
 	/**
-	 * Resolve the parcel plan into typed Parcel rows.
+	 * Resolve a complete plan, with line identity and quantities validated first.
 	 *
-	 * An empty (or unspecified) plan resolves to a single parcel
-	 * containing every item line, carrying the order-level subtotal
-	 * amounts. A non-empty plan resolves one parcel per spec.
-	 *
-	 * @param Parcel_Plan|null $plan       The parcel plan, or null.
-	 * @param array[]                      $items_data Item rows from the order reader.
-	 * @param array                        $totals     Order totals from the order reader (null amounts when the order has no items).
-	 * @param string|null                  $order_note Freetext for the parcels.
-	 *
+	 * @param Parcel_Plan|null $plan       Planned parcels, or an implicit single parcel.
+	 * @param array[]          $items_data Order item rows.
+	 * @param string|null      $order_note Label freetext.
 	 * @return Parcel[]
+	 * @throws Booking_Exception When allocations no longer match the order.
 	 */
-	protected function resolve_parcels( $plan, array $items_data, array $totals, $order_note ) {
-		if ( null !== $plan && ! $plan->is_empty() ) {
-			// Item rows, keyed by product/variation id so the specs'
-			// item allocations can reference them.
-			$item_lookup = array();
-			foreach ( $items_data as $item_row ) {
-				$item_lookup[ $item_row['id'] ] = $item_row;
-			}
-
-			$parcels = array();
-			foreach ( $plan->get_specs() as $spec ) {
-				$parcels[] = $this->resolve_spec( $spec, $item_lookup, $order_note );
-			}
-
-			return $parcels;
+	protected function resolve_parcels( $plan, array $items_data, $order_note ) {
+		$plan   = null === $plan ? new Parcel_Plan() : $plan;
+		$errors = $plan->validation_errors( $items_data );
+		if ( array() !== $errors ) {
+			// phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- Fulfillment renders these plain-text validation errors.
+			throw new Booking_Exception( __( 'Review the parcel allocations before booking.', 'smart-send-logistics' ), $errors );
 		}
-
-		if ( empty( $items_data ) ) {
+		if ( $plan->is_empty() && empty( $items_data ) ) {
 			return array();
 		}
 
-		// A single parcel containing all the items. The implicit spec
-		// behind it (every unit, no explicit weight) is what the
-		// default-weight filter receives, so a snippet adding packaging
-		// weight sees the same spec shape whether or not a plan was
-		// declared.
-		$weight_total  = 0;
-		$implicit_spec = new Parcel_Spec();
-		$implicit_spec->set_reference( '1' );
-		foreach ( $items_data as $item_row ) {
-			if ( $item_row['unit_weight'] ) {
-				$weight_total += ( $item_row['quantity'] * $item_row['unit_weight'] );
+		$specs    = $plan->get_specs();
+		$implicit = $plan->is_empty() || ( 1 === count( $specs ) && ! $specs[0]->has_items() );
+		if ( $implicit ) {
+			$spec = $plan->is_empty() ? ( new Parcel_Spec() )->set_reference( '1' ) : clone $specs[0];
+			foreach ( $items_data as $item_row ) {
+				$spec->add_item( $item_row['order_item_id'], $item_row['quantity'], $item_row['name'] ?? null );
 			}
-			$implicit_spec->add_item( $item_row['id'], $item_row['quantity'], isset( $item_row['name'] ) ? $item_row['name'] : null );
+			$specs = array( $spec );
 		}
 
-		$parcel = new Parcel();
-		$parcel->set_internal_id( $this->value_or_null( $this->order_reader->get_order_id() ) )
-			->set_internal_reference( $this->value_or_null( $this->order_reader->get_order_number() ) )
-			->set_weight( $this->value_or_null( $this->default_parcel_weight( (float) $weight_total, $implicit_spec ) ) )
-			->set_freetext( $this->value_or_null( $order_note ) )
-			->set_items( array_values( $items_data ) )
-			->set_total_net_amount( $totals['subtotal_net_amount'] )
-			->set_total_tax_amount( $totals['subtotal_tax_amount'] );
+		$item_lookup = array();
+		foreach ( $items_data as $item_row ) {
+			$item_lookup[ $item_row['order_item_id'] ] = $item_row;
+		}
 
-		return array( $parcel );
+		$allocated = array();
+		$parcels   = array();
+		foreach ( $specs as $index => $spec ) {
+			$parcels[] = $this->resolve_spec( $spec, $item_lookup, $order_note, $allocated, $index );
+		}
+
+		return $parcels;
 	}
 
 	/**
-	 * Resolve one parcel spec into a typed parcel.
+	 * Allocate actual quantities and their share of each order-line amount.
 	 *
-	 * Item allocations pull their rows from the order's item lines,
-	 * accumulating a per-unit share of each (possibly multi-unit)
-	 * line, one row per unit like the stored split meta - matching the
-	 * pre-#113 split behaviour bug-for-bug (each unit embeds the full
-	 * order-line item row, not a per-unit slice of it). An explicit
-	 * spec weight always wins over the item-sum (packaging weight is
-	 * real); a spec without item allocations produces a parcel without
-	 * item rows and without amounts - declared amounts then live at
-	 * shipment level only.
+	 * Rounding is cumulative in parcel order. The final allocation receives
+	 * the remaining amount at WooCommerce accounting precision so sub-cent
+	 * tax amounts survive and each line reconciles without negative slices.
 	 *
-	 * @param Parcel_Spec $spec        The planned parcel.
-	 * @param array                   $item_lookup Item rows keyed by product/variation id.
-	 * @param string|null             $order_note  Freetext for the parcels.
-	 *
+	 * @param Parcel_Spec $spec        Planned parcel.
+	 * @param array       $item_lookup Order rows keyed by order_item_id.
+	 * @param string|null $order_note  Label freetext.
+	 * @param array       $allocated   Quantity and amounts assigned so far, per line.
+	 * @param int         $index       Zero-based parcel position for validation errors.
 	 * @return Parcel
+	 * @throws Booking_Exception When an unknown item weight needs explicit input.
 	 */
-	protected function resolve_spec( Parcel_Spec $spec, array $item_lookup, $order_note ) {
+	protected function resolve_spec( Parcel_Spec $spec, array $item_lookup, $order_note, array &$allocated, int $index ) {
 		$parcel = new Parcel();
 		$parcel->set_internal_id( $this->value_or_null( $this->order_reader->get_order_id() ) )
 			->set_internal_reference( $this->value_or_null( $this->order_reader->get_order_number() ) )
@@ -253,50 +231,60 @@ class Shipment_Builder {
 			->set_length( $spec->get_length() )
 			->set_freetext( $this->value_or_null( $order_note ) );
 
-		if ( ! $spec->has_items() ) {
-			// No item allocations: dimensions/weight come from the spec
-			// alone, amounts live at shipment level only. Without an
-			// explicit weight the item-sum is 0 - the default-weight
-			// filter is the only way to weigh such a parcel.
-			$parcel->set_weight(
-				null !== $spec->get_weight()
-					? $spec->get_weight()
-					: $this->value_or_null( $this->default_parcel_weight( 0.0, $spec ) )
-			);
-
-			return $parcel;
-		}
-
-		$item_net_total    = 0;
-		$item_tax_total    = 0;
-		$item_weight_total = 0;
+		$item_net_total    = 0.0;
+		$item_tax_total    = 0.0;
+		$item_weight_total = 0.0;
+		$unknown_weight    = false;
 		$item_rows         = array();
+		$precision         = wc_get_price_decimals();
+		$amount_precision  = wc_get_rounding_precision();
 
 		foreach ( $spec->get_items() as $allocation ) {
-			if ( ! isset( $item_lookup[ $allocation['id'] ] ) ) {
-				continue; // The allocation references an item the order does not have.
+			$id       = $allocation['order_item_id'];
+			$item_row = $item_lookup[ $id ];
+			$previous = $allocated[ $id ] ?? array(
+				'quantity'         => 0,
+				'total_net_amount' => 0.0,
+				'total_tax_amount' => 0.0,
+			);
+			$quantity = $previous['quantity'] + $allocation['quantity'];
+			$current  = array( 'quantity' => $quantity );
+
+			foreach ( array( 'total_net_amount', 'total_tax_amount' ) as $amount_key ) {
+				$total                   = $item_row[ $amount_key ];
+				$share                   = $quantity === (int) $item_row['quantity']
+					? (float) $total
+					: min( (float) $total, round( $total * $quantity / $item_row['quantity'], $precision ) );
+				$item_row[ $amount_key ] = round( $share - $previous[ $amount_key ], $amount_precision );
+				$current[ $amount_key ]  = $share;
 			}
 
-			$item_row = $item_lookup[ $allocation['id'] ];
-			$quantity = $item_row['quantity'] ? $item_row['quantity'] : 1;
-
-			for ( $unit = 0; $unit < $allocation['quantity']; $unit++ ) {
-				$item_net_total    += ( $item_row['total_net_amount'] / $quantity );
-				$item_tax_total    += ( $item_row['total_tax_amount'] / $quantity );
-				$item_weight_total += floatval( $item_row['unit_weight'] );
-
-				$item_rows[] = $item_row;
+			$item_row['quantity'] = $allocation['quantity'];
+			$allocated[ $id ]     = $current;
+			$item_net_total      += $item_row['total_net_amount'];
+			$item_tax_total      += $item_row['total_tax_amount'];
+			if ( null === $item_row['unit_weight'] ) {
+				$unknown_weight = true;
+			} else {
+				$item_weight_total += $allocation['quantity'] * (float) $item_row['unit_weight'];
 			}
+			$item_rows[] = $item_row;
 		}
 
-		$parcel->set_weight(
-			null !== $spec->get_weight()
-				? $spec->get_weight()
-				: $this->value_or_null( $this->default_parcel_weight( (float) $item_weight_total, $spec ) )
-		)
+		$weight = $spec->get_weight();
+		if ( $unknown_weight && ( null === $weight || $weight <= 0 ) ) {
+			$message = __( 'Enter a parcel weight before booking because an allocated product no longer has a known weight.', 'smart-send-logistics' );
+			// phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- Fulfillment renders these plain-text validation errors.
+			throw new Booking_Exception( $message, array( 'parcel_plan.specs.' . $index . '.weight' => array( $message ) ) );
+		}
+		if ( null === $weight ) {
+			$weight = $this->value_or_null( $this->default_parcel_weight( $item_weight_total, $spec ) );
+		}
+
+		$parcel->set_weight( $weight )
 			->set_items( $item_rows )
-			->set_total_net_amount( $this->value_or_null( $item_net_total ) )
-			->set_total_tax_amount( $this->value_or_null( $item_tax_total ) );
+			->set_total_net_amount( $spec->has_items() ? round( $item_net_total, $amount_precision ) : null )
+			->set_total_tax_amount( $spec->has_items() ? round( $item_tax_total, $amount_precision ) : null );
 
 		return $parcel;
 	}
