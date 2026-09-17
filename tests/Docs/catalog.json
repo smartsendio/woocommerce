@@ -137,7 +137,10 @@
       "da": "Indtast API-token"
     },
     "fixture": "connection/token-settings",
-    "expected_state": "Real Smart Send connection settings with a synthetic demonstration token."
+    "expected_state": "Real Smart Send connection settings with a synthetic demonstration token.",
+    "translation_notes": {
+      "da": "The Debug Log label and explanatory text remain English with the installed Danish language pack."
+    }
   },
   "connection/validation-error": {
     "page": "integrations/woocommerce/connection",
@@ -147,7 +150,10 @@
       "da": "Ugyldigt API-token"
     },
     "fixture": "connection/validation-error",
-    "expected_state": "Account validation failed; the actual validation error is visible."
+    "expected_state": "Account validation failed; the actual validation error is visible.",
+    "translation_notes": {
+      "da": "The error has Danish framing and the English API response reason \"Invalid API token provided\". Preserve the API response as displayed."
+    }
   },
   "connection/validation-success": {
     "page": "integrations/woocommerce/connection",
@@ -157,7 +163,10 @@
       "da": "Valideret forbindelse til Smart Send"
     },
     "fixture": "connection/validation-success",
-    "expected_state": "Successful mocked account validation with fictional account details."
+    "expected_state": "Successful mocked account validation with fictional account details.",
+    "translation_notes": {
+      "da": "The validation button is labelled Valider API Nøgle; the successful validation message and Debug Log text remain English with the installed Danish language pack."
+    }
   },
   "customs/product-shipping-fields": {
     "page": "integrations/woocommerce/customs",
@@ -305,7 +314,10 @@
       "da": "Smart Send-log i WooCommerce"
     },
     "fixture": "help/log-location",
-    "expected_state": "WooCommerce Status logs show a synthetic Smart Send log entry and its source."
+    "expected_state": "WooCommerce Status logs show a synthetic Smart Send log entry and its source.",
+    "translation_notes": {
+      "da": "Actual navigation: WooCommerce → Status → Logs. The page heading is Gennemse logfiler; the real log-source identifier remains smart-send-logistics."
+    }
   },
   "help/no-smart-send-method": {
     "page": "integrations/woocommerce/troubleshooting",
@@ -561,7 +573,10 @@
       "da": "Installeret og aktivt plugin"
     },
     "fixture": "setup/plugin-active",
-    "expected_state": "WordPress Plugins page shows the locally installed active Smart Send plugin."
+    "expected_state": "WordPress Plugins page shows the locally installed active Smart Send plugin.",
+    "translation_notes": {
+      "da": "The plugin-list description remains English in the actual Danish interface."
+    }
   },
   "setup/settings-location": {
     "page": "integrations/woocommerce/installation",
@@ -571,7 +586,10 @@
       "da": "Åbn Smart Send-indstillinger"
     },
     "fixture": "setup/settings-location",
-    "expected_state": "WooCommerce Shipping settings show the route to Smart Send settings."
+    "expected_state": "WooCommerce Shipping settings show the route to Smart Send settings.",
+    "translation_notes": {
+      "da": "Actual navigation: WooCommerce → Indstillinger → Forsendelse → Smart Send. The Debug Log label and explanatory text remain English with the installed language pack."
+    }
   },
   "zones/country-selection": {
     "page": "integrations/woocommerce/shipping-zones",

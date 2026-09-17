@@ -172,6 +172,8 @@ The required images and guide destinations are listed in `tests/Docs/catalog.jso
 
 Every run writes to a fresh ignored directory under `docs/screenshots/.runs/` (or an empty `--output` directory). Open the printed `index.html` for a visual review. `manifest.json` records image hashes, dimensions, source revision, installed versions, translation assets and missing images. Filtered bundles are partial; failed runs cannot be mistaken for complete exports, and committed older PNGs are never uploaded as new output.
 
+The GitHub manual workflow becomes available when its workflow file exists on the repository's default branch. Until then, use the local command above; both paths use the same runner and profile.
+
 Before accepting a bundle, check every image for readable focus, visible results/errors, matching prices, accurate locale and synthetic data. Copy only the reviewed `en/` and `da/` folders plus manifest/index/environment metadata into `docs/screenshots/`. Coordinate the image paths and alt text with [docs#121](https://github.com/smartsendio/docs/issues/121); the destination in each manifest entry identifies the path for a separate documentation PR. Generation does not publish documentation or push to the docs repository.
 
 ### Rules for tests
