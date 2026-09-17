@@ -103,7 +103,8 @@ function block_cart_setup(string $method_code = 'postnord_agent', array $address
         WC()->session->set('chosen_shipping_methods', null);
         WC()->session->set('shipping_for_package_0', null);
         WC()->session->set('ss_shipping_agents', null);
-        WC()->session->set(\Smart_Send\Delivery_Options\Store_API::SESSION_SELECTED_AGENT_NO, null);
+        WC()->session->set(\Smart_Send\Delivery_Options\Pickup_Point_Lookup::SESSION_CONTEXT, null);
+        (new \Smart_Send\Delivery_Options\Pickup_Point_Lookup())->clear_selection();
 
         $customer = WC()->customer;
         $customer->set_shipping_country('');
@@ -174,13 +175,13 @@ function block_cart_extension_data(): array
 /**
  * A checkout REST request carrying (or omitting) our extension data.
  */
-function block_checkout_request(?string $agent_no): WP_REST_Request
+function block_checkout_request(?string $agent_no, array $extra = []): WP_REST_Request
 {
     $request = new WP_REST_Request('POST', '/wc/store/v1/checkout');
 
-    if ($agent_no !== null) {
+    if ($agent_no !== null || $extra !== []) {
         $request->set_param('extensions', [
-            \Smart_Send\Frontend\Block_Checkout::INTEGRATION_NAME => ['agent_no' => $agent_no],
+            \Smart_Send\Frontend\Block_Checkout::INTEGRATION_NAME => array_merge(['agent_no' => $agent_no], $extra),
         ]);
     }
 
@@ -189,6 +190,11 @@ function block_checkout_request(?string $agent_no): WP_REST_Request
 
 beforeEach(function (): void {
     with_ss_settings();
+    if (is_null(WC()->cart)) { wc_load_cart(); }
+    foreach (['ss_shipping_agents', \Smart_Send\Delivery_Options\Pickup_Point_Lookup::SESSION_CONTEXT, \Smart_Send\Delivery_Options\Pickup_Point_Lookup::SESSION_SELECTION] as $key) {
+        WC()->session->set($key, null);
+        remember_cleanup_callback(static function () use ($key): void { WC()->session->set($key, null); });
+    }
 });
 
 it('registers cart and checkout schema extensions under the smart-send namespace', function () {
@@ -197,12 +203,12 @@ it('registers cart and checkout schema extensions under the smart-send namespace
     $cart_schema = $extend->get_endpoint_schema('cart');
     expect($cart_schema)->toHaveProperty('smart-send');
     expect($cart_schema->{'smart-send'}['properties'] ?? $cart_schema->{'smart-send'})
-        ->toHaveKeys(['selected_rate_is_agent', 'pickup_points', 'pickup_point_status', 'pickup_point_message', 'no_pickup_points_found', 'selected_agent_no', 'select_default']);
+        ->toHaveKeys(['selected_rate_is_agent', 'pickup_points', 'pickup_point_status', 'pickup_point_message', 'no_pickup_points_found', 'selected_agent_no', 'selection_origin', 'pickup_point_context', 'select_default']);
 
     $checkout_schema = $extend->get_endpoint_schema('checkout');
     expect($checkout_schema)->toHaveProperty('smart-send');
     expect($checkout_schema->{'smart-send'}['properties'] ?? $checkout_schema->{'smart-send'})
-        ->toHaveKeys(['agent_no']);
+        ->toHaveKeys(['agent_no', 'selection_origin', 'pickup_point_context']);
 });
 
 it('carries the smart-send extension data in the full cart REST response', function () {
@@ -219,7 +225,7 @@ it('carries the smart-send extension data in the full cart REST response', funct
 
     expect($extensions)->toHaveKey('smart-send')
         ->and((array) $extensions['smart-send'])
-        ->toHaveKeys(['selected_rate_is_agent', 'pickup_points', 'pickup_point_status', 'pickup_point_message', 'no_pickup_points_found', 'selected_agent_no', 'select_default']);
+        ->toHaveKeys(['selected_rate_is_agent', 'pickup_points', 'pickup_point_status', 'pickup_point_message', 'no_pickup_points_found', 'selected_agent_no', 'selection_origin', 'pickup_point_context', 'select_default']);
 });
 
 it('computes pickup points with formatted labels for an agent rate and a complete address', function () {
@@ -250,7 +256,7 @@ it('computes pickup points with formatted labels for an agent rate and a complet
     expect(end($capture->requests)['url'])->toContain('/agents/closest/carrier/postnord/country/DK/postalcode/2300/city/Copenhagen/street/Islands');
 });
 
-it('applies the smart_send_pickup_point_option_label filter to the labels, like classic checkout', function () {
+it('applies the smart_send_pickup_point_label filter to the labels, like classic checkout', function () {
     mock_smart_send_api(function () {
         return ss_api_response(200, ['data' => [sample_agent()]]);
     });
@@ -259,9 +265,9 @@ it('applies the smart_send_pickup_point_option_label filter to the labels, like 
     $filter = function (string $label, \Smart_Send\Delivery\Pickup_Point $pickup_point) {
         return 'Custom Label ' . $pickup_point->get_agent_no();
     };
-    add_filter('smart_send_pickup_point_option_label', $filter, 10, 2);
+    add_filter('smart_send_pickup_point_label', $filter, 10, 2);
     remember_cleanup_callback(function () use ($filter): void {
-        remove_filter('smart_send_pickup_point_option_label', $filter, 10);
+        remove_filter('smart_send_pickup_point_label', $filter, 10);
     });
 
     $data = block_cart_extension_data();
@@ -409,7 +415,10 @@ it('reflects the Select Default setting in the cart data', function () {
     });
     block_cart_setup();
 
-    expect(block_cart_extension_data()['select_default'])->toBeTrue();
+    $data = block_cart_extension_data();
+    expect($data['select_default'])->toBeTrue()
+        ->and($data['selected_agent_no'])->toBe('1234')
+        ->and($data['selection_origin'])->toBe('automatic');
 });
 
 it('stores and clears the in-progress selection through the registered extension update callback', function () {
@@ -421,7 +430,10 @@ it('stores and clears the in-progress selection through the registered extension
     $callback = StoreApi::container()->get(ExtendSchema::class)
         ->get_update_callback(\Smart_Send\Frontend\Block_Checkout::INTEGRATION_NAME);
 
-    $callback(['agent_no' => '1234']);
+    $context = block_cart_extension_data()['pickup_point_context'];
+    // Like a fresh cart/extensions request, start without calculated packages.
+    WC()->shipping()->reset_shipping();
+    $callback(['agent_no' => '1234', 'pickup_point_context' => $context]);
     expect(block_cart_extension_data()['selected_agent_no'])->toBe('1234');
 
     $callback(['agent_no' => '']);
@@ -433,18 +445,20 @@ it('persists the pickup point byte-identically to the classic checkout path', fu
         wc_load_cart();
     }
 
-    // Both paths resolve against the same session-cached lookup results.
-    WC()->session->set('ss_shipping_agents', [sample_agent()]);
-    remember_cleanup_callback(function (): void {
-        WC()->session->set('ss_shipping_agents', null);
-        unset($_POST['ss_shipping_store_pickup']);
+    mock_smart_send_api(function () {
+        return ss_api_response(200, ['data' => sample_agent()]);
     });
 
-    // Classic checkout path.
+    // Classic checkout stages metadata on WooCommerce's order object.
     $classic_order = create_order(['shipping_method' => 'postnord_agent']);
     $_POST['ss_shipping_store_pickup'] = '1234';
-    (new \Smart_Send\Frontend\Checkout())->process_ss_pickup_points($classic_order->get_id(), []);
-    unset($_POST['ss_shipping_store_pickup']);
+    $_POST['ss_shipping_pickup_origin'] = 'explicit';
+    remember_cleanup_callback(static function (): void {
+        unset($_POST['ss_shipping_store_pickup'], $_POST['ss_shipping_pickup_origin']);
+    });
+    (new \Smart_Send\Frontend\Checkout())->process_ss_pickup_points($classic_order, []);
+    $classic_order->save();
+    unset($_POST['ss_shipping_store_pickup'], $_POST['ss_shipping_pickup_origin']);
 
     // Block checkout path: the real registered listener on the real action.
     $block_order = create_order(['shipping_method' => 'postnord_agent']);
@@ -633,4 +647,145 @@ it('falls back to the find_by_agent_no API when the agent_no is not in the sessi
     $point = SS_SHIPPING_WC()->order_meta()->read($order->get_id())->get_pickup_point();
     expect($point->get_agent_no())->toBe('9999')
         ->and($point->get_company())->toBe('Fallback Shop');
+});
+
+it('preserves an explicit workplace point across address changes and an empty closest result', function () {
+    mock_smart_send_api(function ($url) {
+        if (str_contains($url, '/agentno/9999')) {
+            return ss_api_response(200, ['data' => sample_agent(['agent_no' => '9999', 'company' => 'Workplace Shop'])]);
+        }
+        return ss_api_response(200, ['data' => str_contains($url, '/postalcode/8000') ? [] : [sample_agent()]]);
+    });
+    block_cart_setup();
+    $api = new \Smart_Send\Delivery_Options\Store_API();
+    $api->store_selected_agent_no(['agent_no' => '9999', 'pickup_point_context' => block_cart_extension_data()['pickup_point_context']]);
+    WC()->customer->set_shipping_postcode('8000');
+    $data = block_cart_extension_data();
+    expect($data['selected_agent_no'])->toBe('9999')
+        ->and($data['selection_origin'])->toBe('explicit')
+        ->and($data['pickup_point_status'])->toBe('found')
+        ->and($data['pickup_points'])->toHaveCount(1)
+        ->and($data['pickup_points'][0]['label'])->toContain('Workplace Shop');
+    $order = create_order(['shipping_method' => 'postnord_agent', 'address' => ['postcode' => '8000']]);
+    $api->persist_pickup_point_from_request($order, block_checkout_request('9999', ['pickup_point_context' => $data['pickup_point_context']]));
+    expect($order->get_meta(\Smart_Send\Delivery\Order_Meta::META_AGENT_NO))->toBe('9999');
+});
+
+it('keeps a validated explicit point when the closest lookup fails and rejects silently omitting it', function () {
+    mock_smart_send_api(function ($url) {
+        return str_contains($url, '/postalcode/8000')
+            ? new WP_Error('http_request_failed', 'Unavailable')
+            : ss_api_response(200, ['data' => [sample_agent()]]);
+    });
+    block_cart_setup();
+    block_cart_extension_data();
+    $api = new \Smart_Send\Delivery_Options\Store_API();
+    $api->store_selected_agent_no(['agent_no' => '1234']);
+    WC()->customer->set_shipping_postcode('8000');
+    $data = block_cart_extension_data();
+    expect($data['selected_agent_no'])->toBe('1234')->and($data['pickup_point_status'])->toBe('found');
+    $order = create_order(['shipping_method' => 'postnord_agent', 'address' => ['postcode' => '8000']]);
+    expect(fn () => $api->persist_pickup_point_from_request($order, block_checkout_request('')))->toThrow(RouteException::class);
+});
+
+it('recalculates automatic defaults for the latest address without making them explicit', function () {
+    with_ss_settings(['default_select_agent' => 'yes']);
+    mock_smart_send_api(function ($url) {
+        return ss_api_response(200, ['data' => [sample_agent(['agent_no' => str_contains($url, '/postalcode/8000') ? '5678' : '1234'])]]);
+    });
+    block_cart_setup();
+    expect(block_cart_extension_data()['selected_agent_no'])->toBe('1234');
+    WC()->customer->set_shipping_postcode('8000');
+    $data = block_cart_extension_data();
+    expect($data['selected_agent_no'])->toBe('5678')->and($data['selection_origin'])->toBe('automatic');
+    $order = create_order(['shipping_method' => 'postnord_agent', 'address' => ['postcode' => '8000']]);
+    expect(fn () => (new \Smart_Send\Delivery_Options\Store_API())->persist_pickup_point_from_request($order, block_checkout_request('1234', ['selection_origin' => 'automatic'])))->toThrow(RouteException::class);
+});
+
+it('rejects delayed selection updates and checkout payloads from a previous address', function () {
+    mock_smart_send_api(fn () => ss_api_response(200, ['data' => [sample_agent()]]));
+    block_cart_setup();
+    $context = block_cart_extension_data()['pickup_point_context'];
+    WC()->customer->set_shipping_postcode('8000');
+    $api = new \Smart_Send\Delivery_Options\Store_API();
+    expect(fn () => $api->store_selected_agent_no(['agent_no' => '1234', 'pickup_point_context' => $context]))
+        ->toThrow(RouteException::class, 'The shipping address or method changed.');
+    $order = create_order(['shipping_method' => 'postnord_agent', 'address' => ['postcode' => '8000']]);
+    expect(fn () => $api->persist_pickup_point_from_request($order, block_checkout_request('1234', ['pickup_point_context' => $context])))
+        ->toThrow(RouteException::class, 'The shipping address or method changed.');
+});
+
+it('clears an explicit selection when the carrier or country changes even if the number is reused', function (string $method, string $country) {
+    mock_smart_send_api(function ($url) {
+        return ss_api_response(200, ['data' => [sample_agent([
+            'carrier' => str_contains($url, '/carrier/gls') ? 'gls' : 'postnord',
+            'country' => str_contains($url, '/country/SE') ? 'SE' : 'DK',
+        ])]]);
+    });
+    block_cart_setup();
+    block_cart_extension_data();
+    (new \Smart_Send\Delivery_Options\Store_API())->store_selected_agent_no(['agent_no' => '1234']);
+    block_cart_setup($method, ['country' => $country]);
+    $data = block_cart_extension_data();
+    expect($data['selected_agent_no'])->toBeNull()->and($data['selection_origin'])->toBeNull();
+})->with([['gls_agent', 'DK'], ['postnord_agent', 'SE']]);
+
+it('does not reuse a no-point fallback for a different final order address or carrier', function (string $method, array $address) {
+    mock_smart_send_api(fn () => ss_api_response(200, ['data' => []]));
+    block_cart_setup();
+    expect(block_cart_extension_data()['pickup_point_status'])->toBe('none_found');
+    $order = create_order(['shipping_method' => $method, 'address' => $address]);
+    expect(fn () => (new \Smart_Send\Delivery_Options\Store_API())->persist_pickup_point_from_request($order, block_checkout_request(null)))
+        ->toThrow(RouteException::class);
+})->with([['postnord_agent', ['postcode' => '8000']], ['gls_agent', []], ['postnord_agent', ['country' => 'SE']]]);
+
+it('rejects an unscoped empty cache and a failed explicitly requested point', function () {
+    WC()->session->set('ss_shipping_agents', []);
+    mock_smart_send_api(fn () => new WP_Error('http_request_failed', 'Unavailable'));
+    $order = create_order(['shipping_method' => 'postnord_agent']);
+    $api = new \Smart_Send\Delivery_Options\Store_API();
+    expect(fn () => $api->persist_pickup_point_from_request($order, block_checkout_request('')))->toThrow(RouteException::class);
+    block_cart_setup();
+    block_cart_extension_data();
+    expect(fn () => $api->persist_pickup_point_from_request($order, block_checkout_request('9999')))->toThrow(RouteException::class);
+});
+
+it('clears pickup metadata on a draft order when checkout switches to home delivery', function () {
+    $order = create_order(['shipping_method' => 'postnord_homedelivery']);
+    $details = (new \Smart_Send\Delivery\Delivery_Details())->set_pickup_point(\Smart_Send\Delivery\Pickup_Point::from_object(sample_agent()));
+    (new \Smart_Send\Delivery\Order_Meta())->write($order, $details);
+    (new \Smart_Send\Delivery_Options\Store_API())->persist_pickup_point_from_request($order, block_checkout_request('1234'));
+    expect(wc_get_order($order->get_id())->get_meta(\Smart_Send\Delivery\Order_Meta::META_AGENT_NO))->toBe('');
+});
+
+
+it('does not require an invisible pickup selector for free shipping mapped only at booking', function () {
+    with_ss_settings(['shipping_method_for_free_shipping' => 'postnord_agent']);
+    $order = create_order();
+    $shipping = new WC_Order_Item_Shipping();
+    $shipping->set_method_id('free_shipping');
+    $shipping->set_method_title('Free shipping');
+    $order->add_item($shipping);
+    $order->save();
+    expect((new \Smart_Send\Delivery\Method_Resolver())->resolve_outbound($order))->toBe('postnord_agent');
+    $capture = mock_smart_send_api();
+    (new \Smart_Send\Delivery_Options\Store_API())->persist_pickup_point_from_request($order, block_checkout_request(null));
+    expect($capture->requests)->toBe([])
+        ->and($order->get_meta(\Smart_Send\Delivery\Order_Meta::META_AGENT_NO))->toBe('');
+});
+
+it('normalizes postcode context before comparing cart selection with the final order', function () {
+    // This fixture needs GB even when the disposable store ships only to DK/SE.
+    $all_countries = static fn () => 'all';
+    add_filter('pre_option_woocommerce_ship_to_countries', $all_countries);
+    remember_cleanup_callback(static function () use ($all_countries): void {
+        remove_filter('pre_option_woocommerce_ship_to_countries', $all_countries);
+    });
+    mock_smart_send_api(fn () => ss_api_response(200, ['data' => [sample_agent(['country' => 'GB'])]]));
+    block_cart_setup('postnord_agent', ['country' => 'GB', 'postcode' => 'sw1a1aa']);
+    $data = block_cart_extension_data();
+    expect($data['pickup_point_context']['postcode'])->toBe('SW1A 1AA');
+    $order = create_order(['shipping_method' => 'postnord_agent', 'address' => ['country' => 'GB', 'postcode' => 'SW1A 1AA']]);
+    (new \Smart_Send\Delivery_Options\Store_API())->persist_pickup_point_from_request($order, block_checkout_request('1234', ['pickup_point_context' => $data['pickup_point_context']]));
+    expect($order->get_meta(\Smart_Send\Delivery\Order_Meta::META_AGENT_NO))->toBe('1234');
 });

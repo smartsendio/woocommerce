@@ -106,12 +106,12 @@ it('retains submitted parcel measurements in a combined deleted-product booking 
     $capture = mock_smart_send_api();
     $outbound_plan = (new Parcel_Plan())->add_spec((new Parcel_Spec())->set_weight(1.5)->set_length(30));
     $outbound = (new Delivery_Details())->set_shipping_method('gls_agent')
-        ->set_pickup_point(\Smart_Send\Delivery\Pickup_Point::from_object(sample_agent()))
+        ->set_pickup_point(\Smart_Send\Delivery\Pickup_Point::from_object(sample_agent(['carrier' => 'gls'])))
         ->set_parcel_plan($outbound_plan);
     $return = null;
     if ($separate_return_plan) {
-        $return = (new Delivery_Details())->set_shipping_method('gls_returndropoff')
-            ->set_pickup_point(\Smart_Send\Delivery\Pickup_Point::from_object(sample_agent(['agent_no' => '5678'])))
+        $return = (new Delivery_Details())->set_shipping_method('gls_agent')
+            ->set_pickup_point(\Smart_Send\Delivery\Pickup_Point::from_object(sample_agent(['agent_no' => '5678', 'carrier' => 'gls'])))
             ->set_parcel_plan((new Parcel_Plan())->add_spec((new Parcel_Spec())->set_weight(2.5)->set_length(50)));
     }
 
@@ -128,7 +128,7 @@ it('retains submitted parcel measurements in a combined deleted-product booking 
         ->and($outbound_payload['parcels'][0]['weight'])->toEqual(1.5)
         ->and($outbound_payload['parcels'][0]['length'])->toEqual(30)
         ->and($return_payload['shipping_carrier'])->toBe($separate_return_plan ? 'gls' : 'postnord')
-        ->and($return_payload['shipping_method'])->toBe('returndropoff')
+        ->and($return_payload['shipping_method'])->toBe($separate_return_plan ? 'agent' : 'returndropoff')
         ->and($return_payload['parcels'][0]['weight'])->toEqual($separate_return_plan ? 2.5 : 1.5)
         ->and($return_payload['parcels'][0]['length'])->toEqual($separate_return_plan ? 50 : 30)
         ->and($outbound_plan->get_specs()[0]->get_weight())->toBe(1.5);
@@ -147,7 +147,7 @@ it('merges the outbound parcel plan into return overrides without mutating the s
     $product = create_simple_product();
     $order = create_order(['products' => [$product], 'shipping_method' => 'postnord_homedelivery']);
     $outbound = (new Delivery_Details())->set_parcel_plan((new Parcel_Plan())->add_spec((new Parcel_Spec())->set_weight(3)));
-    $return = (new Delivery_Details())->set_shipping_method('gls_returndropoff');
+    $return = (new Delivery_Details())->set_shipping_method('gls_agent');
     $capture = mock_smart_send_api();
 
     $result = SS_SHIPPING_WC()->fulfillment()->fulfill_outbound($order, false, $outbound, true, $return);

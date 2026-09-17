@@ -163,7 +163,7 @@ class Pickup_Point_Formatter {
 
 	/**
 	 * The checkout drop-down label of a pickup point: the configured
-	 * "Dropdown display format" with the smart_send_pickup_point_option_label
+	 * "Dropdown display format" with the smart_send_pickup_point_label
 	 * filter applied - the single pipeline shared by the classic checkout
 	 * drop-down and the Checkout Block cart extension (#74).
 	 *
@@ -178,17 +178,17 @@ class Pickup_Point_Formatter {
 		$formatted_address = $this->format( $pickup_point );
 
 		/*
-		 * Filter the label shown for a pickup point in the checkout
-		 * drop-down (classic checkout and Checkout Block alike).
+		 * Filter the plain-text label of a pickup point, usable by lists and maps.
+		 * Consumers escape this text at the rendering boundary.
 		 *
 		 * @since 9.0.0
 		 *
 		 * @param string                   $formatted_address The label formatted per the "Dropdown display format" setting.
 		 * @param Pickup_Point $pickup_point      The pickup point (typed value object, not a raw API object - #170).
 		 *
-		 * @return string The option label to render.
+		 * @return string The plain-text label to render.
 		 */
-		return apply_filters( 'smart_send_pickup_point_option_label', $formatted_address, $this->normalize( $pickup_point ) );
+		return apply_filters( 'smart_send_pickup_point_label', $formatted_address, $this->normalize( $pickup_point ) );
 	}
 
 	/**

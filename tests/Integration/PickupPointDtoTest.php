@@ -146,6 +146,7 @@ it('maps the lookup result to value objects at the API boundary and caches them 
     }
     remember_cleanup_callback(function (): void {
         WC()->session->set('ss_shipping_agents', null);
+        WC()->session->set(\Smart_Send\Delivery_Options\Pickup_Point_Lookup::SESSION_CONTEXT, null);
     });
     mock_smart_send_api(function () {
         return ss_api_response(200, ['data' => [full_api_agent(), full_api_agent(['agent_no' => '5678', 'company' => 'Second Shop', 'distance' => 1.2])]]);
@@ -168,13 +169,15 @@ it('maps the lookup result to value objects at the API boundary and caches them 
     $thawed = unserialize(serialize($cached));
     expect(\Smart_Send\Delivery\Pickup_Point::from_object($thawed[1])->get_company())->toBe('Second Shop');
 
-    // Read back as value objects, resolvable by agent number.
+    // Read back as value objects, resolvable only in their verified carrier/country scope.
     $from_session = $lookup->get_session_pickup_points();
     expect($from_session)->toHaveCount(2)
         ->and($from_session[1])->toBeInstanceOf(\Smart_Send\Delivery\Pickup_Point::class)
-        ->and($lookup->find_cached_by_agent_no('5678')->get_company())->toBe('Second Shop')
-        ->and($lookup->find_cached_by_agent_no('5678')->get_latitude())->toBe(55.6631)
-        ->and($lookup->find_cached_by_agent_no('0000'))->toBeNull();
+        ->and($lookup->find_cached_by_agent_no('postnord', 'DK', '5678')->get_company())->toBe('Second Shop')
+        ->and($lookup->find_cached_by_agent_no('postnord', 'DK', '5678')->get_latitude())->toBe(55.6631)
+        ->and($lookup->find_cached_by_agent_no('postnord', 'DK', '0000'))->toBeNull()
+        ->and($lookup->find_cached_by_agent_no('gls', 'DK', '5678'))->toBeNull()
+        ->and($lookup->find_cached_by_agent_no('postnord', 'SE', '5678'))->toBeNull();
 });
 
 it('reports null before any lookup and an empty list after a lookup that found nothing', function () {
@@ -183,8 +186,10 @@ it('reports null before any lookup and an empty list after a lookup that found n
     }
     remember_cleanup_callback(function (): void {
         WC()->session->set('ss_shipping_agents', null);
+        WC()->session->set(\Smart_Send\Delivery_Options\Pickup_Point_Lookup::SESSION_CONTEXT, null);
     });
     WC()->session->set('ss_shipping_agents', null);
+    WC()->session->set(\Smart_Send\Delivery_Options\Pickup_Point_Lookup::SESSION_CONTEXT, null);
 
     $lookup = new \Smart_Send\Delivery_Options\Pickup_Point_Lookup();
     expect($lookup->get_session_pickup_points())->toBeNull();

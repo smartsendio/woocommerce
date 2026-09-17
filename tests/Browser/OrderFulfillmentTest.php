@@ -65,6 +65,7 @@ beforeAll(function (): void {
         [],                       // 16: unsupported legacy parcel rows
         [],                       // 17: a deleted product on an existing order
         [],                       // 18: a stale canonical parcel plan
+        [],                       // 19: carrier change during a pending pickup lookup
     ]]);
 });
 
@@ -893,4 +894,45 @@ it('offers a working way out of the not-connected state', function () {
     } finally {
         ss_browser_update_plugin_setting('api_token', 'ss-mock-api-token');
     }
+});
+
+
+it('clears an incompatible pickup point and ignores an older lookup after a carrier change', function () {
+    $order_id = ss_browser_state()['orders'][19];
+    ss_browser_reset_api_requests();
+    $page = ss_browser_open_order($order_id)
+        ->click('[data-ss-action="edit-pickup-point"]');
+    // Hold a real lookup response at the transport boundary to reproduce
+    // the merchant changing carrier before the old response reaches React.
+    $page->script(<<<'JS'
+window.__ssHeldLookup = false;
+wp.apiFetch.use((options, next) => {
+    if ((options.path || '').includes('/pickup-points/5678') && (options.path || '').includes('postnord_agent')) {
+        return next(options).then(point => new Promise(resolve => {
+            window.__ssHeldLookup = true;
+            window.__ssReleaseLookup = () => resolve(point);
+        }));
+    }
+    return next(options);
+});
+JS);
+    $page->fill('[data-ss-field="pickup_point.agent_no"]', '5678')
+        ->click('[data-ss-action="lookup-pickup-point"]')
+        ->assertScript('window.__ssHeldLookup', true)
+        ->assertDisabled('[data-ss-action="create-label"]')
+        ->click('[data-ss-action="edit-method"]')
+        ->select('[data-ss-field="shipping_method"]', 'gls_agent')
+        ->assertValue('[data-ss-field="pickup_point.agent_no"]', '')
+        ->assertDontSeeIn('[data-ss-section="pickup_point"]', 'Browser Test Shop');
+    $page->script('window.__ssReleaseLookup();');
+    $page->assertNotPresent('[data-ss-value="pickup_point.agent_no"]')
+        ->fill('[data-ss-field="pickup_point.agent_no"]', '5678')
+        ->click('[data-ss-action="lookup-pickup-point"]')
+        ->assertSeeIn('[data-ss-value="pickup_point.agent_no"]', '#5678')
+        ->click('[data-ss-action="create-label"]')
+        ->assertPresent('[data-ss-result="outbound"]');
+
+    $body = ss_browser_api_requests('booking')[0]['body'];
+    expect($body['shipping_carrier'])->toBe('gls')
+        ->and($body['agent']['agent_no'])->toBe('5678');
 });

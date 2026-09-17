@@ -522,10 +522,10 @@ class Fulfillment_REST_Controller {
 	}
 
 	/**
-	 * Resolve a pickup point submitted as a bare agent number before the
+	 * Resolve every client-submitted pickup point by its agent number before the
 	 * run, so a number Smart Send does not know is a request-level 422
-	 * (with the form field) rather than a failed leg. A number equal to
-	 * the stored one resolves to the stored point; a submitted point on
+	 * (with the form field) rather than a failed leg. Client-supplied
+	 * names, addresses and context are never trusted; a submitted point on
 	 * a method that is not an agent-type method is dropped (nothing to
 	 * resolve, nothing to persist).
 	 *
@@ -538,7 +538,7 @@ class Fulfillment_REST_Controller {
 	protected function resolve_pickup_point_override( Delivery_Details $details, WC_Order $order, string $method ) {
 		$submitted = $details->get_pickup_point();
 
-		if ( null === $submitted || ! $submitted->is_agent_no_only() ) {
+		if ( null === $submitted ) {
 			return true;
 		}
 
@@ -552,10 +552,9 @@ class Fulfillment_REST_Controller {
 
 		$agent_no = (string) $submitted->get_agent_no();
 		$stored   = $this->order_meta->read( $order )->get_pickup_point();
-
-		if ( null !== $stored && (string) $stored->get_agent_no() === $agent_no ) {
+		if ( null !== $stored && (string) $stored->get_agent_no() === $agent_no
+			&& $this->pickup_point_lookup->matches_context( $stored, $method_code->carrier(), (string) $order->get_shipping_country() ) ) {
 			$details->set_pickup_point( $stored );
-
 			return true;
 		}
 

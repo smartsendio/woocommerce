@@ -205,7 +205,7 @@ $make_order = function ($spec) use ($product_id) {
     $order->calculate_totals();
     $order->update_meta_data('ss_shipping_order_agent_no', '1234');
     $order->update_meta_data('_ss_shipping_order_agent', (object) array(
-        'id' => 1, 'agent_no' => '1234', 'company' => 'Browser Test Shop', 'address_line1' => 'Main Street 1',
+        'id' => 1, 'agent_no' => '1234', 'carrier' => 'postnord', 'company' => 'Browser Test Shop', 'address_line1' => 'Main Street 1',
         'address_line2' => null, 'postal_code' => '2300', 'city' => 'Copenhagen', 'country' => 'DK',
     ));
     $order->save();

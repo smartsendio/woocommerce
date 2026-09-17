@@ -69,7 +69,7 @@ it('blocks checkout submission until a pickup point is selected', function () {
     $page = ss_checkout_reach_pickup_selector();
 
     // Submit with the "- Select Pickup Point -" placeholder still selected:
-    // the woocommerce_checkout_process validation must reject the order.
+    // the checkout validation must reject the order.
     // Explicit selector: text-based lookups do not match submit buttons by
     // their value and hang instead of failing.
     $page->assertSee('Cash on delivery')
@@ -78,24 +78,41 @@ it('blocks checkout submission until a pickup point is selected', function () {
         ->assertDontSee('order has been received');
 });
 
-it('shows the pickup point selector on classic checkout and stores the chosen agent on the order', function () {
+it('keeps an explicit pickup point through an address refresh with no nearest results and stores it on the order', function () {
     $page = ss_checkout_reach_pickup_selector();
 
-    // Cash on delivery is the only enabled gateway, so it is preselected
-    // (and its radio hidden). Pick the agent last so no further checkout
-    // refresh re-renders the dropdown before submitting.
+    // Wait for the real checkout refresh triggered by choosing an option.
+    // The selection remains explicit when its address later leaves the
+    // latest nearest-results list (for example a workplace pickup point).
+    $page->script("void jQuery(document.body).one('updated_checkout', () => document.body.setAttribute('data-ss-choice-refreshed', 'yes'))");
     $page->assertSee('Cash on delivery')
         ->select('ss_shipping_store_pickup', '1234')
-        // Explicit selector: text-based lookups do not match submit buttons
-        // by their value and hang instead of failing.
-        ->click('#place_order');
+        ->assertAttribute('html > body', 'data-ss-choice-refreshed', 'yes')
+        ->assertValue('[name=ss_shipping_pickup_origin]', 'explicit');
 
-    // Thank-you page: the frontend hook renders the stored pickup point,
-    // which proves the agent meta ended up on the order.
-    $page->assertSee('order has been received')
-        ->assertSee('Pickup Point')
-        ->assertSee('Browser Test Shop')
-        ->assertSee('Main Street 1');
+    ss_browser_set_api_scenarios(array('pickup-points' => 'empty'));
+    try {
+        $page->script("void jQuery(document.body).one('updated_checkout', () => document.body.setAttribute('data-ss-address-refreshed', 'yes'))");
+        // WooCommerce marks text addresses dirty on keydown; use keyboard
+        // input so this exercises the same refresh as a shopper's edit.
+        $page->fill('#billing_postcode', '')
+            ->typeSlowly('#billing_postcode', '2400')
+            ->click('#billing_city')
+            ->assertAttribute('html > body', 'data-ss-address-refreshed', 'yes')
+            ->assertValue('select[name=ss_shipping_store_pickup]', '1234')
+            ->assertValue('[name=ss_shipping_pickup_origin]', 'explicit')
+            ->assertSourceHas('Browser Test Shop')
+            ->click('#place_order');
+
+        // Rendering on the thank-you page proves the chosen point was
+        // stored as part of WooCommerce's normal order creation.
+        $page->assertSee('order has been received')
+            ->assertSee('Pickup Point')
+            ->assertSee('Browser Test Shop')
+            ->assertSee('Main Street 1');
+    } finally {
+        ss_browser_set_api_scenarios(null);
+    }
 });
 
 it('shows the fallback text and places the order without a selection when no pickup points are found', function () {

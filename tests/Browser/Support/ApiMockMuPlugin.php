@@ -233,3 +233,12 @@ add_filter('pre_http_request', function ($pre, $args, $url) {
 
     return $respond(array('data' => array('id' => 1, 'email' => 'mock@smartsend.test', 'website' => 'localhost')));
 }, 5, 3);
+
+
+// Exercise the real shared label hook through Store API JSON and React.
+add_filter('smart_send_pickup_point_label', static function ($label) {
+    $config = get_option('ss_test_api', array());
+    return !empty($config['enabled']) && isset($config['pickup_label_suffix'])
+        ? $label . ' ' . $config['pickup_label_suffix']
+        : $label;
+});
