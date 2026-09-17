@@ -422,6 +422,16 @@ it('reflects the Select Default setting in the cart data', function () {
 });
 
 it('stores and clears the in-progress selection through the registered extension update callback', function () {
+    // Always offer a non-agent default, including on locally seeded stores.
+    // Otherwise clearing the chosen rate accidentally reselects Smart Send
+    // and conceals an invalid fresh-request fixture.
+    $flat_rate_first = static function (array $rates): array {
+        return ['flat_rate:fixture' => new WC_Shipping_Rate('flat_rate:fixture', 'Flat rate', 0, [], 'flat_rate')] + $rates;
+    };
+    add_filter('woocommerce_package_rates', $flat_rate_first, 20);
+    remember_cleanup_callback(static function () use ($flat_rate_first): void {
+        remove_filter('woocommerce_package_rates', $flat_rate_first, 20);
+    });
     mock_smart_send_api(function () {
         return ss_api_response(200, ['data' => [sample_agent()]]);
     });
@@ -431,8 +441,13 @@ it('stores and clears the in-progress selection through the registered extension
         ->get_update_callback(\Smart_Send\Frontend\Block_Checkout::INTEGRATION_NAME);
 
     $context = block_cart_extension_data()['pickup_point_context'];
-    // Like a fresh cart/extensions request, start without calculated packages.
+    // A fresh HTTP request has no calculated packages, but DOES retain the
+    // shopper's chosen rate in its session. reset_shipping() clears both.
+    $chosen_methods = WC()->session->get('chosen_shipping_methods');
     WC()->shipping()->reset_shipping();
+    WC()->session->set('chosen_shipping_methods', $chosen_methods);
+    expect(WC()->shipping()->get_packages())->toBe([])
+        ->and(WC()->session->get('chosen_shipping_methods'))->toBe(['smart_send_shipping:1']);
     $callback(['agent_no' => '1234', 'pickup_point_context' => $context]);
     expect(block_cart_extension_data()['selected_agent_no'])->toBe('1234');
 
