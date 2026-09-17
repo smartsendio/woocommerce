@@ -1,7 +1,7 @@
 /**
- * Order screen "Smart Send" meta box (#182): the server-rendered
- * first paint (SS_Shipping_Order_Fulfillment_Presenter::render_form()) and
- * the React app share these class names. Built into
+ * Order screen "Smart Send" meta box (#182): the app is the box's only
+ * renderer, and these are its class names (plus the placeholder PHP
+ * renders into the mount point until the app takes over). Built into
  * build/order-fulfillment/style-index.css, enqueued by
  * SS_Shipping_Order_Meta_Box next to WordPress' wp-components stylesheet.
  *
@@ -509,4 +509,56 @@
 // the state that disabled the fieldset in the first place.
 #smart-send-fulfillment[disabled] button.components-button {
 	pointer-events: none;
+}
+
+// The placeholder SS_Shipping_Order_Meta_Box renders into the mount point
+// until the app takes over. It stays invisible for the first 200ms: the
+// app normally mounts well inside that, so the usual case shows nothing at
+// all, and only a genuinely slow load fades a stable shape in rather than
+// flashing one. Sized like the real box so its arrival shifts nothing.
+.smart-send-fulfillment__placeholder {
+	padding: 12px;
+	opacity: 0;
+	animation: smart-send-fulfillment-placeholder 160ms ease-out 200ms forwards;
+}
+
+.smart-send-fulfillment__placeholder-row {
+	margin-bottom: 14px;
+
+	span {
+		display: block;
+		height: 12px;
+		border-radius: 2px;
+		background: #f0f0f1;
+	}
+
+	span:first-child {
+		width: 40%;
+		margin-bottom: 6px;
+		background: #e8e8e9;
+	}
+
+	span:last-child {
+		width: 75%;
+	}
+}
+
+.smart-send-fulfillment__placeholder-button {
+	height: 32px;
+	border-radius: 2px;
+	background: #f0f0f1;
+}
+
+@keyframes smart-send-fulfillment-placeholder {
+	to {
+		opacity: 1;
+	}
+}
+
+// The fade is a courtesy, not information: honour the OS setting by
+// showing the placeholder outright once the delay has passed.
+@media (prefers-reduced-motion: reduce) {
+	.smart-send-fulfillment__placeholder {
+		animation-duration: 1ms;
+	}
 }

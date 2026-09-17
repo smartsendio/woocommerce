@@ -8,10 +8,6 @@
  * bold label line with an optional help tip and an "Edit" link
  * right-aligned, the read-only value (or its control, once edited) below
  * it.
- *
- * The server first paint (SS_Shipping_Order_Fulfillment_Presenter)
- * renders the same structure and class names so the box does not jump
- * when the app mounts.
  */
 import { createElement } from '@wordpress/element';
 import { __ } from '@wordpress/i18n';
@@ -57,9 +53,7 @@ export function bindHelpTips( root ) {
 
 /**
  * The small external-link icon of a link that opens the Smart Send app (a
- * timeline entry, a green result box's "Open", a document download) - the
- * same markup the server first paint renders
- * (SS_Shipping_Order_Fulfillment_Presenter::render_external_icon()).
+ * timeline entry, a green result box's "Open", a document download).
  */
 export function ExternalIcon() {
 	return (

@@ -292,11 +292,6 @@ it('leaves the drop-down empty when a snippet returns an empty array', function 
     expect($state['methods']['outbound'])->toBe([])
         ->and($state['methods']['return'])->toBe([])
         ->and($state['delivery_details']['shipping_method'])->toBeNull();
-
-    // The first paint renders without a fatal and still reads "None".
-    $html = SS_SHIPPING_WC()->fulfillment_presenter()->render_form($state);
-
-    expect($html)->toContain('smart-send-fulfillment__none" data-ss-value="shipping_method"');
 });
 
 it('ignores a malformed filter return value', function () {

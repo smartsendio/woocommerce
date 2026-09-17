@@ -35,10 +35,9 @@
  * editor, "Done" collapses it keeping the plan), the actions section (the
  * green result boxes of the run just made over the two stacked buttons),
  * the "Booked shipments" timeline and the grey settings section (the
- * return checkbox). Editing is component state only, never persisted; the
- * server first paint renders the same sections with the same class names
- * so nothing jumps when the app mounts - except the green boxes, which
- * are the client's alone.
+ * return checkbox). Editing is component state only, never persisted.
+ * This app is the box's ONLY renderer: PHP inlines the state and renders
+ * the mount point with a placeholder in it, nothing more.
  *
  * Every request is POST …/fulfillment via apiFetch; a fulfilled leg's
  * order note is prepended to WooCommerce's ul.order_notes (both the HPOS
@@ -160,12 +159,13 @@ export default function App( { initialState, mount } ) {
 	const returnMethodOverride = form.returnMethod && form.returnMethod !== state.return.method ? form.returnMethod : null;
 
 	// The fieldset the app mounted on carries the state for stable
-	// selectors and is disabled while not connected / submitting - the
-	// server rendered it disabled, so nothing is clickable before the app
-	// took over.
+	// selectors and is disabled while not connected / submitting. PHP
+	// renders it disabled with data-ss-app="loading", so nothing is
+	// clickable before the app took over; this is where it takes over.
 	useEffect( () => {
 		mount.setAttribute( 'data-ss-state', current );
 		mount.setAttribute( 'data-ss-app', submitting ? 'submitting' : 'ready' );
+		mount.removeAttribute( 'aria-busy' );
 		mount.disabled = disabled;
 	}, [ mount, current, submitting, disabled ] );
 
