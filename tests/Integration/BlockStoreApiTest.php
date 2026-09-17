@@ -65,9 +65,9 @@ function block_cart_setup(string $method_code = 'postnord_agent', array $address
     add_filter('woocommerce_package_rates', $rate_filter);
 
     // The CI store is provisioned with --skip-seed, so NO shipping zone
-    // method exists there - and WC_Cart::show_shipping() short-circuits
+    // method exists there - and WC_Cart::needs_shipping() short-circuits
     // (calculate_shipping() then never builds any package) whenever
-    // wc_get_shipping_method_count() is zero. Create a throwaway zone with
+    // wc_get_shipping_method_count(true) is zero. Create a throwaway zone with
     // an enabled method so shipping is calculated at all; the Smart Send
     // rate itself still comes from the woocommerce_package_rates filter.
     $zone = new WC_Shipping_Zone();
@@ -84,14 +84,17 @@ function block_cart_setup(string $method_code = 'postnord_agent', array $address
     // the cached one and wc_get_shipping_method_count() keeps returning
     // the stale 0 - which made show_shipping() short-circuit in CI while
     // passing locally whenever a second boundary happened to fall in
-    // between. Drop the count transient so the zone method is recounted.
+    // between. The supported WC 8.2 floor uses the separate _legacy count
+    // for needs_shipping(); clear both variants so the zone is recounted.
     delete_transient('wc_shipping_method_count');
+    delete_transient('wc_shipping_method_count_legacy');
 
     remember_cleanup_callback(function () use ($zone): void {
         $zone->delete(true);
         // Same second-resolution staleness in the other direction: without
         // this, a later test could keep counting the deleted zone's method.
         delete_transient('wc_shipping_method_count');
+        delete_transient('wc_shipping_method_count_legacy');
     });
 
     remember_cleanup_callback(function () use ($rate_filter): void {
@@ -121,13 +124,12 @@ function block_cart_setup(string $method_code = 'postnord_agent', array $address
     // cached package so each test calculates its own rates.
     WC()->session->set('shipping_for_package_0', null);
 
-    // Verify the gate BEFORE calculating: WC_Cart::show_shipping() (and
-    // needs_shipping()) short-circuit when the store counts zero enabled
-    // shipping methods, and calculate_shipping() then silently builds no
-    // packages at all.
-    if (!WC()->cart->show_shipping()) {
+    // Check both gates: on WC 8.2 show_shipping() does not inspect the
+    // method count, and a false needs_shipping() leaves old in-memory
+    // packages intact instead of calculating this fixture's rates.
+    if (!WC()->cart->show_shipping() || !WC()->cart->needs_shipping()) {
         throw new RuntimeException(
-            'block_cart_setup: WC()->cart->show_shipping() is false even though the test zone exists'
+            'block_cart_setup: the cart cannot calculate shipping even though the test zone exists'
             . ' (wc_get_shipping_method_count(true) = ' . wc_get_shipping_method_count(true) . ')'
         );
     }
@@ -143,6 +145,12 @@ function block_cart_setup(string $method_code = 'postnord_agent', array $address
         throw new RuntimeException(
             'block_cart_setup: the Smart Send rate is missing from the calculated package rates ('
             . (empty($packages) ? 'no packages were calculated' : implode(', ', $package_rates)) . ')'
+        );
+    }
+    $actual_method_code = $packages[0]['rates']['smart_send_shipping:1']->get_meta_data()['smart_send_shipping_method'] ?? null;
+    if ($actual_method_code !== $method_code) {
+        throw new RuntimeException(
+            'block_cart_setup: expected method ' . $method_code . ', got ' . ($actual_method_code ?? '(missing)')
         );
     }
 
@@ -272,6 +280,34 @@ it('reports a non-agent rate with no pickup points and makes no API call', funct
         ->and($data['pickup_point_status'])->toBeNull()
         ->and($data['pickup_point_message'])->toBeNull()
         ->and($data['no_pickup_points_found'])->toBeFalse()
+        ->and($capture->requests)->toBe([]);
+});
+
+it('recalculates a non-agent fixture when the legacy shipping count cached zero in the same second', function () {
+    block_cart_setup('postnord_agent');
+    cleanup_created_objects();
+
+    with_ss_settings();
+    $capture = mock_smart_send_api();
+
+    // Make the second-resolution cache collision deterministic. The
+    // previous agent package survives WC_Cart::empty_cart() on WC 8.2.
+    $version = 'block-shipping-cache-regression';
+    $freeze_version = static fn () => $version;
+    add_filter('pre_transient_shipping-transient-version', $freeze_version);
+    remember_cleanup_callback(function () use ($freeze_version): void {
+        remove_filter('pre_transient_shipping-transient-version', $freeze_version);
+        delete_transient('wc_shipping_method_count');
+        delete_transient('wc_shipping_method_count_legacy');
+    });
+    set_transient('wc_shipping_method_count_legacy', [
+        'version' => $version,
+        'value' => 0,
+    ], MINUTE_IN_SECONDS);
+
+    block_cart_setup('postnord_homedelivery');
+
+    expect(block_cart_extension_data()['selected_rate_is_agent'])->toBeFalse()
         ->and($capture->requests)->toBe([]);
 });
 

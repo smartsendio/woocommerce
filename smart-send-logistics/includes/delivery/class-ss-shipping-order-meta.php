@@ -263,10 +263,9 @@ if ( ! class_exists( 'SS_Shipping_Order_Meta' ) ) :
 		/**
 		 * Delete the stored pickup point (agent) object.
 		 *
-		 * v8 oddity, preserved: the deletion is applied to the order
-		 * object but not explicitly saved - whether a subsequent read
-		 * still sees the agent differs per storage backend (the HPOS
-		 * order cache shares the instance, legacy storage reloads).
+		 * Persist the companion deletion on both storage backends. Leave
+		 * the number row for the WordPress/WooCommerce handler that invoked
+		 * the cascade; deleting it early would make that handler fail.
 		 *
 		 * @param integer|WC_Order $order Order (or order id).
 		 *
@@ -285,6 +284,7 @@ if ( ! class_exists( 'SS_Shipping_Order_Meta' ) ) :
 			}
 
 			$order->delete_meta_data( self::META_AGENT );
+			$order->save_meta_data();
 		}
 
 		/**
