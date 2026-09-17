@@ -35,6 +35,19 @@ function prepare_hpos_agent_edit(string $new_agent_no): WC_Order
 {
     with_option('woocommerce_custom_orders_table_enabled', 'yes');
 
+    $previous_user = get_current_user_id();
+    $user_id = wp_insert_user([
+        'user_login' => 'pickup-form-' . wp_generate_uuid4(),
+        'user_pass' => wp_generate_password(),
+        'role' => 'shop_manager',
+    ]);
+    wp_set_current_user($user_id);
+    remember_cleanup_callback(function () use ($previous_user, $user_id): void {
+        wp_set_current_user($previous_user);
+        require_once ABSPATH . 'wp-admin/includes/user.php';
+        wp_delete_user($user_id);
+    });
+
     $product = create_simple_product(['price' => 100, 'weight' => 1]);
     $order   = create_order(['products' => [$product], 'shipping_method' => 'postnord_agent']);
 

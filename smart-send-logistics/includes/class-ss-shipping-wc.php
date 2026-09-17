@@ -21,6 +21,8 @@ if ( ! class_exists( 'SS_Shipping_WC' ) ) :
 
 	class SS_Shipping_WC {
 
+		private const MINIMUM_WC_VERSION = '8.2.0';
+
 		private string $version = '9.0.0';
 
 		/**
@@ -214,6 +216,10 @@ if ( ! class_exists( 'SS_Shipping_WC' ) ) :
 		}
 
 		public function declaring_hpos_compatibility() {
+			if ( ! $this->is_woocommerce_supported() ) {
+				return;
+			}
+
 			\Automattic\WooCommerce\Utilities\FeaturesUtil::declare_compatibility( 'custom_order_tables', SS_SHIPPING_PLUGIN_FILE, true );
 			\Automattic\WooCommerce\Utilities\FeaturesUtil::declare_compatibility( 'cart_checkout_blocks', SS_SHIPPING_PLUGIN_FILE, true );
 		}
@@ -380,13 +386,23 @@ if ( ! class_exists( 'SS_Shipping_WC' ) ) :
 
 
 		/**
+		 * Check the dependency before any WooCommerce integration is loaded.
+		 *
+		 * WordPress checks the plugin dependency, but not its minimum version.
+		 * The compatibility declaration and shipping-method filter can run
+		 * before init(), so all three entry points share this requirement.
+		 *
+		 * @return bool
+		 */
+		private function is_woocommerce_supported(): bool {
+			return defined( 'WOOCOMMERCE_VERSION' ) && version_compare( WOOCOMMERCE_VERSION, self::MINIMUM_WC_VERSION, '>=' );
+		}
+
+		/**
 		 * Initialize the plugin.
 		 */
 		public function init() {
-			// The single bootstrap-level WooCommerce-active gate: `Requires Plugins: woocommerce`
-			// already guarantees WooCommerce on WP >= 6.5, so this check is belt-and-braces for
-			// older WordPress. Everything downstream of it assumes WooCommerce is present.
-			if ( defined( 'WOOCOMMERCE_VERSION' ) && version_compare( WOOCOMMERCE_VERSION, '2.6', '>=' ) ) {
+			if ( $this->is_woocommerce_supported() ) {
 				$this->include_shipping_method_class();
 				$this->include_block_checkout_class();
 
@@ -529,6 +545,10 @@ if ( ! class_exists( 'SS_Shipping_WC' ) ) :
 		 * Add a new integration to WooCommerce.
 		 */
 		public function add_shipping_method( $shipping_method ) {
+			if ( ! $this->is_woocommerce_supported() ) {
+				return $shipping_method;
+			}
+
 			$this->include_shipping_method_class();
 
 			$ss_shipping_shipping_method            = 'SS_Shipping_WC_Method';
@@ -545,9 +565,10 @@ if ( ! class_exists( 'SS_Shipping_WC' ) ) :
 			<div class="error">
 				<p>
 				<?php
-				esc_html_e(
-					'Smart Send Shipping requires WooCommerce 2.6 and above to be installed and activated!',
-					'smart-send-logistics'
+				printf(
+					/* translators: %s: minimum required WooCommerce version. */
+					esc_html__( 'Smart Send requires WooCommerce %s or newer to be installed and activated.', 'smart-send-logistics' ),
+					esc_html( self::MINIMUM_WC_VERSION )
 				);
 				?>
 						</p>

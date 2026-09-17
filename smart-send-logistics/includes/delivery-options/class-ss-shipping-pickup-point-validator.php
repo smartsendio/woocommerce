@@ -77,7 +77,7 @@ if ( ! class_exists( 'SS_Shipping_Pickup_Point_Validator' ) ) :
 		public function register_hooks() {
 			// Legacy post-table storage: the Custom Fields box updates meta
 			// by meta id and deletes fire deleted_post_meta.
-			add_filter( 'update_post_metadata_by_mid', array( $this, 'filter_update_agent_meta' ), 10, 4 );//For WordPress 5.0.0+
+			add_filter( 'update_post_metadata_by_mid', array( $this, 'filter_update_agent_meta' ), 10, 4 );
 			add_action( 'deleted_post_meta', array( $this, 'action_deleted_agent_meta' ), 10, 4 );
 
 			// HPOS storage: no WP meta hooks fire, so intercept the admin
@@ -113,12 +113,17 @@ if ( ! class_exists( 'SS_Shipping_Pickup_Point_Validator' ) ) :
 			// one a successful booking was submitted with, #182) is not an
 			// admin edit: nothing to validate, and re-validating could
 			// refuse the number after the agent object was already replaced.
-			if ( SS_Shipping_Order_Meta::is_writing() ) {
+			if ( SS_Shipping_Order_Meta::is_writing() || null !== $check ) {
 				return $check;
 			}
 
-			if ( SS_Shipping_Order_Meta::META_AGENT_NO == $meta_key ) { // phpcs:ignore Universal.Operators.StrictComparisons.LooseEqual -- pre-existing loose comparison; tightening is a behaviour change out of scope for the #139 move.
-				$meta      = get_metadata_by_mid( 'post', $meta_id );
+			if ( SS_Shipping_Order_Meta::META_AGENT_NO === $meta_key ) {
+				// WordPress authorizes admin edits before this generic hook.
+				// Do not impose a logged-in user on programmatic order writes.
+				$meta = get_metadata_by_mid( 'post', $meta_id );
+				if ( ! $meta || SS_Shipping_Order_Meta::META_AGENT_NO !== $meta->meta_key || ! wc_get_order( $meta->post_id ) instanceof WC_Order ) {
+					return false;
+				}
 				$object_id = $meta->post_id;
 				if ( $this->validate_and_store( $object_id, true, $meta_value ) !== true ) {
 					// the agent was not found so do NOT save the new agent_no
@@ -169,7 +174,13 @@ if ( ! class_exists( 'SS_Shipping_Pickup_Point_Validator' ) ) :
 		 */
 		// phpcs:disable WordPress.Security.NonceVerification.Missing, WordPress.Security.ValidatedSanitizedInput -- runs inside the HPOS order edit form save, admin-referer-checked by WooCommerce before woocommerce_process_shop_order_meta fires; values are compared/validated, not echoed.
 		public function validate_hpos_form_meta_changes( $order_id, $order ) {
-			if ( ! $this->hpos_enabled() || ! $order instanceof WC_Order ) {
+			if ( ! $this->hpos_enabled() || ! $order instanceof WC_Order || $order->get_id() !== (int) $order_id ) {
+				return;
+			}
+
+			// The full order form uses order-specific permissions, unlike
+			// WooCommerce's stricter Custom Fields AJAX endpoints.
+			if ( ! current_user_can( 'edit_shop_order', $order_id ) && ! current_user_can( 'manage_woocommerce' ) ) {
 				return;
 			}
 
@@ -177,6 +188,10 @@ if ( ! class_exists( 'SS_Shipping_Pickup_Point_Validator' ) ) :
 
 			foreach ( $posted_meta as $meta_id => $posted ) {
 				if ( ! isset( $posted['key'] ) || SS_Shipping_Order_Meta::META_AGENT_NO !== $posted['key'] ) {
+					continue;
+				}
+				if ( SS_Shipping_Order_Meta::META_AGENT_NO !== $this->get_order_meta_key_by_mid( $order, (int) $meta_id ) || ! isset( $posted['value'] ) || ! is_scalar( $posted['value'] ) ) {
+					unset( $_POST['meta'][ $meta_id ] );
 					continue;
 				}
 
@@ -198,7 +213,7 @@ if ( ! class_exists( 'SS_Shipping_Pickup_Point_Validator' ) ) :
 			if ( SS_Shipping_Order_Meta::META_AGENT_NO === $new_key ) {
 				$new_value = isset( $_POST['metavalue'] ) ? wp_unslash( $_POST['metavalue'] ) : '';
 
-				if ( $this->validate_and_store( $order_id, false, $new_value ) !== true ) {
+				if ( ! is_scalar( $new_value ) || $this->validate_and_store( $order_id, false, $new_value ) !== true ) {
 					unset( $_POST['metakeyinput'], $_POST['metavalue'] );
 				}
 			}
@@ -215,12 +230,13 @@ if ( ! class_exists( 'SS_Shipping_Pickup_Point_Validator' ) ) :
 		 * @return void
 		 */
 		public function intercept_hpos_inline_meta_update() {
-			if ( ! check_ajax_referer( 'add-meta', '_ajax_nonce-add-meta', false ) ) {
-				return; // Let WooCommerce's own handler reject the nonce.
+			if ( ! check_ajax_referer( 'add-meta', '_ajax_nonce-add-meta', false ) || ! $this->can_edit_order_metadata() ) {
+				return; // Let WooCommerce reject the request before any side effects.
 			}
 
 			// phpcs:disable WordPress.Security.ValidatedSanitizedInput -- nonce-checked above; parsing mirrors WooCommerce's CustomMetaBox::add_meta_ajax(), values are validated against the API, not echoed.
 			$order_id = isset( $_POST['order_id'] ) ? (int) $_POST['order_id'] : 0;
+			$meta_id  = null;
 
 			if ( ! empty( $_POST['meta'] ) && is_array( $_POST['meta'] ) ) { // Inline update of an existing row.
 				$meta       = wp_unslash( $_POST['meta'] );
@@ -228,7 +244,10 @@ if ( ! class_exists( 'SS_Shipping_Pickup_Point_Validator' ) ) :
 				$meta_key   = isset( $meta[ $meta_id ]['key'] ) ? $meta[ $meta_id ]['key'] : '';
 				$meta_value = isset( $meta[ $meta_id ]['value'] ) ? $meta[ $meta_id ]['value'] : '';
 			} else { // Adding a new row.
-				$meta_key   = trim( sanitize_text_field( wp_unslash( $_POST['metakeyinput'] ?? '' ) ) );
+				$meta_key = trim( sanitize_text_field( wp_unslash( $_POST['metakeyinput'] ?? '' ) ) );
+				if ( '' === $meta_key ) {
+					$meta_key = trim( sanitize_text_field( wp_unslash( $_POST['metakeyselect'] ?? '' ) ) );
+				}
 				$meta_value = sanitize_text_field( wp_unslash( $_POST['metavalue'] ?? '' ) );
 			}
 			// phpcs:enable WordPress.Security.ValidatedSanitizedInput
@@ -237,9 +256,26 @@ if ( ! class_exists( 'SS_Shipping_Pickup_Point_Validator' ) ) :
 				return;
 			}
 
-			$validation = $this->validate_and_store( $order_id, true, $meta_value );
+			$order = wc_get_order( $order_id );
+			if ( ! $order instanceof WC_Order ) {
+				return; // WooCommerce reports the missing order.
+			}
+
+			// A posted key alone does not prove ownership or identify the row.
+			// Stop invalid updates here: WooCommerce can otherwise create a row
+			// from an unknown meta id, after the companion object was changed.
+			if ( ! is_scalar( $meta_value ) || ( null !== $meta_id && SS_Shipping_Order_Meta::META_AGENT_NO !== $this->get_order_meta_key_by_mid( $order, $meta_id ) ) ) {
+				$validation = __( 'The pickup point field no longer matches this order. Reload the page and try again.', 'smart-send-logistics' );
+			} else {
+				$validation = $this->validate_and_store( $order_id, true, $meta_value );
+			}
 
 			if ( true === $validation ) {
+				if ( null === $meta_id ) {
+					// WooCommerce 8.2 reads only metakeyinput when adding a row.
+					// Give every supported handler the key we just validated.
+					$_POST['metakeyinput'] = SS_Shipping_Order_Meta::META_AGENT_NO;
+				}
 				return; // Valid - let WooCommerce's handler apply the change.
 			}
 
@@ -257,7 +293,7 @@ if ( ! class_exists( 'SS_Shipping_Pickup_Point_Validator' ) ) :
 		 * agent-number row is deleted through the Custom Fields box's
 		 * delete AJAX, delete the companion stored agent object too. Runs
 		 * at priority 0; WooCommerce's own handler then deletes the row
-		 * and saves the (cached, shared) order instance.
+		 * and persists its deletion of the number row.
 		 *
 		 * @return void
 		 */
@@ -267,7 +303,7 @@ if ( ! class_exists( 'SS_Shipping_Pickup_Point_Validator' ) ) :
 			$order_id = isset( $_POST['order_id'] ) ? (int) $_POST['order_id'] : 0;
 			// phpcs:enable WordPress.Security.ValidatedSanitizedInput
 
-			if ( ! $meta_id || ! $order_id || ! check_ajax_referer( "delete-meta_$meta_id", false, false ) ) {
+			if ( ! $meta_id || ! $order_id || ! check_ajax_referer( "delete-meta_$meta_id", false, false ) || ! $this->can_edit_order_metadata() ) {
 				return; // Let WooCommerce's own handler reject the request.
 			}
 
@@ -279,6 +315,17 @@ if ( ! class_exists( 'SS_Shipping_Pickup_Point_Validator' ) ) :
 			if ( SS_Shipping_Order_Meta::META_AGENT_NO === $this->get_order_meta_key_by_mid( $order, $meta_id ) ) {
 				$this->repository->delete_pickup_point( $order_id );
 			}
+		}
+
+		/**
+		 * Match WooCommerce CustomMetaBox's AJAX authorization before our
+		 * priority-zero interceptors call the API or persist companion data.
+		 * Generic repository writes remain independent of the current user.
+		 *
+		 * @return bool
+		 */
+		protected function can_edit_order_metadata(): bool {
+			return current_user_can( 'manage_woocommerce' ) && current_user_can( 'edit_others_shop_orders' );
 		}
 
 		/**

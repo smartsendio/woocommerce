@@ -15,7 +15,7 @@
 /**
  * The shared repository assertions, storage-agnostic.
  */
-function assert_order_meta_repository_roundtrip(bool $hpos): void
+function assert_order_meta_repository_roundtrip(): void
 {
     $repository = SS_SHIPPING_WC()->order_meta();
     $product = create_simple_product(['price' => 100, 'weight' => 1]);
@@ -50,18 +50,12 @@ function assert_order_meta_repository_roundtrip(bool $hpos): void
         ->and($pickup_point->get_company())->toBe('Corner Shop')
         ->and($pickup_point->get_internal_id())->toBe('7');
 
-    // v8 oddity: delete_pickup_point() calls delete_meta_data()
-    // but never saves the order, so the delete is not persisted. What a
-    // subsequent read sees then DIFFERS per backend: under legacy storage a
-    // fresh wc_get_order() reloads from the database and still finds the
-    // agent; under HPOS the in-process order cache returns the same object
-    // instance, whose in-memory meta was already deleted.
+    // The companion deletion must survive a fresh storage read on both backends.
+    // The admin handler remains responsible for deleting the number row.
     $repository->delete_pickup_point($order_id);
-    if ($hpos) {
-        expect($repository->read($order_id)->get_pickup_point())->toBeNull();
-    } else {
-        expect($repository->read($order_id)->get_pickup_point())->not->toBeNull();
-    }
+    $reloaded = new WC_Order($order_id);
+    $reloaded->read_meta_data(true);
+    expect($reloaded->get_meta(SS_Shipping_Order_Meta::META_AGENT, true))->toBe('');
 
     // Parcel plan: write() persists the frozen row shape...
     $rows = [['id' => $product->get_id(), 'name' => 'Integration Test Product', 'value' => '1']];
@@ -98,7 +92,7 @@ function assert_order_meta_repository_roundtrip(bool $hpos): void
 it('roundtrips order meta through the repository on legacy post storage', function () {
     with_option('woocommerce_custom_orders_table_enabled', 'no');
 
-    assert_order_meta_repository_roundtrip(false);
+    assert_order_meta_repository_roundtrip();
 
     // Delete the fixtures while legacy storage is still active.
     cleanup_created_objects();
@@ -107,7 +101,7 @@ it('roundtrips order meta through the repository on legacy post storage', functi
 it('roundtrips order meta through the repository on HPOS storage', function () {
     with_option('woocommerce_custom_orders_table_enabled', 'yes');
 
-    assert_order_meta_repository_roundtrip(true);
+    assert_order_meta_repository_roundtrip();
 
     // Delete the fixtures while HPOS is still active.
     cleanup_created_objects();
