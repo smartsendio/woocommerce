@@ -13,8 +13,8 @@
  * frozen shipment ids and no timestamp: such an entry is a link with no
  * time line under it.
  *
- * The server first paint renders the same structure and class names
- * (SS_Shipping_Order_Fulfillment_Presenter::render_timeline()).
+ * The entries come from the state's `timeline` (PHP reads the stored
+ * label list and formats each booked_at for the store's locale).
  */
 import { createElement } from '@wordpress/element';
 import { __ } from '@wordpress/i18n';

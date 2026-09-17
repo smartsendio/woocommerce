@@ -22,7 +22,7 @@ export const RETURN_METHOD_HELP = __( 'Shipping method used for booking of retur
 /**
  * The method drop-down: one <optgroup> per carrier of `carriers`
  * (state.methods.outbound / .return, already through the
- * smart_send_fulfillment_shipping_methods filter server side), one
+ * smart_send_fulfillment_shipping_methods filter in PHP), one
  * <option value="<carrier>_<service>"> per service.
  *
  * A value the lists do not offer - a method the merchant picked before a

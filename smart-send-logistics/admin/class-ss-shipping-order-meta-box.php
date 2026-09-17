@@ -94,8 +94,8 @@ if ( ! class_exists( 'SS_Shipping_Order_Meta_Box' ) ) :
 		}
 
 		/**
-		 * Render the content of the order meta box: the presenter's form for
-		 * the order's state, with the state inlined for the client.
+		 * Render the content of the order meta box: the mount point the app
+		 * renders into, with the state inlined for the client.
 		 *
 		 * @param WP_Post|WC_Order $post_or_order_object
 		 * @return void
@@ -118,8 +118,46 @@ if ( ! class_exists( 'SS_Shipping_Order_Meta_Box' ) ) :
 
 			$this->enqueue_assets( $state );
 
-			// The presenter escapes every value it renders (no phpcs:disable).
-			echo $this->presenter->render_form( $state ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- SS_Shipping_Order_Fulfillment_Presenter::render_form() escapes every value on output.
+			echo $this->render_mount(); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- render_mount() is static markup with no dynamic values.
+		}
+
+		/**
+		 * The mount point the app renders into, holding a placeholder until
+		 * it does.
+		 *
+		 * The box has ONE renderer, and it is the app (#182 shipped a PHP
+		 * copy of the whole box as the interim UI, before the React client
+		 * existed; two renderers of the same markup drifted apart - see the
+		 * "Open settings" button). PHP's job is the state (inlined above,
+		 * so the app paints on its first frame without a round trip) and
+		 * this element.
+		 *
+		 * A <fieldset>, not a <form>: WooCommerce's order screen wraps every
+		 * meta box in its own <form> (post.php's #post, the HPOS screen's
+		 * #order) and the HTML parser drops a nested <form> start tag, which
+		 * would leave no #smart-send-fulfillment element to mount on. It is
+		 * rendered disabled; the app owns data-ss-state/data-ss-app and the
+		 * disabled attribute from the moment it mounts.
+		 *
+		 * The placeholder rows are three grey bars and a button, sized like
+		 * the real box so its arrival does not shift the page. They stay
+		 * invisible for the first 200ms (the stylesheet's delayed fade-in),
+		 * so the usual sub-frame mount shows no flash at all and only a
+		 * genuinely slow load ever shows them.
+		 *
+		 * @return string HTML
+		 */
+		protected function render_mount(): string {
+			$rows = str_repeat(
+				'<div class="smart-send-fulfillment__placeholder-row"><span></span><span></span></div>',
+				3
+			);
+
+			return '<fieldset id="smart-send-fulfillment" class="smart-send-fulfillment__form" data-ss-state="loading" data-ss-app="loading" aria-busy="true" disabled>'
+				. '<div class="smart-send-fulfillment__placeholder" aria-hidden="true">'
+				. $rows
+				. '<div class="smart-send-fulfillment__placeholder-button"></div>'
+				. '</div></fieldset>';
 		}
 
 		/**
