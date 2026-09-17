@@ -177,9 +177,12 @@ composer phpcs       # check
 composer phpcs:fix   # auto-fix what can be fixed
 ```
 
-Pre-existing violations are recorded in `phpcs.baseline.xml` so only new ones fail CI. When you fix a baselined violation, regenerate the baseline so it shrinks:
+The whole plugin is clean against the ruleset, so there is no baseline file any more — `composer phpcs` must simply pass. Deliberate exceptions are annotated inline with a `phpcs:ignore <sniff> -- <reason>` comment, which is how pre-existing loose comparisons and the handful of intentionally-unescaped outputs are kept.
+
+`digitalrevolution/php-codesniffer-baseline` is still installed, so a `phpcs.baseline.xml` can be regenerated if a large amount of legacy code is ever imported at once. Note that the generator only records violations that are *not* already baselined, so delete any existing `phpcs.baseline.xml` before regenerating:
 
 ```bash
+rm -f phpcs.baseline.xml
 vendor/bin/phpcs --report=\\DR\\CodeSnifferBaseline\\Reports\\Baseline --report-file=phpcs.baseline.xml
 ```
 
