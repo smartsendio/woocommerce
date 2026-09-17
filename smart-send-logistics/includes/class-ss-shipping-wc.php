@@ -489,7 +489,7 @@ if ( ! class_exists( 'SS_Shipping_WC' ) ) :
 		 * @return    array
 		 */
 		public static function plugin_action_links( $links ) {
-			$settings_url   = admin_url( 'admin.php?page=wc-settings&tab=shipping&section=smart_send_shipping' );
+			$settings_url   = esc_url( SS_Shipping_Settings::settings_screen_url() );
 			$settings_label = esc_attr__( 'View WooCommerce settings', 'smart-send-logistics' );
 
 			$action_links = array(
