@@ -914,8 +914,8 @@ it('persists the submitted pickup point and parcel item rows only after a succes
     save_order_pickup_point($order->get_id(), sample_agent());
 
     $submitted = \Smart_Send\Delivery\Delivery_Details::from_array([
-        'shipping_method' => 'postnord_homedelivery',
-        'pickup_point'    => sample_agent(['agent_no' => '5678', 'company' => 'Other Shop']),
+        'shipping_method' => 'gls_agent',
+        'pickup_point'    => sample_agent(['agent_no' => '5678', 'company' => 'Other Shop', 'carrier' => 'gls']),
         'parcel_plan'     => ['specs' => [
             ['reference' => '1', 'weight' => 4.5, 'length' => 10, 'width' => 10, 'height' => 10, 'items' => [['order_item_id' => order_item_id_for_product($order, $product_a), 'quantity' => 1, 'name' => 'Persist Box One']]],
             ['reference' => '2', 'items' => [['order_item_id' => order_item_id_for_product($order, $product_b), 'quantity' => 1, 'name' => 'Persist Box Two']]],

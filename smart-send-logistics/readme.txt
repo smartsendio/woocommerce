@@ -143,35 +143,47 @@ Rates (WooCommerce-standard names):
 Pickup points:
 
 * **smart_send_pickup_point_search_params** `( array $params )` (since 9.0.0)
-    Filter on the search parameters (carrier, country, postal_code, city, street) before the closest pickup points are looked up
+    Filter the search parameters (carrier, country, postal_code, city, street) before looking up the closest pickup points
 * **smart_send_pickup_points_found** `( Smart_Send\Delivery\Pickup_Point[] $pickup_points, array $params )` (since 9.0.0)
-    Filter on the pickup points found, before they are cached and rendered - return fewer to limit the choices, or re-order them. Return only `\Smart_Send\Delivery\Pickup_Point` objects (`get_agent_no()`, `get_company()`, `get_address_line1()`, `get_postal_code()`, `get_city()`, `get_country()`, `get_distance()`, `get_carrier()`, `get_latitude()`/`get_longitude()`, `get_opening_hours()`, `to_array()`)
-* **smart_send_pickup_point_option_label** `( string $label, Smart_Send\Delivery\Pickup_Point $pickup_point )` (since 9.0.0)
-    Filter on the label of a pickup point in the checkout drop-down
-* **smart_send_default_selected_pickup_point** `( string $agent_no, Smart_Send\Delivery\Pickup_Point[] $pickup_points )` (since 9.0.0)
-    Filter on which pickup point is pre-selected - return the agent number of one of the list
+    Filter the available pickup points before caching and displaying them: return fewer to limit the list, or reorder them. Return only `\Smart_Send\Delivery\Pickup_Point` objects (`get_agent_no()`, `get_company()`, `get_address_line1()`, `get_postal_code()`, `get_city()`, `get_country()`, `get_distance()`, `get_carrier()`, `get_latitude()`/`get_longitude()`, `get_opening_hours()`, `to_array()`). Points must match the lookup's carrier and country.
+* **smart_send_pickup_point_label** `( string $label, Smart_Send\Delivery\Pickup_Point $pickup_point )` (since 9.0.0)
+    Filter a pickup point's plain-text display label. Return text, not HTML or pre-escaped markup; each renderer escapes the label for its own output. This contract applies to pickup point labels independently of whether a future interface uses a list or map.
 * **smart_send_pickup_point_timeout** `( int $seconds )`
-    Filter on the API timeout used when looking up pickup points
+    Filter the API timeout used when looking up pickup points
 
-The selected pickup point is shown on the order details page and in the order emails through WooCommerce's `woocommerce_order_details_after_order_table` and `woocommerce_email_after_order_table` actions.
+Pickup point identity is the exact agent number together with its carrier and country. Submitted names and addresses are not trusted: checkout and label creation resolve the point from compatible server data or the API. Nearest search results and the customer's explicit selection are stored separately. An explicit compatible choice survives a refreshed list, even when the chosen point is no longer among the nearest results; changing carrier or country requires a compatible choice. If no points are available, checkout permits the existing fallback only when a server lookup for the current address confirms that state.
 
-Example: show at most 5 pickup points, and pre-select the first one that is open on Saturdays:
+The **Select Default** setting chooses the first available point only when there is no explicit compatible choice. Use `smart_send_pickup_points_found` to influence that order. There is no separate default-selection filter. The wider checkout interface rewrite remains planned for a later 9.x release; these contracts do not depend on the current dropdown.
 
-    add_filter('smart_send_pickup_points_found', function (array $pickup_points, array $params) {
-        return array_slice($pickup_points, 0, 5);
-    }, 10, 2);
+The selected pickup point is shown on the order details page and in order emails through WooCommerce's `woocommerce_order_details_after_order_table` and `woocommerce_email_after_order_table` actions.
 
-    add_filter('smart_send_default_selected_pickup_point', function ($agent_no, array $pickup_points) {
-        foreach ($pickup_points as $pickup_point) {
-            foreach ($pickup_point->get_opening_hours() as $interval) {
-                if ($interval['day'] === 'saturday') {
-                    return $pickup_point->get_agent_no();
+Example: prioritize points open on Saturdays, preserving distance order within each group, and display at most five. Enable **Select Default** to use the first point as the automatic default:
+
+    add_filter( 'smart_send_pickup_points_found', function ( array $pickup_points, array $params ) {
+        $saturday = array();
+        $other = array();
+        foreach ( $pickup_points as $pickup_point ) {
+            $open_saturday = false;
+            foreach ( $pickup_point->get_opening_hours() as $interval ) {
+                if ( 'saturday' === $interval['day'] ) {
+                    $open_saturday = true;
+                    break;
                 }
             }
+            if ( $open_saturday ) {
+                $saturday[] = $pickup_point;
+            } else {
+                $other[] = $pickup_point;
+            }
         }
+        return array_slice( array_merge( $saturday, $other ), 0, 5 );
+    }, 10, 2 );
 
-        return $agent_no;
-    }, 10, 2);
+Example: append the agent number to the plain-text label:
+
+    add_filter( 'smart_send_pickup_point_label', function ( string $label, \Smart_Send\Delivery\Pickup_Point $pickup_point ) {
+        return $label . ' (#' . $pickup_point->get_agent_no() . ')';
+    }, 10, 2 );
 
 = 2. Fulfillment =
 
@@ -413,6 +425,8 @@ No - this is by design. Neither deactivating nor uninstalling the plugin deletes
 * PHP classes now use Smart_Send namespaces, WordPress naming conventions and a bundled autoloader; no Composer installation is required
 * New hook and filter API (smart_send_*) for every stage: shipping methods at checkout, fulfillment and booking. The version 8 hooks and filters no longer work - see the Developers section
 * Support for the WooCommerce Checkout Block: pickup point selection now works in the block-based checkout as well as the classic checkout
+* Validate pickup points against their carrier and country, preserve explicit choices when nearest results refresh, and resolve missing caches through the API before saving an order or booking a label
+* Use the plain-text smart_send_pickup_point_label filter for pickup labels; remove the pre-release option-label and default-selection filters
 * Support for High-Performance Order Storage (HPOS)
 * Check permissions before pickup-point custom-field lookups or changes, reject metadata rows belonging to another order, and persist pickup-point deletion with both order storage backends
 * Rebuilt order-screen meta box: books without a page reload, lets you change the shipping method, pickup point and parcels (weight and dimensions per box) before booking, and books orders placed with another shipping method. A booking is confirmed right in the box - the shipment with a link into the Smart Send app, every parcel with its tracking number, weight and dimensions, and the documents - and every label the order has is listed under "Booked shipments"; the form stays open, so another label is always one click away
@@ -773,6 +787,7 @@ No - this is by design. Neither deactivating nor uninstalling the plugin deletes
 Version 9 is a complete rewrite of the plugin. Make a full site backup and [review update best practices](https://woocommerce.com/document/how-to-update-your-site/) before upgrading from 8.x. Existing settings, shipping methods, pickup points and booked-label access are kept. Saved parcel splits require the reset described below.
 
 * If your site uses Smart Send hooks or filters (custom code, a Code Snippets plugin or a theme), that code must be updated: the version 8 hooks and filters no longer fire, and the new hook API passes typed objects instead of raw data. The Developers section lists every hook, its arguments and examples. Test your snippets on a staging site before upgrading production.
+* For snippets using pre-release version 9 hooks, rename `smart_send_pickup_point_option_label` to `smart_send_pickup_point_label` and return plain text. `smart_send_default_selected_pickup_point` is removed without an alias: reorder `smart_send_pickup_points_found` results and use the **Select Default** setting instead. Compatible explicit customer choices are preserved. Older stored points missing carrier/country information are verified through the API when next used.
 * Parcel splits saved in the old product-ID format are not migrated. On affected orders, choose "Reset to one parcel" and enter the allocation again before creating another shipping or return label. Custom integrations must use `order_item_id` and allocate every ordered unit exactly once. Parcel weights and dimensions still apply only to the current booking.
 * Products or variations deleted since the order was placed display as "Deleted" with no SKU. Enter an explicit parcel weight before booking them; missing customs data is not reconstructed. This does not remove access to labels already booked.
 * Requires WordPress 6.5, WooCommerce 8.2 and PHP 7.4 or newer. Sites on older versions should stay on the 8.x series.

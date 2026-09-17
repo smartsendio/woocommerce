@@ -35,6 +35,12 @@ class Pickup_Point_Lookup {
 	 */
 	const SESSION_KEY = 'ss_shipping_agents';
 
+	/** Search context qualifying the displayed results, including empty outcomes. */
+	const SESSION_CONTEXT = 'ss_shipping_agents_context';
+
+	/** Independently resolved selection, unaffected by nearest-result refreshes. */
+	const SESSION_SELECTION = 'ss_shipping_selected_pickup_point';
+
 	/**
 	 * Typed plugin settings reader.
 	 *
@@ -82,6 +88,7 @@ class Pickup_Point_Lookup {
 	 * @return Pickup_Point[] The found pickup points (possibly empty).
 	 */
 	public function find_closest_by_address( $carrier, $country, $postal_code, $city, $street ) {
+		$context = $this->search_context( $carrier, $country, $postal_code, $city, $street );
 		// Without an API token the lookup cannot succeed - skip the API
 		// call entirely.
 		if ( null === $this->settings->api_token() ) {
@@ -90,7 +97,7 @@ class Pickup_Point_Lookup {
 				array( 'carrier' => $carrier )
 			);
 
-			WC()->session->set( self::SESSION_KEY, array() );
+			$this->cache_search_result( array(), $context );
 
 			throw new Not_Connected_Exception( 'No Smart Send API token is configured.' );
 		}
@@ -128,7 +135,10 @@ class Pickup_Point_Lookup {
 			)
 		);
 
-		$carrier = $search_params['carrier'];
+		$carrier            = strtolower( trim( (string) $search_params['carrier'] ) );
+		$country            = strtoupper( trim( (string) $search_params['country'] ) );
+		$context['carrier'] = $carrier;
+		$context['country'] = $country;
 
 		// The request and response (incl. HTTP status code and endpoint)
 		// are logged by the client's request logger.
@@ -142,12 +152,12 @@ class Pickup_Point_Lookup {
 			// distinguish "no pickup points were available - nothing to
 			// select" (allowed without a selection) from "points were
 			// offered but none chosen" (rejected).
-			WC()->session->set( self::SESSION_KEY, array() );
+			$this->cache_search_result( array(), $context );
 
 			throw $e;
 		}
 
-		$ss_pickup_points = $this->map_api_pickup_points( $response->data() );
+		$ss_pickup_points = $this->map_api_pickup_points( $response->data(), $carrier, $country );
 
 		if ( empty( $ss_pickup_points ) ) {
 			// Not an error, but worth noticing: the API answered, there
@@ -158,7 +168,7 @@ class Pickup_Point_Lookup {
 				array( 'carrier' => $carrier )
 			);
 
-			WC()->session->set( self::SESSION_KEY, array() );
+			$this->cache_search_result( array(), $context );
 
 			return array();
 		}
@@ -177,7 +187,9 @@ class Pickup_Point_Lookup {
 		 * @return Pickup_Point[] The pickup points to cache and render.
 		 */
 		$ss_pickup_points = $this->only_pickup_points(
-			apply_filters( 'smart_send_pickup_points_found', $ss_pickup_points, $search_params )
+			apply_filters( 'smart_send_pickup_points_found', $ss_pickup_points, $search_params ),
+			$carrier,
+			$country
 		);
 
 		Logger::debug(
@@ -190,7 +202,7 @@ class Pickup_Point_Lookup {
 
 		// Save all of the pickup points in the session, in their plain
 		// serializable form (see get_session_pickup_points()).
-		WC()->session->set( self::SESSION_KEY, $this->to_session_value( $ss_pickup_points ) );
+		$this->cache_search_result( $ss_pickup_points, $context );
 
 		return $ss_pickup_points;
 	}
@@ -209,7 +221,7 @@ class Pickup_Point_Lookup {
 	 * @return Pickup_Point[]|null
 	 */
 	public function get_session_pickup_points() {
-		$cached = WC()->session->get( self::SESSION_KEY );
+		$cached = $this->session_value( self::SESSION_KEY );
 
 		if ( ! is_array( $cached ) ) {
 			return null;
@@ -228,38 +240,127 @@ class Pickup_Point_Lookup {
 	}
 
 	/**
-	 * Find one session-cached pickup point by its agent number - the
-	 * resolution both checkout paths run on submission: the shopper can
-	 * only have picked from the cached lookup results, so a match here
-	 * is already server-validated.
+	 * Resolve a reference using only trusted state for its carrier and country.
 	 *
-	 * A miss is not logged here: an absent or expired session cache is
-	 * normal on fresh sessions, and the Store API caller falls back to
-	 * a find_by_agent_no API call on a miss - each caller decides whether
-	 * a miss is terminal and reports it accordingly.
+	 * Display-list membership is not required: an explicit choice may be farther
+	 * away than the latest nearest results. A cache miss is verified at the API.
 	 *
-	 * @param string $agent_no The submitted agent number.
-	 *
-	 * @return Pickup_Point|null The cached pickup point, or null when none matches.
+	 * @param string $carrier  Shipping carrier from the server's method.
+	 * @param string $country  Destination country from the server's address.
+	 * @param string $agent_no Submitted reference; no client address fields are used.
+	 * @return Pickup_Point
+	 * @throws Pickup_Point_Not_Found_Exception When the reference cannot be verified.
 	 */
-	public function find_cached_by_agent_no( string $agent_no ): ?Pickup_Point {
-		if ( '' === $agent_no ) {
+	public function resolve_selection( string $carrier, string $country, string $agent_no ): Pickup_Point {
+		$agent_no = trim( $agent_no );
+		$selected = $this->get_selected( $carrier, $country );
+		if ( null !== $selected && $selected->get_agent_no() === $agent_no ) {
+			return $selected;
+		}
+		$cached = $this->find_cached_by_agent_no( $carrier, $country, $agent_no );
+
+		return null === $cached ? $this->find_by_agent_no( $carrier, $country, $agent_no ) : $cached;
+	}
+
+	/**
+	 * Verify and retain an explicit or automatic choice independently of results.
+	 *
+	 * @param string $carrier  Server-derived carrier.
+	 * @param string $country  Server-derived destination country.
+	 * @param string $agent_no Submitted reference.
+	 * @param bool   $explicit Whether the customer actively chose the point.
+	 * @return Pickup_Point
+	 */
+	public function select( string $carrier, string $country, string $agent_no, bool $explicit = true ): Pickup_Point {
+		$point = $this->resolve_selection( $carrier, $country, $agent_no );
+		$this->set_session_value(
+			self::SESSION_SELECTION,
+			array(
+				'carrier' => strtolower( trim( $carrier ) ),
+				'country' => strtoupper( trim( $country ) ),
+				'source'  => $explicit ? 'explicit' : 'automatic',
+				'point'   => $point->to_object(),
+			)
+		);
+
+		return $point;
+	}
+
+	/**
+	 * Read a trusted compatible choice; changing carrier or country invalidates it.
+	 *
+	 * @param string $carrier       Server-derived carrier.
+	 * @param string $country       Server-derived country.
+	 * @param bool   $explicit_only Exclude automatic defaults when preserving a choice.
+	 * @return Pickup_Point|null
+	 */
+	public function get_selected( string $carrier, string $country, bool $explicit_only = false ): ?Pickup_Point {
+		$selection = $this->session_value( self::SESSION_SELECTION );
+		if ( ! is_array( $selection ) ) {
 			return null;
 		}
-
-		$cached_pickup_points = $this->get_session_pickup_points();
-
-		if ( ! is_array( $cached_pickup_points ) ) {
+		if ( ! $this->context_matches( $selection, $carrier, $country ) || ! isset( $selection['point'] ) ) {
+			$this->clear_selection();
 			return null;
 		}
+		if ( $explicit_only && 'explicit' !== ( $selection['source'] ?? null ) ) {
+			return null;
+		}
+		$point = $this->verified_point( $selection['point'], $carrier, $country );
+		if ( null === $point ) {
+			$this->clear_selection();
+		}
 
-		foreach ( $cached_pickup_points as $pickup_point ) {
-			if ( null !== $pickup_point->get_agent_no() && $pickup_point->get_agent_no() == $agent_no ) { // phpcs:ignore Universal.Operators.StrictComparisons.LooseEqual -- pre-existing loose comparison, moved verbatim from Checkout::process_ss_pickup_points().
-				return $pickup_point;
+		return $point;
+	}
+
+	/** Whether the retained choice was explicitly selected by the customer. */
+	public function is_selection_explicit(): bool {
+		$selection = $this->session_value( self::SESSION_SELECTION );
+		return is_array( $selection ) && 'explicit' === ( $selection['source'] ?? null );
+	}
+
+	/** Clear a choice when the customer clears it or leaves pickup delivery. */
+	public function clear_selection(): void {
+		$this->set_session_value( self::SESSION_SELECTION, null );
+	}
+
+	/**
+	 * Look up a point in the latest trusted carrier/country-scoped results.
+	 *
+	 * @param string $carrier  Carrier whose point is being selected.
+	 * @param string $country  Destination country.
+	 * @param string $agent_no Exact carrier reference, preserving leading zeroes.
+	 * @return Pickup_Point|null
+	 */
+	public function find_cached_by_agent_no( string $carrier, string $country, string $agent_no ): ?Pickup_Point {
+		$context = $this->session_value( self::SESSION_CONTEXT );
+		if ( '' === trim( $agent_no ) || ! is_array( $context ) || ! $this->context_matches( $context, $carrier, $country ) ) {
+			return null;
+		}
+		foreach ( $this->get_session_pickup_points() ?? array() as $point ) {
+			$verified = $this->verified_point( $point->to_object(), $carrier, $country, trim( $agent_no ) );
+			if ( null !== $verified ) {
+				return $verified;
 			}
 		}
 
 		return null;
+	}
+
+	/**
+	 * Prove that the current address lookup offered no points, including failures.
+	 *
+	 * @param string      $carrier     Current shipping carrier.
+	 * @param string      $country     Current destination country.
+	 * @param string      $postal_code Current postal code.
+	 * @param string|null $city        Current city.
+	 * @param string      $street      Current street.
+	 * @return bool
+	 */
+	public function no_pickup_points_for_address( $carrier, $country, $postal_code, $city, $street ): bool {
+		return $this->search_context( $carrier, $country, $postal_code, $city, $street ) === $this->session_value( self::SESSION_CONTEXT )
+			&& array() === $this->get_session_pickup_points();
 	}
 
 	/**
@@ -284,21 +385,25 @@ class Pickup_Point_Lookup {
 	 * @return Pickup_Point The resolved pickup point, mapped at the API boundary.
 	 */
 	public function find_by_agent_no( string $carrier, string $country, string $agent_no ): Pickup_Point {
-		// phpcs:disable WordPress.Security.EscapeOutput.ExceptionNotEscaped -- the exception carries the carrier and agent number as data for its callers (validator error message, fulfillment field error, REST 422), never echoed directly.
+		$carrier  = strtolower( trim( $carrier ) );
+		$country  = strtoupper( trim( $country ) );
+		$agent_no = trim( $agent_no );
+		// phpcs:disable WordPress.Security.EscapeOutput.ExceptionNotEscaped -- Carries plain validation data; callers escape when rendering.
+		if ( '' === $carrier || '' === $country || '' === $agent_no ) {
+			throw new Pickup_Point_Not_Found_Exception( $carrier, $agent_no );
+		}
 		try {
 			$response = SS_SHIPPING_WC()->get_api_handle()->pickup_points()->find_by_agent_no( $carrier, $country, $agent_no );
 		} catch ( \Smart_Send\API\Exceptions\HTTP_Client_Exception $e ) {
 			throw new Pickup_Point_Not_Found_Exception( $carrier, $agent_no, $e );
 		}
-
-		$data = $response->data();
-
-		if ( ! is_object( $data ) && ! is_array( $data ) ) {
+		$point = $this->verified_point( $response->data(), $carrier, $country, $agent_no );
+		if ( null === $point ) {
 			throw new Pickup_Point_Not_Found_Exception( $carrier, $agent_no );
 		}
 		// phpcs:enable WordPress.Security.EscapeOutput.ExceptionNotEscaped
 
-		return Pickup_Point::from_object( $data );
+		return $point;
 	}
 
 	/**
@@ -309,12 +414,13 @@ class Pickup_Point_Lookup {
 	 *
 	 * @return Pickup_Point[]
 	 */
-	protected function map_api_pickup_points( $data ): array {
+	protected function map_api_pickup_points( $data, string $carrier, string $country ): array {
 		$pickup_points = array();
 
 		foreach ( is_array( $data ) ? $data : array() as $agent ) {
-			if ( is_object( $agent ) || is_array( $agent ) ) {
-				$pickup_points[] = Pickup_Point::from_object( $agent );
+			$point = $this->verified_point( $agent, $carrier, $country );
+			if ( null !== $point ) {
+				$pickup_points[] = $point;
 			}
 		}
 
@@ -330,12 +436,19 @@ class Pickup_Point_Lookup {
 	 *
 	 * @return Pickup_Point[]
 	 */
-	protected function only_pickup_points( $filtered ): array {
+	protected function only_pickup_points( $filtered, string $carrier, string $country ): array {
 		$pickup_points = array();
 
 		foreach ( is_array( $filtered ) ? $filtered : array() as $pickup_point ) {
 			if ( $pickup_point instanceof Pickup_Point ) {
-				$pickup_points[] = $pickup_point;
+				$data             = (array) $pickup_point->to_object();
+				$data['carrier']  = $pickup_point->get_carrier();
+				$data['country']  = $pickup_point->get_country();
+				$data['agent_no'] = $pickup_point->get_agent_no();
+				$verified         = $this->verified_point( $data, $carrier, $country );
+				if ( null !== $verified ) {
+					$pickup_points[] = $verified;
+				}
 			} else {
 				Logger::warning(
 					'The smart_send_pickup_points_found filter returned an entry that is not a Pickup_Point - entry dropped.',
@@ -361,6 +474,113 @@ class Pickup_Point_Lookup {
 			},
 			$pickup_points
 		);
+	}
+
+	/**
+	 * Validate a trusted API/filter/session row and stamp its verified scope.
+	 *
+	 * Client-supplied DTOs never enter this method. Scope omitted by the API
+	 * comes from the scoped endpoint, and is inserted before DTO construction
+	 * so lossless source-key serialization retains it.
+	 *
+	 * @param mixed       $data     Trusted source row.
+	 * @param string      $carrier  Expected carrier.
+	 * @param string      $country  Expected country.
+	 * @param string|null $agent_no Expected reference, or any non-empty reference.
+	 * @return Pickup_Point|null
+	 */
+	protected function verified_point( $data, string $carrier, string $country, ?string $agent_no = null ): ?Pickup_Point {
+		if ( ! is_object( $data ) && ! is_array( $data ) ) {
+			return null;
+		}
+		$data = (array) $data;
+		if ( ! isset( $data['agent_no'] ) || ( ! is_string( $data['agent_no'] ) && ! is_int( $data['agent_no'] ) ) ) {
+			return null;
+		}
+		$reference = trim( (string) $data['agent_no'] );
+		$carrier   = strtolower( trim( $carrier ) );
+		$country   = strtoupper( trim( $country ) );
+		if ( '' === $reference || '' === $carrier || '' === $country || ( null !== $agent_no && $reference !== $agent_no ) ) {
+			return null;
+		}
+		foreach ( array(
+			'carrier' => $carrier,
+			'country' => $country,
+		) as $field => $expected ) {
+			if ( isset( $data[ $field ] ) && '' !== $data[ $field ] ) {
+				if ( ! is_string( $data[ $field ] ) || 0 !== strcasecmp( trim( $data[ $field ] ), $expected ) ) {
+					return null;
+				}
+			}
+			$data[ $field ] = $expected;
+		}
+		$data['agent_no'] = $reference;
+
+		return Pickup_Point::from_object( $data );
+	}
+
+	/**
+	 * Check the identity scope of an already trusted server-side point.
+	 *
+	 * This proves compatibility, not provenance: never use it to authorize
+	 * a DTO received from a client. Submitted points must be resolved by ID.
+	 *
+	 * @param Pickup_Point $point   Trusted stored or looked-up point.
+	 * @param string       $carrier Expected shipping carrier.
+	 * @param string       $country Expected destination country.
+	 * @return bool
+	 */
+	public function matches_context( Pickup_Point $point, string $carrier, string $country ): bool {
+		$carrier = strtolower( trim( $carrier ) );
+		$country = strtoupper( trim( $country ) );
+
+		return '' !== trim( (string) $point->get_agent_no() ) && '' !== $carrier && '' !== $country
+			&& strtolower( trim( (string) $point->get_carrier() ) ) === $carrier
+			&& strtoupper( trim( (string) $point->get_country() ) ) === $country;
+	}
+
+	/**
+	 * Compare authoritative carrier/country scope independently of an address.
+	 *
+	 * @param array  $context Stored scope.
+	 * @param string $carrier Expected carrier.
+	 * @param string $country Expected country.
+	 * @return bool
+	 */
+	protected function context_matches( array $context, string $carrier, string $country ): bool {
+		return strtolower( trim( $carrier ) ) === ( $context['carrier'] ?? null )
+			&& strtoupper( trim( $country ) ) === ( $context['country'] ?? null );
+	}
+
+	/** Build a stable context from server-known search inputs. */
+	protected function search_context( $carrier, $country, $postal_code, $city, $street ): array {
+		$country = strtoupper( trim( (string) $country ) );
+
+		return array(
+			'carrier'     => strtolower( trim( (string) $carrier ) ),
+			'country'     => $country,
+			'postal_code' => wc_format_postcode( trim( (string) $postal_code ), $country ),
+			'city'        => trim( (string) $city ),
+			'street'      => trim( (string) $street ),
+		);
+	}
+
+	/** Store display results and their context together, never the selection. */
+	protected function cache_search_result( array $points, array $context ): void {
+		$this->set_session_value( self::SESSION_KEY, $this->to_session_value( $points ) );
+		$this->set_session_value( self::SESSION_CONTEXT, $context );
+	}
+
+	/** Read session data without requiring a checkout session in admin callers. */
+	protected function session_value( string $key ) {
+		return function_exists( 'WC' ) && null !== WC()->session ? WC()->session->get( $key ) : null;
+	}
+
+	/** Write session data only when a WooCommerce session exists. */
+	protected function set_session_value( string $key, $value ): void {
+		if ( function_exists( 'WC' ) && null !== WC()->session ) {
+			WC()->session->set( $key, $value );
+		}
 	}
 
 	/**

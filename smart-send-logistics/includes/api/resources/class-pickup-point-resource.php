@@ -55,7 +55,7 @@ class Pickup_Point_Resource {
 	public function find_by_agent_no( $carrier, $country, $agent_no ) {
 		try {
 			$response = $this->client->http_get(
-				'agents/carrier/' . $carrier . '/country/' . $country . '/agentno/' . $agent_no,
+				'agents/carrier/' . rawurlencode( $carrier ) . '/country/' . rawurlencode( $country ) . '/agentno/' . rawurlencode( $agent_no ),
 				array(),
 				array(),
 				null,
@@ -87,13 +87,13 @@ class Pickup_Point_Resource {
 	 * @throws  \Smart_Send\API\Exceptions\HTTP_Client_Exception
 	 */
 	public function find_closest_by_address( $carrier, $country, $postal_code, $city, $street ) {
-		$method = 'agents/closest/carrier/' . $carrier . '/country/' . $country . '/postalcode/' . $postal_code;
+		$method = 'agents/closest/carrier/' . rawurlencode( $carrier ) . '/country/' . rawurlencode( $country ) . '/postalcode/' . rawurlencode( $postal_code );
 
 		if ( $city ) {
-			$method .= '/city/' . $city;
+			$method .= '/city/' . rawurlencode( $city );
 		}
 
-		$method .= '/street/' . $street;
+		$method .= '/street/' . rawurlencode( $street );
 
 		try {
 			$response = $this->client->http_get( $method, array(), array(), null, $this->get_timeout() );

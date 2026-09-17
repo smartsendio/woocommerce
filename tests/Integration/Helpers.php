@@ -58,6 +58,14 @@ function cleanup_created_objects(): void
     }
 
     $GLOBALS['ss_integration_cleanup_callbacks'] = [];
+
+    // Each test models an independent shopper. A validated choice now outlives
+    // the nearest-results list, so clearing that list alone is insufficient.
+    if (function_exists('WC') && WC()->session !== null) {
+        foreach (['ss_shipping_agents', 'ss_shipping_agents_context', 'ss_shipping_selected_pickup_point'] as $key) {
+            WC()->session->set($key, null);
+        }
+    }
 }
 
 /**
@@ -249,6 +257,7 @@ function sample_agent(array $overrides = []): object
     return (object) array_merge([
         'id'            => 7,
         'agent_no'      => '1234',
+        'carrier'       => 'postnord',
         'company'       => 'Corner Shop',
         'address_line1' => 'Main Street 1',
         'address_line2' => null,

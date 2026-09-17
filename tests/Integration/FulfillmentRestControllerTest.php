@@ -642,8 +642,10 @@ it('resolves an agent number on the pickup point route, or answers 404 with the 
         ->and($capture->requests[0]['url'])->toContain('/agents/carrier/postnord/country/DK/agentno/5678');
 
     // The carrier follows an explicitly given method.
-    pickup_point_lookup_get($order->get_id(), '5678', 'gls_agent');
-    expect($capture->requests[1]['url'])->toContain('/agents/carrier/gls/country/DK/agentno/5678');
+    $gls_capture = mock_api_with_agent_lookup(sample_agent(['agent_no' => '5678', 'carrier' => 'gls']));
+    $gls = pickup_point_lookup_get($order->get_id(), '5678', 'gls_agent');
+    expect($gls->get_status())->toBe(200);
+    expect($gls_capture->requests[0]['url'])->toContain('/agents/carrier/gls/country/DK/agentno/5678');
 
     mock_api_with_agent_lookup(null);
     $missing = pickup_point_lookup_get($order->get_id(), '9999');
@@ -787,4 +789,95 @@ it('books a method the smart_send_fulfillment_shipping_methods filter hides', fu
         ->and(json_decode($capture->requests[0]['body'], true)['shipping_method'])->toBe('homedelivery')
         // ... while the drop-downs the response carries stay empty.
         ->and($response->get_data()['state']['methods']['outbound'])->toBe([]);
+});
+
+it('ignores forged client pickup details and books the server-resolved point', function () {
+    $order = create_rest_order();
+    as_rest_user();
+    $capture = mock_api_with_agent_lookup(sample_agent(['agent_no' => '5678', 'company' => 'Verified Shop']));
+
+    $response = fulfillment_post($order->get_id(), [
+        'flow' => 'outbound', 'with_return' => false,
+        'delivery_details' => ['pickup_point' => (array) sample_agent([
+            'agent_no' => '5678', 'carrier' => 'gls', 'country' => 'SE', 'company' => 'Forged Shop',
+        ])],
+    ]);
+
+    expect($response->get_status())->toBe(200)
+        ->and($response->get_data()['shipments'][0]['status'])->toBe('fulfilled')
+        ->and($capture->requests)->toHaveCount(2)
+        ->and($capture->requests[0]['url'])->toContain('/carrier/postnord/country/DK/agentno/5678');
+    $agent = json_decode($capture->requests[1]['body'], true)['agent'];
+    expect($agent['company'])->toBe('Verified Shop')->and($agent['country'])->toBe('DK');
+});
+
+it('resolves the same agent number again when the submitted carrier changes', function () {
+    $order = create_rest_order();
+    save_order_pickup_point($order->get_id(), sample_agent());
+    as_rest_user();
+    $capture = mock_api_with_agent_lookup(sample_agent(['carrier' => 'gls', 'company' => 'GLS Shop']));
+
+    $response = fulfillment_post($order->get_id(), [
+        'flow' => 'outbound', 'with_return' => false,
+        'delivery_details' => ['shipping_method' => 'gls_agent', 'pickup_point' => ['agent_no' => '1234']],
+    ]);
+
+    expect($response->get_status())->toBe(200)
+        ->and($response->get_data()['shipments'][0]['status'])->toBe('fulfilled')
+        ->and($capture->requests)->toHaveCount(2)
+        ->and($capture->requests[0]['url'])->toContain('/carrier/gls/country/DK/agentno/1234')
+        ->and(json_decode($capture->requests[1]['body'], true)['agent']['company'])->toBe('GLS Shop');
+});
+
+it('rejects a stored point after a carrier or destination country change before booking', function (string $change) {
+    $order = create_rest_order();
+    save_order_pickup_point($order->get_id(), sample_agent());
+    if ($change === 'country') {
+        $order->set_shipping_country('SE');
+        $order->save();
+    }
+    as_rest_user();
+    $capture = mock_smart_send_api();
+    $details = $change === 'carrier' ? ['shipping_method' => 'gls_agent'] : [];
+    $response = fulfillment_post($order->get_id(), [
+        'flow' => 'outbound', 'with_return' => false, 'delivery_details' => $details,
+    ]);
+
+    expect($response->get_status())->toBe(200)
+        ->and($response->get_data()['shipments'][0]['status'])->toBe('failed')
+        ->and($response->get_data()['shipments'][0]['error']['form_fields'])->toHaveKey('pickup_point.agent_no')
+        ->and($capture->requests)->toBeEmpty()
+        ->and(wc_get_order($order->get_id())->get_meta('_ss_shipping_label_id', true))->toBe('');
+})->with(['carrier', 'country']);
+
+it('revalidates legacy pickup metadata whose carrier context was not stored', function () {
+    $order = create_rest_order();
+    $legacy = sample_agent();
+    unset($legacy->carrier);
+    save_order_pickup_point($order->get_id(), $legacy);
+    as_rest_user();
+    $capture = mock_api_with_agent_lookup(sample_agent(['company' => 'Revalidated Shop']));
+
+    $response = fulfillment_post($order->get_id(), ['flow' => 'outbound', 'with_return' => false]);
+    expect($response->get_status())->toBe(200)
+        ->and($response->get_data()['shipments'][0]['status'])->toBe('fulfilled')
+        ->and($capture->requests)->toHaveCount(2)
+        ->and($capture->requests[0]['url'])->toContain('/carrier/postnord/country/DK/agentno/1234')
+        ->and(json_decode($capture->requests[1]['body'], true)['agent']['company'])->toBe('Revalidated Shop');
+});
+
+it('reports a structured pickup error when a server hook supplies an unresolvable point', function () {
+    $order = create_rest_order();
+    as_rest_user();
+    with_filter('smart_send_delivery_details', function ($details) {
+        return $details->set_pickup_point((new \Smart_Send\Delivery\Pickup_Point())->set_agent_no('9999'));
+    });
+    $capture = mock_api_with_agent_lookup(null);
+
+    $response = fulfillment_post($order->get_id(), ['flow' => 'outbound', 'with_return' => false]);
+    expect($response->get_status())->toBe(200)
+        ->and($response->get_data()['shipments'][0]['status'])->toBe('failed')
+        ->and($response->get_data()['shipments'][0]['error']['form_fields'])->toHaveKey('pickup_point.agent_no')
+        ->and($capture->requests)->toHaveCount(1)
+        ->and($capture->requests[0]['url'])->toContain('/agents/');
 });

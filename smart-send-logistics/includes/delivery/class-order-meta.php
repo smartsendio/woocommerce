@@ -97,6 +97,42 @@ class Order_Meta {
 	protected static bool $writing = false;
 
 	/**
+	 * Exact pickup writes waiting for WooCommerce to save an existing order.
+	 * The legacy Custom Fields hooks also fire during that deferred CRUD save.
+	 *
+	 * @var array<int, array{order: WC_Order, agent_no: string|null}>
+	 */
+	protected static array $staged_pickup_points = array();
+
+	/**
+	 * Consume one trusted deferred pickup change without an admin revalidation.
+	 *
+	 * @param int         $order_id Order whose metadata is being saved.
+	 * @param string|null $agent_no Validated number, or null for explicit clearing.
+	 * @return bool Whether this exact write was staged by the repository.
+	 */
+	public static function consume_staged_pickup_point( int $order_id, ?string $agent_no ): bool {
+		if ( ! isset( self::$staged_pickup_points[ $order_id ] ) || self::$staged_pickup_points[ $order_id ]['agent_no'] !== $agent_no ) {
+			return false;
+		}
+		unset( self::$staged_pickup_points[ $order_id ] );
+		return true;
+	}
+
+	/**
+	 * Discard unused trust after WooCommerce saves the staged order object.
+	 *
+	 * @param WC_Order $order Saved order.
+	 * @return void
+	 */
+	public static function clear_staged_pickup_point( WC_Order $order ): void {
+		$id = $order->get_id();
+		if ( isset( self::$staged_pickup_points[ $id ] ) && self::$staged_pickup_points[ $id ]['order'] === $order ) {
+			unset( self::$staged_pickup_points[ $id ] );
+		}
+	}
+
+	/**
 	 * Whether the repository is currently persisting delivery details
 	 * (see Pickup_Point_Validator, which skips its meta
 	 * hooks for such writes).
@@ -243,10 +279,11 @@ class Order_Meta {
 	 *
 	 * @param integer|WC_Order            $order   Order (or order id).
 	 * @param Delivery_Details $details The delivery configuration to persist.
+	 * @param bool             $save    Save immediately; false lets WooCommerce save a new checkout order normally.
 	 *
 	 * @return void
 	 */
-	public function write( $order, Delivery_Details $details ) {
+	public function write( $order, Delivery_Details $details, bool $save = true ) {
 		$order = $order instanceof WC_Order ? $order : wc_get_order( $order );
 		if ( ! $order instanceof WC_Order ) {
 			return;
@@ -265,6 +302,14 @@ class Order_Meta {
 			$changed = true;
 		}
 
+		if ( ! $save && $order->get_id() > 0 && ( null !== $pickup_point || $details->is_pickup_point_cleared() ) ) {
+			self::$staged_pickup_points[ $order->get_id() ] = array(
+				'order'    => $order,
+				'agent_no' => null === $pickup_point ? null : $pickup_point->get_agent_no(),
+			);
+			add_action( 'woocommerce_after_order_object_save', array( self::class, 'clear_staged_pickup_point' ) );
+		}
+
 		$parcel_plan = $details->get_parcel_plan();
 		if ( null !== $parcel_plan ) {
 			$stored_plan = $parcel_plan->to_array();
@@ -280,7 +325,8 @@ class Order_Meta {
 			$changed = true;
 		}
 
-		if ( $changed ) {
+		if ( $changed && $save ) {
+			unset( self::$staged_pickup_points[ $order->get_id() ] );
 			self::$writing = true;
 			try {
 				$order->save();

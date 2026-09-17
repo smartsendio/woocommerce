@@ -251,8 +251,8 @@ class Fulfillment_Service {
 	 * point method drops the stored point for that booking -, a
 	 * submitted parcel plan replaces the stored split,
 	 * submitted addons replace the stored ones when non-empty. A pickup
-	 * point submitted as a bare agent number that equals the stored
-	 * one resolves to the stored point; any other bare agent number is
+	 * point submitted as a bare agent number matching the stored number,
+	 * carrier and country resolves to the stored point; any other number is
 	 * resolved through Pickup_Point_Lookup::find_by_agent_no()
 	 * (carrier from the submitted-or-resolved method, country from the
 	 * order's shipping address).
@@ -285,7 +285,7 @@ class Fulfillment_Service {
 		}
 
 		if ( null === $overrides ) {
-			return $details;
+			return $this->validate_pickup_point_context( $order, $details, $stored );
 		}
 
 		if ( $overrides->is_pickup_point_cleared() ) {
@@ -307,15 +307,14 @@ class Fulfillment_Service {
 			$details->set_addons( $overrides->get_addons() );
 		}
 
-		return $details;
+		return $this->validate_pickup_point_context( $order, $details, $stored );
 	}
 
 	/**
-	 * Resolve a submitted pickup point: a full point is used as
-	 * submitted; a bare agent number (see
-	 * Pickup_Point::is_agent_no_only()) resolves to the
-	 * stored point when the numbers match, and through the API lookup
-	 * otherwise.
+	 * Resolve a server-side pickup point for the effective delivery context.
+	 * Full DTOs must match the carrier and country; bare numbers reuse a
+	 * matching stored point or are resolved through the API. REST callers
+	 * canonicalize client DTOs before reaching this service.
 	 *
 	 * @param WC_Order                      $order     The WooCommerce order.
 	 * @param Pickup_Point      $submitted The submitted pickup point.
@@ -324,25 +323,29 @@ class Fulfillment_Service {
 	 *
 	 * @throws Pickup_Point_Not_Found_Exception When the agent number cannot be resolved.
 	 *
-	 * @return Pickup_Point
+	 * @return Pickup_Point|null
 	 */
-	protected function resolve_submitted_pickup_point( WC_Order $order, Pickup_Point $submitted, ?Pickup_Point $stored, string $method ): Pickup_Point {
-		if ( ! $submitted->is_agent_no_only() ) {
-			return $submitted;
-		}
-
+	protected function resolve_submitted_pickup_point( WC_Order $order, Pickup_Point $submitted, ?Pickup_Point $stored, string $method ): ?Pickup_Point {
+		$carrier  = '' === $method ? '' : ( new Method_Code( $method ) )->carrier();
+		$country  = (string) $order->get_shipping_country();
 		$agent_no = (string) $submitted->get_agent_no();
 
-		if ( null !== $stored && (string) $stored->get_agent_no() === $agent_no ) {
+		if ( '' !== $method && false === stripos( ( new Method_Code( $method ) )->type(), 'agent' ) ) {
+			return null;
+		}
+
+		if ( ! $submitted->is_agent_no_only() ) {
+			$details = ( new Delivery_Details() )->set_shipping_method( $method )->set_pickup_point( $submitted );
+			return $this->validate_pickup_point_context( $order, $details )->get_pickup_point();
+		}
+
+		if ( null !== $stored && (string) $stored->get_agent_no() === $agent_no
+			&& $this->pickup_point_lookup->matches_context( $stored, $carrier, $country ) ) {
 			return $stored;
 		}
 
-		$carrier = '' === $method ? '' : ( new Method_Code( $method ) )->carrier();
-
 		if ( '' === $carrier ) {
-			// Without a method there is no carrier to look the number up
-			// for; the builder rejects the booking for the missing method.
-			return $submitted;
+			return $submitted; // The builder reports the missing shipping method.
 		}
 
 		try {
@@ -370,6 +373,50 @@ class Fulfillment_Service {
 		);
 
 		return $pickup_point;
+	}
+
+	/**
+	 * Keep only a pickup point validated for the effective carrier and country.
+	 *
+	 * Stored points and server-side DTOs may be reused with complete matching
+	 * context. Older records missing context are resolved through the API.
+	 * A known incompatible point must be chosen again, never reinterpreted as
+	 * another carrier's point with the same number.
+	 *
+	 * @param WC_Order          $order   Order being fulfilled.
+	 * @param Delivery_Details  $details Effective delivery details.
+	 * @param Pickup_Point|null $stored  Original stored instance, if applicable.
+	 * @return Delivery_Details
+	 * @throws Booking_Exception When a known point belongs to another context.
+	 * @throws Pickup_Point_Not_Found_Exception When missing context cannot be resolved.
+	 */
+	protected function validate_pickup_point_context( WC_Order $order, Delivery_Details $details, ?Pickup_Point $stored = null ): Delivery_Details {
+		$method = (string) $details->get_shipping_method();
+		$point  = $details->get_pickup_point();
+		if ( '' === $method || null === $point ) {
+			return $details;
+		}
+		$code = new Method_Code( $method );
+		if ( false === stripos( $code->type(), 'agent' ) ) {
+			return $details->set_pickup_point( null );
+		}
+		$carrier = strtolower( $code->carrier() );
+		$country = strtoupper( (string) $order->get_shipping_country() );
+		if ( $this->pickup_point_lookup->matches_context( $point, $carrier, $country ) ) {
+			return $details;
+		}
+		$point_carrier = strtolower( (string) $point->get_carrier() );
+		$point_country = strtoupper( (string) $point->get_country() );
+		if ( '' === $point_carrier && $point === $stored ) {
+			$original      = $this->method_resolver->resolve_outbound( $order );
+			$point_carrier = '' === $original ? '' : strtolower( ( new Method_Code( $original ) )->carrier() );
+		}
+		if ( ( '' !== $point_carrier && $point_carrier !== $carrier ) || ( '' !== $point_country && $point_country !== $country ) ) {
+			$message = __( 'The selected pickup point does not match the shipping carrier or country. Choose a pickup point again.', 'smart-send-logistics' );
+			// phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- Plain-text error is escaped by the presentation layer.
+			throw new Booking_Exception( $message, array( 'agent_no' => array( $message ) ) );
+		}
+		return $details->set_pickup_point( $this->pickup_point_lookup->find_by_agent_no( $carrier, $country, (string) $point->get_agent_no() ) );
 	}
 
 	/**
@@ -529,6 +576,7 @@ class Fulfillment_Service {
 			 * @return Delivery_Details The delivery details to book with.
 			 */
 			$details = apply_filters( 'smart_send_delivery_details', $details, $order, $is_return );
+			$details = $this->validate_pickup_point_context( $order, $details );
 
 			if ( null === $details->get_parcel_plan() ) {
 				$parcel_error = $this->order_meta->parcel_plan_error( $order );
@@ -539,6 +587,8 @@ class Fulfillment_Service {
 			}
 
 			$shipment = $this->booking_service->book( $order, $details, $is_return );
+		} catch ( Pickup_Point_Not_Found_Exception $e ) {
+			return Fulfillment_Result::failed_entry( $is_return, $e->getMessage(), '', array( 'agent_no' => array( $e->getMessage() ) ) );
 		} catch ( \InvalidArgumentException $e ) {
 			$message = __( 'The parcel plan is invalid. Reset it and allocate the current order items again.', 'smart-send-logistics' );
 			return Fulfillment_Result::failed_entry( $is_return, $message, '', array( 'parcel_plan' => array( $message ) ) );

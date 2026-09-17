@@ -752,11 +752,12 @@ it('lets the smart_send_delivery_details filter replace or clear the pickup poin
             ->and($details->get_pickup_point()->get_agent_no())->toBe('1234');
 
         $pickup_point = new \Smart_Send\Delivery\Pickup_Point();
-        $pickup_point->set_agent_no('9999')->set_company('Override Shop');
+        $pickup_point->set_agent_no('9999')->set_company('Override Shop')->set_carrier('postnord')->set_country('DK');
 
         return $details->set_pickup_point($pickup_point);
     };
     add_filter('smart_send_delivery_details', $replace);
+    remember_cleanup_callback(fn () => remove_filter('smart_send_delivery_details', $replace));
 
     $payload = capture_shipment_payload($order);
 

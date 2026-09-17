@@ -44,7 +44,7 @@
  * and the legacy screen render it) and the box re-renders from the state
  * the response carries. No page reload anywhere.
  */
-import { createElement, Fragment, useEffect, useState } from '@wordpress/element';
+import { createElement, Fragment, useEffect, useRef, useState } from '@wordpress/element';
 import { Button, Notice } from '@wordpress/components';
 import { __ } from '@wordpress/i18n';
 
@@ -127,6 +127,8 @@ function requestErrorContent( error ) {
 export default function App( { initialState, mount } ) {
 	const [ state, setState ] = useState( initialState );
 	const [ form, setForm ] = useState( () => formFromState( initialState ) );
+	const [ lookupPending, setLookupPending ] = useState( false );
+	const lookupRevision = useRef( 0 );
 	const [ submitting, setSubmitting ] = useState( null ); // null | 'outbound' | 'return'
 	// The shipments of the LAST POST - the green result boxes. Component
 	// memory only, deliberately: a reload loses them and falls back to the
@@ -210,16 +212,28 @@ export default function App( { initialState, mount } ) {
 			return;
 		}
 
+		const revision = ++lookupRevision.current;
+		setLookupPending( true );
 		try {
 			const point = await lookupPickupPoint( state.urls.rest, agentNo, form.shippingMethod );
+			if ( revision !== lookupRevision.current ) {
+				return;
+			}
 			updateForm( { pickupPoint: point } );
 			edit( 'pickupPoint', false );
 		} catch ( error ) {
+			if ( revision !== lookupRevision.current ) {
+				return;
+			}
 			const fields = error && error.data && error.data.form_fields ? error.data.form_fields : {};
 			setFieldErrors( ( previous ) => ( {
 				...previous,
 				'pickup_point.agent_no': fields[ 'pickup_point.agent_no' ] || [ error && error.message ? error.message : __( 'The pickup point could not be found.', 'smart-send-logistics' ) ],
 			} ) );
+		} finally {
+			if ( revision === lookupRevision.current ) {
+				setLookupPending( false );
+			}
 		}
 	};
 
@@ -241,7 +255,7 @@ export default function App( { initialState, mount } ) {
 				// one was chosen in the box (the order has none - state B - or
 				// the merchant edited it): then that one.
 				shipping_method: isReturn ? returnMethodOverride : form.shippingMethod || null,
-				pickup_point: ! isReturn && agentMethod && form.pickupPoint && form.pickupPoint.agent_no ? { agent_no: String( form.pickupPoint.agent_no ) } : null,
+				pickup_point: isReturn || ! agentMethod ? null : ( form.pickupPoint && form.pickupPoint.agent_no ? { agent_no: String( form.pickupPoint.agent_no ) } : { clear: true } ),
 				parcel_plan: planFromBoxes( state.order.units, form.boxes, form.assignment ),
 			},
 		};
@@ -277,6 +291,9 @@ export default function App( { initialState, mount } ) {
 	const alreadyBooked = ( flow ) => ( flow === 'return' ? !! state.return_shipment : !! state.outbound_shipment );
 
 	const submit = async ( flow ) => {
+		if ( lookupPending ) {
+			return;
+		}
 		clearErrors();
 
 		if ( form.parcelPlanError ) {
@@ -353,7 +370,9 @@ export default function App( { initialState, mount } ) {
 		if ( response.state && response.state.delivery_details ) {
 			// The booking persisted the submitted pickup point and split;
 			// keep the merchant's choices, refresh what the server stored.
-			updateForm( { pickupPoint: response.state.delivery_details.pickup_point || form.pickupPoint } );
+			if ( entries.some( ( entry ) => entry.direction === 'outbound' && entry.status === 'fulfilled' ) ) {
+				updateForm( { pickupPoint: response.state.delivery_details.pickup_point } );
+			}
 		}
 
 		setSubmitting( null );
@@ -382,7 +401,7 @@ export default function App( { initialState, mount } ) {
 				data-ss-confirm={ pendingConfirm === flow ? 'rebook' : undefined }
 				title={ form.parcelPlanError || ( missing ? missing.message : undefined ) }
 				onClick={ () => submit( flow ) }
-				disabled={ disabled }
+				disabled={ disabled || lookupPending }
 				isBusy={ submitting === flow }
 			>
 				{ buttonText( flow ) }
@@ -474,7 +493,14 @@ export default function App( { initialState, mount } ) {
 						editable={ editable }
 						onEdit={ () => edit( 'method' ) }
 						onChange={ ( value ) => {
-							updateForm( { shippingMethod: value } );
+							++lookupRevision.current;
+							setLookupPending( false );
+							const resetPoint = ! isAgentMethod( value ) || value.split( '_' )[ 0 ] !== form.shippingMethod.split( '_' )[ 0 ];
+							updateForm( { shippingMethod: value, ...( resetPoint ? { pickupPoint: null } : {} ) } );
+							setFieldErrors( ( previous ) => ( { ...previous, 'pickup_point.agent_no': undefined } ) );
+							if ( resetPoint && isAgentMethod( value ) ) {
+								edit( 'pickupPoint' );
+							}
 							if ( value ) {
 								dropNotice( 'missing_method' );
 							}
@@ -484,6 +510,7 @@ export default function App( { initialState, mount } ) {
 					/>
 					{ agentMethod && (
 						<PickupPointField
+							key={ form.shippingMethod.split( '_' )[ 0 ] }
 							pickupPoint={ form.pickupPoint }
 							editing={ editing.pickupPoint }
 							editable={ editable }

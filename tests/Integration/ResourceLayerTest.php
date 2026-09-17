@@ -265,7 +265,7 @@ it('finds the closest pickup points to an address, including the city segment', 
     expect($response->data())->toHaveCount(1);
 
     $request = end($capture->requests);
-    expect($request['url'])->toContain('agents/closest/carrier/postnord/country/DK/postalcode/2300/city/Copenhagen/street/Islands Brygge 39');
+    expect($request['url'])->toContain('agents/closest/carrier/postnord/country/DK/postalcode/2300/city/Copenhagen/street/Islands%20Brygge%2039');
 });
 
 it('omits the city segment from the closest-address lookup when no city is given', function () {
@@ -277,7 +277,7 @@ it('omits the city segment from the closest-address lookup when no city is given
     $api->pickup_points()->find_closest_by_address('postnord', 'DK', '2300', null, 'Islands Brygge 39');
 
     $request = end($capture->requests);
-    expect($request['url'])->toContain('agents/closest/carrier/postnord/country/DK/postalcode/2300/street/Islands Brygge 39');
+    expect($request['url'])->toContain('agents/closest/carrier/postnord/country/DK/postalcode/2300/street/Islands%20Brygge%2039');
     expect($request['url'])->not->toContain('/city/');
 });
 

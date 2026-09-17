@@ -1,50 +1,21 @@
 /**
- * The Smart Send pickup point selector rendered inside the Checkout block
- * (below the shipping options - the shipping-methods inner block area).
+ * Server-validated pickup point selection for the Checkout Block.
  *
- * All state is server-computed and rides the cart response under
- * extensions['smart-send'] (see Smart_Send\Delivery_Options\Store_API::cart_extension_data()):
- * whether the chosen rate is an agent-type method, the pickup points close
- * to the shipping address with pre-formatted labels, the section status
- * (one of the Smart_Send\Delivery_Options\Checkout_Options PICKUP_POINT_STATUS_* slugs) with its
- * server-translated message, the session-stored selection and the "Select
- * Default" setting. The block re-renders from the wc/store/cart store, so
- * every address or rate change updates the selector with zero client-side
- * fetch logic and no client-side string tables.
- *
- * A selection travels on BOTH channels, each with its own job:
- *  - setExtensionData() puts it in the checkout POST's extensions payload,
- *    which Smart_Send\Delivery_Options\Store_API::persist_pickup_point_from_request() reads
- *    when the order is placed;
- *  - extensionCartUpdate() posts it to the cart extensions endpoint, whose
- *    update callback stores it in the WooCommerce session so the selection
- *    survives cart refreshes (and feeds selected_agent_no back down).
- *
- * While an agent rate offers pickup points with none selected, a validation
- * error in wc/store/validation blocks Place Order client-side; the server's
- * RouteException (HTTP 400) remains the backstop. No degraded state
- * (address incomplete, not connected, auth failure, none found, lookup
- * failure) ever blocks placing the order.
+ * Selection updates consume only our extension response. In particular, an
+ * older response must never replace WooCommerce's newer address or rate.
  */
-import { useState, useEffect, useCallback } from '@wordpress/element';
+import { useState, useEffect, useCallback, useRef } from '@wordpress/element';
 import { useSelect, useDispatch } from '@wordpress/data';
+import apiFetch from '@wordpress/api-fetch';
 import { SelectControl } from '@wordpress/components';
 import { __ } from '@wordpress/i18n';
-import { extensionCartUpdate } from '@woocommerce/blocks-checkout';
 import { CART_STORE_KEY, VALIDATION_STORE_KEY } from '@woocommerce/block-data';
 
 import { defaultTitle, defaultDescription } from './attributes';
 
 const EXTENSION_NAMESPACE = 'smart-send';
 const VALIDATION_ERROR_ID = 'smart-send-pickup-point';
-
-// Server-computed section statuses (Smart_Send\Delivery_Options\Checkout_Options PICKUP_POINT_STATUS_*).
-const STATUS_FOUND = 'found';
 const ERROR_STATUSES = [ 'not_connected', 'auth_failed', 'access_denied' ];
-
-// The data-status testability value per section status (see the render
-// comment below). none_found and lookup_failed both render the quiet
-// "empty" state; the shop-side error statuses render as "error".
 const DATA_STATUS = {
 	found: 'ready',
 	address_incomplete: 'awaiting-address',
@@ -54,24 +25,62 @@ const DATA_STATUS = {
 	auth_failed: 'error',
 	access_denied: 'error',
 };
+const contextKey = ( context ) =>
+	JSON.stringify(
+		context && [
+			context.method,
+			context.country,
+			context.postcode,
+			context.city,
+			context.address_1,
+		]
+	);
+const addressValue = ( value, field ) => {
+	const text = String( value || '' ).trim();
+	return field === 'postcode'
+		? text.replace( /\s/g, '' ).toUpperCase()
+		: text;
+};
+const matchesAddress = ( context, address ) =>
+	!! context &&
+	[ 'country', 'postcode', 'city', 'address_1' ].every(
+		( field ) =>
+			addressValue( context[ field ], field ) ===
+			addressValue( address[ field ], field )
+	);
 
 const Block = ( {
-	// A forced render (block missing from the saved page markup) passes no
-	// props, so the translated attribute defaults live here too.
 	title = defaultTitle,
 	description = defaultDescription,
 	className = '',
 	checkoutExtensionData,
 } ) => {
 	const { setExtensionData } = checkoutExtensionData;
-
-	const extensionData = useSelect(
-		( select ) =>
-			select( CART_STORE_KEY ).getCartData().extensions[
-				EXTENSION_NAMESPACE
-			],
-		[]
-	);
+	const { cart, changingAddress, changingRate } = useSelect( ( select ) => {
+		const store = select( CART_STORE_KEY );
+		return {
+			cart: store.getCartData(),
+			changingAddress: store.isCustomerDataUpdating(),
+			changingRate: store.isShippingRateBeingSelected(),
+		};
+	}, [] );
+	const extensionData = cart.extensions[ EXTENSION_NAMESPACE ] || {};
+	const {
+		selected_rate_is_agent: selectedRateIsAgent = false,
+		pickup_points: pickupPoints = [],
+		pickup_point_status: pickupPointStatus = null,
+		pickup_point_message: pickupPointMessage = null,
+		selected_agent_no: selectedAgentNo = null,
+		selection_origin: selectionOrigin = null,
+		pickup_point_context: context = null,
+		select_default: selectDefault = false,
+	} = extensionData;
+	const key = contextKey( context );
+	const contextReady =
+		selectedRateIsAgent &&
+		! changingAddress &&
+		! changingRate &&
+		matchesAddress( context, cart.shippingAddress || {} );
 	const validationError = useSelect(
 		( select ) =>
 			select( VALIDATION_STORE_KEY ).getValidationError(
@@ -81,113 +90,202 @@ const Block = ( {
 	);
 	const { setValidationErrors, clearValidationError } =
 		useDispatch( VALIDATION_STORE_KEY );
+	const [ selection, setSelection ] = useState( {
+		agentNo: selectedAgentNo || '',
+		origin: selectionOrigin,
+	} );
+	const [ pending, setPending ] = useState( false );
+	const [ updateError, setUpdateError ] = useState( '' );
+	const confirmed = useRef( selection );
+	const intent = useRef( null );
+	const queue = useRef( null );
+	const running = useRef( false );
+	const revision = useRef( 0 );
+	const mounted = useRef( true );
+	const current = useRef( {} );
+	current.current = { key, contextReady, selectedRateIsAgent };
 
-	const {
-		selected_rate_is_agent: selectedRateIsAgent = false,
-		pickup_points: pickupPoints = [],
-		pickup_point_status: pickupPointStatus = null,
-		pickup_point_message: pickupPointMessage = null,
-		selected_agent_no: selectedAgentNo = null,
-		select_default: selectDefault = false,
-	} = extensionData || {};
-
-	// Pickup points were actually offered to the customer - the only state
-	// in which a selection is required.
-	const pickupPointsOffered =
-		pickupPointStatus === STATUS_FOUND && pickupPoints.length > 0;
-
-	// The select's value: locally owned for an immediate UI response, synced
-	// from the session-stored selection the cart response carries.
-	const [ agentNo, setAgentNo ] = useState( selectedAgentNo || '' );
 	useEffect( () => {
-		setAgentNo( selectedAgentNo || '' );
-	}, [ selectedAgentNo ] );
+		mounted.current = true;
+		return () => {
+			mounted.current = false;
+		};
+	}, [] );
+
+	// A local explicit choice owns its value until the context changes. Cart
+	// responses that began before that choice cannot roll it back afterwards.
+	useEffect( () => {
+		if (
+			! selectedRateIsAgent ||
+			( intent.current && intent.current.key !== key )
+		) {
+			intent.current = null;
+			queue.current = null;
+			revision.current++;
+			setPending( false );
+			setUpdateError( '' );
+		}
+		if ( ! intent.current ) {
+			confirmed.current = {
+				agentNo: selectedRateIsAgent ? selectedAgentNo || '' : '',
+				origin: selectedRateIsAgent ? selectionOrigin : null,
+			};
+			setSelection( confirmed.current );
+		}
+	}, [ key, selectedRateIsAgent, selectedAgentNo, selectionOrigin ] );
+
+	const drainQueue = useCallback( async () => {
+		if ( running.current ) {
+			return;
+		}
+		running.current = true;
+		while ( queue.current && mounted.current ) {
+			const request = queue.current;
+			queue.current = null;
+			try {
+				// WooCommerce's Store API middleware adds the current nonce to
+				// apiFetch requests on all supported WooCommerce versions.
+				const response = await apiFetch( {
+					path: '/wc/store/v1/cart/extensions',
+					method: 'POST',
+					data: {
+						namespace: EXTENSION_NAMESPACE,
+						data: {
+							agent_no: request.value,
+							selection_origin: 'explicit',
+							pickup_point_context: request.context,
+						},
+					},
+					cache: 'no-store',
+				} );
+				if (
+					mounted.current &&
+					request.revision === revision.current &&
+					request.key === current.current.key
+				) {
+					const acknowledged =
+						response.extensions[ EXTENSION_NAMESPACE ];
+					if (
+						contextKey( acknowledged.pickup_point_context ) !==
+						request.key
+					) {
+						throw new Error( 'Pickup point context changed.' );
+					}
+					confirmed.current = {
+						agentNo: acknowledged.selected_agent_no || '',
+						origin: acknowledged.selection_origin,
+					};
+					setSelection( confirmed.current );
+					setPending( false );
+					setUpdateError( '' );
+				}
+			} catch ( error ) {
+				if (
+					mounted.current &&
+					request.revision === revision.current &&
+					request.key === current.current.key
+				) {
+					setSelection( confirmed.current );
+					setPending( false );
+					setUpdateError(
+						__(
+							'The pickup point could not be saved. Please select it again.',
+							'smart-send-logistics'
+						)
+					);
+				}
+			}
+		}
+		running.current = false;
+	}, [] );
 
 	const pushSelection = useCallback(
 		( value ) => {
-			setAgentNo( value );
-			setExtensionData( EXTENSION_NAMESPACE, 'agent_no', value );
-			extensionCartUpdate( {
-				namespace: EXTENSION_NAMESPACE,
-				data: { agent_no: value },
+			if ( ! contextReady ) {
+				return;
+			}
+			const request = {
+				value,
+				context,
+				key,
+				revision: ++revision.current,
+			};
+			intent.current = request;
+			queue.current = request;
+			setSelection( {
+				agentNo: value,
+				origin: value ? 'explicit' : null,
 			} );
+			setPending( true );
+			setUpdateError( '' );
+			drainQueue();
 		},
-		[ setExtensionData ]
+		[ contextReady, context, key, drainQueue ]
 	);
 
-	// Keep the checkout POST payload in sync with the session-stored
-	// selection, covering selections restored from a previous visit (the
-	// session already has an agent_no the customer never re-picks).
+	// An outdated address, unfinished selection, or rejected choice may not
+	// enter checkout. The server independently validates the same context.
 	useEffect( () => {
-		if ( selectedRateIsAgent ) {
-			setExtensionData( EXTENSION_NAMESPACE, 'agent_no', agentNo );
-		}
-	}, [ selectedRateIsAgent, agentNo, setExtensionData ] );
-
-	// The "Select Default" setting: pre-select the closest pickup point when
-	// nothing is selected yet, exactly as the classic checkout does.
-	useEffect( () => {
-		if (
-			selectDefault &&
-			selectedRateIsAgent &&
-			! agentNo &&
-			pickupPointsOffered
-		) {
-			pushSelection( pickupPoints[ 0 ].agent_no );
-		}
+		const usable = contextReady && ! pending && ! updateError;
+		setExtensionData(
+			EXTENSION_NAMESPACE,
+			'agent_no',
+			usable ? selection.agentNo : ''
+		);
+		setExtensionData(
+			EXTENSION_NAMESPACE,
+			'selection_origin',
+			usable ? selection.origin : null
+		);
+		setExtensionData(
+			EXTENSION_NAMESPACE,
+			'pickup_point_context',
+			selectedRateIsAgent ? context : null
+		);
 	}, [
-		selectDefault,
+		contextReady,
+		pending,
+		updateError,
+		selection,
 		selectedRateIsAgent,
-		agentNo,
-		pickupPointsOffered,
-		pickupPoints,
-		pushSelection,
+		key,
+		setExtensionData,
 	] );
 
-	// When no pickup points are offered (none near the address, lookup
-	// failure, plugin not connected), there is nothing to select: clear any
-	// stale selection (e.g. picked for a previous address) from the session
-	// and the checkout POST payload so the server never receives an
-	// agent_no that no longer applies.
 	useEffect( () => {
-		if (
+		let message = '';
+		if ( selectedRateIsAgent && ( pending || ! contextReady ) ) {
+			message = __(
+				'Please wait while pickup points are updated.',
+				'smart-send-logistics'
+			);
+		} else if ( selectedRateIsAgent && updateError ) {
+			message = updateError;
+		} else if (
 			selectedRateIsAgent &&
-			pickupPointStatus &&
-			pickupPointStatus !== STATUS_FOUND &&
-			agentNo
+			pickupPoints.length > 0 &&
+			! selection.agentNo
 		) {
-			pushSelection( '' );
+			message = __(
+				'A pickup point must be selected.',
+				'smart-send-logistics'
+			);
 		}
-	}, [ selectedRateIsAgent, pickupPointStatus, agentNo, pushSelection ] );
-
-	// Block Place Order while pickup points are offered with none selected.
-	// Hidden until the customer submits (the checkout then reveals all
-	// validation errors); cleared on selection and on unmount (rate change).
-	// No degraded state registers an error - the order may then be placed
-	// without a selection (classic-checkout parity), and the server accepts
-	// it based on its own session-cached lookup result.
-	useEffect( () => {
-		if ( selectedRateIsAgent && ! agentNo && pickupPointsOffered ) {
+		if ( message ) {
 			setValidationErrors( {
-				[ VALIDATION_ERROR_ID ]: {
-					message: __(
-						'A pickup point must be selected.',
-						'smart-send-logistics'
-					),
-					hidden: true,
-				},
+				[ VALIDATION_ERROR_ID ]: { message, hidden: ! updateError },
 			} );
 		} else {
 			clearValidationError( VALIDATION_ERROR_ID );
 		}
-
-		return () => {
-			clearValidationError( VALIDATION_ERROR_ID );
-		};
+		return () => clearValidationError( VALIDATION_ERROR_ID );
 	}, [
 		selectedRateIsAgent,
-		agentNo,
-		pickupPointsOffered,
+		pending,
+		contextReady,
+		updateError,
+		pickupPoints.length,
+		selection.agentNo,
 		setValidationErrors,
 		clearValidationError,
 	] );
@@ -195,80 +293,62 @@ const Block = ( {
 	if ( ! selectedRateIsAgent ) {
 		return null;
 	}
-
-	// Testability affordances (used by the browser tests to wait on
-	// observable state instead of racing the Store API round trips):
-	// data-status starts at "loading" until the server-computed state has
-	// arrived, then maps the section status - "ready" (selector),
-	// "awaiting-address", "empty" (none found / lookup failed) or "error"
-	// (shop-side connection problems); data-selected-agent reflects the
-	// selection the component has pushed into the checkout POST payload.
-	const dataStatus =
-		( pickupPointStatus && DATA_STATUS[ pickupPointStatus ] ) || 'loading';
-
-	// Any non-found section status renders as a message instead of the
-	// selector: the server-translated text, styled and announced as an
-	// error only for the shop-side error statuses.
-	if ( pickupPointStatus && pickupPointStatus !== STATUS_FOUND ) {
-		const isErrorStatus = ERROR_STATUSES.includes( pickupPointStatus );
-
-		return (
-			<div
-				className={ `ss-pickup-point-block ${ className }` }
-				data-status={ dataStatus }
-				data-selected-agent=""
-			>
-				{ !! title && (
-					<h2 className="ss-pickup-point-block__title">{ title }</h2>
-				) }
-				<p
-					className={ `ss-pickup-point-block__message ss-pickup-point-block__message--${ pickupPointStatus }` }
-					role={ isErrorStatus ? 'alert' : 'status' }
-				>
-					{ pickupPointMessage }
-				</p>
-			</div>
-		);
-	}
-
-	const options = pickupPoints.map( ( pickupPoint ) => ( {
-		label: pickupPoint.label,
-		value: pickupPoint.agent_no,
+	const options = pickupPoints.map( ( point ) => ( {
+		label: point.label,
+		value: point.agent_no,
 	} ) );
-
-	if ( ! selectDefault ) {
+	if ( ! selectDefault || ! selection.agentNo ) {
 		options.unshift( {
 			label: __( '- Select Pickup Point -', 'smart-send-logistics' ),
 			value: '',
 		} );
 	}
-
 	const hasVisibleError = !! validationError && ! validationError.hidden;
-
 	return (
 		<div
 			className={ `ss-pickup-point-block ${ className }` }
-			data-status={ dataStatus }
-			data-selected-agent={ agentNo }
+			data-status={
+				contextReady
+					? DATA_STATUS[ pickupPointStatus ] || 'loading'
+					: 'loading'
+			}
+			data-selected-agent={ selection.agentNo }
+			data-selection-pending={ pending ? 'true' : 'false' }
 		>
 			{ !! title && (
 				<h2 className="ss-pickup-point-block__title">{ title }</h2>
 			) }
-			{ !! description && (
-				<p className="ss-pickup-point-block__description">
-					{ description }
+			{ pickupPoints.length > 0 ? (
+				<>
+					{ !! description && (
+						<p className="ss-pickup-point-block__description">
+							{ description }
+						</p>
+					) }
+					<SelectControl
+						id="ss-pickup-point-select"
+						className="ss-pickup-point-block__select"
+						label={ __( 'Pickup point', 'smart-send-logistics' ) }
+						hideLabelFromVision={ true }
+						value={ selection.agentNo }
+						options={ options }
+						disabled={ ! contextReady }
+						onChange={ pushSelection }
+						__nextHasNoMarginBottom={ true }
+					/>
+				</>
+			) : (
+				<p
+					className={ `ss-pickup-point-block__message ss-pickup-point-block__message--${ pickupPointStatus }` }
+					role={
+						ERROR_STATUSES.includes( pickupPointStatus )
+							? 'alert'
+							: 'status'
+					}
+				>
+					{ pickupPointMessage }
 				</p>
 			) }
-			<SelectControl
-				id="ss-pickup-point-select"
-				className="ss-pickup-point-block__select"
-				label={ __( 'Pickup point', 'smart-send-logistics' ) }
-				hideLabelFromVision={ true }
-				value={ agentNo }
-				options={ options }
-				onChange={ pushSelection }
-				__nextHasNoMarginBottom={ true }
-			/>
 			{ hasVisibleError && (
 				<div
 					className="wc-block-components-validation-error ss-pickup-point-block__error"

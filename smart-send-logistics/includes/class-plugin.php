@@ -348,7 +348,7 @@ class Plugin {
 			$this->subscriptions_compat   = new Subscriptions_Compat();
 
 			$this->block_checkout = new Block_Checkout();
-			$this->store_api      = new Store_API( $this->pickup_point_lookup, $this->pickup_point_formatter, $this->settings, $this->order_meta, $this->method_resolver, $this->checkout_options );
+			$this->store_api      = new Store_API( $this->pickup_point_lookup, $this->pickup_point_formatter, $this->settings, $this->order_meta, $this->checkout_options );
 
 			$this->register_component_hooks();
 		} else {

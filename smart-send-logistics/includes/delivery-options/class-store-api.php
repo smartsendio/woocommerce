@@ -4,10 +4,8 @@ namespace Smart_Send\Delivery_Options;
 
 use Exception;
 use Smart_Send\Delivery\Delivery_Details;
-use Smart_Send\Delivery\Method_Resolver;
 use Smart_Send\Delivery\Order_Meta;
 use Smart_Send\Delivery\Pickup_Point;
-use Smart_Send\Delivery_Options\Exceptions\Pickup_Point_Not_Found_Exception;
 use Smart_Send\Frontend\Block_Checkout;
 use Smart_Send\Frontend\Checkout;
 use Smart_Send\Shipping_Method\Method;
@@ -57,14 +55,6 @@ class Store_API {
 	const ENDPOINT_CHECKOUT = 'checkout';
 
 	/**
-	 * WooCommerce session key holding the shopper's in-progress pickup
-	 * point selection on the block checkout (pushed by the block via the
-	 * extension update callback), so it survives cart refreshes until
-	 * checkout submission persists it on the order.
-	 */
-	const SESSION_SELECTED_AGENT_NO = 'ss_shipping_selected_agent_no';
-
-	/**
 	 * Headless pickup point lookup (API + session cache).
 	 *
 	 * @var Pickup_Point_Lookup
@@ -93,13 +83,6 @@ class Store_API {
 	protected Order_Meta $order_meta;
 
 	/**
-	 * Shipping method resolver.
-	 *
-	 * @var Method_Resolver
-	 */
-	protected Method_Resolver $method_resolver;
-
-	/**
 	 * Checkout delivery-option resolution (which sections checkout
 	 * renders, pickup point section statuses and texts).
 	 *
@@ -115,15 +98,13 @@ class Store_API {
 	 * @param Pickup_Point_Formatter|null $pickup_point_formatter Pickup point display formatter.
 	 * @param Settings|null               $settings               Typed plugin settings reader.
 	 * @param Order_Meta|null             $order_meta             Order meta repository.
-	 * @param Method_Resolver|null        $method_resolver        Shipping method resolver.
 	 * @param Checkout_Options|null       $checkout_options       Checkout delivery-option resolution.
 	 */
-	public function __construct( ?Pickup_Point_Lookup $pickup_point_lookup = null, ?Pickup_Point_Formatter $pickup_point_formatter = null, ?Settings $settings = null, ?Order_Meta $order_meta = null, ?Method_Resolver $method_resolver = null, ?Checkout_Options $checkout_options = null ) {
+	public function __construct( ?Pickup_Point_Lookup $pickup_point_lookup = null, ?Pickup_Point_Formatter $pickup_point_formatter = null, ?Settings $settings = null, ?Order_Meta $order_meta = null, ?Checkout_Options $checkout_options = null ) {
 		$this->pickup_point_lookup    = null === $pickup_point_lookup ? new Pickup_Point_Lookup() : $pickup_point_lookup;
 		$this->pickup_point_formatter = null === $pickup_point_formatter ? new Pickup_Point_Formatter() : $pickup_point_formatter;
 		$this->settings               = null === $settings ? new Settings() : $settings;
 		$this->order_meta             = null === $order_meta ? new Order_Meta() : $order_meta;
-		$this->method_resolver        = null === $method_resolver ? new Method_Resolver( $this->settings ) : $method_resolver;
 		$this->checkout_options       = null === $checkout_options ? new Checkout_Options() : $checkout_options;
 	}
 
@@ -194,9 +175,30 @@ class Store_API {
 		$method_code   = $this->chosen_agent_rate_method_code();
 		$pickup_points = array();
 		$status        = null;
+		$selected      = null;
+		$context       = null;
 
 		if ( null !== $method_code ) {
+			$context                = $this->pickup_point_context( $method_code, WC()->customer );
+			$selected               = $this->pickup_point_lookup->get_selected( $method_code->carrier(), $context['country'], true );
 			list( $found, $status ) = $this->lookup_pickup_points_for_customer( $method_code->carrier() );
+
+			// Explicit choices may be near a workplace, outside the latest closest
+			// results. A compatible, previously validated choice remains available.
+			if ( null !== $selected ) {
+				$found = array_filter(
+					$found,
+					static function ( Pickup_Point $point ) use ( $selected ) {
+						return $point->get_agent_no() !== $selected->get_agent_no();
+					}
+				);
+				array_unshift( $found, $selected );
+				$status = Checkout_Options::PICKUP_POINT_STATUS_FOUND;
+			} elseif ( $this->settings->default_select_agent() && ! empty( $found ) ) {
+				$selected = $this->pickup_point_lookup->select( $method_code->carrier(), $context['country'], (string) reset( $found )->get_agent_no(), false );
+			} else {
+				$this->pickup_point_lookup->clear_selection();
+			}
 
 			foreach ( $found as $pickup_point ) {
 				$pickup_points[] = array(
@@ -204,23 +206,19 @@ class Store_API {
 					'label'    => $this->pickup_point_formatter->dropdown_label( $pickup_point ),
 				);
 			}
+		} else {
+			$this->pickup_point_lookup->clear_selection();
 		}
 
 		return array(
 			'selected_rate_is_agent' => null !== $method_code,
 			'pickup_points'          => $pickup_points,
-			// The pickup point section state (one of the
-			// Checkout_Options PICKUP_POINT_STATUS_* slugs) and its
-			// customer-facing text, server-side i18n - the block renders
-			// the message verbatim and keys its behaviour (validation,
-			// styling) off the status. Null when the chosen rate is not
-			// an agent method.
 			'pickup_point_status'    => $status,
 			'pickup_point_message'   => null === $status ? null : $this->checkout_options->pickup_point_status_message( $status ),
-			// Back-compat flag (pre-status consumers): true only when the
-			// lookup ran and found nothing near the address.
 			'no_pickup_points_found' => Checkout_Options::PICKUP_POINT_STATUS_NONE_FOUND === $status,
-			'selected_agent_no'      => $this->get_selected_agent_no(),
+			'selected_agent_no'      => null === $selected ? null : (string) $selected->get_agent_no(),
+			'selection_origin'       => null === $selected ? null : ( $this->pickup_point_lookup->is_selection_explicit() ? 'explicit' : 'automatic' ),
+			'pickup_point_context'   => $context,
 			'select_default'         => $this->settings->default_select_agent(),
 		);
 	}
@@ -287,6 +285,12 @@ class Store_API {
 				'type'        => array( 'string', 'null' ),
 				'readonly'    => true,
 			),
+			'selection_origin'       => array(
+				'type'     => array( 'string', 'null' ),
+				'enum'     => array( 'explicit', 'automatic', null ),
+				'readonly' => true,
+			),
+			'pickup_point_context'   => array_merge( $this->context_schema(), array( 'readonly' => true ) ),
 			'select_default'         => array(
 				'description' => __( 'Whether the closest pickup point is pre-selected (the "Select Default" setting).', 'smart-send-logistics' ),
 				'type'        => 'boolean',
@@ -303,12 +307,75 @@ class Store_API {
 	 */
 	public function checkout_extension_schema() {
 		return array(
-			'agent_no' => array(
+			'agent_no'             => array(
 				'description' => __( 'The agent number of the pickup point selected for the order.', 'smart-send-logistics' ),
 				'type'        => array( 'string', 'null' ),
 				'optional'    => true,
 			),
+			'selection_origin'     => array(
+				'type'     => array( 'string', 'null' ),
+				'enum'     => array( 'explicit', 'automatic', null ),
+				'optional' => true,
+			),
+			'pickup_point_context' => array_merge( $this->context_schema(), array( 'optional' => true ) ),
 		);
+	}
+
+	/**
+	 * Context accompanies the selection so an old cart response cannot choose
+	 * a point for a newer address or shipping method.
+	 *
+	 * @return array
+	 */
+	protected function context_schema(): array {
+		$properties = array();
+		foreach ( array( 'method', 'country', 'postcode', 'city', 'address_1' ) as $field ) {
+			$properties[ $field ] = array( 'type' => 'string' );
+		}
+		return array(
+			'type'       => array( 'object', 'null' ),
+			'properties' => $properties,
+		);
+	}
+
+	/**
+	 * Build the same context from either the cart customer or final order.
+	 *
+	 * @param Method_Code $method_code Shipping method.
+	 * @param object|null $address WooCommerce customer or order.
+	 * @return array
+	 */
+	protected function pickup_point_context( Method_Code $method_code, $address ): array {
+		return array(
+			'method'    => $method_code->carrier() . '_' . $method_code->type(),
+			'country'   => null === $address ? '' : strtoupper( trim( (string) $address->get_shipping_country() ) ),
+			'postcode'  => null === $address ? '' : wc_format_postcode( trim( (string) $address->get_shipping_postcode() ), (string) $address->get_shipping_country() ),
+			'city'      => null === $address ? '' : trim( (string) $address->get_shipping_city() ),
+			'address_1' => null === $address ? '' : trim( (string) $address->get_shipping_address_1() ),
+		);
+	}
+
+	/**
+	 * Headless callers may omit context; a supplied context must match.
+	 *
+	 * @param array $data Submitted extension data.
+	 * @param array $context Authoritative server context.
+	 * @return void
+	 */
+	protected function validate_context( array $data, array $context ): void {
+		if ( ! array_key_exists( 'pickup_point_context', $data ) ) {
+			return;
+		}
+		$submitted = $data['pickup_point_context'];
+		foreach ( $context as $field => $value ) {
+			if ( ! is_array( $submitted ) || ! isset( $submitted[ $field ] ) || ! is_string( $submitted[ $field ] ) || $submitted[ $field ] !== $value ) {
+				throw new \Automattic\WooCommerce\StoreApi\Exceptions\RouteException(
+					'ss_shipping_pickup_point_context_changed',
+					esc_html__( 'The shipping address or method changed. Please select a pickup point again.', 'smart-send-logistics' ),
+					400
+				);
+			}
+		}
 	}
 
 	/**
@@ -324,25 +391,41 @@ class Store_API {
 		if ( ! is_array( $data ) || ! array_key_exists( 'agent_no', $data ) || null === WC()->session ) {
 			return;
 		}
-
-		$agent_no = (string) wc_clean( wp_unslash( $data['agent_no'] ) );
-
-		WC()->session->set( self::SESSION_SELECTED_AGENT_NO, '' === $agent_no ? null : $agent_no );
+		// The extensions endpoint invokes this callback before calculating totals.
+		// A fresh request has no in-memory shipping packages yet.
+		if ( null !== WC()->cart ) {
+			WC()->cart->calculate_shipping();
+		}
+		$method_code = $this->chosen_agent_rate_method_code();
+		if ( null === $method_code ) {
+			$this->pickup_point_lookup->clear_selection();
+			$this->reject_checkout();
+		}
+		$context = $this->pickup_point_context( $method_code, WC()->customer );
+		$this->validate_context( $data, $context );
+		$agent_no = $this->clean_agent_no( $data['agent_no'] );
+		if ( '' === $agent_no ) {
+			$this->pickup_point_lookup->clear_selection();
+			return;
+		}
+		try {
+			$this->pickup_point_lookup->select( $method_code->carrier(), $context['country'], $agent_no, true );
+		} catch ( Exception $e ) {
+			$this->reject_checkout();
+		}
 	}
 
 	/**
-	 * The session-stored in-progress selection, if any.
+	 * Sanitize the point number without accepting arrays or objects.
 	 *
-	 * @return string|null
+	 * @param mixed $agent_no Submitted point number.
+	 * @return string
 	 */
-	public function get_selected_agent_no() {
-		if ( null === WC()->session ) {
-			return null;
+	protected function clean_agent_no( $agent_no ): string {
+		if ( null !== $agent_no && ! is_scalar( $agent_no ) ) {
+			$this->reject_checkout();
 		}
-
-		$agent_no = WC()->session->get( self::SESSION_SELECTED_AGENT_NO );
-
-		return empty( $agent_no ) ? null : (string) $agent_no;
+		return (string) wc_clean( wp_unslash( (string) $agent_no ) );
 	}
 
 	/**
@@ -365,46 +448,55 @@ class Store_API {
 	 * @return void
 	 */
 	public function persist_pickup_point_from_request( $order, $request ) {
-		$method_code = new Method_Code( $this->method_resolver->resolve_outbound( $order ) );
-
-		if ( ! $this->checkout_options->show_pickup_points( $method_code ) ) {
+		$method_code = $this->order_agent_method_code( $order );
+		if ( null === $method_code ) {
+			$this->pickup_point_lookup->clear_selection();
+			$this->order_meta->write( $order, ( new Delivery_Details() )->clear_pickup_point() );
 			return;
 		}
 
-		$agent_no = $this->requested_agent_no( $request );
+		$extensions = $request->get_param( 'extensions' );
+		$data       = is_array( $extensions ) && isset( $extensions[ Block_Checkout::INTEGRATION_NAME ] ) ? $extensions[ Block_Checkout::INTEGRATION_NAME ] : array();
+		if ( ! is_array( $data ) ) {
+			$this->reject_checkout();
+		}
+		$context = $this->pickup_point_context( $method_code, $order );
+		$this->validate_context( $data, $context );
+		$agent_no = $this->clean_agent_no( $data['agent_no'] ?? '' );
 
 		if ( '' === $agent_no ) {
-			// Classic-checkout parity: when the lookup offered NO pickup
-			// points for this session - none near the address, lookup
-			// failure, or plugin not connected - there is nothing to
-			// select, so the order is allowed through with no pickup
-			// point meta (the classic checkout renders no dropdown in
-			// those cases and its validation passes). The distinction
-			// comes from the server-side session cache the lookup
-			// maintains (it caches an empty array in every failure path
-			// too) - never from a client-supplied claim.
-			if ( $this->no_pickup_points_were_available() ) {
-				Logger::info(
-					'No pickup points were available for the address - order placed without a pickup point selection',
-					array( 'order_id' => $order->get_id() )
-				);
-
+			$explicit = $this->pickup_point_lookup->get_selected( $method_code->carrier(), $context['country'], true );
+			if ( null === $explicit && $this->pickup_point_lookup->no_pickup_points_for_address( $method_code->carrier(), $context['country'], $context['postcode'], '' === $context['city'] ? null : $context['city'], $context['address_1'] ) ) {
+				$this->order_meta->write( $order, ( new Delivery_Details() )->clear_pickup_point() );
+				Logger::info( 'No pickup points were available for the address - order placed without a pickup point selection', array( 'order_id' => $order->get_id() ) );
 				return;
 			}
-
 			$this->reject_checkout();
 		}
 
-		$pickup_point = $this->resolve_pickup_point( $method_code->carrier(), $order, $agent_no );
-
-		if ( null === $pickup_point ) {
+		try {
+			if ( 'automatic' === ( $data['selection_origin'] ?? null ) ) {
+				$closest = $this->pickup_point_lookup->find_closest_by_address( $method_code->carrier(), $context['country'], $context['postcode'], '' === $context['city'] ? null : $context['city'], $context['address_1'] );
+				if ( empty( $closest ) || (string) reset( $closest )->get_agent_no() !== $agent_no ) {
+					$this->reject_checkout();
+				}
+			}
+			$pickup_point = $this->pickup_point_lookup->resolve_selection( $method_code->carrier(), $context['country'], $agent_no );
+		} catch ( Exception $e ) {
+			Logger::warning(
+				'Pickup point not found - agent number rejected',
+				array(
+					'order_id' => $order->get_id(),
+					'agent_no' => $agent_no,
+					'carrier'  => $method_code->carrier(),
+				)
+			);
 			$this->reject_checkout();
 		}
 
 		$details = new Delivery_Details();
 		$details->set_pickup_point( $pickup_point );
 		$this->order_meta->write( $order, $details );
-
 		Logger::info(
 			'Pickup point selected at checkout',
 			array(
@@ -415,75 +507,20 @@ class Store_API {
 	}
 
 	/**
-	 * The agent_no submitted under our extension namespace, or '' when
-	 * none was submitted.
+	 * Checkout only requires a point for an actual Smart Send agent rate.
+	 * Booking fallbacks for third-party rates do not display our selector.
 	 *
-	 * @param WP_REST_Request $request The checkout request.
-	 *
-	 * @return string
+	 * @param WC_Order $order Checkout order.
+	 * @return Method_Code|null
 	 */
-	protected function requested_agent_no( $request ) {
-		$extensions = $request->get_param( 'extensions' );
-
-		if ( ! is_array( $extensions ) || empty( $extensions[ Block_Checkout::INTEGRATION_NAME ]['agent_no'] ) ) {
-			return '';
+	protected function order_agent_method_code( WC_Order $order ): ?Method_Code {
+		foreach ( $order->get_items( 'shipping' ) as $item ) {
+			if ( SS_SHIPPING_METHOD_ID !== $item->get_method_id() ) {
+				return null;
+			}
+			$method_code = new Method_Code( (string) $item->get_meta( 'smart_send_shipping_method', true ) );
+			return $this->checkout_options->show_pickup_points( $method_code ) ? $method_code : null;
 		}
-
-		return (string) wc_clean( wp_unslash( $extensions[ Block_Checkout::INTEGRATION_NAME ]['agent_no'] ) );
-	}
-
-	/**
-	 * Whether the last pickup point lookup ran for this session and
-	 * found no points at all. Reads the lookup's session cache: an
-	 * EMPTY array means a lookup ran and found nothing (the lookup
-	 * caches empty results too); null/absent means no lookup ran, which
-	 * keeps the conservative rejection path.
-	 *
-	 * @return bool
-	 */
-	protected function no_pickup_points_were_available(): bool {
-		$cached = $this->pickup_point_lookup->get_session_pickup_points();
-
-		return array() === $cached;
-	}
-
-	/**
-	 * Re-resolve a submitted agent number into the server-side pickup
-	 * point: the session-cached lookup results first (cheap, already
-	 * validated - the same cache the classic checkout resolves
-	 * against), the shared find_by_agent_no() API lookup (#182) as
-	 * fallback.
-	 *
-	 * @param string   $carrier  Unique carrier code (e.g. 'postnord').
-	 * @param WC_Order $order    The order being placed.
-	 * @param string   $agent_no The submitted agent number.
-	 *
-	 * @return Pickup_Point|null The pickup point, or null when the agent number cannot be resolved.
-	 */
-	protected function resolve_pickup_point( $carrier, $order, $agent_no ): ?Pickup_Point {
-		$cached = $this->pickup_point_lookup->find_cached_by_agent_no( $agent_no );
-
-		if ( null !== $cached ) {
-			return $cached;
-		}
-
-		// The request and response (incl. HTTP status code and endpoint)
-		// are logged by the client's request logger.
-		try {
-			return $this->pickup_point_lookup->find_by_agent_no( $carrier, (string) $order->get_shipping_country(), $agent_no );
-		} catch ( Pickup_Point_Not_Found_Exception $e ) {
-			unset( $e ); // The agent number cannot be resolved - fall through to the rejection below.
-		}
-
-		Logger::warning(
-			'Pickup point not found - agent number rejected',
-			array(
-				'order_id' => $order->get_id(),
-				'agent_no' => $agent_no,
-				'carrier'  => $carrier,
-			)
-		);
-
 		return null;
 	}
 

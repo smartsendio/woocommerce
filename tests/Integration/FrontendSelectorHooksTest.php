@@ -1,10 +1,10 @@
 <?php
 
 /*
- * Tests for the checkout pickup point selector extension hooks: the four
+ * Tests for the checkout pickup point selector extension hooks: the renderer-independent hooks
  * added in v9 (#73) - smart_send_pickup_point_search_params,
- * smart_send_pickup_points_found, smart_send_pickup_point_option_label and
- * smart_send_default_selected_pickup_point - plus smart_send_pickup_point_timeout,
+ * smart_send_pickup_points_found, smart_send_pickup_point_label and
+ * smart_send_pickup_point_timeout,
  * which shipped in 8.2.0 (as smart_send_agent_timeout) and was renamed
  * alongside the others in #105.
  *
@@ -85,6 +85,17 @@ function spy_on_logger_for_selector_hooks(): object
 
 beforeEach(function (): void {
     with_ss_settings();
+    if (is_null(WC()->cart)) {
+        wc_load_cart();
+    }
+    $post = $_POST;
+    $_POST = [];
+    (new \Smart_Send\Delivery_Options\Pickup_Point_Lookup())->clear_selection();
+    remember_cleanup_callback(function () use ($post): void {
+        $_POST = $post;
+        WC()->session->set('ss_shipping_agents_context', null);
+        (new \Smart_Send\Delivery_Options\Pickup_Point_Lookup())->clear_selection();
+    });
 });
 
 it('lets smart_send_pickup_point_timeout change the timeout used for the pickup point lookup request', function () {
@@ -212,7 +223,7 @@ it('lets smart_send_pickup_points_found add a pickup point built directly from t
         ->and($output)->toContain('Corner Shop');
 
     // The directly-built point resolves at checkout submission like any other.
-    $cached = (new \Smart_Send\Delivery_Options\Pickup_Point_Lookup())->find_cached_by_agent_no('9000');
+    $cached = (new \Smart_Send\Delivery_Options\Pickup_Point_Lookup())->find_cached_by_agent_no('postnord', 'DK', '9000');
     expect($cached)->not->toBeNull()
         ->and($cached->get_company())->toBe('Own Shop');
 });
@@ -244,7 +255,7 @@ it('drops entries returned by smart_send_pickup_points_found that are not value 
         ->and($warnings[0]['context']['entry_type'])->toBe('stdClass');
 });
 
-it('lets smart_send_pickup_point_option_label rewrite the drop-down option label', function () {
+it('lets smart_send_pickup_point_label rewrite the drop-down option label', function () {
     mock_smart_send_api(function () {
         return ss_api_response(200, ['data' => [sample_agent()]]);
     });
@@ -258,9 +269,9 @@ it('lets smart_send_pickup_point_option_label rewrite the drop-down option label
 
         return 'Custom Label ' . $pickup_point->get_agent_no();
     };
-    add_filter('smart_send_pickup_point_option_label', $filter, 10, 2);
+    add_filter('smart_send_pickup_point_label', $filter, 10, 2);
     remember_cleanup_callback(function () use ($filter): void {
-        remove_filter('smart_send_pickup_point_option_label', $filter, 10);
+        remove_filter('smart_send_pickup_point_label', $filter, 10);
     });
 
     $output = selector_hooks_render();
@@ -269,32 +280,16 @@ it('lets smart_send_pickup_point_option_label rewrite the drop-down option label
         ->and($output)->not->toContain('Corner Shop');
 });
 
-it('lets smart_send_default_selected_pickup_point pre-select a pickup point', function () {
-    mock_smart_send_api(function () {
-        return ss_api_response(200, ['data' => [
-            sample_agent(['agent_no' => '1111', 'company' => 'First Shop']),
-            sample_agent(['agent_no' => '2222', 'company' => 'Second Shop']),
-        ]]);
-    });
-
-    $filter = function (string $default_agent_no, array $ss_pickup_points) {
-        expect($default_agent_no)->toBe('')
-            ->and($ss_pickup_points)->toHaveCount(2)
-            ->and($ss_pickup_points[1])->toBeInstanceOf(\Smart_Send\Delivery\Pickup_Point::class)
-            ->and($ss_pickup_points[1]->get_company())->toBe('Second Shop');
-
-        // The documented pattern: return the agent_no of one of the found points.
-        return $ss_pickup_points[1]->get_agent_no();
-    };
-    add_filter('smart_send_default_selected_pickup_point', $filter, 10, 2);
-    remember_cleanup_callback(function () use ($filter): void {
-        remove_filter('smart_send_default_selected_pickup_point', $filter, 10);
-    });
-
+it('pre-selects the first pickup point only when the merchant setting enables it', function () {
+    with_ss_settings(['default_select_agent' => 'yes']);
+    mock_smart_send_api(fn () => ss_api_response(200, ['data' => [
+        sample_agent(['agent_no' => '1111', 'company' => 'First Shop']),
+        sample_agent(['agent_no' => '2222', 'company' => 'Second Shop']),
+    ]]));
     $output = selector_hooks_render();
-
-    expect($output)->toMatch('/value="2222"[^>]*selected/')
-        ->and($output)->not->toMatch('/value="1111"[^>]*selected/');
+    expect($output)->toMatch('/value="1111"[^>]*selected/')
+        ->and($output)->not->toContain('- Select Pickup Point -')
+        ->and((new \Smart_Send\Delivery_Options\Pickup_Point_Lookup())->is_selection_explicit())->toBeFalse();
 });
 
 it('renders the drop-down unchanged when no selector hooks are registered', function () {

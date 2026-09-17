@@ -167,7 +167,9 @@ it('logs an info event when the shopper selects a pickup point at checkout', fun
         WC()->session->set('ss_shipping_agents', null);
     });
 
-    (new \Smart_Send\Frontend\Checkout())->process_ss_pickup_points($order->get_id(), null);
+    mock_smart_send_api(fn () => ss_api_response(200, ['data' => sample_agent()]));
+    (new \Smart_Send\Frontend\Checkout())->process_ss_pickup_points($order, []);
+    $order->save();
 
     $selected = ss_policy_entry($spy, 'Pickup point selected at checkout');
     expect($selected)->not->toBeNull()

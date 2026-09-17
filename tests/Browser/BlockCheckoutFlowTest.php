@@ -182,20 +182,30 @@ beforeEach(function (): void {
 });
 
 it('blocks Place Order until a pickup point is selected', function () {
-    $page = ss_block_checkout_reach_pickup_selector();
-
-    // Submit with the "- Select Pickup Point -" placeholder still selected:
-    // the wc/store/validation error registered by the block must reject the
-    // submission client-side (the Store API RouteException remains the
-    // server-side backstop). Explicit selector: text-based lookups do not
-    // reliably match the Place Order button.
-    $page->assertSee('Cash on delivery')
-        // Submit only once the checkout is idle (WooCommerce disables the
-        // button while cart updates are in flight).
-        ->assertButtonEnabled('.wc-block-components-checkout-place-order-button')
-        ->click('.wc-block-components-checkout-place-order-button')
-        ->assertSee('A pickup point must be selected.')
-        ->assertDontSee('order has been received');
+    ss_browser_wp_eval(<<<'PHP'
+        $config = get_option('ss_test_api', array());
+        $config['pickup_label_suffix'] = '<strong id="ss-label-injection"> & "quoted"';
+        update_option('ss_test_api', $config);
+        echo json_encode(array('ok' => true));
+    PHP);
+    try {
+        $page = ss_block_checkout_reach_pickup_selector();
+        expect($page->script("document.querySelector('#ss-pickup-point-select option[value=\"1234\"]').textContent"))
+            ->toContain('<strong id="ss-label-injection"> & "quoted"');
+        $page->assertMissing('#ss-label-injection')
+            ->assertSee('Cash on delivery')
+            ->assertButtonEnabled('.wc-block-components-checkout-place-order-button')
+            ->click('.wc-block-components-checkout-place-order-button')
+            ->assertSee('A pickup point must be selected.')
+            ->assertDontSee('order has been received');
+    } finally {
+        ss_browser_wp_eval(<<<'PHP'
+            $config = get_option('ss_test_api', array());
+            unset($config['pickup_label_suffix']);
+            update_option('ss_test_api', $config);
+            echo json_encode(array('ok' => true));
+        PHP);
+    }
 });
 
 it('shows the pickup point selector on block checkout and stores the chosen agent on the order', function () {
@@ -207,7 +217,7 @@ it('shows the pickup point selector on block checkout and stores the chosen agen
         // data-selected-agent in the same handler that pushes the agent_no
         // into the checkout POST payload), and until the checkout is idle
         // again after the selection's session round trip, before submitting.
-        ->assertPresent('.ss-pickup-point-block[data-selected-agent="1234"]')
+        ->assertPresent('.ss-pickup-point-block[data-selected-agent="1234"][data-selection-pending="false"]')
         ->assertButtonEnabled('.wc-block-components-checkout-place-order-button')
         ->click('.wc-block-components-checkout-place-order-button');
 
@@ -279,4 +289,102 @@ it('renders no pickup point selector for a non-agent rate', function () {
     // The flat rate (a non-Smart-Send, non-agent rate) is preselected, so
     // the block renders nothing.
     $page->assertMissing('#ss-pickup-point-select');
+});
+
+/** Wait for a deliberately held selection response, not an arbitrary delay. */
+function ss_block_checkout_wait_for_held_selection($page, int $count): void
+{
+    $deadline = microtime(true) + 15;
+    do {
+        if ($page->script('window.ssHeldSelections.length') === $count) {
+            return;
+        }
+        usleep(100000);
+    } while (microtime(true) < $deadline);
+    throw new RuntimeException('The expected pickup-point selection response was not received.');
+}
+
+/** Hold only our selection responses after the real server validates them. */
+function ss_block_checkout_hold_selection_responses($page): void
+{
+    $page->script(<<<'JS'
+        window.ssHeldSelections = [];
+        wp.apiFetch.use((options, next) => {
+            if (options.path === '/wc/store/v1/cart/extensions' && options.data?.namespace === 'smart-send') {
+                return next(options).then(response => new Promise(resolve => {
+                    window.ssHeldSelections.push(() => resolve(response));
+                }));
+            }
+            return next(options);
+        });
+    JS);
+}
+
+it('keeps the latest choice while an older selection response is delayed and stores that choice', function () {
+    $page = ss_block_checkout_reach_pickup_selector();
+    ss_block_checkout_hold_selection_responses($page);
+    $page->select('#ss-pickup-point-select', '1234');
+    ss_block_checkout_wait_for_held_selection($page, 1);
+    $page->select('#ss-pickup-point-select', '5678')
+        ->assertPresent('.ss-pickup-point-block[data-selected-agent="5678"][data-selection-pending="true"]')
+        ->click('.wc-block-components-checkout-place-order-button')
+        ->assertSee('Please wait while pickup points are updated.')
+        ->assertDontSee('order has been received');
+    $page->script('window.ssHeldSelections[0]()');
+    ss_block_checkout_wait_for_held_selection($page, 2);
+    $page->assertPresent('.ss-pickup-point-block[data-selected-agent="5678"][data-selection-pending="true"]');
+    $page->script('window.ssHeldSelections[1]()');
+    $page->assertPresent('.ss-pickup-point-block[data-selected-agent="5678"][data-selection-pending="false"]')
+        ->click('.wc-block-components-checkout-place-order-button')
+        ->assertSee('order has been received')
+        ->assertSee('Second Test Shop')
+        ->assertSee('Other Street 9');
+});
+
+it('does not roll the shipping address back when an old selection response arrives', function () {
+    $page = ss_block_checkout_reach_pickup_selector();
+    ss_block_checkout_hold_selection_responses($page);
+    $page->select('#ss-pickup-point-select', '1234');
+    ss_block_checkout_wait_for_held_selection($page, 1);
+    ss_browser_set_api_scenarios(['pickup-points' => 'empty']);
+    try {
+        $page->fill('#shipping-postcode', '8000');
+        ss_block_checkout_wait_for_cart_idle($page, '8000');
+        // The explicit compatible point survives even though the next closest
+        // search is empty. The older response still carries postcode 2300.
+        $page->assertPresent('.ss-pickup-point-block[data-status="ready"][data-selected-agent="1234"][data-selection-pending="false"]');
+        $page->script('window.ssHeldSelections[0]()');
+        expect($page->script("wp.data.select('wc/store/cart').getCartData().shippingAddress.postcode"))->toBe('8000');
+        $page->assertValue('#shipping-postcode', '8000')
+            ->assertPresent('.ss-pickup-point-block[data-selected-agent="1234"]')
+            ->click('.wc-block-components-checkout-place-order-button')
+            ->assertSee('order has been received')
+            ->assertSee('Browser Test Shop');
+    } finally {
+        ss_browser_set_api_scenarios(null);
+    }
+});
+
+it('keeps the confirmed selection visible and blocks checkout until a rejected update is retried', function () {
+    $page = ss_block_checkout_reach_pickup_selector();
+    $page->select('#ss-pickup-point-select', '1234')
+        ->assertPresent('.ss-pickup-point-block[data-selected-agent="1234"][data-selection-pending="false"]');
+    $page->script(<<<'JS'
+        let failNextSelection = true;
+        wp.apiFetch.use((options, next) => {
+            if (failNextSelection && options.path === '/wc/store/v1/cart/extensions' && options.data?.namespace === 'smart-send') {
+                failNextSelection = false;
+                return Promise.reject(new Error('Simulated connection failure'));
+            }
+            return next(options);
+        });
+    JS);
+    $page->select('#ss-pickup-point-select', '5678')
+        ->assertSee('The pickup point could not be saved. Please select it again.')
+        ->assertPresent('.ss-pickup-point-block[data-selected-agent="1234"][data-selection-pending="false"]')
+        ->click('.wc-block-components-checkout-place-order-button')
+        ->assertDontSee('order has been received')
+        ->select('#ss-pickup-point-select', '5678')
+        ->assertPresent('.ss-pickup-point-block[data-selected-agent="5678"][data-selection-pending="false"]')
+        ->assertDontSee('The pickup point could not be saved. Please select it again.');
 });

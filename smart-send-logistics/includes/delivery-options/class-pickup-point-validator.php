@@ -134,6 +134,9 @@ class Pickup_Point_Validator {
 				return false;
 			}
 			$object_id = $meta->post_id;
+			if ( is_scalar( $meta_value ) && Order_Meta::consume_staged_pickup_point( (int) $object_id, (string) $meta_value ) ) {
+				return $check;
+			}
 			if ( $this->validate_and_store( $object_id, true, $meta_value ) !== true ) {
 				// the agent was not found so do NOT save the new agent_no
 				$check = false;
@@ -164,6 +167,9 @@ class Pickup_Point_Validator {
 		}
 
 		if ( Order_Meta::META_AGENT_NO == $meta_key ) { // phpcs:ignore Universal.Operators.StrictComparisons.LooseEqual -- pre-existing loose comparison; tightening is a behaviour change out of scope for the #139 move.
+			if ( Order_Meta::consume_staged_pickup_point( (int) $object_id, null ) ) {
+				return;
+			}
 			$this->repository->delete_pickup_point( $object_id );
 		}
 	}
