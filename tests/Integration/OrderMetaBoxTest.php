@@ -48,7 +48,7 @@ function inlined_meta_box_script(): string
 {
     // WordPress seeds a handle's first inline entry with a `false` slot
     // ((array) of the missing data) - only the strings are scripts.
-    $scripts = array_values(array_filter((array) wp_scripts()->get_data(SS_Shipping_Order_Meta_Box::STATE_SCRIPT_HANDLE, 'before'), 'is_string'));
+    $scripts = array_values(array_filter((array) wp_scripts()->get_data(\Smart_Send\Admin\Order_Meta_Box::STATE_SCRIPT_HANDLE, 'before'), 'is_string'));
 
     expect($scripts)->toHaveCount(1);
 
@@ -74,9 +74,9 @@ beforeEach(function (): void {
 
     // Every render re-adds the inline state; start each test without one,
     // and without the app enqueued (wp_scripts() persists across tests).
-    wp_scripts()->add_data(SS_Shipping_Order_Meta_Box::STATE_SCRIPT_HANDLE, 'before', []);
-    wp_dequeue_script(SS_Shipping_Order_Meta_Box::STATE_SCRIPT_HANDLE);
-    wp_dequeue_style(SS_Shipping_Order_Meta_Box::STYLE_HANDLE);
+    wp_scripts()->add_data(\Smart_Send\Admin\Order_Meta_Box::STATE_SCRIPT_HANDLE, 'before', []);
+    wp_dequeue_script(\Smart_Send\Admin\Order_Meta_Box::STATE_SCRIPT_HANDLE);
+    wp_dequeue_style(\Smart_Send\Admin\Order_Meta_Box::STYLE_HANDLE);
 });
 
 it('registers the meta box on the HPOS order screen when HPOS is enabled', function () {
@@ -154,15 +154,15 @@ it('renders a mount point with the state inlined as JSON, and no order data in t
 it('enqueues the built app from the render callback only, with every dependency registered on this WordPress', function () {
     $order = create_meta_box_order();
 
-    expect(wp_script_is(SS_Shipping_Order_Meta_Box::STATE_SCRIPT_HANDLE, 'enqueued'))->toBeFalse()
-        ->and(wp_style_is(SS_Shipping_Order_Meta_Box::STYLE_HANDLE, 'enqueued'))->toBeFalse();
+    expect(wp_script_is(\Smart_Send\Admin\Order_Meta_Box::STATE_SCRIPT_HANDLE, 'enqueued'))->toBeFalse()
+        ->and(wp_style_is(\Smart_Send\Admin\Order_Meta_Box::STYLE_HANDLE, 'enqueued'))->toBeFalse();
 
     render_meta_box($order);
 
     $asset = require SS_SHIPPING_PLUGIN_DIR_PATH . '/build/order-fulfillment/index.asset.php';
-    $script = wp_scripts()->query(SS_Shipping_Order_Meta_Box::STATE_SCRIPT_HANDLE);
+    $script = wp_scripts()->query(\Smart_Send\Admin\Order_Meta_Box::STATE_SCRIPT_HANDLE);
 
-    expect(wp_script_is(SS_Shipping_Order_Meta_Box::STATE_SCRIPT_HANDLE, 'enqueued'))->toBeTrue()
+    expect(wp_script_is(\Smart_Send\Admin\Order_Meta_Box::STATE_SCRIPT_HANDLE, 'enqueued'))->toBeTrue()
         ->and($script->src)->toEndWith('/build/order-fulfillment/index.js')
         ->and($script->ver)->toBe($asset['version'])
         ->and($script->deps)->toBe($asset['dependencies'])
@@ -176,8 +176,8 @@ it('enqueues the built app from the render callback only, with every dependency 
         expect(wp_script_is($dependency, 'registered'))->toBeTrue("Script dependency {$dependency} is not registered on this WordPress");
     }
 
-    expect(wp_style_is(SS_Shipping_Order_Meta_Box::STYLE_HANDLE, 'enqueued'))->toBeTrue()
-        ->and(wp_styles()->query(SS_Shipping_Order_Meta_Box::STYLE_HANDLE)->src)->toEndWith('/build/order-fulfillment/style-index.css')
+    expect(wp_style_is(\Smart_Send\Admin\Order_Meta_Box::STYLE_HANDLE, 'enqueued'))->toBeTrue()
+        ->and(wp_styles()->query(\Smart_Send\Admin\Order_Meta_Box::STYLE_HANDLE)->src)->toEndWith('/build/order-fulfillment/style-index.css')
         ->and(wp_style_is('wp-components', 'enqueued'))->toBeTrue();
 
     // The inline state rides before the bundle.
@@ -338,9 +338,9 @@ it('builds the link to the shipment in the Smart Send app from the filtered API 
 });
 
 it('enriches a booked shipment for the response with the app link and the parcel display strings', function () {
-    $shipment = new SS_Shipping_Booked_Shipment('shipment-resp');
-    $shipment->add_parcel(new SS_Shipping_Booked_Parcel('1', 'TRACK-1', 'https://tracking.example.test/1', 2.0, null, null, null, '4711'));
-    $shipment->add_parcel(new SS_Shipping_Booked_Parcel('2', 'TRACK-2', null, 2.5, 40.0, 30.0, 20.0, '4711'));
+    $shipment = new \Smart_Send\Booking\Booked_Shipment('shipment-resp');
+    $shipment->add_parcel(new \Smart_Send\Booking\Booked_Parcel('1', 'TRACK-1', 'https://tracking.example.test/1', 2.0, null, null, null, '4711'));
+    $shipment->add_parcel(new \Smart_Send\Booking\Booked_Parcel('2', 'TRACK-2', null, 2.5, 40.0, 30.0, 20.0, '4711'));
 
     $enriched = SS_SHIPPING_WC()->fulfillment_presenter()->shipment_response($shipment->to_array());
 

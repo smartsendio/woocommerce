@@ -1,9 +1,9 @@
 <?php
 
 /*
- * Tests for SS_Shipping_Booked_Shipment as the typed booking result (#177):
+ * Tests for \Smart_Send\Booking\Booked_Shipment as the typed booking result (#177):
  * the API v1 create-shipment response is mapped into it by
- * SS_Shipping_Booking_Service (single parcel, multi parcel, missing
+ * \Smart_Send\Booking\Booking_Service (single parcel, multi parcel, missing
  * tracking, return), it round-trips through to_array()/from_array() and
  * PHP serialization, every fulfillment step (shipment id meta, order note,
  * tracking push, order-screen rendering) reads from it, and the rendering
@@ -24,16 +24,16 @@ function create_bookable_order(array $args = []): WC_Order
     ], $args));
 }
 
-function booking_service(): SS_Shipping_Booking_Service
+function booking_service(): \Smart_Send\Booking\Booking_Service
 {
-    return new SS_Shipping_Booking_Service();
+    return new \Smart_Send\Booking\Booking_Service();
 }
 
 /**
- * Book the order through SS_Shipping_Booking_Service::book() with the
+ * Book the order through \Smart_Send\Booking\Booking_Service::book() with the
  * delivery details the fulfillment service would decide on.
  */
-function book_order(WC_Order $order, bool $is_return = false, ?SS_Shipping_Booking_Service $service = null): SS_Shipping_Booked_Shipment
+function book_order(WC_Order $order, bool $is_return = false, ?\Smart_Send\Booking\Booking_Service $service = null): \Smart_Send\Booking\Booked_Shipment
 {
     $details = SS_SHIPPING_WC()->fulfillment()->resolve_delivery_details($order, $is_return);
 
@@ -44,25 +44,25 @@ function book_order(WC_Order $order, bool $is_return = false, ?SS_Shipping_Booki
  * A fully populated booked shipment, built directly (the shape API v2 will
  * deliver: several documents, a code, several parcels).
  */
-function full_booked_shipment(): SS_Shipping_Booked_Shipment
+function full_booked_shipment(): \Smart_Send\Booking\Booked_Shipment
 {
-    $shipment = new SS_Shipping_Booked_Shipment('ship-full');
+    $shipment = new \Smart_Send\Booking\Booked_Shipment('ship-full');
     $shipment
         ->set_carrier('gls')
         ->set_service_code('shop')
         ->set_is_return(false)
-        ->set_state(SS_Shipping_Booked_Shipment::STATE_BOOKED)
+        ->set_state(\Smart_Send\Booking\Booked_Shipment::STATE_BOOKED)
         ->set_booked_at('2026-09-15T10:00:00+00:00')
         ->set_tracking('SHIP-TRACK', 'https://track.example.test/SHIP-TRACK')
-        ->add_parcel(new SS_Shipping_Booked_Parcel('p-1', 'PARCEL-1', 'https://track.example.test/PARCEL-1', 1.5, 40.0, 30.0, 20.0, '4711'))
-        ->add_parcel(new SS_Shipping_Booked_Parcel('p-2', 'PARCEL-2', null))
-        ->add_document(new SS_Shipping_Shipment_Document(SS_Shipping_Shipment_Document::TYPE_LABEL, SS_Shipping_Shipment_Document::FORMAT_PDF, 'https://docs.example.test/label.pdf', 'A4'))
+        ->add_parcel(new \Smart_Send\Booking\Booked_Parcel('p-1', 'PARCEL-1', 'https://track.example.test/PARCEL-1', 1.5, 40.0, 30.0, 20.0, '4711'))
+        ->add_parcel(new \Smart_Send\Booking\Booked_Parcel('p-2', 'PARCEL-2', null))
+        ->add_document(new \Smart_Send\Booking\Shipment_Document(\Smart_Send\Booking\Shipment_Document::TYPE_LABEL, \Smart_Send\Booking\Shipment_Document::FORMAT_PDF, 'https://docs.example.test/label.pdf', 'A4'))
         ->add_document(
-            (new SS_Shipping_Shipment_Document(SS_Shipping_Shipment_Document::TYPE_CUSTOMS_DECLARATION, SS_Shipping_Shipment_Document::FORMAT_ZPL, 'https://docs.example.test/customs.zpl', '100x150mm'))
+            (new \Smart_Send\Booking\Shipment_Document(\Smart_Send\Booking\Shipment_Document::TYPE_CUSTOMS_DECLARATION, \Smart_Send\Booking\Shipment_Document::FORMAT_ZPL, 'https://docs.example.test/customs.zpl', '100x150mm'))
                 ->set_local_copy('/var/www/uploads/customs.zpl', 'https://shop.example.test/uploads/customs.zpl')
         )
-        ->add_code(new SS_Shipping_Shipment_Code(SS_Shipping_Shipment_Code::TYPE_QR_CODE, 'QR-123', 'https://docs.example.test/qr.png', '2026-10-01T00:00:00+00:00', 'Show this code at the parcel shop'))
-        ->add_code(new SS_Shipping_Shipment_Code(SS_Shipping_Shipment_Code::TYPE_LABEL_CODE, 'LC-9'));
+        ->add_code(new \Smart_Send\Booking\Shipment_Code(\Smart_Send\Booking\Shipment_Code::TYPE_QR_CODE, 'QR-123', 'https://docs.example.test/qr.png', '2026-10-01T00:00:00+00:00', 'Show this code at the parcel shop'))
+        ->add_code(new \Smart_Send\Booking\Shipment_Code(\Smart_Send\Booking\Shipment_Code::TYPE_LABEL_CODE, 'LC-9'));
 
     return $shipment;
 }
@@ -79,7 +79,7 @@ it('maps a single-parcel v1 response into the booked shipment', function () {
 
     $shipment = book_order($order);
 
-    expect($shipment)->toBeInstanceOf(SS_Shipping_Booked_Shipment::class)
+    expect($shipment)->toBeInstanceOf(\Smart_Send\Booking\Booked_Shipment::class)
         ->and($shipment->get_shipment_id())->toBe('shipment-single')
         ->and($shipment->get_carrier())->toBe('postnord')
         ->and($shipment->get_service_code())->toBe('agent')
@@ -111,7 +111,7 @@ it('maps a single-parcel v1 response into the booked shipment', function () {
         ->and($shipment->to_array())->not->toHaveKey('pdf')
         ->and(unserialize(serialize($label))->get_inline_content())->toBeNull()
         ->and(unserialize(serialize($label))->to_array())->toBe($label->to_array())
-        ->and(SS_Shipping_Shipment_Document::from_array($label->to_array())->get_inline_content())->toBeNull();
+        ->and(\Smart_Send\Booking\Shipment_Document::from_array($label->to_array())->get_inline_content())->toBeNull();
 });
 
 it('maps every parcel of a multi-parcel v1 response and keeps the outputs on the shipment', function () {
@@ -130,8 +130,8 @@ it('maps every parcel of a multi-parcel v1 response and keeps the outputs on the
     $shipment = book_order($order);
 
     expect($shipment->parcels())->toHaveCount(3)
-        ->and(array_map(fn (SS_Shipping_Booked_Parcel $p) => $p->get_parcel_id(), $shipment->parcels()))->toBe(['11', '12', '13'])
-        ->and(array_map(fn (SS_Shipping_Booked_Parcel $p) => $p->get_tracking_code(), $shipment->parcels()))->toBe(['MULTI-1', 'MULTI-2', 'MULTI-3'])
+        ->and(array_map(fn (\Smart_Send\Booking\Booked_Parcel $p) => $p->get_parcel_id(), $shipment->parcels()))->toBe(['11', '12', '13'])
+        ->and(array_map(fn (\Smart_Send\Booking\Booked_Parcel $p) => $p->get_tracking_code(), $shipment->parcels()))->toBe(['MULTI-1', 'MULTI-2', 'MULTI-3'])
         ->and($shipment->get_tracking_code())->toBe('MULTI-1')
         // Three parcels, still ONE combined label document.
         ->and($shipment->documents())->toHaveCount(1)
@@ -243,7 +243,7 @@ it('round-trips through to_array() / from_array() and PHP serialization', functi
             'instructions' => 'Show this code at the parcel shop',
         ]);
 
-    $rebuilt = SS_Shipping_Booked_Shipment::from_array($array);
+    $rebuilt = \Smart_Send\Booking\Booked_Shipment::from_array($array);
     expect($rebuilt)->not->toBe($shipment)
         ->and($rebuilt->to_array())->toBe($array)
         ->and($rebuilt->documents()[1]->download_url())->toBe('https://shop.example.test/uploads/customs.zpl')
@@ -253,11 +253,11 @@ it('round-trips through to_array() / from_array() and PHP serialization', functi
         ->and($rebuilt->codes()[1]->get_image_url())->toBeNull();
 
     // JSON (what a queue or the AJAX response would carry) and PHP serialization.
-    expect(SS_Shipping_Booked_Shipment::from_array(json_decode(json_encode($array), true))->to_array())->toBe($array)
+    expect(\Smart_Send\Booking\Booked_Shipment::from_array(json_decode(json_encode($array), true))->to_array())->toBe($array)
         ->and(unserialize(serialize($shipment))->to_array())->toBe($array);
 
     // A minimal array is enough.
-    $minimal = SS_Shipping_Booked_Shipment::from_array(['shipment_id' => 'min']);
+    $minimal = \Smart_Send\Booking\Booked_Shipment::from_array(['shipment_id' => 'min']);
     expect($minimal->get_shipment_id())->toBe('min')
         ->and($minimal->get_state())->toBe('booked')
         ->and($minimal->is_return())->toBeFalse()
@@ -294,8 +294,8 @@ it('stores the shipment id under the meta key matching the shipment direction', 
     $order = create_bookable_order();
     $ids   = SS_SHIPPING_WC()->shipment_ids();
 
-    $ids->save_booked($order, new SS_Shipping_Booked_Shipment('outbound-id'));
-    $ids->save_booked($order, (new SS_Shipping_Booked_Shipment('return-id'))->set_is_return(true));
+    $ids->save_booked($order, new \Smart_Send\Booking\Booked_Shipment('outbound-id'));
+    $ids->save_booked($order, (new \Smart_Send\Booking\Booked_Shipment('return-id'))->set_is_return(true));
 
     $fresh = wc_get_order($order->get_id());
     expect($fresh->get_meta('_ss_shipping_label_id', true))->toBe('outbound-id')

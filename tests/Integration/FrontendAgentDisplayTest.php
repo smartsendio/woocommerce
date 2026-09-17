@@ -1,7 +1,7 @@
 <?php
 
 /*
- * Characterization tests for SS_Shipping_Frontend: the pickup point block
+ * Characterization tests for \Smart_Send\Frontend\Checkout: the pickup point block
  * on the thank-you page and in order emails, the checkout validation and
  * agent persistence, and the invalid-order guard from #60.
  */
@@ -11,9 +11,9 @@
  * has no side effects (hooks are wired separately via register_hooks()), so
  * this does not disturb the plugin singleton's own registered instance.
  */
-function frontend(): SS_Shipping_Frontend
+function frontend(): \Smart_Send\Frontend\Checkout
 {
-    return new SS_Shipping_Frontend();
+    return new \Smart_Send\Frontend\Checkout();
 }
 
 function capture_agent_display(WC_Order $order): string
@@ -145,7 +145,7 @@ it('accepts checkout when no pickup point dropdown was rendered because none wer
 
     // The render-time lookup finds nothing and caches the EMPTY result in
     // the session (replacing any stale points from a previous address).
-    $points = (new SS_Shipping_Pickup_Point_Lookup())
+    $points = (new \Smart_Send\Delivery_Options\Pickup_Point_Lookup())
         ->find_closest_by_address('postnord', 'DK', '2300', 'Copenhagen', 'Islands Brygge 39');
     expect($points)->toBe([])
         ->and(WC()->session->get('ss_shipping_agents'))->toBe([]);

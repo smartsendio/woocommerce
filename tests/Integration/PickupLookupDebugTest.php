@@ -9,7 +9,7 @@
  * classified reason is logged - error level for failures, info level for
  * an empty result - and, with WooCommerce shipping debug mode enabled,
  * surfaced as a checkout debug notice via
- * SS_Shipping_Checkout_Debug::add_notice(). add_notice() is a no-op when
+ * \Smart_Send\Support\Checkout_Debug::add_notice(). add_notice() is a no-op when
  * WC_DOING_AJAX is defined (matching core), so during checkout AJAX updates
  * the log entry is the only trace; these tests exercise the non-AJAX render
  * path.
@@ -50,7 +50,7 @@ function pickup_debug_render(): string
     $rate->add_meta_data('smart_send_shipping_method', 'postnord_agent');
 
     ob_start();
-    (new SS_Shipping_Frontend())->display_ss_pickup_points($rate, 0);
+    (new \Smart_Send\Frontend\Checkout())->display_ss_pickup_points($rate, 0);
 
     return ob_get_clean();
 }

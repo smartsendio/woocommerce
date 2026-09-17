@@ -2,7 +2,7 @@
 
 /*
  * Characterization ("golden") tests for the booking payload that
- * SS_Shipping_Booking_Service sends to the Smart Send API. Each test builds
+ * \Smart_Send\Booking\Booking_Service sends to the Smart Send API. Each test builds
  * a representative order, captures the JSON body posted to the (mocked)
  * API, and compares it to the complete expected payload. If any field of
  * the booking request changes, these tests fail.
@@ -15,7 +15,7 @@
 /**
  * Send the order through the fulfillment service (which decides the
  * delivery details, runs smart_send_delivery_details and calls
- * SS_Shipping_Booking_Service::book()) against a mocked API and return the
+ * \Smart_Send\Booking\Booking_Service::book()) against a mocked API and return the
  * decoded JSON payload of the createShipmentAndLabels request.
  */
 function capture_shipment_payload(WC_Order $order, bool $return = false): array
@@ -687,7 +687,7 @@ it('lets the smart_send_delivery_details filter override the shipping method', f
         'shipping_method' => 'postnord_homedelivery',
     ]);
 
-    $filter = function (SS_Shipping_Delivery_Details $details, WC_Order $filtered_order, bool $is_return) use ($order) {
+    $filter = function (\Smart_Send\Delivery\Delivery_Details $details, WC_Order $filtered_order, bool $is_return) use ($order) {
         expect($details->get_shipping_method())->toBe('postnord_homedelivery')
             ->and($filtered_order->get_id())->toBe($order->get_id())
             ->and($is_return)->toBeFalse();
@@ -714,13 +714,13 @@ it('lets the smart_send_delivery_details filter declare a parcel plan with item 
         'shipping_total'  => '39',
     ]);
 
-    $filter = function (SS_Shipping_Delivery_Details $details) use ($product_a, $product_b) {
+    $filter = function (\Smart_Send\Delivery\Delivery_Details $details) use ($product_a, $product_b) {
         // No split is stored on the order, so the filter receives no plan.
         expect($details->get_parcel_plan())->toBeNull();
 
-        $plan = new SS_Shipping_Parcel_Plan();
-        $plan->add_spec((new SS_Shipping_Parcel_Spec())->add_item($product_a->get_id()))
-            ->add_spec((new SS_Shipping_Parcel_Spec())->add_item($product_b->get_id()));
+        $plan = new \Smart_Send\Delivery\Parcel_Plan();
+        $plan->add_spec((new \Smart_Send\Delivery\Parcel_Spec())->add_item($product_a->get_id()))
+            ->add_spec((new \Smart_Send\Delivery\Parcel_Spec())->add_item($product_b->get_id()));
 
         return $details->set_parcel_plan($plan);
     };
@@ -747,11 +747,11 @@ it('lets the smart_send_delivery_details filter replace or clear the pickup poin
     save_order_pickup_point($order->get_id(), sample_agent());
 
     // Replace the stored pickup point.
-    $replace = function (SS_Shipping_Delivery_Details $details) {
+    $replace = function (\Smart_Send\Delivery\Delivery_Details $details) {
         expect($details->get_pickup_point())->not->toBeNull()
             ->and($details->get_pickup_point()->get_agent_no())->toBe('1234');
 
-        $pickup_point = new SS_Shipping_Pickup_Point();
+        $pickup_point = new \Smart_Send\Delivery\Pickup_Point();
         $pickup_point->set_agent_no('9999')->set_company('Override Shop');
 
         return $details->set_pickup_point($pickup_point);
@@ -770,7 +770,7 @@ it('lets the smart_send_delivery_details filter replace or clear the pickup poin
         ->and($payload['agent']['internal_id'])->toBe('9999');
 
     // Clear the pickup point entirely.
-    $clear = function (SS_Shipping_Delivery_Details $details) {
+    $clear = function (\Smart_Send\Delivery\Delivery_Details $details) {
         return $details->set_pickup_point(null);
     };
     add_filter('smart_send_delivery_details', $clear);
@@ -834,7 +834,7 @@ it('lets the smart_send_shipment_freetext filter rewrite the parcel freetext', f
 
 it('lets an explicit spec weight win over the item-sum when a plan declares one', function () {
     // Replaces the removed smart_send_parcel_weight filter: packaging
-    // weight is declared on the SS_Shipping_Parcel_Spec itself.
+    // weight is declared on the \Smart_Send\Delivery\Parcel_Spec itself.
     $product_a = create_simple_product(['name' => 'Weight Box One', 'price' => 100, 'weight' => 1]);
     $product_b = create_simple_product(['name' => 'Weight Box Two', 'price' => 50, 'weight' => 2]);
     $order     = create_order([
@@ -842,10 +842,10 @@ it('lets an explicit spec weight win over the item-sum when a plan declares one'
         'shipping_method' => 'postnord_homedelivery',
     ]);
 
-    $filter = function (SS_Shipping_Delivery_Details $details) use ($product_a, $product_b) {
-        $plan = new SS_Shipping_Parcel_Plan();
-        $plan->add_spec((new SS_Shipping_Parcel_Spec())->set_weight(9.5)->add_item($product_a->get_id()))
-            ->add_spec((new SS_Shipping_Parcel_Spec())->add_item($product_b->get_id()));
+    $filter = function (\Smart_Send\Delivery\Delivery_Details $details) use ($product_a, $product_b) {
+        $plan = new \Smart_Send\Delivery\Parcel_Plan();
+        $plan->add_spec((new \Smart_Send\Delivery\Parcel_Spec())->set_weight(9.5)->add_item($product_a->get_id()))
+            ->add_spec((new \Smart_Send\Delivery\Parcel_Spec())->add_item($product_b->get_id()));
 
         return $details->set_parcel_plan($plan);
     };
@@ -875,10 +875,10 @@ it('books an item-less two-parcel plan declared via smart_send_delivery_details 
     ]);
     $order_id = (string) $order->get_id();
 
-    $filter = function (SS_Shipping_Delivery_Details $details) {
-        $plan = new SS_Shipping_Parcel_Plan();
-        $plan->add_spec((new SS_Shipping_Parcel_Spec())->set_weight(4)->set_length(30)->set_width(20)->set_height(10))
-            ->add_spec((new SS_Shipping_Parcel_Spec())->set_weight(2.5)->set_length(15)->set_width(15)->set_height(15));
+    $filter = function (\Smart_Send\Delivery\Delivery_Details $details) {
+        $plan = new \Smart_Send\Delivery\Parcel_Plan();
+        $plan->add_spec((new \Smart_Send\Delivery\Parcel_Spec())->set_weight(4)->set_length(30)->set_width(20)->set_height(10))
+            ->add_spec((new \Smart_Send\Delivery\Parcel_Spec())->set_weight(2.5)->set_length(15)->set_width(15)->set_height(15));
 
         return $details->set_parcel_plan($plan);
     };
@@ -940,7 +940,7 @@ it('passes a parcel with no explicit weight through smart_send_parcel_default_we
     $seen   = [];
     $filter = function ($weight, $spec, $order_arg) use (&$seen, $order) {
         expect($weight)->toBeFloat()
-            ->and($spec)->toBeInstanceOf(SS_Shipping_Parcel_Spec::class)
+            ->and($spec)->toBeInstanceOf(\Smart_Send\Delivery\Parcel_Spec::class)
             ->and($order_arg)->toBeInstanceOf(WC_Order::class)
             ->and($order_arg->get_id())->toBe($order->get_id());
         $seen[] = [$spec->get_reference(), $weight, array_column($spec->get_items(), 'quantity')];
@@ -964,11 +964,11 @@ it('passes a parcel with no explicit weight through smart_send_parcel_default_we
     // spec with an explicit weight never reaches the filter, and an
     // item-less spec is filtered from 0.
     $seen = [];
-    $plan = function (SS_Shipping_Delivery_Details $details) use ($product_a, $product_b) {
-        $plan = new SS_Shipping_Parcel_Plan();
-        $plan->add_spec((new SS_Shipping_Parcel_Spec())->set_reference('a')->set_weight(9.5)->add_item($product_a->get_id()))
-            ->add_spec((new SS_Shipping_Parcel_Spec())->set_reference('b')->add_item($product_b->get_id()))
-            ->add_spec((new SS_Shipping_Parcel_Spec())->set_reference('c')->set_length(10)->set_width(10)->set_height(10));
+    $plan = function (\Smart_Send\Delivery\Delivery_Details $details) use ($product_a, $product_b) {
+        $plan = new \Smart_Send\Delivery\Parcel_Plan();
+        $plan->add_spec((new \Smart_Send\Delivery\Parcel_Spec())->set_reference('a')->set_weight(9.5)->add_item($product_a->get_id()))
+            ->add_spec((new \Smart_Send\Delivery\Parcel_Spec())->set_reference('b')->add_item($product_b->get_id()))
+            ->add_spec((new \Smart_Send\Delivery\Parcel_Spec())->set_reference('c')->set_length(10)->set_width(10)->set_height(10));
 
         return $details->set_parcel_plan($plan);
     };

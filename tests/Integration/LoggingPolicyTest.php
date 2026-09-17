@@ -20,7 +20,7 @@
  * Build a Smart Send shipping method instance with the given instance
  * settings persisted in the options table (restored after the test).
  */
-function ss_policy_method(array $instance_settings = [], int $instance_id = 99951): SS_Shipping_WC_Method
+function ss_policy_method(array $instance_settings = [], int $instance_id = 99951): \Smart_Send\Shipping_Method\Method
 {
     $settings = array_merge([
         'title'                      => 'SS Policy Method',
@@ -37,7 +37,7 @@ function ss_policy_method(array $instance_settings = [], int $instance_id = 9995
 
     with_option('woocommerce_smart_send_shipping_' . $instance_id . '_settings', $settings);
 
-    return new SS_Shipping_WC_Method($instance_id);
+    return new \Smart_Send\Shipping_Method\Method($instance_id);
 }
 
 /**
@@ -167,7 +167,7 @@ it('logs an info event when the shopper selects a pickup point at checkout', fun
         WC()->session->set('ss_shipping_agents', null);
     });
 
-    (new SS_Shipping_Frontend())->process_ss_pickup_points($order->get_id(), null);
+    (new \Smart_Send\Frontend\Checkout())->process_ss_pickup_points($order->get_id(), null);
 
     $selected = ss_policy_entry($spy, 'Pickup point selected at checkout');
     expect($selected)->not->toBeNull()
@@ -466,10 +466,10 @@ it('logs the not-connected pickup point lookup at error level even with debug of
     $spy = spy_on_logger();
 
     try {
-        (new SS_Shipping_Pickup_Point_Lookup())
+        (new \Smart_Send\Delivery_Options\Pickup_Point_Lookup())
             ->find_closest_by_address('postnord', 'DK', '2300', 'Copenhagen', 'Islands Brygge 39');
-        test()->fail('Expected an SS_Shipping_Not_Connected_Exception to be thrown.');
-    } catch (SS_Shipping_Not_Connected_Exception $e) {
+        test()->fail('Expected an \Smart_Send\Exceptions\Not_Connected_Exception to be thrown.');
+    } catch (\Smart_Send\Exceptions\Not_Connected_Exception $e) {
         // Expected: no token, no API call.
     }
 
@@ -495,10 +495,10 @@ it('logs authentication and authorization lookup failures at error level with th
         });
 
         try {
-            (new SS_Shipping_Pickup_Point_Lookup())
+            (new \Smart_Send\Delivery_Options\Pickup_Point_Lookup())
                 ->find_closest_by_address('postnord', 'DK', '2300', 'Copenhagen', 'Islands Brygge 39');
             test()->fail('Expected the HTTP ' . $status . ' lookup to throw.');
-        } catch (Smartsend\Exceptions\RequestException $e) {
+        } catch (Smart_Send\API\Exceptions\Request_Exception $e) {
             // Expected - logged by the lookup before rethrowing.
         }
 
@@ -521,7 +521,7 @@ it('logs an empty pickup point result at info level even with debug off', functi
         WC()->session->set('ss_shipping_agents', null);
     });
 
-    $points = (new SS_Shipping_Pickup_Point_Lookup())
+    $points = (new \Smart_Send\Delivery_Options\Pickup_Point_Lookup())
         ->find_closest_by_address('postnord', 'DK', '2300', 'Copenhagen', 'Islands Brygge 39');
 
     expect($points)->toBe([]);

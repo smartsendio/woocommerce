@@ -33,24 +33,24 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 // The plugin entry file, from which WordPress derives the plugin's basename
-// and directory paths. The composition root (SS_Shipping_WC) lives in
-// includes/class-ss-shipping-wc.php and reads this constant wherever it
+// and directory paths. The composition root (\Smart_Send\Plugin) lives in
+// includes/class-plugin.php and reads this constant wherever it
 // historically used __FILE__.
 if ( ! defined( 'SS_SHIPPING_PLUGIN_FILE' ) ) {
 	define( 'SS_SHIPPING_PLUGIN_FILE', __FILE__ );
 }
 
-require_once plugin_dir_path( __FILE__ ) . 'includes/class-ss-shipping-wc.php';
+require_once plugin_dir_path( __FILE__ ) . 'includes/autoload.php';
 
 /**
  * The global accessor to the plugin singleton - the stable entry point for
  * merchant code snippets and the test suites. Its surface is the component
  * accessors plus the bootstrap.
  *
- * @return SS_Shipping_WC
+ * @return \Smart_Send\Plugin
  */
 function SS_SHIPPING_WC() { // phpcs:ignore WordPress.NamingConventions.ValidFunctionName.FunctionNameInvalid -- pre-existing global accessor name, frozen public API.
-	return SS_Shipping_WC::instance();
+	return \Smart_Send\Plugin::instance();
 }
 
 $SS_Shipping_WC = SS_SHIPPING_WC(); // phpcs:ignore WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase -- pre-existing global variable name, kept for backwards compatibility.

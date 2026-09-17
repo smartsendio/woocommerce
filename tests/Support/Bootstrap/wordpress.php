@@ -7,9 +7,7 @@
  * no WooCommerce classes: an unguarded dependency is then a real PHP failure.
  */
 
-// Match WordPress' bootstrap handling of existing API-client return-type
-// deprecations; warnings and missing dependency failures must still fail.
-error_reporting(E_ALL & ~E_DEPRECATED);
+error_reporting(E_ALL);
 set_error_handler(function (int $severity, string $message, string $file, int $line): bool {
     if (! (error_reporting() & $severity)) {
         return false;
@@ -82,6 +80,9 @@ require dirname(__DIR__, 3) . '/smart-send-logistics/smart-send-logistics.php';
 
 $plugin = SS_SHIPPING_WC();
 
+$early_shipping_class_loaded = class_exists(\Smart_Send\Shipping_Method\Method::class, false);
+$early_blocks_class_loaded = class_exists(\Smart_Send\Frontend\Block_Checkout::class, false);
+
 // Exercise the two entry points that can precede the main init callback.
 foreach ($GLOBALS['bootstrap_hooks']['before_woocommerce_init'][10] as $callback) {
     $callback();
@@ -102,8 +103,11 @@ $notice = ob_get_clean();
 
 echo json_encode([
     'shipping_methods' => $shipping_methods,
-    'shipping_class_loaded' => class_exists('SS_Shipping_WC_Method', false),
-    'blocks_class_loaded' => class_exists('SS_Shipping_Block_Checkout', false),
+    // Like WooCommerce, resolve a registered method only after the dependency gate.
+    'shipping_class_loaded' => class_exists(\Smart_Send\Shipping_Method\Method::class, $argv[2] === 'supported'),
+    'blocks_class_loaded' => class_exists(\Smart_Send\Frontend\Block_Checkout::class, false),
+    'early_shipping_class_loaded' => $early_shipping_class_loaded,
+    'early_blocks_class_loaded' => $early_blocks_class_loaded,
     'feature_hooks_registered' => isset($GLOBALS['bootstrap_hooks']['wp_ajax_ss_test_connection']),
     'compatibility' => $GLOBALS['bootstrap_compatibility'],
     'notice' => trim(strip_tags($notice)),

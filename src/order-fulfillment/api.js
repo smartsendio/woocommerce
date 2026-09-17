@@ -1,6 +1,6 @@
 /**
  * The REST calls of the meta box app, all against the routes
- * SS_Shipping_Fulfillment_Rest_Controller registers under smart-send/v1
+ * Smart_Send\Admin\Fulfillment_REST_Controller registers under smart-send/v1
  * (the state advertises the fulfillment path as urls.rest). apiFetch adds
  * the REST root and the X-WP-Nonce header WordPress printed for the
  * wp-api-fetch script, so a request is authenticated the WordPress way.

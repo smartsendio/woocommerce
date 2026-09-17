@@ -3,7 +3,7 @@
  * renderer, and these are its class names (plus the placeholder PHP
  * renders into the mount point until the app takes over). Built into
  * build/order-fulfillment/style-index.css, enqueued by
- * SS_Shipping_Order_Meta_Box next to WordPress' wp-components stylesheet.
+ * Smart_Send\Admin\Order_Meta_Box next to WordPress' wp-components stylesheet.
  *
  * Layout (Option A): the box is a stack of sections separated by 1px
  * dividers running edge to edge - the postbox's own .inside padding is
@@ -511,7 +511,7 @@
 	pointer-events: none;
 }
 
-// The placeholder SS_Shipping_Order_Meta_Box renders into the mount point
+// The placeholder Smart_Send\Admin\Order_Meta_Box renders into the mount point
 // until the app takes over. It stays invisible for the first 200ms: the
 // app normally mounts well inside that, so the usual case shows nothing at
 // all, and only a genuinely slow load fades a stable shape in rather than

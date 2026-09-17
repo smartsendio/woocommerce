@@ -1,0 +1,260 @@
+{
+    "shipment": {
+        "defaults": {
+            "internal_id": null,
+            "internal_reference": null,
+            "shipping_carrier": null,
+            "shipping_method": null,
+            "shipping_date": null,
+            "sender": null,
+            "receiver": null,
+            "agent": null,
+            "parcels": null,
+            "services": null,
+            "subtotal_price_excluding_tax": null,
+            "subtotal_price_including_tax": null,
+            "shipping_price_excluding_tax": null,
+            "shipping_price_including_tax": null,
+            "total_price_excluding_tax": null,
+            "total_price_including_tax": null,
+            "total_tax_amount": null,
+            "currency": null
+        },
+        "populated": {
+            "internal_id": "451",
+            "internal_reference": "",
+            "shipping_carrier": "postnord",
+            "shipping_method": "agent",
+            "shipping_date": "2026-09-17",
+            "sender": null,
+            "receiver": {
+                "internal_id": null,
+                "internal_reference": null,
+                "company": null,
+                "name_line1": null,
+                "name_line2": null,
+                "address_line1": null,
+                "address_line2": null,
+                "postal_code": null,
+                "city": null,
+                "country": null,
+                "sms": null,
+                "email": null
+            },
+            "agent": {
+                "internal_id": null,
+                "internal_reference": null,
+                "agent_no": null,
+                "company": null,
+                "name_line1": null,
+                "name_line2": null,
+                "address_line1": null,
+                "address_line2": null,
+                "postal_code": null,
+                "city": null,
+                "country": null,
+                "sms": null,
+                "email": null
+            },
+            "parcels": [
+                {
+                    "internal_id": null,
+                    "internal_reference": null,
+                    "weight": null,
+                    "height": null,
+                    "width": null,
+                    "length": null,
+                    "freetext": null,
+                    "items": [
+                        {
+                            "internal_id": null,
+                            "internal_reference": null,
+                            "sku": null,
+                            "name": null,
+                            "description": null,
+                            "hs_code": null,
+                            "country_of_origin": null,
+                            "image_url": null,
+                            "unit_weight": null,
+                            "unit_price_excluding_tax": null,
+                            "unit_price_including_tax": null,
+                            "quantity": null,
+                            "total_price_excluding_tax": null,
+                            "total_price_including_tax": null,
+                            "total_tax_amount": null
+                        }
+                    ],
+                    "total_price_excluding_tax": null,
+                    "total_price_including_tax": null,
+                    "total_tax_amount": null
+                }
+            ],
+            "services": {
+                "email_notification": null,
+                "sms_notification": null,
+                "flex_delivery": null
+            },
+            "subtotal_price_excluding_tax": 0,
+            "subtotal_price_including_tax": 12.5,
+            "shipping_price_excluding_tax": null,
+            "shipping_price_including_tax": 0,
+            "total_price_excluding_tax": 25,
+            "total_price_including_tax": 31.25,
+            "total_tax_amount": 6.25,
+            "currency": "DKK"
+        }
+    },
+    "receiver": {
+        "defaults": {
+            "internal_id": null,
+            "internal_reference": null,
+            "company": null,
+            "name_line1": null,
+            "name_line2": null,
+            "address_line1": null,
+            "address_line2": null,
+            "postal_code": null,
+            "city": null,
+            "country": null,
+            "sms": null,
+            "email": null
+        },
+        "populated": {
+            "internal_id": "451",
+            "internal_reference": "",
+            "company": "\u00c6r\u00f8 & Co",
+            "name_line1": "\u00c5se",
+            "name_line2": null,
+            "address_line1": "\u00d8stergade 1",
+            "address_line2": "",
+            "postal_code": "0012",
+            "city": "K\u00f8benhavn",
+            "country": "DK",
+            "sms": "+4512345678",
+            "email": "receiver@example.test"
+        }
+    },
+    "agent": {
+        "defaults": {
+            "internal_id": null,
+            "internal_reference": null,
+            "agent_no": null,
+            "company": null,
+            "name_line1": null,
+            "name_line2": null,
+            "address_line1": null,
+            "address_line2": null,
+            "postal_code": null,
+            "city": null,
+            "country": null,
+            "sms": null,
+            "email": null
+        },
+        "populated": {
+            "internal_id": "",
+            "internal_reference": "0",
+            "agent_no": "0007",
+            "company": "Kiosk \/ \"Nord\"",
+            "name_line1": "Pickup",
+            "name_line2": "Desk",
+            "address_line1": "Havnevej 2",
+            "address_line2": null,
+            "postal_code": "2100",
+            "city": "K\u00f8benhavn",
+            "country": "DK",
+            "sms": "",
+            "email": null
+        }
+    },
+    "item": {
+        "defaults": {
+            "internal_id": null,
+            "internal_reference": null,
+            "sku": null,
+            "name": null,
+            "description": null,
+            "hs_code": null,
+            "country_of_origin": null,
+            "image_url": null,
+            "unit_weight": null,
+            "unit_price_excluding_tax": null,
+            "unit_price_including_tax": null,
+            "quantity": null,
+            "total_price_excluding_tax": null,
+            "total_price_including_tax": null,
+            "total_tax_amount": null
+        },
+        "populated": {
+            "internal_id": "73",
+            "internal_reference": "",
+            "sku": "SKU\/01",
+            "name": "Krus \"\u00c6\"",
+            "description": "",
+            "hs_code": "001234",
+            "country_of_origin": "DK",
+            "image_url": "https:\/\/example.test\/image.png",
+            "unit_weight": 0.75,
+            "unit_price_excluding_tax": 0,
+            "unit_price_including_tax": 12.5,
+            "quantity": 2,
+            "total_price_excluding_tax": 25,
+            "total_price_including_tax": 31.25,
+            "total_tax_amount": 6.25
+        }
+    },
+    "parcel": {
+        "defaults": {
+            "internal_id": null,
+            "internal_reference": null,
+            "weight": null,
+            "height": null,
+            "width": null,
+            "length": null,
+            "freetext": null,
+            "items": null,
+            "total_price_excluding_tax": null,
+            "total_price_including_tax": null,
+            "total_tax_amount": null
+        },
+        "populated": {
+            "internal_id": "123",
+            "internal_reference": "parcel-1",
+            "weight": 1.5,
+            "height": 0,
+            "width": null,
+            "length": 30,
+            "freetext": "Fragile\n\u00c6\u00f8\u00e5",
+            "items": [],
+            "total_price_excluding_tax": 25,
+            "total_price_including_tax": 31.25,
+            "total_tax_amount": null
+        }
+    },
+    "services": {
+        "defaults": {
+            "email_notification": null,
+            "sms_notification": null,
+            "flex_delivery": null
+        },
+        "false": {
+            "email_notification": "",
+            "sms_notification": null,
+            "flex_delivery": false
+        },
+        "true": {
+            "email_notification": "",
+            "sms_notification": null,
+            "flex_delivery": true
+        },
+        "zero": {
+            "email_notification": "",
+            "sms_notification": null,
+            "flex_delivery": 0
+        },
+        "window": {
+            "email_notification": "",
+            "sms_notification": null,
+            "flex_delivery": "09:00-12:00"
+        }
+    }
+}

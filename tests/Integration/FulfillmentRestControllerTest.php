@@ -2,10 +2,10 @@
 
 /*
  * Tests for the fulfillment REST controller (#182 PR 2,
- * SS_Shipping_Fulfillment_Rest_Controller): the smart-send/v1 routes below
+ * \Smart_Send\Admin\Fulfillment_REST_Controller): the smart-send/v1 routes below
  * orders/{id}, their permission callback (capability + order existence),
  * the request schema (generated from request_schema(), which must mirror
- * SS_Shipping_Delivery_Details::from_array()), the request-level error
+ * \Smart_Send\Delivery\Delivery_Details::from_array()), the request-level error
  * codes, the mapping of a JSON body onto the booking through the mocked
  * API, the with_return semantics and the response shape (section 3.2 of
  * the issue) - driven in-process through WP_REST_Request + rest_do_request()
@@ -123,10 +123,10 @@ it('pins that every request-schema property round-trips through the delivery det
     $item_properties    = $spec_properties['items']['items']['properties'];
 
     // Property for property, the schema mirrors the DTOs' to_array() keys.
-    expect(array_keys($details_properties))->toBe(array_keys((new SS_Shipping_Delivery_Details())->to_array()))
-        ->and(array_keys($details_properties['parcel_plan']['properties']))->toBe(array_keys((new SS_Shipping_Parcel_Plan())->to_array()))
-        ->and(array_keys($spec_properties))->toBe(array_keys((new SS_Shipping_Parcel_Spec())->to_array()))
-        ->and(array_keys($item_properties))->toBe(array_keys((new SS_Shipping_Parcel_Spec())->add_item(1)->get_items()[0]));
+    expect(array_keys($details_properties))->toBe(array_keys((new \Smart_Send\Delivery\Delivery_Details())->to_array()))
+        ->and(array_keys($details_properties['parcel_plan']['properties']))->toBe(array_keys((new \Smart_Send\Delivery\Parcel_Plan())->to_array()))
+        ->and(array_keys($spec_properties))->toBe(array_keys((new \Smart_Send\Delivery\Parcel_Spec())->to_array()))
+        ->and(array_keys($item_properties))->toBe(array_keys((new \Smart_Send\Delivery\Parcel_Spec())->add_item(1)->get_items()[0]));
 
     // A payload using every schema property survives from_array()->to_array()
     // byte for byte (the DTO types scalars: reference string, dimensions float).
@@ -143,11 +143,11 @@ it('pins that every request-schema property round-trips through the delivery det
     ];
 
     expect(rest_validate_value_from_schema($payload, $schema['delivery_details'], 'delivery_details'))->toBeTrue()
-        ->and(SS_Shipping_Delivery_Details::from_array($payload)->to_array())->toBe($payload);
+        ->and(\Smart_Send\Delivery\Delivery_Details::from_array($payload)->to_array())->toBe($payload);
 
     $cleared = ['pickup_point' => ['clear' => true]];
     expect(rest_validate_value_from_schema($cleared, $schema['delivery_details'], 'delivery_details'))->toBeTrue()
-        ->and(SS_Shipping_Delivery_Details::from_array($cleared)->is_pickup_point_cleared())->toBeTrue();
+        ->and(\Smart_Send\Delivery\Delivery_Details::from_array($cleared)->is_pickup_point_cleared())->toBeTrue();
 });
 
 it('rejects a shop customer with 403 on every route', function () {

@@ -47,7 +47,7 @@ function selector_hooks_render(): string
     $rate->add_meta_data('smart_send_shipping_method', 'postnord_agent');
 
     ob_start();
-    (new SS_Shipping_Frontend())->display_ss_pickup_points($rate, 0);
+    (new \Smart_Send\Frontend\Checkout())->display_ss_pickup_points($rate, 0);
 
     return ob_get_clean();
 }
@@ -74,10 +74,10 @@ function spy_on_logger_for_selector_hooks(): object
         }
     };
 
-    SS_Shipping_Logger::$logger = $spy;
+    \Smart_Send\Support\Logger::$logger = $spy;
 
     remember_cleanup_callback(function (): void {
-        SS_Shipping_Logger::$logger = null;
+        \Smart_Send\Support\Logger::$logger = null;
     });
 
     return $spy;
@@ -154,7 +154,7 @@ it('lets smart_send_pickup_points_found trim the list before rendering and cachi
     $filter = function (array $ss_pickup_points, array $search_params) {
         // Typed value objects, not raw API objects (#170).
         expect($ss_pickup_points)->toHaveCount(2)
-            ->and($ss_pickup_points[0])->toBeInstanceOf(SS_Shipping_Pickup_Point::class)
+            ->and($ss_pickup_points[0])->toBeInstanceOf(\Smart_Send\Delivery\Pickup_Point::class)
             ->and($ss_pickup_points[0]->get_agent_no())->toBe('1111')
             ->and($ss_pickup_points[1]->get_company())->toBe('Second Shop')
             ->and($search_params['carrier'])->toBe('postnord');
@@ -178,9 +178,9 @@ it('lets smart_send_pickup_points_found trim the list before rendering and cachi
     expect($cached)->toHaveCount(1)
         ->and($cached[0])->toBeInstanceOf(stdClass::class)
         ->and($cached[0]->agent_no)->toBe('2222');
-    $read_back = (new SS_Shipping_Pickup_Point_Lookup())->get_session_pickup_points();
+    $read_back = (new \Smart_Send\Delivery_Options\Pickup_Point_Lookup())->get_session_pickup_points();
     expect($read_back)->toHaveCount(1)
-        ->and($read_back[0])->toBeInstanceOf(SS_Shipping_Pickup_Point::class)
+        ->and($read_back[0])->toBeInstanceOf(\Smart_Send\Delivery\Pickup_Point::class)
         ->and($read_back[0]->get_agent_no())->toBe('2222');
 });
 
@@ -190,7 +190,7 @@ it('lets smart_send_pickup_points_found add a pickup point built directly from t
     });
 
     $filter = function (array $ss_pickup_points) {
-        $own = (new SS_Shipping_Pickup_Point())
+        $own = (new \Smart_Send\Delivery\Pickup_Point())
             ->set_agent_no('9000')
             ->set_company('Own Shop')
             ->set_address_line1('Custom Road 1')
@@ -212,7 +212,7 @@ it('lets smart_send_pickup_points_found add a pickup point built directly from t
         ->and($output)->toContain('Corner Shop');
 
     // The directly-built point resolves at checkout submission like any other.
-    $cached = (new SS_Shipping_Pickup_Point_Lookup())->find_cached_by_agent_no('9000');
+    $cached = (new \Smart_Send\Delivery_Options\Pickup_Point_Lookup())->find_cached_by_agent_no('9000');
     expect($cached)->not->toBeNull()
         ->and($cached->get_company())->toBe('Own Shop');
 });
@@ -249,7 +249,7 @@ it('lets smart_send_pickup_point_option_label rewrite the drop-down option label
         return ss_api_response(200, ['data' => [sample_agent()]]);
     });
 
-    $filter = function (string $label, SS_Shipping_Pickup_Point $pickup_point) {
+    $filter = function (string $label, \Smart_Send\Delivery\Pickup_Point $pickup_point) {
         // The default label follows the "Dropdown display format" setting;
         // the pickup point is the typed value object (#170).
         expect($label)->toContain('Corner Shop')
@@ -280,7 +280,7 @@ it('lets smart_send_default_selected_pickup_point pre-select a pickup point', fu
     $filter = function (string $default_agent_no, array $ss_pickup_points) {
         expect($default_agent_no)->toBe('')
             ->and($ss_pickup_points)->toHaveCount(2)
-            ->and($ss_pickup_points[1])->toBeInstanceOf(SS_Shipping_Pickup_Point::class)
+            ->and($ss_pickup_points[1])->toBeInstanceOf(\Smart_Send\Delivery\Pickup_Point::class)
             ->and($ss_pickup_points[1]->get_company())->toBe('Second Shop');
 
         // The documented pattern: return the agent_no of one of the found points.

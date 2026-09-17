@@ -1,17 +1,17 @@
 <?php
 
 /*
- * Focused tests for the fulfillment stage (#177): SS_Shipping_Fulfillment_Service
+ * Focused tests for the fulfillment stage (#177): \Smart_Send\Fulfillment\Fulfillment_Service
  * decides the delivery details (smart_send_delivery_details), calls the
  * booking stage, runs the side-effect steps on success (documents, order
  * meta, order note, tracking, status - each behind its
  * smart_send_fulfillment_* filter), records a booking failure on the
  * result and fires smart_send_order_fulfilled once per run; the stateless
- * SS_Shipping_Booking_Service handles different orders sequentially
+ * \Smart_Send\Booking\Booking_Service handles different orders sequentially
  * without state bleed.
  */
 
-function fulfillment_service(): SS_Shipping_Fulfillment_Service
+function fulfillment_service(): \Smart_Send\Fulfillment\Fulfillment_Service
 {
     return SS_SHIPPING_WC()->fulfillment();
 }
@@ -39,7 +39,7 @@ function capture_order_fulfilled_action(): object
         public array $order_ids = [];
     };
 
-    $listener = function (WC_Order $order, SS_Shipping_Fulfillment_Result $result) use ($fired): void {
+    $listener = function (WC_Order $order, \Smart_Send\Fulfillment\Fulfillment_Result $result) use ($fired): void {
         $fired->order_ids[] = $order->get_id();
     };
     add_action('smart_send_order_fulfilled', $listener, 10, 2);
@@ -84,7 +84,7 @@ function capture_hook_args(string $hook): object
 /**
  * Walk a value's whole object graph (arrays, public and non-public
  * properties) and fail when a raw API object is reachable: a stdClass
- * (the decoded API response) or any Smartsend\ lib model.
+ * (the decoded API response) or any Smart_Send\API\ model.
  */
 function assert_no_raw_api_objects($value, string $path = '$'): void
 {
@@ -112,7 +112,7 @@ function assert_no_raw_api_objects($value, string $path = '$'): void
 
     $class = get_class($value);
     expect($class)->not->toBe(stdClass::class, "raw stdClass reachable at {$path}");
-    expect(strpos($class, 'Smartsend\\'))->not->toBe(0, "Smartsend lib object {$class} reachable at {$path}");
+    expect(strpos($class, 'Smart_Send\\API\\'))->not->toBe(0, "Smart Send API model {$class} reachable at {$path}");
 
     if ($value instanceof Closure) {
         return;
@@ -145,7 +145,7 @@ it('runs the full workflow on a successful outbound fulfillment', function () {
 
     $result = fulfillment_service()->fulfill_outbound($order->get_id());
 
-    expect($result)->toBeInstanceOf(SS_Shipping_Fulfillment_Result::class)
+    expect($result)->toBeInstanceOf(\Smart_Send\Fulfillment\Fulfillment_Result::class)
         ->and($result->is_successful())->toBeTrue()
         ->and($result->get_first_error_message())->toBeNull()
         ->and($result->get_outbound_error())->toBeNull()
@@ -184,7 +184,7 @@ it('runs the full workflow on a successful outbound fulfillment', function () {
 
 it('passes smart_send_order_fulfilled the order and the result - no raw API response (#177)', function () {
     // Deliberate v9 contract (#139, #170, #177): smart_send_order_fulfilled
-    // hands listeners (WC_Order, SS_Shipping_Fulfillment_Result) and
+    // hands listeners (WC_Order, \Smart_Send\Fulfillment\Fulfillment_Result) and
     // nothing else, once per run. The raw API booking response is
     // API-version shaped and is not reachable from the result.
     $order = create_fulfillable_order();
@@ -205,7 +205,7 @@ it('passes smart_send_order_fulfilled the order and the result - no raw API resp
         ->and($passed_result)->toBe($result);
 
     $shipment = $passed_result->get_outbound_shipment();
-    expect($shipment)->toBeInstanceOf(SS_Shipping_Booked_Shipment::class)
+    expect($shipment)->toBeInstanceOf(\Smart_Send\Booking\Booked_Shipment::class)
         ->and($shipment->get_shipment_id())->toBe('shipment-clean')
         ->and($shipment->is_return())->toBeFalse()
         ->and($shipment->label_document()->download_url())->toBe('https://api.example.test/labels/label.pdf')
@@ -282,7 +282,7 @@ it('applies smart_send_delivery_details in fulfillment, before booking, with the
 
     $seen = [];
     with_filter('smart_send_delivery_details', function ($details, $order_arg, $is_return) use (&$seen, $order) {
-        expect($details)->toBeInstanceOf(SS_Shipping_Delivery_Details::class)
+        expect($details)->toBeInstanceOf(\Smart_Send\Delivery\Delivery_Details::class)
             ->and($order_arg)->toBeInstanceOf(WC_Order::class)
             ->and($order_arg->get_id())->toBe($order->get_id())
             ->and($is_return)->toBeBool();
@@ -331,7 +331,7 @@ it('lets smart_send_fulfillment_save_documents turn the uploads copy on and off'
 
     expect($result->is_successful())->toBeTrue()
         ->and($args[0])->toBeFalse()
-        ->and($args[1])->toBeInstanceOf(SS_Shipping_Booked_Shipment::class)
+        ->and($args[1])->toBeInstanceOf(\Smart_Send\Booking\Booked_Shipment::class)
         ->and($args[2])->toBeInstanceOf(WC_Order::class)
         ->and($result->get_steps($result->get_outbound_shipment())['save_documents'])->toBeTrue()
         ->and($result->get_outbound_shipment()->label_document()->has_local_copy())->toBeTrue()
@@ -609,7 +609,7 @@ it('writes nothing when the booking fails', function () {
         ->and($result->to_array()[0]['error']['html'])->toBe($result->get_outbound_error())
         ->and($fired->order_ids)->toBe([])
         ->and($failed->calls)->toHaveCount(1)
-        ->and($failed->calls[0][0])->toBeInstanceOf(SS_Shipping_Booking_Exception::class);
+        ->and($failed->calls[0][0])->toBeInstanceOf(\Smart_Send\Booking\Exceptions\Booking_Exception::class);
 
     $fresh = wc_get_order($order->get_id());
     expect($fresh->get_meta('_ss_shipping_label_id', true))->toBe('')
@@ -642,13 +642,13 @@ it('books two different orders through one stateless booking service without sta
 
     $capture = mock_smart_send_api();
 
-    $booking_service = new SS_Shipping_Booking_Service();
+    $booking_service = new \Smart_Send\Booking\Booking_Service();
 
     $booked_a = $booking_service->book($order_a, fulfillment_service()->resolve_delivery_details($order_a, false), false);
     $booked_b = $booking_service->book($order_b, fulfillment_service()->resolve_delivery_details($order_b, false), false);
 
-    expect($booked_a)->toBeInstanceOf(SS_Shipping_Booked_Shipment::class)
-        ->and($booked_b)->toBeInstanceOf(SS_Shipping_Booked_Shipment::class)
+    expect($booked_a)->toBeInstanceOf(\Smart_Send\Booking\Booked_Shipment::class)
+        ->and($booked_b)->toBeInstanceOf(\Smart_Send\Booking\Booked_Shipment::class)
         ->and($capture->requests)->toHaveCount(2);
 
     $payload_a = json_decode($capture->requests[0]['body'], true);
@@ -692,7 +692,7 @@ it('records a failed auto-return leg next to the fulfilled outbound shipment', f
 
     // The booking failure was announced with the shipment that was sent...
     expect($failed->calls)->toHaveCount(1)
-        ->and($failed->calls[0][1])->toBeInstanceOf(SS_Shipping_Shipment::class)
+        ->and($failed->calls[0][1])->toBeInstanceOf(\Smart_Send\Booking\Shipment::class)
         ->and($failed->calls[0][1]->get_shipping_method())->toBe('returndropoff');
 
     // ...and the run was announced once, because the outbound shipment was fulfilled.
@@ -712,7 +712,7 @@ it('records a missing return method as a failed return leg without calling the A
 
     $result = fulfillment_service()->fulfill_return($order->get_id());
 
-    // The resolver's SS_Shipping_Booking_Exception is caught by
+    // The resolver's \Smart_Send\Booking\Exceptions\Booking_Exception is caught by
     // fulfillment like a booking failure; no shipment was ever sent, so
     // smart_send_booking_failed does not fire.
     expect($result->is_successful())->toBeFalse()
@@ -807,7 +807,7 @@ it('books an order without a Smart Send shipping method when the request submits
 
     // ...with one, it books with that method, and the method stays per
     // booking: the order's shipping lines are untouched.
-    $overrides = SS_Shipping_Delivery_Details::from_array(['shipping_method' => 'gls_homedelivery']);
+    $overrides = \Smart_Send\Delivery\Delivery_Details::from_array(['shipping_method' => 'gls_homedelivery']);
     $result    = fulfillment_service()->fulfill_outbound($order->get_id(), true, $overrides);
 
     expect($result->is_successful())->toBeTrue()
@@ -837,7 +837,7 @@ it('lets a submitted return method win over the configured one, so a missing ret
     $result = fulfillment_service()->fulfill_return(
         $order->get_id(),
         true,
-        SS_Shipping_Delivery_Details::from_array(['shipping_method' => 'gls_returndropoff'])
+        \Smart_Send\Delivery\Delivery_Details::from_array(['shipping_method' => 'gls_returndropoff'])
     );
 
     expect($result->is_successful())->toBeTrue()
@@ -868,7 +868,7 @@ it('merges submitted details over the stored ones and runs smart_send_delivery_d
     // The request submits a full pickup point and a two-box plan with an
     // explicit weight and dimensions on the second box, and keeps the
     // method unspecified (resolved from the order).
-    $submitted = SS_Shipping_Delivery_Details::from_array([
+    $submitted = \Smart_Send\Delivery\Delivery_Details::from_array([
         'pickup_point' => sample_agent(['agent_no' => '5678', 'company' => 'Other Shop']),
         'parcel_plan'  => ['specs' => [
             ['reference' => '1', 'items' => [['id' => $product_a->get_id(), 'quantity' => 1, 'name' => 'Merge Box One']]],
@@ -877,7 +877,7 @@ it('merges submitted details over the stored ones and runs smart_send_delivery_d
     ]);
 
     $seen = null;
-    with_filter('smart_send_delivery_details', function (SS_Shipping_Delivery_Details $details) use (&$seen) {
+    with_filter('smart_send_delivery_details', function (\Smart_Send\Delivery\Delivery_Details $details) use (&$seen) {
         $seen = $details->to_array();
 
         return $details;
@@ -913,7 +913,7 @@ it('persists the submitted pickup point and parcel item rows only after a succes
     ]);
     save_order_pickup_point($order->get_id(), sample_agent());
 
-    $submitted = SS_Shipping_Delivery_Details::from_array([
+    $submitted = \Smart_Send\Delivery\Delivery_Details::from_array([
         'shipping_method' => 'postnord_homedelivery',
         'pickup_point'    => sample_agent(['agent_no' => '5678', 'company' => 'Other Shop']),
         'parcel_plan'     => ['specs' => [
@@ -978,7 +978,7 @@ it('writes the submitted details before the shipment id, and the auto-return leg
     ]);
     save_order_pickup_point($order->get_id(), sample_agent());
 
-    $submitted = SS_Shipping_Delivery_Details::from_array([
+    $submitted = \Smart_Send\Delivery\Delivery_Details::from_array([
         'pickup_point' => sample_agent(['agent_no' => '5678', 'company' => 'Other Shop']),
         'parcel_plan'  => ['specs' => [
             ['reference' => '1', 'items' => [['id' => $product_a->get_id(), 'quantity' => 1, 'name' => 'Order Box One']]],
@@ -1030,7 +1030,7 @@ it('persists a cleared pickup point after a successful booking and books without
     $result = fulfillment_service()->fulfill_outbound(
         $order->get_id(),
         true,
-        SS_Shipping_Delivery_Details::from_array(['pickup_point' => ['clear' => true]])
+        \Smart_Send\Delivery\Delivery_Details::from_array(['pickup_point' => ['clear' => true]])
     );
 
     expect($result->is_successful())->toBeTrue();
@@ -1058,7 +1058,7 @@ it('resolves a submitted agent number equal to the stored one to the stored pick
     $result = fulfillment_service()->fulfill_outbound(
         $order->get_id(),
         true,
-        SS_Shipping_Delivery_Details::from_array(['pickup_point' => ['agent_no' => '1234']])
+        \Smart_Send\Delivery\Delivery_Details::from_array(['pickup_point' => ['agent_no' => '1234']])
     );
 
     expect($result->is_successful())->toBeTrue()
@@ -1089,7 +1089,7 @@ it('resolves a different submitted agent number through the shared lookup and pe
     $result = fulfillment_service()->fulfill_outbound(
         $order->get_id(),
         true,
-        SS_Shipping_Delivery_Details::from_array(['pickup_point' => ['agent_no' => '5678']])
+        \Smart_Send\Delivery\Delivery_Details::from_array(['pickup_point' => ['agent_no' => '5678']])
     );
 
     expect($result->is_successful())->toBeTrue()
@@ -1124,7 +1124,7 @@ it('fails the leg with a structured agent_no error and writes nothing when the s
     $result = fulfillment_service()->fulfill_outbound(
         $order->get_id(),
         true,
-        SS_Shipping_Delivery_Details::from_array(['pickup_point' => ['agent_no' => '9999']])
+        \Smart_Send\Delivery\Delivery_Details::from_array(['pickup_point' => ['agent_no' => '9999']])
     );
 
     expect($result->is_successful())->toBeFalse()

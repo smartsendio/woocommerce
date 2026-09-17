@@ -38,7 +38,7 @@ export function boxState( state ) {
 
 /**
  * Whether a method code is a pickup point ("agent") method - the type
- * part of e.g. postnord_agent, mirroring SS_Shipping_Method_Code::type().
+ * part of e.g. postnord_agent, mirroring Smart_Send\Shipping_Method\Method_Code::type().
  *
  * @param {string} code The method code.
  * @return {boolean} True for an agent method.
@@ -98,7 +98,7 @@ export function emptyBox() {
  * The editor's boxes and per-unit assignment from a stored parcel plan:
  * walks every spec's allocations and hands the order's units out by
  * product id, in order (the same walk
- * SS_Shipping_Order_Fulfillment_Presenter::stored_box_numbers() does).
+ * Smart_Send\Admin\Order_Fulfillment_Presenter::stored_box_numbers() does).
  * Units the plan does not mention land in the first box; an empty plan is
  * one box holding everything.
  *

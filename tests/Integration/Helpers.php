@@ -210,12 +210,12 @@ function ss_api_error_body(string $message = 'The given data was invalid.'): arr
 
 /**
  * Store a pickup point selection on an order through the repository
- * (SS_Shipping_Order_Meta::write()), the way checkout does.
+ * (\Smart_Send\Delivery\Order_Meta::write()), the way checkout does.
  */
 function save_order_pickup_point(int $order_id, object $agent): void
 {
-    $details = new SS_Shipping_Delivery_Details();
-    $details->set_pickup_point(SS_Shipping_Pickup_Point::from_object($agent));
+    $details = new \Smart_Send\Delivery\Delivery_Details();
+    $details->set_pickup_point(\Smart_Send\Delivery\Pickup_Point::from_object($agent));
 
     SS_SHIPPING_WC()->order_meta()->write($order_id, $details);
 }
@@ -226,8 +226,8 @@ function save_order_pickup_point(int $order_id, object $agent): void
  */
 function save_order_parcels(int $order_id, array $rows): void
 {
-    $details = new SS_Shipping_Delivery_Details();
-    $details->set_parcel_plan(SS_Shipping_Parcel_Plan::from_box_rows($rows));
+    $details = new \Smart_Send\Delivery\Delivery_Details();
+    $details->set_parcel_plan(\Smart_Send\Delivery\Parcel_Plan::from_box_rows($rows));
 
     SS_SHIPPING_WC()->order_meta()->write($order_id, $details);
 }
@@ -284,7 +284,7 @@ function create_simple_product(array $props = []): WC_Product_Simple
     $product->save();
 
     // Per-product Smart Send customs meta (stored as plain post meta by
-    // SS_Shipping_WC_Product and read back by SS_Shipping_Shipment).
+    // \Smart_Send\Admin\Product and read back by \Smart_Send\Booking\Shipment).
     foreach (['hs_code' => '_ss_hs_code', 'customs_desc' => '_ss_customs_desc', 'country_of_origin' => '_ss_country_of_origin'] as $prop => $meta_key) {
         if (isset($props[$prop])) {
             update_post_meta($product->get_id(), $meta_key, $props[$prop]);

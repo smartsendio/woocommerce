@@ -2,8 +2,8 @@
 
 /*
  * Tests for the #112 Client/Resource split of the Smart Send API client:
- * Smartsend\Api now exposes focused resource accessors (bookings(),
- * pickupPoints()) instead of one monolithic method-per-endpoint surface.
+ * Smart_Send\API\API now exposes focused resource accessors (bookings(),
+ * pickup_points()) instead of one monolithic method-per-endpoint surface.
  * Each resource method is exercised here directly (success + one error
  * pass-through per resource, proving the resource re-throws the domain
  * exception for that call - the exception taxonomy itself is covered
@@ -12,16 +12,16 @@
  * wire-format golden tests in ShipmentPayloadTest.
  */
 
-use Smartsend\Api;
-use Smartsend\Exceptions\RequestException;
-use Smartsend\Exceptions\ValidationException;
-use Smartsend\Models\Shipment;
-use Smartsend\Resources\BookingResource;
-use Smartsend\Resources\PickupPointResource;
+use Smart_Send\API\API;
+use Smart_Send\API\Exceptions\Request_Exception;
+use Smart_Send\API\Exceptions\Validation_Exception;
+use Smart_Send\API\Models\Shipment;
+use Smart_Send\API\Resources\Booking_Resource;
+use Smart_Send\API\Resources\Pickup_Point_Resource;
 
 /**
  * A minimal but fully-shaped internal shipment representation (the plain
- * array shape used to fill a SS_Shipping_Shipment value object below). See
+ * array shape used to fill a \Smart_Send\Booking\Shipment value object below). See
  * ShipmentPayloadTest for the exhaustive, order-driven coverage of every
  * field.
  */
@@ -84,18 +84,18 @@ function sample_representation_data(array $overrides = []): array
 }
 
 /**
- * A minimal but fully-shaped SS_Shipping_Shipment, the internal
- * representation SS_Shipping_Shipment_Builder returns. See
+ * A minimal but fully-shaped \Smart_Send\Booking\Shipment, the internal
+ * representation \Smart_Send\Booking\Shipment_Builder returns. See
  * ShipmentPayloadTest for the exhaustive, order-driven coverage of every
  * field.
  */
-function sample_representation(array $overrides = []): SS_Shipping_Shipment
+function sample_representation(array $overrides = []): \Smart_Send\Booking\Shipment
 {
     $data = sample_representation_data($overrides);
 
-    // Parcels are typed SS_Shipping_Parcel value objects (#139).
-    $parcels = array_map(function (array $parcel_row): SS_Shipping_Parcel {
-        $parcel = new SS_Shipping_Parcel();
+    // Parcels are typed \Smart_Send\Booking\Parcel value objects (#139).
+    $parcels = array_map(function (array $parcel_row): \Smart_Send\Booking\Parcel {
+        $parcel = new \Smart_Send\Booking\Parcel();
         $parcel->set_internal_id($parcel_row['internal_id'])
             ->set_internal_reference($parcel_row['internal_reference'])
             ->set_weight($parcel_row['weight'])
@@ -110,7 +110,7 @@ function sample_representation(array $overrides = []): SS_Shipping_Shipment
         return $parcel;
     }, $data['parcels']);
 
-    $shipment = new SS_Shipping_Shipment();
+    $shipment = new \Smart_Send\Booking\Shipment();
     $shipment->set_internal_id($data['internal_id'])
         ->set_internal_reference($data['internal_reference'])
         ->set_shipping_carrier($data['shipping_carrier'])
@@ -150,15 +150,15 @@ beforeEach(function (): void {
 });
 
 it('accepts a Shipment through the client and returns a successful Response', function () {
-    $api = new Api('secret-token-123', 'example.test');
+    $api = new API('secret-token-123', 'example.test');
     $capture = mock_smart_send_api();
 
     $resource = $api->bookings();
-    expect($resource)->toBeInstanceOf(BookingResource::class)
+    expect($resource)->toBeInstanceOf(Booking_Resource::class)
         // The accessor is memoized: the same instance is returned every call.
         ->and($api->bookings())->toBe($resource);
 
-    $shipment = $resource->fromShipment(sample_representation());
+    $shipment = $resource->from_shipment(sample_representation());
     expect($resource->create($shipment)->data())->toBeObject();
 
     $request = end($capture->requests);
@@ -166,28 +166,28 @@ it('accepts a Shipment through the client and returns a successful Response', fu
     expect($request['url'])->not->toContain('shipments/labels/combine');
 });
 
-it('re-throws a 422 as a ValidationException through BookingResource::create()', function () {
-    $api = new Api('secret-token-123', 'example.test');
+it('re-throws a 422 as a Validation_Exception through Booking_Resource::create()', function () {
+    $api = new API('secret-token-123', 'example.test');
     mock_smart_send_api(function () {
         return ss_api_response(422, ss_api_error_body('The receiver postal code is invalid.'));
     });
 
-    $shipment = $api->bookings()->fromShipment(sample_representation());
+    $shipment = $api->bookings()->from_shipment(sample_representation());
 
     try {
         $api->bookings()->create($shipment);
-        test()->fail('Expected a ValidationException to be thrown.');
-    } catch (ValidationException $e) {
+        test()->fail('Expected a Validation_Exception to be thrown.');
+    } catch (Validation_Exception $e) {
         expect($e->getMessage())->toBe('The receiver postal code is invalid.');
         expect($e->errors())->toHaveKey('receiver.postal_code');
-        expect($e->getResponse()->statusCode())->toBe(422);
+        expect($e->get_response()->status_code())->toBe(422);
     }
 });
 
-it('builds the v1 wire Shipment model from the internal representation (BookingResource::fromShipment)', function () {
-    $api = new Api('secret-token-123', 'example.test');
+it('builds the v1 wire Shipment model from the internal representation (Booking_Resource::from_shipment)', function () {
+    $api = new API('secret-token-123', 'example.test');
 
-    $shipment = $api->bookings()->fromShipment(sample_representation());
+    $shipment = $api->bookings()->from_shipment(sample_representation());
 
     expect($shipment)->toBeInstanceOf(Shipment::class);
 
@@ -201,7 +201,7 @@ it('builds the v1 wire Shipment model from the internal representation (BookingR
 });
 
 it('combines labels for multiple shipments into a single request body', function () {
-    $api = new Api('secret-token-123', 'example.test');
+    $api = new API('secret-token-123', 'example.test');
     $capture = mock_smart_send_api();
 
     $response = $api->bookings()->combine(['shipment-1', 'shipment-2']);
@@ -220,16 +220,16 @@ it('combines labels for multiple shipments into a single request body', function
 });
 
 it('looks up a pickup point by agent number', function () {
-    $api = new Api('secret-token-123', 'example.test');
+    $api = new API('secret-token-123', 'example.test');
     $capture = mock_smart_send_api(function () {
         return ss_api_response(200, ['data' => pickup_point_api_data()]);
     });
 
-    $resource = $api->pickupPoints();
-    expect($resource)->toBeInstanceOf(PickupPointResource::class)
-        ->and($api->pickupPoints())->toBe($resource);
+    $resource = $api->pickup_points();
+    expect($resource)->toBeInstanceOf(Pickup_Point_Resource::class)
+        ->and($api->pickup_points())->toBe($resource);
 
-    $response = $resource->findByAgentNo('postnord', 'DK', '1234');
+    $response = $resource->find_by_agent_no('postnord', 'DK', '1234');
 
     expect($response->data()->agent_no)->toBe('1234');
 
@@ -237,28 +237,28 @@ it('looks up a pickup point by agent number', function () {
     expect($request['url'])->toContain('agents/carrier/postnord/country/DK/agentno/1234');
 });
 
-it('throws a RequestException for a 404 through PickupPointResource::findByAgentNo()', function () {
-    $api = new Api('secret-token-123', 'example.test');
+it('throws a Request_Exception for a 404 through Pickup_Point_Resource::find_by_agent_no()', function () {
+    $api = new API('secret-token-123', 'example.test');
     mock_smart_send_api(function () {
         return ss_api_response(404, ss_api_error_body('Agent number not found.'));
     });
 
     try {
-        $api->pickupPoints()->findByAgentNo('postnord', 'DK', '9999');
-        test()->fail('Expected a RequestException to be thrown.');
-    } catch (RequestException $e) {
-        expect(get_class($e))->toBe(RequestException::class);
+        $api->pickup_points()->find_by_agent_no('postnord', 'DK', '9999');
+        test()->fail('Expected a Request_Exception to be thrown.');
+    } catch (Request_Exception $e) {
+        expect(get_class($e))->toBe(Request_Exception::class);
         expect($e->getMessage())->toBe('Agent number not found.');
     }
 });
 
 it('finds the closest pickup points to an address, including the city segment', function () {
-    $api = new Api('secret-token-123', 'example.test');
+    $api = new API('secret-token-123', 'example.test');
     $capture = mock_smart_send_api(function () {
         return ss_api_response(200, ['data' => [pickup_point_api_data()]]);
     });
 
-    $response = $api->pickupPoints()->findClosestByAddress('postnord', 'DK', '2300', 'Copenhagen', 'Islands Brygge 39');
+    $response = $api->pickup_points()->find_closest_by_address('postnord', 'DK', '2300', 'Copenhagen', 'Islands Brygge 39');
 
     expect($response->data())->toHaveCount(1);
 
@@ -267,12 +267,12 @@ it('finds the closest pickup points to an address, including the city segment', 
 });
 
 it('omits the city segment from the closest-address lookup when no city is given', function () {
-    $api = new Api('secret-token-123', 'example.test');
+    $api = new API('secret-token-123', 'example.test');
     $capture = mock_smart_send_api(function () {
         return ss_api_response(200, ['data' => [pickup_point_api_data()]]);
     });
 
-    $api->pickupPoints()->findClosestByAddress('postnord', 'DK', '2300', null, 'Islands Brygge 39');
+    $api->pickup_points()->find_closest_by_address('postnord', 'DK', '2300', null, 'Islands Brygge 39');
 
     $request = end($capture->requests);
     expect($request['url'])->toContain('agents/closest/carrier/postnord/country/DK/postalcode/2300/street/Islands Brygge 39');
@@ -280,14 +280,14 @@ it('omits the city segment from the closest-address lookup when no city is given
 });
 
 it('applies the pickup point lookup timeout to both pickup point resource calls', function () {
-    $api = new Api('secret-token-123', 'example.test');
+    $api = new API('secret-token-123', 'example.test');
     $capture = mock_smart_send_api(function () {
         return ss_api_response(200, ['data' => pickup_point_api_data()]);
     });
 
     with_smart_send_pickup_point_timeout_filter(2.5);
 
-    $api->pickupPoints()->findByAgentNo('postnord', 'DK', '1234');
+    $api->pickup_points()->find_by_agent_no('postnord', 'DK', '1234');
 
     $request = end($capture->requests);
     expect($request['timeout'])->toBe(2.5);

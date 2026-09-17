@@ -3,10 +3,10 @@
  * (below the shipping options - the shipping-methods inner block area).
  *
  * All state is server-computed and rides the cart response under
- * extensions['smart-send'] (see SS_Shipping_Store_Api::cart_extension_data()):
+ * extensions['smart-send'] (see Smart_Send\Delivery_Options\Store_API::cart_extension_data()):
  * whether the chosen rate is an agent-type method, the pickup points close
  * to the shipping address with pre-formatted labels, the section status
- * (one of the SS_Shipping_Checkout_Options PICKUP_POINT_STATUS_* slugs) with its
+ * (one of the Smart_Send\Delivery_Options\Checkout_Options PICKUP_POINT_STATUS_* slugs) with its
  * server-translated message, the session-stored selection and the "Select
  * Default" setting. The block re-renders from the wc/store/cart store, so
  * every address or rate change updates the selector with zero client-side
@@ -14,7 +14,7 @@
  *
  * A selection travels on BOTH channels, each with its own job:
  *  - setExtensionData() puts it in the checkout POST's extensions payload,
- *    which SS_Shipping_Store_Api::persist_pickup_point_from_request() reads
+ *    which Smart_Send\Delivery_Options\Store_API::persist_pickup_point_from_request() reads
  *    when the order is placed;
  *  - extensionCartUpdate() posts it to the cart extensions endpoint, whose
  *    update callback stores it in the WooCommerce session so the selection
@@ -38,7 +38,7 @@ import { defaultTitle, defaultDescription } from './attributes';
 const EXTENSION_NAMESPACE = 'smart-send';
 const VALIDATION_ERROR_ID = 'smart-send-pickup-point';
 
-// Server-computed section statuses (SS_Shipping_Checkout_Options PICKUP_POINT_STATUS_*).
+// Server-computed section statuses (Smart_Send\Delivery_Options\Checkout_Options PICKUP_POINT_STATUS_*).
 const STATUS_FOUND = 'found';
 const ERROR_STATUSES = [ 'not_connected', 'auth_failed', 'access_denied' ];
 

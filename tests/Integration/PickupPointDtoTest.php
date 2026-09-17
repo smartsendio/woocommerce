@@ -1,7 +1,7 @@
 <?php
 
 /*
- * Tests for SS_Shipping_Pickup_Point as the typed pickup point contract
+ * Tests for \Smart_Send\Delivery\Pickup_Point as the typed pickup point contract
  * (#170): it models every field the Smart Send API delivers for a pickup
  * point (identity, carrier, name/address lines, distance, coordinates,
  * opening hours), round-trips the frozen order meta object losslessly,
@@ -43,7 +43,7 @@ beforeEach(function (): void {
 });
 
 it('exposes every API-delivered pickup point field as a typed getter', function () {
-    $pickup_point = SS_Shipping_Pickup_Point::from_object(full_api_agent());
+    $pickup_point = \Smart_Send\Delivery\Pickup_Point::from_object(full_api_agent());
 
     expect($pickup_point->get_internal_id())->toBe('0f3b2c9a-1111-4222-8333-444455556666')
         ->and($pickup_point->get_agent_no())->toBe('1234')
@@ -68,7 +68,7 @@ it('exposes every API-delivered pickup point field as a typed getter', function 
 it('round-trips the full API object losslessly through to_object()', function () {
     $agent = full_api_agent();
 
-    $reproduced = SS_Shipping_Pickup_Point::from_object($agent)->to_object();
+    $reproduced = \Smart_Send\Delivery\Pickup_Point::from_object($agent)->to_object();
 
     // Byte-identical: same properties, same order, same nested objects -
     // the frozen order meta format is untouched by the new typed fields.
@@ -77,7 +77,7 @@ it('round-trips the full API object losslessly through to_object()', function ()
 });
 
 it('offers a plain-array view via to_array() and accepts it back in from_object()', function () {
-    $pickup_point = SS_Shipping_Pickup_Point::from_object(full_api_agent());
+    $pickup_point = \Smart_Send\Delivery\Pickup_Point::from_object(full_api_agent());
 
     $array = $pickup_point->to_array();
 
@@ -87,14 +87,14 @@ it('offers a plain-array view via to_array() and accepts it back in from_object(
 
     // Fed back in, the typed fields are parsed again and the array view is
     // reproduced (the nested rows stay arrays, as given - lossless either way).
-    $again = SS_Shipping_Pickup_Point::from_object($array);
+    $again = \Smart_Send\Delivery\Pickup_Point::from_object($array);
     expect($again->get_latitude())->toBe(55.6631)
         ->and($again->get_opening_hours())->toHaveCount(2)
         ->and($again->to_array())->toBe($array);
 });
 
 it('emits the new fields on a directly constructed pickup point only when set', function () {
-    $minimal = (new SS_Shipping_Pickup_Point())->set_agent_no('1')->set_company('Shop');
+    $minimal = (new \Smart_Send\Delivery\Pickup_Point())->set_agent_no('1')->set_company('Shop');
     $object  = $minimal->to_object();
 
     expect(property_exists($object, 'carrier'))->toBeFalse()
@@ -102,7 +102,7 @@ it('emits the new fields on a directly constructed pickup point only when set', 
         ->and(property_exists($object, 'opening_hours'))->toBeFalse()
         ->and(property_exists($object, 'name_line1'))->toBeFalse();
 
-    $full = (new SS_Shipping_Pickup_Point())
+    $full = (new \Smart_Send\Delivery\Pickup_Point())
         ->set_agent_no('1')
         ->set_carrier('gls')
         ->set_name_line1('Name')
@@ -132,7 +132,7 @@ it('stores a pickup point with coordinates and opening hours on the order byte-i
     save_order_pickup_point($order->get_id(), $agent);
 
     $fresh = wc_get_order($order->get_id());
-    expect(serialize($fresh->get_meta(SS_Shipping_Order_Meta::META_AGENT, true)))->toBe(serialize($agent));
+    expect(serialize($fresh->get_meta(\Smart_Send\Delivery\Order_Meta::META_AGENT, true)))->toBe(serialize($agent));
 
     $read = SS_SHIPPING_WC()->order_meta()->read($order->get_id())->get_pickup_point();
     expect($read->get_latitude())->toBe(55.6631)
@@ -151,11 +151,11 @@ it('maps the lookup result to value objects at the API boundary and caches them 
         return ss_api_response(200, ['data' => [full_api_agent(), full_api_agent(['agent_no' => '5678', 'company' => 'Second Shop', 'distance' => 1.2])]]);
     });
 
-    $lookup = new SS_Shipping_Pickup_Point_Lookup();
+    $lookup = new \Smart_Send\Delivery_Options\Pickup_Point_Lookup();
     $found  = $lookup->find_closest_by_address('postnord', 'DK', '2300', 'Copenhagen', 'Islands Brygge 39');
 
     expect($found)->toHaveCount(2)
-        ->and($found[0])->toBeInstanceOf(SS_Shipping_Pickup_Point::class)
+        ->and($found[0])->toBeInstanceOf(\Smart_Send\Delivery\Pickup_Point::class)
         ->and($found[0]->get_opening_hours())->toHaveCount(2)
         ->and($found[1]->get_agent_no())->toBe('5678');
 
@@ -166,12 +166,12 @@ it('maps the lookup result to value objects at the API boundary and caches them 
     expect($cached[0])->toBeInstanceOf(stdClass::class)
         ->and(serialize($cached[0]))->toBe(serialize(full_api_agent()));
     $thawed = unserialize(serialize($cached));
-    expect(SS_Shipping_Pickup_Point::from_object($thawed[1])->get_company())->toBe('Second Shop');
+    expect(\Smart_Send\Delivery\Pickup_Point::from_object($thawed[1])->get_company())->toBe('Second Shop');
 
     // Read back as value objects, resolvable by agent number.
     $from_session = $lookup->get_session_pickup_points();
     expect($from_session)->toHaveCount(2)
-        ->and($from_session[1])->toBeInstanceOf(SS_Shipping_Pickup_Point::class)
+        ->and($from_session[1])->toBeInstanceOf(\Smart_Send\Delivery\Pickup_Point::class)
         ->and($lookup->find_cached_by_agent_no('5678')->get_company())->toBe('Second Shop')
         ->and($lookup->find_cached_by_agent_no('5678')->get_latitude())->toBe(55.6631)
         ->and($lookup->find_cached_by_agent_no('0000'))->toBeNull();
@@ -186,7 +186,7 @@ it('reports null before any lookup and an empty list after a lookup that found n
     });
     WC()->session->set('ss_shipping_agents', null);
 
-    $lookup = new SS_Shipping_Pickup_Point_Lookup();
+    $lookup = new \Smart_Send\Delivery_Options\Pickup_Point_Lookup();
     expect($lookup->get_session_pickup_points())->toBeNull();
 
     mock_smart_send_api(function () {

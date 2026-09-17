@@ -170,7 +170,7 @@ The browser store runs on nginx + php-fpm with the opcache JIT and PCRE JIT turn
 
 ## Coding standards and the JS build
 
-The plugin follows the [WordPress Coding Standards](https://github.com/WordPress/WordPress-Coding-Standards); the ruleset is [`phpcs.xml.dist`](phpcs.xml.dist). Plugin code must stay PHP 5.6 compatible (`composer phpcs:compat`).
+The plugin follows the [WordPress Coding Standards](https://github.com/WordPress/WordPress-Coding-Standards); the ruleset is [`phpcs.xml.dist`](phpcs.xml.dist). The same rules apply to all first-party PHP, including API classes and filenames. Plugin code must stay PHP 7.4 compatible (`composer phpcs:compat`).
 
 ```bash
 composer phpcs       # check
@@ -194,7 +194,8 @@ The checkout-block scripts are the only compiled assets. Source is in [`src/`](s
 .
 ├── smart-send-logistics/     # THE PLUGIN — the only folder shipped to WordPress.org
 │   ├── includes/             # Composition root + domain code (booking, fulfillment, delivery,
-│   │                         #   delivery-options, shipping-method, support, lib/Smartsend API client)
+│   │                         #   delivery-options, shipping-method, support, api)
+│   │   └── autoload.php      # Local namespace loader, shipped as PHP source
 │   ├── admin/ public/        # Admin and frontend controllers + UI
 │   ├── build/                # Compiled checkout-block JS (committed, built from /src)
 │   └── readme.txt            # WordPress.org readme (stable tag, changelog)
@@ -210,7 +211,11 @@ The checkout-block scripts are the only compiled assets. Source is in [`src/`](s
 └── CLAUDE.md                 # Architecture notes and instructions for AI agents
 ```
 
-The architecture of the plugin itself (domains, hook conventions, logging policy, extension points) is documented in [CLAUDE.md](CLAUDE.md).
+All first-party PHP uses the `Smart_Send\` namespace and WordPress naming: `Class_Name`, `snake_case()` methods and properties, and lowercase `class-*.php` files. For example, `Smart_Send\Delivery\Pickup_Point` lives in `includes/delivery/class-pickup-point.php`. The same rules apply to the API client under `Smart_Send\API`.
+
+The entry file registers the local loader from `includes/autoload.php`. It maps `Smart_Send\Admin\` to `admin/`, `Smart_Send\Frontend\` to `public/`, and the remaining `Smart_Send\` domains to `includes/`. Namespace components become lowercase, hyphenated directories; no class list or build step is needed. The packaged plugin runs without Composer or `vendor/`; Composer is only for development tools. The installed slug/text domain `smart-send-logistics`, persisted identifiers and the global `SS_SHIPPING_WC()` accessor stay unchanged.
+
+The architecture of the plugin itself (domains, hook conventions, logging policy, extension points) is documented in [CLAUDE.md](CLAUDE.md). The namespace decision is tracked in [#195](https://github.com/smartsendio/woocommerce/issues/195), within the [v9 release plan](https://github.com/smartsendio/woocommerce/issues/172).
 
 ## Releasing
 
@@ -220,7 +225,7 @@ Releases go to the WordPress.org SVN repository, not GitHub:
 sh bin/svn-deploy.sh
 ```
 
-The script is interactive: it copies `smart-send-logistics/` into an SVN checkout's trunk, tags the version and commits. Before running it, bump the version in three places in lockstep — the `Version:` header and the `$version` property in `smart-send-logistics/smart-send-logistics.php`, and `Stable tag:` in `smart-send-logistics/readme.txt` — and add a changelog entry under `== Changelog ==` in `readme.txt`.
+The script is interactive: it copies `smart-send-logistics/` into an SVN checkout's trunk, tags the version and commits. Before running it, bump the version in three places in lockstep — the `Version:` header in `smart-send-logistics/smart-send-logistics.php`, the `$version` property in `smart-send-logistics/includes/class-plugin.php`, and `Stable tag:` in `smart-send-logistics/readme.txt` — and add a changelog entry under `== Changelog ==` in `readme.txt`.
 
 To export a given branch or tag as a plugin zip:
 
