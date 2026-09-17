@@ -12,15 +12,15 @@
  * @author   Smart Send
  */
 
-if (!defined('ABSPATH')) {
-    exit; // Exit if accessed directly.
+if ( ! defined( 'ABSPATH' ) ) {
+	exit; // Exit if accessed directly.
 }
 
 // A second copy of the plugin (e.g. bundled elsewhere) may already have defined the class.
 if ( ! class_exists( 'SS_Shipping_WC' ) ) :
 
-    class SS_Shipping_WC
-    {
+	class SS_Shipping_WC {
+
 
 		private string $version = '9.0.0';
 
@@ -200,15 +200,14 @@ if ( ! class_exists( 'SS_Shipping_WC' ) ) :
 		 */
 		protected ?SS_Plugins_Screen_Updates $ss_plugin_screen_updates = null;
 
-        /**
-         * Construct the plugin.
-         */
-        public function __construct()
-        {
-            add_action('before_woocommerce_init', [$this, 'declaring_hpos_compatibility']);
+		/**
+		 * Construct the plugin.
+		 */
+		public function __construct() {
+			add_action( 'before_woocommerce_init', [ $this, 'declaring_hpos_compatibility' ] );
 
-            $this->define_constants();
-            $this->includes();
+			$this->define_constants();
+			$this->includes();
 
 			$this->settings = new SS_Shipping_Settings();
 
@@ -220,22 +219,21 @@ if ( ! class_exists( 'SS_Shipping_WC' ) ) :
 			\Automattic\WooCommerce\Utilities\FeaturesUtil::declare_compatibility( 'cart_checkout_blocks', SS_SHIPPING_PLUGIN_FILE, true );
 		}
 
-        /**
-         * Main Smart Send Shipping Instance.
-         *
-         * Ensures only one instance is loaded or can be loaded.
-         *
-         * @static
-         * @see SS_Shipping_WC()
-         * @return SS_Shipping_WC - Main instance.
-         */
-        public static function instance()
-        {
-            if (is_null(self::$_instance)) {
-                self::$_instance = new self();
-            }
-            return self::$_instance;
-        }
+		/**
+		 * Main Smart Send Shipping Instance.
+		 *
+		 * Ensures only one instance is loaded or can be loaded.
+		 *
+		 * @static
+		 * @see SS_Shipping_WC()
+		 * @return SS_Shipping_WC - Main instance.
+		 */
+		public static function instance() {
+			if ( is_null( self::$_instance ) ) {
+				self::$_instance = new self();
+			}
+			return self::$_instance;
+		}
 
 		/**
 		 * Define WC Constants.
@@ -371,20 +369,19 @@ if ( ! class_exists( 'SS_Shipping_WC' ) ) :
 			require_once SS_SHIPPING_PLUGIN_DIR_PATH . '/public/class-ss-shipping-block-checkout.php';
 		}
 
-        protected function init_hooks()
-        {
-            add_action('init', array($this, 'init'), 0);
-            add_action('init', array($this, 'load_textdomain'));
+		protected function init_hooks() {
+			add_action( 'init', array( $this, 'init' ), 0 );
+			add_action( 'init', array( $this, 'load_textdomain' ) );
 
-            add_filter('plugin_action_links_' . SS_SHIPPING_PLUGIN_BASENAME, array($this, 'plugin_action_links'));
-            add_filter('plugin_row_meta', array($this, 'ss_shipping_plugin_row_meta'), 10, 2);
+			add_filter( 'plugin_action_links_' . SS_SHIPPING_PLUGIN_BASENAME, array( $this, 'plugin_action_links' ) );
+			add_filter( 'plugin_row_meta', array( $this, 'ss_shipping_plugin_row_meta' ), 10, 2 );
 
 			add_filter( 'woocommerce_shipping_methods', array( $this, 'add_shipping_method' ) );
 		}
 
 
-        /**
-         * Initialize the plugin.
+		/**
+		 * Initialize the plugin.
 		 */
 		public function init() {
 			// The single bootstrap-level WooCommerce-active gate: `Requires Plugins: woocommerce`
@@ -439,8 +436,7 @@ if ( ! class_exists( 'SS_Shipping_WC' ) ) :
 				// Throw an admin error informing the user this plugin needs WooCommerce to function.
 				add_action( 'admin_notices', array( $this, 'notice_wc_required' ) );
 			}
-
-        }
+		}
 
 		/**
 		 * Register the hooks of every feature component constructed in
@@ -467,69 +463,89 @@ if ( ! class_exists( 'SS_Shipping_WC' ) ) :
 			$this->store_api->register_hooks();
 		}
 
-        /**
-         * Localisation
+		/**
+		 * Localisation
 		 */
 		public function load_textdomain() {
 			load_plugin_textdomain( 'smart-send-logistics', false, dirname( plugin_basename( SS_SHIPPING_PLUGIN_FILE ) ) . '/lang/' );
 		}
 
-        /**
-         * Define constant if not already set.
-         *
-         * @param  string $name
-         * @param  string|bool $value
+		/**
+		 * Define constant if not already set.
+		 *
+		 * @param  string $name
+		 * @param  string|bool $value
 		 */
 		private function define( $name, $value ) {
 			if ( ! defined( $name ) ) {
 				define( $name, $value );
 			}
-        }
+		}
 
 
-        /**
-         * Show action links on the plugin screen.
-         *
-         * @param    mixed $links Plugin Action links
-         * @return    array
-         */
-        public static function plugin_action_links($links)
-        {
-            $action_links = array(
-                'settings' => '<a href="' . admin_url('admin.php?page=wc-settings&tab=shipping&section=smart_send_shipping') . '" aria-label="' . esc_attr__('View WooCommerce settings',
-                        'smart-send-logistics') . '">' . esc_html__('Settings', 'smart-send-logistics') . '</a>',
-            );
+		/**
+		 * Show action links on the plugin screen.
+		 *
+		 * @param    mixed $links Plugin Action links
+		 * @return    array
+		 */
+		public static function plugin_action_links( $links ) {
+			$action_links = array(
+				'settings' => '<a href="' . admin_url( 'admin.php?page=wc-settings&tab=shipping&section=smart_send_shipping' ) . '" aria-label="' . esc_attr__(
+					'View WooCommerce settings',
+					'smart-send-logistics'
+				) . '">' . esc_html__( 'Settings', 'smart-send-logistics' ) . '</a>',
+			);
 
-            return array_merge($action_links, $links);
-        }
+			return array_merge( $action_links, $links );
+		}
 
-        /**
-         * Show row meta on the plugin screen.
-         *
-         * @param    mixed $links Plugin Row Meta
-         * @param    mixed $file Plugin Base file
-         * @return    array
-         */
-        public function ss_shipping_plugin_row_meta($links, $file)
-        {
+		/**
+		 * Show row meta on the plugin screen.
+		 *
+		 * @param    mixed $links Plugin Row Meta
+		 * @param    mixed $file Plugin Base file
+		 * @return    array
+		 */
+		public function ss_shipping_plugin_row_meta( $links, $file ) {
 
-            if (SS_SHIPPING_PLUGIN_BASENAME == $file) { // phpcs:ignore Universal.Operators.StrictComparisons.LooseEqual -- pre-existing loose comparison; tightening is a behaviour change out of scope for this formatting pass.
-                $row_meta = array(
-                    'configuration' => '<a href="' . esc_url(apply_filters('smart_send_configuration_url',
-                            'https://smartsend.io/woocommerce/configuration/')) . '" title="' . esc_attr(__('Configuration guide',
-                            'smart-send-logistics')) . '" target="_blank">' . __('Configuration guide',
-                            'smart-send-logistics') . '</a>',
-                    'support'       => '<a href="' . esc_url(apply_filters('smart_send_support_url',
-                            'https://smartsend.io/support/')) . '" title="' . esc_attr(__('Support',
-                            'smart-send-logistics')) . '" target="_blank">' . __('Support',
-                            'smart-send-logistics') . '</a>',
-                );
+			if ( SS_SHIPPING_PLUGIN_BASENAME == $file ) { // phpcs:ignore Universal.Operators.StrictComparisons.LooseEqual -- pre-existing loose comparison; tightening is a behaviour change out of scope for this formatting pass.
+				$row_meta = array(
+					'configuration' => '<a href="' . esc_url(
+						apply_filters(
+							'smart_send_configuration_url',
+							'https://smartsend.io/woocommerce/configuration/'
+						)
+					) . '" title="' . esc_attr(
+						__(
+							'Configuration guide',
+							'smart-send-logistics'
+						)
+					) . '" target="_blank">' . __(
+						'Configuration guide',
+						'smart-send-logistics'
+					) . '</a>',
+					'support'       => '<a href="' . esc_url(
+						apply_filters(
+							'smart_send_support_url',
+							'https://smartsend.io/support/'
+						)
+					) . '" title="' . esc_attr(
+						__(
+							'Support',
+							'smart-send-logistics'
+						)
+					) . '" target="_blank">' . __(
+						'Support',
+						'smart-send-logistics'
+					) . '</a>',
+				);
 
-                return array_merge($links, $row_meta);
-            }
+				return array_merge( $links, $row_meta );
+			}
 
-            return (array)$links;
-        }
+			return (array) $links;
+		}
 
 		/**
 		 * Add a new integration to WooCommerce.
@@ -543,18 +559,23 @@ if ( ! class_exists( 'SS_Shipping_WC' ) ) :
 			return $shipping_method;
 		}
 
-        /**
-         * Admin error notifying user that WC is required
-         */
-        public function notice_wc_required()
-        {
-            ?>
-            <div class="error">
-                <p><?php esc_html_e('Smart Send Shipping requires WooCommerce 2.6 and above to be installed and activated!',
-                        'smart-send-logistics'); ?></p>
-            </div>
-            <?php
-        }
+		/**
+		 * Admin error notifying user that WC is required
+		 */
+		public function notice_wc_required() {
+			?>
+			<div class="error">
+				<p>
+				<?php
+				esc_html_e(
+					'Smart Send Shipping requires WooCommerce 2.6 and above to be installed and activated!',
+					'smart-send-logistics'
+				);
+				?>
+						</p>
+			</div>
+			<?php
+		}
 
 		/**
 		 * Get the typed plugin settings reader.
@@ -735,6 +756,6 @@ if ( ! class_exists( 'SS_Shipping_WC' ) ) :
 		public function store_api(): SS_Shipping_Store_Api {
 			return $this->store_api;
 		}
-    }
+	}
 
 endif;
