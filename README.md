@@ -14,7 +14,7 @@ The plugin itself lives entirely in [`smart-send-logistics/`](smart-send-logisti
 
 ## Quick start
 
-Requirements: PHP 8.3 for the dev tooling (the plugin itself stays PHP 5.6 compatible), Composer, Node (version in [`.nvmrc`](.nvmrc)). No database server is needed — the store runs on SQLite by default.
+Requirements: PHP 8.3+ for the dev tooling (the plugin runtime supports PHP 7.4+, WordPress 6.5+ and WooCommerce 8.2+), Composer, Node (version in [`.nvmrc`](.nvmrc)). No database server is needed — the store runs on SQLite by default.
 
 ```bash
 composer install && npm install && npx playwright install chromium
@@ -50,6 +50,8 @@ Three knobs change how the store behaves, resolved as flag > exported environmen
 - `--order-storage hpos|posts|default` / `WP_ORDER_STORAGE` (default `default`, WooCommerce's own choice — HPOS on a fresh install) — the order storage backend. The order screen differs between High-Performance Order Storage and the legacy post-based storage, so the Browser suite runs against both in CI.
 
 Example: `WP_CHECKOUT=classic composer setup`.
+
+Disposable stores created with `--env testing` or `--disposable` have automatic WordPress, plugin and theme updates disabled. CI uses `--disposable`; ordinary development stores retain their existing update policy. Explicit `--wp-version` / `--wc-version` pins are checked against the installed versions, including reused stores, and setup fails on a mismatch. Its final output records the actual versions tested.
 
 ## Manual testing without the Smart Send API (demo mode)
 
@@ -137,7 +139,7 @@ composer test               # Integration + Browser (what CI runs on every pull 
 composer test:docs          # regenerate documentation screenshots (opens a browser window)
 ```
 
-Every `composer test:*` command goes through [`bin/run-tests.sh`](bin/run-tests.sh), which **rebuilds the testing store (`.env.testing`) from scratch first**, so runs never drift from earlier runs, demo mode or manual clicking. WP-CLI caches the downloads, so the rebuild takes well under a minute; a full suite finishes in under two. If a run takes much longer, something is wrong (store unreachable, wrong `WP_URL`, a hung Playwright session) — kill it and investigate.
+Every `composer test:*` command goes through [`bin/run-tests.sh`](bin/run-tests.sh), which **rebuilds the testing store (`.env.testing`) from scratch first**, so runs never drift from earlier runs, demo mode or manual clicking. WP-CLI caches downloads. The integration suite normally takes one to two minutes, while the full browser suite can take several minutes. CI bounds each browser attempt to six minutes and retries once after restarting PHP-FPM.
 
 For fast iteration against the *existing* testing store, call Pest directly and skip the rebuild:
 
@@ -146,6 +148,8 @@ vendor/bin/pest --testsuite=Integration
 vendor/bin/pest tests/Integration/RateCalculationTest.php
 vendor/bin/pest --testsuite=Browser      # you serve the store yourself in this case
 ```
+
+Browser fixtures and the integration bootstrap share `WP_PATH` (resolved relative to the repository root), with `WP_DEV_PATH` retained as a fallback. Use `WP_URL` for the matching store URL. The Browser/Docs suites recover saved fixture snapshots before their first test, including after a killed attempt: a clean store without a snapshot is left untouched, and shipping methods/settings are restored before the baseline checks run.
 
 ### Rules for tests
 
@@ -179,14 +183,7 @@ composer phpcs:fix   # auto-fix what can be fixed
 
 The whole plugin is clean against the ruleset, so there is no baseline file any more — `composer phpcs` must simply pass. Deliberate exceptions are annotated inline with a `phpcs:ignore <sniff> -- <reason>` comment, which is how pre-existing loose comparisons and the handful of intentionally-unescaped outputs are kept.
 
-`digitalrevolution/php-codesniffer-baseline` is still installed, so a `phpcs.baseline.xml` can be regenerated if a large amount of legacy code is ever imported at once. Note that the generator only records violations that are *not* already baselined, so delete any existing `phpcs.baseline.xml` before regenerating:
-
-```bash
-rm -f phpcs.baseline.xml
-vendor/bin/phpcs --report=\\DR\\CodeSnifferBaseline\\Reports\\Baseline --report-file=phpcs.baseline.xml
-```
-
-The checkout-block scripts are the only compiled assets. Source is in [`src/`](src/); `npm run build` compiles into `smart-send-logistics/build/`, which is **committed** so the plugin works without Node. After changing anything under `src/`, run the build and commit the output.
+The checkout-block scripts and the order-screen fulfillment app are compiled assets. Source is in [`src/pickup-point-block/`](src/pickup-point-block/) and [`src/order-fulfillment/`](src/order-fulfillment/); `npm run build` compiles both into `smart-send-logistics/build/`, which is **committed** so the plugin works without Node. After changing anything under `src/`, run the build and commit the output.
 
 ## Repository structure
 
@@ -197,9 +194,9 @@ The checkout-block scripts are the only compiled assets. Source is in [`src/`](s
 │   │                         #   delivery-options, shipping-method, support, api)
 │   │   └── autoload.php      # Local namespace loader, shipped as PHP source
 │   ├── admin/ public/        # Admin and frontend controllers + UI
-│   ├── build/                # Compiled checkout-block JS (committed, built from /src)
+│   ├── build/                # Compiled checkout and order-screen JS (committed)
 │   └── readme.txt            # WordPress.org readme (stable tag, changelog)
-├── src/                      # Checkout-block JS source
+├── src/                      # Checkout and order-screen JS source
 ├── tests/                    # Integration, Browser and Docs suites (see above)
 │   └── Browser/Support/      # Store seeding + the Smart Send API mock, shared with demo mode
 ├── bin/                      # setup-local-dev.sh, run-tests.sh, demo-store.sh, svn-deploy.sh, ...
@@ -222,10 +219,18 @@ The architecture of the plugin itself (domains, hook conventions, logging policy
 Releases go to the WordPress.org SVN repository, not GitHub:
 
 ```bash
-sh bin/svn-deploy.sh
+bash bin/svn-deploy.sh
 ```
 
 The script is interactive: it copies `smart-send-logistics/` into an SVN checkout's trunk, tags the version and commits. Before running it, bump the version in three places in lockstep — the `Version:` header in `smart-send-logistics/smart-send-logistics.php`, the `$version` property in `smart-send-logistics/includes/class-plugin.php`, and `Stable tag:` in `smart-send-logistics/readme.txt` — and add a changelog entry under `== Changelog ==` in `readme.txt`.
+
+After rebuilding the JavaScript, regenerate the translation template from the shipped plugin (WP-CLI with its i18n command):
+
+```bash
+wp i18n make-pot smart-send-logistics smart-send-logistics/lang/smart-send-logistics.pot --domain=smart-send-logistics
+```
+
+The scan includes the committed JavaScript bundles, so PHP and browser strings share the same template with references to files that actually ship. Commit the template alongside the final source/build changes.
 
 To export a given branch or tag as a plugin zip:
 

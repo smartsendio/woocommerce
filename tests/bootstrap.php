@@ -21,25 +21,11 @@
 */
 
 require __DIR__ . '/../vendor/autoload.php';
+require __DIR__ . '/Support/StoreEnvironment.php';
 
 // Push WP_PATH / WP_URL from .env.testing into the environment (real env vars
 // win). Runs before the suite check so tests/Pest.php's base_url() sees them.
-(function (): void {
-    $envFile = __DIR__ . '/../.env.testing';
-    if (! is_readable($envFile)) {
-        return;
-    }
-    foreach (file($envFile, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES) as $line) {
-        if (str_starts_with(trim($line), '#') || ! str_contains($line, '=')) {
-            continue;
-        }
-        [$key, $value] = explode('=', $line, 2);
-        $key = trim($key);
-        if (in_array($key, ['WP_PATH', 'WP_URL'], true) && getenv($key) === false) {
-            putenv($key . '=' . trim($value));
-        }
-    }
-})();
+ss_test_load_store_environment(__DIR__ . '/../.env.testing');
 
 $suite = null;
 $argv  = $_SERVER['argv'] ?? [];
@@ -55,11 +41,7 @@ if ($suite === 'Browser' || $suite === 'Docs') {
     return;
 }
 
-$wpPath = getenv('WP_PATH') ?: getenv('WP_DEV_PATH') ?: './local-dev/wordpress';
-if (! str_starts_with($wpPath, '/')) {
-    // Relative paths (as written in .env.testing) resolve against the repo root.
-    $wpPath = __DIR__ . '/../' . $wpPath;
-}
+$wpPath = ss_test_wp_path();
 $wpLoad = rtrim($wpPath, '/') . '/wp-load.php';
 
 if (! file_exists($wpLoad)) {

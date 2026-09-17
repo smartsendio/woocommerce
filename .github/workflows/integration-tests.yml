@@ -69,7 +69,7 @@ jobs:
         # concurrency-related SQLite crashes seen with php-fpm do not apply.
         # No web server is needed either - WordPress is loaded in-process.
         run: |
-          bin/setup-local-dev.sh \
+          bin/setup-local-dev.sh --disposable \
             --path ./local-dev/wordpress \
             --url http://127.0.0.1:8181 \
             --wp-version "${{ matrix.wp-version }}" \

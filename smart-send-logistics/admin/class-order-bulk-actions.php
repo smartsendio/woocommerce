@@ -5,7 +5,6 @@ namespace Smart_Send\Admin;
 use Smart_Send\Delivery\Method_Resolver;
 use Smart_Send\Fulfillment\Fulfillment_Service;
 use Smart_Send\Support\Admin_Notices;
-use Smart_Send\Support\Settings;
 use WC_Order;
 
 if ( ! defined( 'ABSPATH' ) ) {
@@ -62,23 +61,14 @@ class Order_Bulk_Actions {
 	protected Admin_Notices $admin_notices;
 
 	/**
-	 * Typed plugin settings reader.
-	 *
-	 * @var Settings
-	 */
-	protected Settings $settings;
-
-	/**
 	 * @param Method_Resolver     $method_resolver     Shipping method resolver.
 	 * @param Fulfillment_Service $fulfillment_service The fulfillment service.
 	 * @param Admin_Notices      $admin_notices       Admin notices component.
-	 * @param Settings|null       $settings            Typed plugin settings reader (stateless; a fresh default is safe).
 	 */
-	public function __construct( Method_Resolver $method_resolver, Fulfillment_Service $fulfillment_service, Admin_Notices $admin_notices, ?Settings $settings = null ) {
+	public function __construct( Method_Resolver $method_resolver, Fulfillment_Service $fulfillment_service, Admin_Notices $admin_notices ) {
 		$this->method_resolver     = $method_resolver;
 		$this->fulfillment_service = $fulfillment_service;
 		$this->admin_notices       = $admin_notices;
-		$this->settings            = null === $settings ? new Settings() : $settings;
 	}
 
 	/**
@@ -92,7 +82,7 @@ class Order_Bulk_Actions {
 		$hpos_enabled = wc_get_container()->get( CustomOrdersTableController::class )->custom_orders_table_usage_is_enabled();
 
 		if ( $hpos_enabled ) {
-			// function not available wc_get_page_screen_id( 'shop-order' )
+			// HPOS has its own order-list screen and bulk-action hooks.
 			add_filter( 'bulk_actions-woocommerce_page_wc-orders', array( $this, 'add_bulk_order_actions' ) );
 			add_filter( 'handle_bulk_actions-woocommerce_page_wc-orders', array( $this, 'handle_bulk_order_actions' ), 10, 3 );
 		} else {
@@ -226,7 +216,7 @@ class Order_Bulk_Actions {
 								$array_messages_error,
 								array(
 									'message' => sprintf(
-										/* translators: 1: WooCommerce order number, 2: warning message. */
+										/* translators: 1: WooCommerce order number, 2: message. */
 										__( 'Order #%1$s: %2$s', 'smart-send-logistics' ),
 										$order->get_order_number(),
 										$warning_message
@@ -241,7 +231,7 @@ class Order_Bulk_Actions {
 								$array_messages_error,
 								array(
 									'message' => sprintf(
-										/* translators: 1: WooCommerce order number, 2: error message. */
+										/* translators: 1: WooCommerce order number, 2: message. */
 										__( 'Order #%1$s: %2$s', 'smart-send-logistics' ),
 										$order->get_order_number(),
 										$error_message

@@ -119,7 +119,7 @@ See our written guide on the [Smart Send website](https://smartsend.io/woocommer
 
 == Developers ==
 
-The plugin has a formal extension API of `smart_send_*` hooks: filters for values, actions for events. Extend the plugin through these hooks instead of patching it - the names and signatures are stable, and they always pass typed value objects (never raw Smart Send API request or response shapes), so a snippet keeps working when the plugin moves to a newer API version.
+The plugin has a formal extension API of `smart_send_*` hooks: filters for values, actions for events. Extend the plugin through these hooks instead of patching it - the names and signatures are stable, and shipment/pickup hooks pass typed value objects (never raw Smart Send API request or response shapes), so a snippet keeps working when the plugin moves to a newer API version.
 
 PHP classes use the `Smart_Send\` namespace with domain subnamespaces, such as `Smart_Send\Delivery\Pickup_Point` and `Smart_Send\Booking\Booked_Shipment`. All classes follow WordPress naming conventions. The examples below use fully qualified class names and can be pasted into a snippet without imports. The global `SS_SHIPPING_WC()` accessor remains available; the plugin's bundled loader requires no Composer installation.
 
@@ -223,7 +223,7 @@ What the order screen offers:
     The method the order itself resolves to (its stored/resolved shipping method, and the configured return method) is always offered, even when the filter removes its carrier or service: the box never shows a selected value its drop-down cannot offer, and the plugin logs that at `debug` level naming the method code.
     This narrows what the **box offers**; it is **not an authorisation boundary**. The REST route behind the box does not validate a submitted method against the filter, and only users with the `edit_shop_orders` capability reach any of it. Use `smart_send_delivery_details` when a method must not be booked at all.
 
-Side effects on the order, in the order they run (the submitted delivery details, then the shipment id, are always stored in order meta first):
+After a successful booking, submitted delivery details are stored first. Document copies are then attempted, followed by shipment ID/history persistence, the order note, tracking and order status. The following filters control the optional steps:
 
 * **smart_send_fulfillment_save_documents** `( bool $save, Smart_Send\Booking\Booked_Shipment $shipment, WC_Order $order )` (since 9.0.0)
     Filter on whether a copy of the shipment's documents is saved in the uploads folder; defaults to the "Save shipping labels in uploads folder" setting. When saved, the label document's `download_url()` points at the copy. A copy that cannot be saved does not fail the label: the shipment stays fulfilled with a warning (`get_warnings($shipment)` on the result, `save_documents` = `'failed'` in `get_steps($shipment)`) and `download_url()` falls back to the Smart Send URL
@@ -239,7 +239,7 @@ When the run is done:
 * **smart_send_order_fulfilled** `( WC_Order $order, Smart_Send\Fulfillment\Fulfillment_Result $result )` (since 9.0.0)
     Action fired once per run, after every side effect of every label is applied, when at least one shipment was fulfilled. The result carries `shipments()`, `get_outbound_shipment()` and `get_return_shipment()` (each a `\Smart_Send\Booking\Booked_Shipment`, see Booking below), `get_order_note($shipment)`, `get_order_note_id($shipment)`, `get_steps($shipment)` (which side effects ran), `get_warnings($shipment)` and, for a leg that failed, `get_outbound_error()`/`get_return_error()` (HTML), `get_validation_errors($is_return)` and `get_error_details($is_return)` (message, Response-ID, field errors, HTML). `to_array()` is the serializable form: one row per attempted label with `direction`, `status` (`fulfilled`/`failed`), the shipment's `to_array()`, `steps`, `order_note` (`{id: int|null}`), `warnings` or `error`. `steps.order_note` records whether the note was saved; the serialized result and REST response contain no note HTML. Replaces `smart_send_shipping_label_created` (8.x), which no longer fires
 
-Example: offer only PostNord pickup point services on the order screen for heavy orders:
+Example: offer only PostNord pickup point services for outbound orders with a shipping charge of at least 10 in the store currency:
 
     add_filter('smart_send_fulfillment_shipping_methods', function (array $carriers, WC_Order $order, bool $is_return) {
         if ($is_return || $order->get_shipping_total() < 10) {
@@ -357,6 +357,8 @@ Example: react to a completed booking and to a rejected one:
     Filter on every message the plugin writes to the WooCommerce log - return a modified string to rewrite it, or null/false to suppress the entry
 * **smart_send_configuration_url** `( string $url )` / **smart_send_support_url** `( string $url )`
     Filters on the settings and support links shown on the WordPress plugins screen
+* **ss_in_plugin_update_message** `( string $notice_html )`
+    Retained legacy filter on the major-version upgrade notice in the plugins list. Return trusted, safe HTML; the filtered result is rendered as HTML. This notice filter is separate from the replaced version 8 shipping and booking hooks
 
 = Meta fields =
 
@@ -379,7 +381,7 @@ The following meta fields are used by the plugin. Version 9 changes the parcel a
 * **_ss_shipping_return_label_id**
     Hidden field used for storing the unique Smart Send id of the generated return shipping label
 * **_ss_shipping_labels** (since 9.0.0)
-    Hidden field holding the append-only list of every label booked for the order - one row per shipment with its direction, Smart Send shipment id and booking time - which the order screen shows as "Booked shipments"
+    Hidden field holding a chronological list of the 50 most recently booked labels for the order - one row per shipment with its direction, Smart Send shipment id and booking time - which the order screen shows as "Booked shipments"
 * **_ss_hs_code**
     Hidden field used to store the customs HS code for products in WooCommerce
 * **_ss_customs_desc**
@@ -407,7 +409,7 @@ Yes. Open the order and use the Smart Send box: when the order has no Smart Send
 Yes. Pickup point selection works in both the classic checkout and the WooCommerce Checkout Block, and the plugin is compatible with High-Performance Order Storage (HPOS).
 
 = I used Smart Send hooks or filters in version 8. Do they still work in version 9? =
-No. Version 9 is a complete rewrite, and the hook and filter API is new. See the Developers section for the current hooks and the "9.0.0" entry under Upgrade Notice.
+Several hooks were removed or changed in version 9, while others remain available. Review every custom snippet against the Developers section and the "9.0.0" entry under Upgrade Notice before upgrading.
 
 = Are the plugin settings deleted when I deactivate or uninstall the plugin? =
 No - this is by design. Neither deactivating nor uninstalling the plugin deletes its settings (the API Token, the general settings or the configured shipping methods), so deactivating and re-activating - or removing and re-installing - the plugin brings it back exactly as it was configured. If you want to start over, clear the fields on the settings pages manually before saving.
@@ -415,7 +417,7 @@ No - this is by design. Neither deactivating nor uninstalling the plugin deletes
 == Screenshots ==
 
 1. Show closest pickup points during checkout
-2. Create shipping labels from the order screen - change the shipping method, pickup point and parcels before booking, with every booked label listed under "Booked shipments"
+2. Create shipping labels from the order screen - change the shipping method, pickup point and parcels before booking, with recent booked labels listed under "Booked shipments"
 3. Once booked, the box confirms the shipment, links to it in the Smart Send app and lists the parcels with their tracking numbers, weight and dimensions
 4. Booking errors are shown on the field they belong to, with a response ID for support
 5. Add shipping methods to WooCommerce Shipping Zones
@@ -427,13 +429,13 @@ No - this is by design. Neither deactivating nor uninstalling the plugin deletes
 = 9.0.0 =
 * Complete rewrite of the plugin, now built around a clear separation between fulfillment (deciding what ships and how, and updating the WooCommerce order) and booking (ordering the shipment from the carrier)
 * PHP classes now use Smart_Send namespaces, WordPress naming conventions and a bundled autoloader; no Composer installation is required
-* New hook and filter API (smart_send_*) for every stage: shipping methods at checkout, fulfillment and booking. The version 8 hooks and filters no longer work - see the Developers section
+* Revised hook and filter API (smart_send_*) for every stage: shipping methods at checkout, fulfillment and booking. Several version 8 hooks were removed or changed; review custom snippets against the Developers section
 * Support for the WooCommerce Checkout Block: pickup point selection now works in the block-based checkout as well as the classic checkout
 * Validate pickup points against their carrier and country, preserve explicit choices when nearest results refresh, and resolve missing caches through the API before saving an order or booking a label
 * Use the plain-text smart_send_pickup_point_label filter for pickup labels; remove the pre-release option-label and default-selection filters
 * Support for High-Performance Order Storage (HPOS)
 * Check permissions before pickup-point custom-field lookups or changes, reject metadata rows belonging to another order, and persist pickup-point deletion with both order storage backends
-* Rebuilt order-screen meta box: books without a page reload, lets you change the shipping method, pickup point and parcels (weight and dimensions per box) before booking, and books orders placed with another shipping method. A booking is confirmed right in the box - the shipment with a link into the Smart Send app, every parcel with its tracking number, weight and dimensions, and the documents - and every label the order has is listed under "Booked shipments"; the form stays open for further bookings
+* Rebuilt order-screen meta box: books without a page reload, lets you change the shipping method, pickup point and parcels (weight and dimensions per box) before booking, and books orders placed with another shipping method. A booking is confirmed right in the box - the shipment with a link into the Smart Send app, every parcel with its tracking number, weight and dimensions, and the documents - and the newest 50 booked labels appear under "Booked shipments", with existing older shipment IDs still accessible; the form stays open for further bookings
 * Require confirmation before repeating any requested shipping or return label, including combined bookings; a stale order screen can confirm after the server reports an existing label
 * Save booking notes through WooCommerce's order-note API and show them in its native history after a reload, while the Smart Send box confirms the booking immediately
 * Render pickup-point addresses as readable text in plain-text order emails and escaped HTML in HTML emails and customer order pages
@@ -794,7 +796,7 @@ No - this is by design. Neither deactivating nor uninstalling the plugin deletes
 = 9.0.0 =
 Version 9 is a complete rewrite of the plugin. Make a full site backup and [review update best practices](https://woocommerce.com/document/how-to-update-your-site/) before upgrading from 8.x. Existing settings, shipping methods, pickup points and booked-label access are kept. Saved parcel splits require the reset described below.
 
-* If your site uses Smart Send hooks or filters (custom code, a Code Snippets plugin or a theme), that code must be updated: the version 8 hooks and filters no longer fire, and the new hook API passes typed objects instead of raw data. The Developers section lists every hook, its arguments and examples. Test your snippets on a staging site before upgrading production.
+* If your site uses Smart Send hooks or filters (custom code, a Code Snippets plugin or a theme), review every snippet: several version 8 hooks were removed or changed, and shipment/pickup hooks now pass typed objects. Other hooks retain their existing signatures. The Developers section lists the current hooks, removed hooks, arguments and examples. Update affected snippets and test them on a staging site before upgrading production.
 * For snippets using pre-release version 9 hooks, rename `smart_send_pickup_point_option_label` to `smart_send_pickup_point_label` and return plain text. `smart_send_default_selected_pickup_point` is removed without an alias: reorder `smart_send_pickup_points_found` results and use the **Select Default** setting instead. Compatible explicit customer choices are preserved. Older stored points missing carrier/country information are verified through the API when next used.
 * Parcel splits saved in the old product-ID format are not migrated. On affected orders, choose "Reset to one parcel" and enter the allocation again before creating another shipping or return label. Custom integrations must use `order_item_id` and allocate every ordered unit exactly once. Parcel weights and dimensions still apply only to the current booking.
 * Products or variations deleted since the order was placed display as "Deleted" with no SKU. Enter an explicit parcel weight before booking them; missing customs data is not reconstructed. This does not remove access to labels already booked.

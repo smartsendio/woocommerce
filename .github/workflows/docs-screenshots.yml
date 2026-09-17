@@ -44,7 +44,7 @@ jobs:
 
       - name: Set up the development store
         run: |
-          bin/setup-local-dev.sh \
+          bin/setup-local-dev.sh --disposable \
             --path ./local-dev/wordpress \
             --url http://127.0.0.1:8181
 

@@ -141,10 +141,12 @@ class Order_Fulfillment_Presenter {
 	 *     'order_id'          => int,
 	 *     'connected'         => bool,            // an API token is configured
 	 *     'screen'            => 'hpos'|'legacy',
-	 *     'order'             => array( 'weight_kg' => float, 'shipping_country' => string,
-	 *                                   'units' => array( array( 'id' => int, 'name' => string, 'unit_weight' => float ), ... ) ), // one row per unit
+	 *     'order'             => array( 'weight_kg' => float|null, 'shipping_country' => string,
+	 *                                   'units' => array( array( 'order_item_id' => int, 'product_id' => int, 'variation_id' => int,
+	 *                                       'name' => string, 'sku' => string, 'unit_weight' => float|null, 'product_missing' => bool ), ... ) ), // one row per unit
 	 *     'delivery_details'  => array( 'shipping_method' => string|null, 'pickup_point' => array|null (to_array() + 'display_html'),
 	 *                                   'parcel_plan' => array|null (to_array()), 'addons' => array ),
+	 *     'parcel_plan_error' => string|null, // unsupported or stale saved allocations require an explicit reset
 	 *     'methods'           => array( 'outbound' => array( array( 'code' => string, 'name' => string,
 	 *                                       'services' => array( array( 'code' => string, 'name' => string, 'addons' => array() ), ... ) ), ... ),
 	 *                                   'return' => ... ), // the smart_send_fulfillment_shipping_methods filter applies per list

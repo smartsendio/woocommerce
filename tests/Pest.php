@@ -8,7 +8,7 @@ use Pest\Browser\Playwright\Playwright;
 |--------------------------------------------------------------------------
 |
 | The browser tests run against a local development store created by
-| bin/setup-local-dev.sh. Point WP_BASE_URL at the store (and adjust the
+| bin/setup-local-dev.sh. Point WP_URL at the store (and adjust the
 | admin credentials) if you deviate from the script's defaults.
 |
 */
@@ -51,6 +51,11 @@ require __DIR__ . '/Docs/Support/Screenshots.php';
 
 require __DIR__ . '/Browser/Support/SmartSendStore.php';
 require __DIR__ . '/Support/ShippingMethodSteps.php';
+
+uses()->beforeAll(function (): void {
+    ss_browser_recover_store_once();
+})->in('Browser', 'Docs');
+
 
 uses()->beforeEach(function (): void {
     if (! getenv('CI') && ! getenv('SS_DOCS_HEADLESS')) {

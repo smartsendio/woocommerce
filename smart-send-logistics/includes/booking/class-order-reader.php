@@ -107,7 +107,7 @@ class Order_Reader {
 			$this->order->get_id()
 		);
 
-		// The shipping phone field was added in WooCommerce 5.6 but often added by hooks/plugins before that.
+		// The shipping phone field is available on every supported WooCommerce version.
 		// Note that the field is not shown on checkout per default but can be enabled by filters/plugins.
 		// See: https://github.com/woocommerce/woocommerce/pull/30097#issuecomment-943114632
 		if ( isset( $shipping_address['phone'] ) && $shipping_address['phone'] ) {

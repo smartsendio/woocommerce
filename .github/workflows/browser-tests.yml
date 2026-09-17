@@ -114,7 +114,7 @@ jobs:
           PHP_BIN: php${{ matrix.php-version }}
         run: |
           $PHP_BIN --version
-          bin/setup-local-dev.sh \
+          bin/setup-local-dev.sh --disposable \
             --path ./local-dev/wordpress \
             --url http://127.0.0.1:8181 \
             --wp-version "${{ matrix.wp-version }}" \
