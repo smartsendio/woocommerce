@@ -21,7 +21,6 @@ if ( ! class_exists( 'SS_Shipping_WC' ) ) :
 
 	class SS_Shipping_WC {
 
-
 		private string $version = '9.0.0';
 
 		/**
