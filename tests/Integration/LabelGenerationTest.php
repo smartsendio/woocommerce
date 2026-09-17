@@ -315,7 +315,7 @@ dataset('bulk_label_actions', [
  * option itself is not toggled: WooCommerce refuses to switch order storage
  * while test orders are out of sync.
  */
-function run_bulk_action_on_screen(string $screen_id, string $action, array $order_ids): string
+function run_bulk_action_on_screen(string $screen_id, string $action, array $order_ids, string $sendback = '/wp-admin/edit.php'): string
 {
     $hook     = 'handle_bulk_actions-' . $screen_id;
     $callback = [SS_SHIPPING_WC()->bulk_actions(), 'handle_bulk_order_actions'];
@@ -327,7 +327,7 @@ function run_bulk_action_on_screen(string $screen_id, string $action, array $ord
         });
     }
 
-    return apply_filters($hook, '/wp-admin/edit.php', $action, $order_ids);
+    return apply_filters($hook, $sendback, $action, $order_ids);
 }
 
 it('books a single selected order through the bulk action on the Orders screen', function (string $screen_id, string $action, string $message, string $meta_key) {
@@ -383,14 +383,43 @@ it('books nothing and explains the single-order limit when more than one order i
         ->toContain('<a href="https://wordpress.org/plugins/smart-send-logistics/advanced/" target="_blank">downgrade to version 8.x</a>');
 })->with('bulk_orders_screens')->with(['ss_shipping_label_bulk', 'ss_shipping_return_bulk']);
 
-it('ignores bulk actions that are not Smart Send actions', function () {
+it('preserves other bulk action redirects throughout the Orders screen filter chain', function (string $screen_id, string $action) {
     $notices = with_empty_flash_messages();
+    $order = create_labelable_order();
+    $capture = mock_smart_send_api();
+    $hook = 'handle_bulk_actions-' . $screen_id;
+    $seen = [];
 
-    $result = SS_SHIPPING_WC()->bulk_actions()
-        ->handle_bulk_order_actions('/wp-admin/edit.php', 'mark_processing', [1]);
+    // A previous plugin has already handled its action and added a result to
+    // the redirect. A subsequent typed filter must still receive a string.
+    $before = function (string $sendback, string $received_action, array $items) use (&$seen): string {
+        $seen['before'] = [$sendback, $received_action, $items];
+        return add_query_arg('other_plugin_result', 'complete', $sendback);
+    };
+    $after = function (string $sendback, string $received_action, array $items) use (&$seen): string {
+        $seen['after'] = [$sendback, $received_action, $items];
+        return add_query_arg('following_plugin', 'complete', $sendback);
+    };
+    add_filter($hook, $before, 5, 3);
+    add_filter($hook, $after, 15, 3);
+    remember_cleanup_callback(function () use ($hook, $before, $after): void {
+        remove_filter($hook, $before, 5);
+        remove_filter($hook, $after, 15);
+    });
 
-    // v8 oddity: for foreign actions the handler returns null instead of
-    // passing $sendback through.
-    expect($result)->toBeNull()
+    $original = '/wp-admin/edit.php?post_type=shop_order&paged=2#orders';
+    $incoming = '/wp-admin/edit.php?post_type=shop_order&paged=2&other_plugin_result=complete#orders';
+    $order_ids = [$order->get_id()];
+
+    $result = run_bulk_action_on_screen($screen_id, $action, $order_ids, $original);
+
+    expect($seen['before'])->toBe([$original, $action, $order_ids])
+        ->and($seen['after'])->toBe([$incoming, $action, $order_ids])
+        ->and($result)->toBe('/wp-admin/edit.php?post_type=shop_order&paged=2&other_plugin_result=complete&following_plugin=complete#orders')
+        ->and($capture->requests)->toBe([])
         ->and($notices->get_pending())->toBe([]);
-});
+
+    $fresh = wc_get_order($order->get_id());
+    expect($fresh->get_meta('_ss_shipping_label_id', true))->toBe('')
+        ->and($fresh->get_meta('_ss_shipping_return_label_id', true))->toBe('');
+})->with('bulk_orders_screens')->with(['mark_processing', 'other_plugin_export']);
