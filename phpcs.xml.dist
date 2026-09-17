@@ -13,7 +13,7 @@
     <exclude-pattern>*.js</exclude-pattern>
     <exclude-pattern>*.css</exclude-pattern>
 
-    <!-- Report paths relative to the repository root so the baseline is portable. -->
+    <!-- Report paths relative to the repository root. -->
     <arg name="basepath" value="."/>
 
     <!-- Show progress, sniff codes, and use colors; check up to 20 files in parallel. -->
