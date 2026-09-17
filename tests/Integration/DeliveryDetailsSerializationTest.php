@@ -39,8 +39,8 @@ function full_delivery_details_array(): array
                     'width'     => 30.0,
                     'height'    => 20.0,
                     'items'     => [
-                        ['id' => 812, 'quantity' => 2, 'name' => 'Hoodie'],
-                        ['id' => 815, 'quantity' => 1, 'name' => null],
+                        ['order_item_id' => 812, 'quantity' => 2, 'name' => 'Hoodie'],
+                        ['order_item_id' => 815, 'quantity' => 1, 'name' => null],
                     ],
                 ],
                 [
@@ -76,8 +76,8 @@ it('round-trips a parcel spec through to_array()/from_array()', function () {
         'width'     => 30.0,
         'height'    => 20.0,
         'items'     => [
-            ['id' => 812, 'quantity' => 2, 'name' => 'Hoodie'],
-            ['id' => 815, 'quantity' => 1, 'name' => null],
+            ['order_item_id' => 812, 'quantity' => 2, 'name' => 'Hoodie'],
+            ['order_item_id' => 815, 'quantity' => 1, 'name' => null],
         ],
     ]);
 
@@ -87,35 +87,14 @@ it('round-trips a parcel spec through to_array()/from_array()', function () {
         ->and($rebuilt->has_items())->toBeTrue();
 });
 
-it('treats absent, null and empty spec fields as "not set" and defaults item quantity to 1', function () {
-    // Weight/dimensions absent, '' or null all mean "compute / none"; an
-    // item row without an id is dropped; quantity defaults to 1.
-    $spec = \Smart_Send\Delivery\Parcel_Spec::from_array([
-        'weight' => '',
-        'length' => null,
-        'items'  => [
-            ['id' => 812],
-            ['name' => 'orphan without id'],
-            'not-a-row',
-        ],
-    ]);
-
-    expect($spec->to_array())->toBe([
-        'reference' => null,
-        'weight'    => null,
-        'length'    => null,
-        'width'     => null,
-        'height'    => null,
-        'items'     => [
-            ['id' => 812, 'quantity' => 1, 'name' => null],
-        ],
-    ]);
-
-    // A box-only spec (no items at all) round-trips too.
-    $box_only = \Smart_Send\Delivery\Parcel_Spec::from_array(['weight' => 2, 'length' => 10, 'width' => 10, 'height' => 10]);
-    expect($box_only->has_items())->toBeFalse()
-        ->and($box_only->get_weight())->toBe(2.0)
-        ->and(\Smart_Send\Delivery\Parcel_Spec::from_array($box_only->to_array())->to_array())->toBe($box_only->to_array());
+it('keeps optional measures empty and rejects malformed or legacy item allocations', function () {
+    $spec = \Smart_Send\Delivery\Parcel_Spec::from_array(['weight' => '', 'length' => null]);
+    expect($spec->has_items())->toBeFalse()->and($spec->get_weight())->toBeNull();
+    foreach ([['id' => 812, 'quantity' => 1], ['order_item_id' => 812], ['name' => 'orphan'], 'not-a-row'] as $row) {
+        expect(fn () => \Smart_Send\Delivery\Parcel_Spec::from_array(['items' => [$row]]))->toThrow(InvalidArgumentException::class);
+    }
+    $manual = \Smart_Send\Delivery\Parcel_Spec::from_array(['weight' => 2, 'length' => 10]);
+    expect(\Smart_Send\Delivery\Parcel_Spec::from_array($manual->to_array())->to_array())->toBe($manual->to_array());
 });
 
 it('round-trips a parcel plan and keeps the empty plan empty', function () {
@@ -134,14 +113,10 @@ it('round-trips a parcel plan and keeps the empty plan empty', function () {
     expect(\Smart_Send\Delivery\Parcel_Plan::from_array(['specs' => []])->is_empty())->toBeTrue()
         ->and(\Smart_Send\Delivery\Parcel_Plan::from_array([])->to_array())->toBe(['specs' => []]);
 
-    // The frozen box-row form and the canonical form agree on the items.
-    $rows = [
-        ['id' => 812, 'name' => 'Hoodie', 'value' => '1'],
-        ['id' => 812, 'name' => 'Hoodie', 'value' => '1'],
-        ['id' => 815, 'name' => 'Beanie', 'value' => '2'],
-    ];
-    $from_rows = \Smart_Send\Delivery\Parcel_Plan::from_box_rows($rows);
-    expect(\Smart_Send\Delivery\Parcel_Plan::from_array($from_rows->to_array())->to_box_rows())->toBe($rows);
+    expect(fn () => \Smart_Send\Delivery\Parcel_Plan::from_array([
+        ['id' => 812, 'name' => 'Old product row', 'value' => '1'],
+    ]))->toThrow(InvalidArgumentException::class);
+
 });
 
 it('round-trips complete delivery details byte for byte', function () {

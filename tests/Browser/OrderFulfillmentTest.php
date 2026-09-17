@@ -61,6 +61,10 @@ beforeAll(function (): void {
         [],                       // 12: a return booked from the booked state
         [],                       // 13: the smart_send_fulfillment_shipping_methods filter
         [],                       // 14: the not-connected state
+        ['quantity' => 2],        // 15: distinct lines for the same product
+        [],                       // 16: unsupported legacy parcel rows
+        [],                       // 17: a deleted product on an existing order
+        [],                       // 18: a stale canonical parcel plan
     ]]);
 });
 
@@ -307,6 +311,13 @@ it('shows a validation failure on the field it belongs to, and the rest as a gen
             ->assertSeeIn('[data-ss-notice="outbound_failed"]', 'The given data was invalid.')
             ->assertSeeIn('[data-ss-notice="outbound_failed"]', 'receiver.zip_code: The receiver zip code does not match the receiver country')
             ->assertNotPresent('[data-ss-error="pickup_point.agent_no"]');
+
+        // Customs fields have no editor in this box, so their specific
+        // reasons must remain visible in the general notice too.
+        ss_browser_set_api_scenarios(['booking' => '422-customs']);
+        $page->click('[data-ss-action="create-label"]')
+            ->assertSeeIn('[data-ss-notice="outbound_failed"]', 'The HS code is required for customs.')
+            ->assertSeeIn('[data-ss-notice="outbound_failed"]', 'The country of origin is required for customs.');
     } finally {
         ss_browser_set_api_scenarios(null);
     }
@@ -395,18 +406,169 @@ it('splits a line across boxes with the arrows, removes a box emptied by a move,
     $requests = ss_browser_api_requests('booking');
     expect($requests)->toHaveCount(1);
 
-    // (The wire carries one item row per unit - a v8 oddity keeps the order
-    // line's quantity on every row, so count rows, not quantities.)
+    // Each allocated order line carries only the quantity in its parcel.
     $parcels = $requests[0]['body']['parcels'];
     expect($parcels)->toHaveCount(2)
-        ->and($parcels[0]['items'])->toHaveCount(2)
+        ->and($parcels[0]['items'])->toHaveCount(1)
         ->and($parcels[1]['items'])->toHaveCount(1)
+        ->and($parcels[0]['items'][0]['quantity'])->toEqual(2)
+        ->and($parcels[1]['items'][0]['quantity'])->toEqual(1)
         ->and($parcels[1]['weight'])->toEqual(2.5);
 
     // ...and the split was persisted after the successful booking.
     $meta = ss_browser_shipment_ids($order_id);
     expect($meta['label_id'])->toStartWith('browser-shipment-')
-        ->and(array_column($meta['parcels'], 'value'))->toBe(['1', '1', '2']);
+        ->and($meta['parcels']['specs'])->toHaveCount(2)
+        ->and($meta['parcels']['specs'][0]['items'][0]['quantity'])->toBe(2)
+        ->and($meta['parcels']['specs'][1]['items'][0]['quantity'])->toBe(1)
+        ->and($meta['parcels']['specs'][0]['items'][0]['order_item_id'])
+        ->toBe($meta['parcels']['specs'][1]['items'][0]['order_item_id']);
+});
+
+it('requires an explicit reset before booking an unsupported or stale parcel plan', function (int $index, bool $legacy) {
+    $order_id = ss_browser_state()['orders'][$index];
+    $legacy_php = $legacy ? 'true' : 'false';
+    $stored = ss_browser_wp_eval(<<<PHP
+\$order = wc_get_order({$order_id});
+\$line = array_values(\$order->get_items())[0];
+\$plan = {$legacy_php}
+    ? array(array('id' => \$line->get_product_id(), 'name' => \$line->get_name(), 'value' => '2'))
+    : array('specs' => array(array(
+        'reference' => '1',
+        'items' => array(array('order_item_id' => \$line->get_id(), 'quantity' => 2, 'name' => \$line->get_name())),
+        'weight' => null, 'length' => null, 'width' => null, 'height' => null,
+    )));
+\$order->update_meta_data('ss_shipping_order_parcels', \$plan);
+\$order->save();
+echo json_encode(array('plan' => \$plan));
+PHP)['plan'];
+    ss_browser_reset_api_requests();
+
+    $page = ss_browser_open_order($order_id)
+        ->assertSeeIn('[data-ss-value="parcel_plan.summary"]', 'Reset required')
+        ->assertPresent('[data-ss-notice="parcel_plan_invalid"]')
+        ->assertPresent('[data-ss-action="reset-parcels"]')
+        ->assertNotPresent('[data-ss-action="edit-parcels"]')
+        ->click('[data-ss-action="create-label"]')
+        ->click('[data-ss-action="create-return-label"]')
+        ->assertPresent('[data-ss-notice="parcel_plan_invalid"]')
+        ->assertNotPresent('[data-ss-result="outbound"]')
+        ->assertNotPresent('[data-ss-result="return"]');
+
+    expect(ss_browser_api_requests('booking'))->toBe([])
+        ->and(ss_browser_shipment_ids($order_id)['parcels'])->toBe($stored);
+
+    $page->click('[data-ss-action="reset-parcels"]')
+        ->assertNotPresent('[data-ss-notice="parcel_plan_invalid"]')
+        ->assertSeeIn('[data-ss-value="parcel_plan.summary"]', '1 parcel · 1.00 kg')
+        ->assertPresent('[data-ss-action="edit-parcels"]')
+        ->click('[data-ss-action="create-label"]')
+        ->assertPresent('[data-ss-result="outbound"]')
+        ->assertNoJavaScriptErrors();
+
+    expect(ss_browser_api_requests('booking'))->toHaveCount(1)
+        ->and(ss_browser_shipment_ids($order_id)['parcels'])->toBe(['specs' => []]);
+})->with([
+    'legacy product allocations' => [16, true],
+    'stale order-line quantities' => [18, false],
+]);
+
+it('keeps repeated product lines separate when allocating and reloading parcels', function () {
+    $order_id = ss_browser_state()['orders'][15];
+    $lines = ss_browser_wp_eval(<<<PHP
+\$order = wc_get_order({$order_id});
+\$first = array_values(\$order->get_items())[0];
+\$second = new WC_Order_Item_Product();
+\$second->set_product(\$first->get_product());
+\$second->set_name('Discounted duplicate line');
+\$second->set_quantity(3);
+\$second->set_subtotal(300);
+\$second->set_total(60);
+\$order->add_item(\$second);
+\$order->calculate_totals(false);
+\$order->save();
+echo json_encode(array('first' => \$first->get_id(), 'second' => \$second->get_id()));
+PHP);
+    ss_browser_reset_api_requests();
+
+    $first = '[data-ss-line="' . $lines['first'] . '"]';
+    $second = '[data-ss-line="' . $lines['second'] . '"]';
+    ss_browser_open_order($order_id)
+        ->click('[data-ss-action="edit-parcels"]')
+        ->assertCount('[data-ss-box="1"] [data-ss-line]', 2)
+        ->assertSeeIn($first . ' [data-ss-value="line.count"]', '× 2')
+        ->assertSeeIn($second . ' [data-ss-value="line.count"]', '× 3')
+        ->assertSeeIn($second . ' [data-ss-value="line.name"]', 'Discounted duplicate line')
+        ->click($second . ' [data-ss-action="move-down"]')
+        ->assertSeeIn('[data-ss-box="1"] ' . $first . ' [data-ss-value="line.count"]', '× 2')
+        ->assertSeeIn('[data-ss-box="1"] ' . $second . ' [data-ss-value="line.count"]', '× 2')
+        ->assertSeeIn('[data-ss-box="2"] ' . $second . ' [data-ss-value="line.count"]', '× 1')
+        ->assertNotPresent('[data-ss-box="2"] ' . $first)
+        ->click('[data-ss-action="create-label"]')
+        ->assertPresent('[data-ss-result="outbound"]');
+
+    $requests = ss_browser_api_requests('booking');
+    expect($requests)->toHaveCount(1);
+    $parcels = $requests[0]['body']['parcels'];
+    expect($parcels)->toHaveCount(2)
+        ->and($parcels[0]['items'])->toHaveCount(2)
+        ->and(array_column($parcels[0]['items'], 'internal_id'))->toEqual([(string) $lines['first'], (string) $lines['second']])
+        ->and(array_column($parcels[0]['items'], 'quantity'))->toEqual([2, 2])
+        ->and(array_column($parcels[0]['items'], 'total_price_excluding_tax'))->toEqual([200, 40])
+        ->and($parcels[1]['items'])->toHaveCount(1)
+        ->and($parcels[1]['items'][0]['internal_id'])->toBe((string) $lines['second'])
+        ->and($parcels[1]['items'][0]['quantity'])->toEqual(1)
+        ->and($parcels[1]['items'][0]['total_price_excluding_tax'])->toEqual(20);
+
+    ss_browser_open_order($order_id)
+        ->click('[data-ss-action="edit-parcels"]')
+        ->assertSeeIn('[data-ss-box="1"] ' . $first . ' [data-ss-value="line.count"]', '× 2')
+        ->assertSeeIn('[data-ss-box="1"] ' . $second . ' [data-ss-value="line.count"]', '× 2')
+        ->assertSeeIn('[data-ss-box="2"] ' . $second . ' [data-ss-value="line.count"]', '× 1')
+        ->assertNoJavaScriptErrors();
+});
+
+it('shows a deleted product without an SKU and still books the order line', function () {
+    $order_id = ss_browser_state()['orders'][17];
+    $line = ss_browser_wp_eval(<<<PHP
+\$order = wc_get_order({$order_id});
+foreach (\$order->get_items() as \$existing_item) {
+    \$order->remove_item(\$existing_item->get_id());
+}
+\$product = new WC_Product_Simple();
+\$product->set_name('Product removed after purchase');
+\$product->set_regular_price('75');
+\$product->set_sku('SS-BROWSER-DELETED-' . {$order_id});
+\$product->save();
+\$item_id = \$order->add_product(\$product, 1);
+\$order->calculate_totals(false);
+\$order->save();
+\$product->delete(true);
+echo json_encode(array('id' => \$item_id));
+PHP);
+    ss_browser_reset_api_requests();
+
+    ss_browser_open_order($order_id)
+        ->assertSeeIn('[data-ss-value="parcel_plan.summary"]', 'weight required')
+        ->click('[data-ss-action="edit-parcels"]')
+        ->assertCount('[data-ss-line]', 1)
+        ->assertSeeIn('[data-ss-line="' . $line['id'] . '"] [data-ss-value="line.name"]', 'Deleted')
+        ->assertNotPresent('[data-ss-line="' . $line['id'] . '"] [data-ss-value="line.sku"]')
+        ->assertAttribute('[data-ss-field="parcel_plan.specs[0].weight"]', 'placeholder', 'Enter weight')
+        ->click('[data-ss-action="create-label"]')
+        ->assertSeeIn('[data-ss-error="parcel_plan.specs[0].weight"]', 'Enter a parcel weight before booking')
+        ->assertNotPresent('[data-ss-result="outbound"]')
+        ->fill('[data-ss-field="parcel_plan.specs[0].weight"]', '1.5')
+        ->assertSeeIn('[data-ss-value="parcel_plan.summary"]', '1.50 kg')
+        ->click('[data-ss-action="create-label"]')
+        ->assertPresent('[data-ss-result="outbound"]')
+        ->assertNoJavaScriptErrors();
+
+    $requests = ss_browser_api_requests('booking');
+    expect($requests)->toHaveCount(1)
+        ->and($requests[0]['body']['parcels'][0]['items'][0]['internal_id'])->toBe((string) $line['id'])
+        ->and($requests[0]['body']['parcels'][0]['items'][0]['name'])->toBe('Deleted')
+        ->and($requests[0]['body']['parcels'][0]['weight'])->toEqual(1.5);
 });
 
 it('overrides the pickup point through the lookup and reports an unknown agent number on the field', function () {

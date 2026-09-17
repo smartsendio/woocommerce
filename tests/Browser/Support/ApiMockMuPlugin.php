@@ -30,7 +30,7 @@
  *
  * Cases authenticate: success 401
  * Cases pickup-points: success empty
- * Cases booking: success 422-wrong-zip 422-agent-no
+ * Cases booking: success 422-wrong-zip 422-agent-no 422-customs
  * Cases labels-combine: success
  * Cases agent-lookup: success not-found
  *
@@ -157,7 +157,17 @@ add_filter('pre_http_request', function ($pre, $args, $url) {
                 ),
             ), 422);
         }
-        if ($error = $generic('booking', $case, array('422-wrong-zip', '422-agent-no'))) {
+        if ($case === '422-customs') {
+            return $respond(array(
+                'message' => 'The given data was invalid.',
+                'errors' => array(
+                    'parcels.0.items.0.hs_code' => array('The HS code is required for customs.'),
+                    'parcels.0.items.0.country_of_origin' => array('The country of origin is required for customs.'),
+                ),
+            ), 422);
+        }
+
+        if ($error = $generic('booking', $case, array('422-wrong-zip', '422-agent-no', '422-customs'))) {
             return $error;
         }
 

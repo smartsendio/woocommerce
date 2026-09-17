@@ -5,6 +5,7 @@ namespace Smart_Send\Admin;
 use Smart_Send\Booking\Booked_Parcel;
 use Smart_Send\Booking\Booked_Shipment;
 use Smart_Send\Booking\Exceptions\Booking_Exception;
+use Smart_Send\Booking\Order_Reader;
 use Smart_Send\Delivery\Method_Resolver;
 use Smart_Send\Delivery\Order_Meta;
 use Smart_Send\Delivery\Pickup_Point;
@@ -182,10 +183,11 @@ class Order_Fulfillment_Presenter {
 
 		return array(
 			'order_id'          => $order_id,
+			'parcel_plan_error' => $this->order_meta->parcel_plan_error( $order ),
 			'connected'         => $this->is_connected(),
 			'screen'            => $this->screen(),
 			'order'             => array(
-				'weight_kg'        => round( array_sum( wp_list_pluck( $units, 'unit_weight' ) ), 2 ),
+				'weight_kg'        => in_array( null, wp_list_pluck( $units, 'unit_weight' ), true ) ? null : round( array_sum( wp_list_pluck( $units, 'unit_weight' ) ), 2 ),
 				'shipping_country' => (string) $order->get_shipping_country(),
 				'units'            => $units,
 			),
@@ -363,7 +365,7 @@ class Order_Fulfillment_Presenter {
 	 *
 	 *   agent_no, agent.*          -> pickup_point.agent_no
 	 *   parcels.N.weight           -> parcel_plan.specs[N].weight  (likewise height, width, length)
-	 *   parcels.N.items.M.<field>  -> parcel_plan.specs[N].items[M].<field>
+	 *   parcels.N.items.M.<field>   -> null (the general notice)
 	 *   parcels.N / parcels        -> parcel_plan.specs[N] / parcel_plan
 	 *   shipping_method, shipping_carrier -> shipping_method
 	 *
@@ -372,6 +374,15 @@ class Order_Fulfillment_Presenter {
 	 * @return string|null
 	 */
 	public function map_api_field( string $api_field ): ?string {
+		if ( 'parcel_plan' === $api_field || 0 === strpos( $api_field, 'parcel_plan.items.' ) ) {
+			return 'parcel_plan';
+		}
+		if ( 0 === strpos( $api_field, 'parcel_plan.specs.' ) ) {
+			if ( false !== strpos( $api_field, '.items' ) ) {
+				return 'parcel_plan';
+			}
+			return preg_replace( '/\.(\d+)(?=\.|$)/', '[$1]', $api_field );
+		}
 		if ( 'agent_no' === $api_field || 'agent' === $api_field || 0 === strpos( $api_field, 'agent.' ) ) {
 			return 'pickup_point.agent_no';
 		}
@@ -391,8 +402,9 @@ class Order_Fulfillment_Presenter {
 				return $field;
 			}
 
-			if ( preg_match( '/^items\.(\d+)(?:\.(.+))?$/', $m[2], $item ) ) {
-				return $field . '.items[' . (int) $item[1] . ']' . ( isset( $item[2] ) ? '.' . $item[2] : '' );
+			if ( ! in_array( $m[2], array( 'weight', 'length', 'width', 'height' ), true ) ) {
+				// Item/customs fields have no editable control; keep their errors in the general notice.
+				return null;
 			}
 
 			return $field . '.' . $m[2];
@@ -818,9 +830,9 @@ class Order_Fulfillment_Presenter {
 
 	/**
 	 * The order's units, one row per unit (quantity expanded), with the
-	 * variation-aware id the parcel plan allocates by, the order line
-	 * name and the unit weight in kg. A product that no longer exists
-	 * yields a 0 weight rather than breaking the order screen.
+	 * order-item id the parcel plan allocates by, separate catalog ids,
+	 * the order line name and unit weight in kg. A deleted product yields
+	 * a translated placeholder and unknown weight, requiring manual input.
 	 *
 	 * @param WC_Order $order The order.
 	 *
@@ -830,18 +842,21 @@ class Order_Fulfillment_Presenter {
 		$units = array();
 
 		foreach ( $order->get_items() as $item ) {
-			$product_id = $item->get_variation_id() ? $item->get_variation_id() : $item->get_product_id();
-			$product    = wc_get_product( $product_id );
-			$weight     = $product ? round( (float) wc_get_weight( $product->get_weight(), 'kg' ), 2 ) : 0.0;
+			$catalog_ids = Order_Reader::product_ids_for_item( $item );
+			$product     = Order_Reader::product_for_item( $item );
+			$weight      = $product ? round( (float) wc_get_weight( $product->get_weight(), 'kg' ), 2 ) : null;
 
 			$quantity = (int) $item->get_quantity();
 
 			for ( $unit = 0; $unit < $quantity; $unit++ ) {
 				$units[] = array(
-					'id'          => (int) $product_id,
-					'name'        => (string) $item->get_name(),
-					'sku'         => $product ? (string) $product->get_sku() : '',
-					'unit_weight' => $weight,
+					'order_item_id'   => (int) $item->get_id(),
+					'product_id'      => $catalog_ids['product_id'],
+					'variation_id'    => $catalog_ids['variation_id'],
+					'name'            => $product ? (string) $item->get_name() : __( 'Deleted', 'smart-send-logistics' ),
+					'sku'             => $product ? (string) $product->get_sku() : '',
+					'unit_weight'     => $weight,
+					'product_missing' => ! $product,
 				);
 			}
 		}

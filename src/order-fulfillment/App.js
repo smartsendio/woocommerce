@@ -71,7 +71,7 @@ import ErrorNotice from './ErrorNotice';
  * The form model derived from a state object.
  */
 function formFromState( state ) {
-	const { boxes, assignment } = boxesFromPlan( state.order.units, state.delivery_details.parcel_plan );
+	const { boxes, assignment, error } = boxesFromPlan( state.order.units, state.delivery_details.parcel_plan );
 
 	return {
 		shippingMethod: state.delivery_details.shipping_method || '',
@@ -80,6 +80,7 @@ function formFromState( state ) {
 		returnMethod: state.return.method || '',
 		boxes,
 		assignment,
+		parcelPlanError: state.parcel_plan_error || ( error ? __( 'The saved parcel allocation no longer matches this order. Reset to one parcel before booking.', 'smart-send-logistics' ) : null ),
 	};
 }
 
@@ -278,6 +279,11 @@ export default function App( { initialState, mount } ) {
 	const submit = async ( flow ) => {
 		clearErrors();
 
+		if ( form.parcelPlanError ) {
+			cancelConfirm();
+			return;
+		}
+
 		const missing = missingMethod( flow );
 		if ( missing ) {
 			cancelConfirm();
@@ -374,7 +380,7 @@ export default function App( { initialState, mount } ) {
 				className="smart-send-fulfillment__action"
 				data-ss-action={ flow === 'return' ? 'create-return-label' : 'create-label' }
 				data-ss-confirm={ pendingConfirm === flow ? 'rebook' : undefined }
-				title={ missing ? missing.message : undefined }
+				title={ form.parcelPlanError || ( missing ? missing.message : undefined ) }
 				onClick={ () => submit( flow ) }
 				disabled={ disabled }
 				isBusy={ submitting === flow }
@@ -509,11 +515,16 @@ export default function App( { initialState, mount } ) {
 				units={ state.order.units }
 				boxes={ form.boxes }
 				assignment={ form.assignment }
+				planError={ form.parcelPlanError }
 				editing={ editing.parcels }
 				editable={ editable }
 				onEdit={ () => edit( 'parcels' ) }
 				onDone={ () => edit( 'parcels', false ) }
 				onChange={ ( boxes, assignment ) => updateForm( { boxes, assignment } ) }
+				onReset={ ( boxes, assignment ) => {
+					updateForm( { boxes, assignment, parcelPlanError: null } );
+					clearErrors();
+				} }
 				errors={ fieldErrors }
 				disabled={ disabled }
 			/>

@@ -20,7 +20,7 @@
  * "Reset to one parcel" clears a stored split.
  */
 import { createElement } from '@wordpress/element';
-import { Button } from '@wordpress/components';
+import { Button, Notice } from '@wordpress/components';
 import { __, _n, sprintf } from '@wordpress/i18n';
 
 import { boxLines, computedBoxWeight, dropBoxIfEmpty, emptyBox, formatWeight, moveOneUnit, totalWeight } from './model';
@@ -35,7 +35,7 @@ const DIMENSIONS = [
 	[ 'height', 'H' ],
 ];
 
-export default function ParcelEditor( { units, boxes, assignment, editing, editable = true, onEdit, onDone, onChange, errors, disabled } ) {
+export default function ParcelEditor( { units, boxes, assignment, planError, editing, editable = true, onEdit, onDone, onChange, onReset, errors, disabled } ) {
 	const update = ( nextBoxes, nextAssignment ) => onChange( nextBoxes, nextAssignment );
 
 	const setBoxValue = ( boxIndex, key, value ) => {
@@ -67,14 +67,26 @@ export default function ParcelEditor( { units, boxes, assignment, editing, edita
 	// box while emptying this one.
 	const isStuckBelow = ( line, boxIndex, lines ) => boxIndex === boxes.length - 1 && lines.length === 1 && line.count === 1;
 
-	const reset = () => update( [ emptyBox() ], units.map( () => 0 ) );
-
-	const summary = sprintf(
-		/* translators: 1: number of parcels, 2: total weight in kg. */
-		_n( '%1$d parcel · %2$s kg', '%1$d parcels · %2$s kg', boxes.length, 'smart-send-logistics' ),
-		boxes.length,
-		formatWeight( totalWeight( units, boxes, assignment ) )
+	const reset = () => onReset( [ emptyBox() ], units.map( () => 0 ) );
+	const resetButton = (
+		<button type="button" className="button-link smart-send-fulfillment__reset" data-ss-action="reset-parcels" onClick={ reset } disabled={ disabled }>
+			{ __( 'Reset to one parcel', 'smart-send-logistics' ) }
+		</button>
 	);
+
+	const weight = totalWeight( units, boxes, assignment );
+	const summary = weight === null
+		? sprintf(
+			/* translators: %d: number of parcels with at least one unknown weight. */
+			_n( '%d parcel · weight required', '%d parcels · weight required', boxes.length, 'smart-send-logistics' ),
+			boxes.length
+		)
+		: sprintf(
+			/* translators: 1: number of parcels, 2: total weight in kg. */
+			_n( '%1$d parcel · %2$s kg', '%1$d parcels · %2$s kg', boxes.length, 'smart-send-logistics' ),
+			boxes.length,
+			formatWeight( weight )
+		);
 
 	return (
 		<DetailRow
@@ -82,20 +94,28 @@ export default function ParcelEditor( { units, boxes, assignment, editing, edita
 			section="parcel_plan"
 			label={ __( 'Parcels', 'smart-send-logistics' ) }
 			help={ PARCELS_HELP }
-			summary={ <span className="smart-send-fulfillment__summary" data-ss-value="parcel_plan.summary">{ summary }</span> }
+			summary={ <span className="smart-send-fulfillment__summary" data-ss-value="parcel_plan.summary">{ planError ? __( 'Reset required', 'smart-send-logistics' ) : summary }</span> }
 			action="edit-parcels"
-			editable={ editable }
+			editable={ editable && ! planError }
 			editing={ editing }
 			onEdit={ onEdit }
-			control={ editing && (
+			control={ editing && ! planError && (
 				<Button variant="secondary" size="small" className="smart-send-fulfillment__done" data-ss-action="done-parcels" onClick={ onDone } disabled={ disabled }>
 					{ __( 'Done', 'smart-send-logistics' ) }
 				</Button>
 			) }
 		>
 			<FieldError field="parcel_plan" errors={ errors } />
+			{ planError && (
+				<div className="smart-send-fulfillment__notice" data-ss-notice="parcel_plan_invalid">
+					<Notice status="error" isDismissible={ false }>
+						<p>{ planError }</p>
+						{ editable && resetButton }
+					</Notice>
+				</div>
+			) }
 
-			{ editing && (
+			{ editing && ! planError && (
 				<div className="smart-send-fulfillment__boxes" data-ss-section="parcel_editor">
 					{ boxes.map( ( box, boxIndex ) => {
 						const computed = computedBoxWeight( units, assignment, boxIndex );
@@ -120,7 +140,7 @@ export default function ParcelEditor( { units, boxes, assignment, editing, edita
 											inputMode="decimal"
 											data-ss-field={ `parcel_plan.specs[${ boxIndex }].weight` }
 											value={ box.weight }
-											placeholder={ formatWeight( computed ) }
+											placeholder={ computed === null ? __( 'Enter weight', 'smart-send-logistics' ) : formatWeight( computed ) }
 											onChange={ ( event ) => setBoxValue( boxIndex, 'weight', event.target.value ) }
 											disabled={ disabled }
 											autoComplete="off"
@@ -204,9 +224,7 @@ export default function ParcelEditor( { units, boxes, assignment, editing, edita
 						);
 					} ) }
 
-					<button type="button" className="button-link smart-send-fulfillment__reset" data-ss-action="reset-parcels" onClick={ reset } disabled={ disabled }>
-						{ __( 'Reset to one parcel', 'smart-send-logistics' ) }
-					</button>
+					{ resetButton }
 				</div>
 			) }
 		</DetailRow>

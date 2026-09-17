@@ -9,31 +9,18 @@
 
 namespace Smart_Send\Delivery;
 
-use WC_Order;
+use InvalidArgumentException;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit; // Exit if accessed directly.
 }
 
 /**
- * An ordered list of Parcel_Spec (#139): how an order is
- * planned to be packed. An empty plan means one parcel containing
- * everything.
+ * Ordered parcel specifications with explicit order-item allocations.
  *
- * The plan converts to and from the frozen "Split into parcels" meta
- * format (rows of id/name/value, one row per unit, value being the box
- * number 1-9) via from_box_rows()/to_box_rows(); the repository
- * (Order_Meta) and the label-creation controller both use
- * that frozen row shape at their boundaries.
- *
- * to_array()/from_array() are the canonical JSON form of a plan (#182):
- * array( 'specs' => array( Parcel_Spec::to_array(), ... ) ).
- * Unlike the frozen box rows, this form carries a spec's weight and
- * dimensions and can express specs without items. An empty 'specs'
- * list is the empty plan (one parcel containing everything).
- *
- * Serializable, with no live WC_Order or WordPress dependency
- * (Phase 7 queues delivery details).
+ * The canonical stored and JSON form is array( 'specs' => array( ... ) ).
+ * An empty plan, or one itemless spec, places all ordered items together.
+ * Several parcels require explicit allocations covering every ordered unit.
  */
 class Parcel_Plan {
 
@@ -45,86 +32,75 @@ class Parcel_Plan {
 	protected array $specs = array();
 
 	/**
-	 * Build a plan from parcel-split rows in the frozen meta shape:
-	 * one row per unit, each with 'id' (product/variation id), 'name'
-	 * (label) and 'value' (box number). Boxes become specs in
-	 * first-occurrence order; units of the same id in the same box
-	 * merge into one allocation with a quantity.
+	 * Parse canonical parcel data; legacy product-id box rows are rejected.
 	 *
-	 * @param array $rows The parcel-split rows.
-	 *
+	 * @param array $data The canonical plan shape.
 	 * @return self
-	 */
-	public static function from_box_rows( array $rows ): self {
-		$plan = new self();
-
-		// Group rows per box number, preserving first-occurrence order
-		// (mirrors the historic build_split_parcels() grouping).
-		$boxes = array();
-		foreach ( $rows as $row ) {
-			$boxes[ $row['value'] ][] = $row;
-		}
-
-		foreach ( $boxes as $box_no => $box_rows ) {
-			$spec = new Parcel_Spec();
-			$spec->set_reference( (string) $box_no );
-
-			foreach ( $box_rows as $row ) {
-				$spec->add_item( $row['id'], 1, isset( $row['name'] ) ? $row['name'] : null );
-			}
-
-			$plan->add_spec( $spec );
-		}
-
-		return $plan;
-	}
-
-	/**
-	 * Convert the plan back to the frozen meta row shape: one row per
-	 * unit with id, name and value (the spec's reference, falling back
-	 * to its 1-based position).
-	 *
-	 * @return array[]
-	 */
-	public function to_box_rows(): array {
-		$rows = array();
-
-		foreach ( array_values( $this->specs ) as $index => $spec ) {
-			$reference = $spec->get_reference();
-			$box_no    = null === $reference ? (string) ( $index + 1 ) : $reference;
-
-			foreach ( $spec->get_items() as $item ) {
-				for ( $unit = 0; $unit < $item['quantity']; $unit++ ) {
-					$rows[] = array(
-						'id'    => $item['id'],
-						'name'  => $item['name'],
-						'value' => $box_no,
-					);
-				}
-			}
-		}
-
-		return $rows;
-	}
-
-	/**
-	 * Build a plan from its to_array() form (the canonical JSON shape).
-	 * A missing or empty 'specs' list is the empty plan.
-	 *
-	 * @param array $data The array produced by to_array() (or the decoded JSON of a request).
-	 *
-	 * @return self
+	 * @throws InvalidArgumentException When the plan shape is invalid.
 	 */
 	public static function from_array( array $data ): self {
-		$plan = new self();
+		if ( array() !== $data && ( array( 'specs' ) !== array_keys( $data ) || ! is_array( $data['specs'] ) ) ) {
+			// phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- Plain-text data exception caught at the persistence or request boundary.
+			throw new InvalidArgumentException( 'The parcel plan must contain a specs array; legacy parcel rows are not supported.' );
+		}
 
-		foreach ( isset( $data['specs'] ) && is_array( $data['specs'] ) ? $data['specs'] : array() as $spec ) {
-			if ( is_array( $spec ) ) {
-				$plan->add_spec( Parcel_Spec::from_array( $spec ) );
+		$plan = new self();
+		foreach ( isset( $data['specs'] ) ? $data['specs'] : array() as $spec ) {
+			if ( ! is_array( $spec ) ) {
+				// phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- Plain-text data exception caught at the persistence or request boundary.
+				throw new InvalidArgumentException( 'Every parcel specification must be an object.' );
 			}
+			$plan->add_spec( Parcel_Spec::from_array( $spec ) );
 		}
 
 		return $plan;
+	}
+
+	/**
+	 * Validate complete allocation against current order-item identities.
+	 *
+	 * @param array $order_items Reader rows or order_item_id => quantity pairs.
+	 * @return array<string, string[]> Field names mapped to plain-text errors.
+	 */
+	public function validation_errors( array $order_items ): array {
+		$errors   = array();
+		$expected = array();
+		foreach ( $order_items as $key => $row ) {
+			$id       = is_array( $row ) ? ( $row['order_item_id'] ?? null ) : $key;
+			$quantity = is_array( $row ) ? ( $row['quantity'] ?? null ) : $row;
+			if ( ! Parcel_Spec::is_positive_integer( $id ) || ! Parcel_Spec::is_positive_integer( $quantity ) || isset( $expected[ $id ] ) ) {
+				$errors['parcel_plan'][] = __( 'The order contains an invalid or duplicated order-item identity or quantity.', 'smart-send-logistics' );
+				continue;
+			}
+			$expected[ (int) $id ] = (int) $quantity;
+		}
+
+		if ( $this->is_empty() || ( 1 === count( $this->specs ) && ! $this->specs[0]->has_items() ) ) {
+			return $errors;
+		}
+
+		$allocated = array();
+		foreach ( $this->specs as $index => $spec ) {
+			if ( ! $spec->has_items() && array() !== $expected ) {
+				$errors[ 'parcel_plan.specs.' . $index . '.items' ][] = __( 'Assign order items to every parcel when using more than one parcel.', 'smart-send-logistics' );
+			}
+			foreach ( $spec->get_items() as $allocation ) {
+				$id = $allocation['order_item_id'];
+				if ( ! isset( $expected[ $id ] ) ) {
+					$errors[ 'parcel_plan.specs.' . $index . '.items' ][] = __( 'A parcel references an order item that is no longer in the order.', 'smart-send-logistics' );
+					continue;
+				}
+				$allocated[ $id ] = ( $allocated[ $id ] ?? 0 ) + $allocation['quantity'];
+			}
+		}
+
+		foreach ( $expected as $id => $quantity ) {
+			if ( ( $allocated[ $id ] ?? 0 ) !== $quantity ) {
+				$errors[ 'parcel_plan.items.' . $id . '.quantity' ][] = __( 'Parcel quantities must allocate every ordered unit exactly once.', 'smart-send-logistics' );
+			}
+		}
+
+		return $errors;
 	}
 
 	/**

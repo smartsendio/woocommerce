@@ -180,10 +180,12 @@ Fulfillment runs when the merchant creates a label on the order page or uses the
 Deciding what ships:
 
 * **smart_send_delivery_details** `( Smart_Send\Delivery\Delivery_Details $details, WC_Order $order, bool $is_return )` (since 9.0.0)
-    Filter on the merged delivery details - the stored order configuration plus the shipping method resolved from the order - right before booking is called. This is the one place to override the shipping method (`set_shipping_method('gls_shop')`), clear or replace the pickup point (`set_pickup_point()` with a `\Smart_Send\Delivery\Pickup_Point` or `null`) or declare the parcel split (`set_parcel_plan()` with a `\Smart_Send\Delivery\Parcel_Plan` of `\Smart_Send\Delivery\Parcel_Spec` rows - a spec may carry dimensions and an explicit weight with no item allocations at all). Return the details object.
-    The details the merchant submitted in the order meta box (shipping method, pickup point, parcels) are already merged into `$details` when the filter runs - a submitted value wins over the stored one. They are stored on the order only after the booking succeeds: the submitted pickup point and the parcel item rows are written first, then the shipment id; a failed booking leaves the order meta untouched. The submitted shipping method and a parcel's weight and dimensions are per booking and are never stored. What the filter returns is what gets booked, but it is not what gets stored.
+    Filter on the merged delivery details - the stored order configuration plus the shipping method resolved from the order - right before booking is called. This is the one place to override the shipping method (`set_shipping_method('gls_shop')`), clear or replace the pickup point (`set_pickup_point()` with a `\Smart_Send\Delivery\Pickup_Point` or `null`) or declare the parcel split (`set_parcel_plan()` with a `\Smart_Send\Delivery\Parcel_Plan` of `\Smart_Send\Delivery\Parcel_Spec` rows). Allocate items with `$spec->add_item($order_item_id, $quantity, $name)`: the ID is a WooCommerce order-item ID, never a product or variation ID. The optional name is only a display label. Return the details object.
+    The details the merchant submitted in the order meta box (shipping method, pickup point, parcels) are already merged into `$details` when the filter runs - a submitted value wins over the stored one. They are stored on the order only after the booking succeeds: the submitted pickup point and the parcel item rows are written first, then the shipment id; a failed booking leaves the order meta untouched. The submitted shipping method and a parcel's weight and dimensions are per booking and are never stored. A combined outbound/return booking uses the submitted parcel plan for both legs unless an explicit return plan overrides it. What the filter returns is what gets booked, but it is not what gets stored.
 * **smart_send_parcel_default_weight** `( float $weight, Smart_Send\Delivery\Parcel_Spec $spec, WC_Order $order )` (since 9.0.0)
-    Filter on the weight of a parcel that has no explicit weight: the sum of the weights of the items allocated to it (0 when the items weigh nothing or the parcel has no items). Use it to add packaging weight or apply a minimum. A parcel with an explicit weight - entered in the order meta box, or `set_weight()` on the spec in `smart_send_delivery_details` - bypasses this filter entirely
+    Filter on the weight of a parcel that has no explicit weight: the sum of the weights of the items allocated to it (0 when the items weigh nothing or the parcel has no items). Use it to add packaging weight or apply a minimum. This remains a float-to-float filter. A parcel with an explicit weight - entered in the order meta box, or `set_weight()` on the spec in `smart_send_delivery_details` - bypasses this filter entirely. When a deleted product leaves an allocated item's weight unknown, enter a positive explicit parcel weight; booking stops with a weight-field error before this filter runs.
+
+Every order unit must be allocated exactly once across the plan, including for return labels. Unknown order-item IDs, duplicate rows within a parcel, fractional or non-positive quantities, and under- or over-allocation are rejected. An absent or empty plan means one parcel containing everything. One spec without item allocations also contains everything, and can supply a manual weight and dimensions. Multiple specs without allocations are rejected when the order contains items. Each parcel contains one item row per allocated order line, with its allocated quantity and share of the line's discounted net and tax amounts. Rounding follows the store's currency precision, with the final allocation taking the remainder so the amounts reconcile. Parcel totals contain the allocated merchandise amounts; order-level fees remain in the shipment totals.
 
 What the order screen offers:
 
@@ -242,12 +244,11 @@ Example: offer only PostNord pickup point services on the order screen for heavy
         return array_values($carriers);
     }, 10, 3);
 
-Example: ship every order in two parcels of fixed size and weight, with no item allocation:
+Example: ship all order items in one parcel with a fixed size and weight:
 
     add_filter('smart_send_delivery_details', function (\Smart_Send\Delivery\Delivery_Details $details, WC_Order $order, bool $is_return) {
         $plan = new \Smart_Send\Delivery\Parcel_Plan();
         $plan->add_spec((new \Smart_Send\Delivery\Parcel_Spec())->set_weight(4)->set_length(30)->set_width(20)->set_height(10));
-        $plan->add_spec((new \Smart_Send\Delivery\Parcel_Spec())->set_weight(2.5)->set_length(15)->set_width(15)->set_height(15));
 
         return $details->set_parcel_plan($plan);
     }, 10, 3);
@@ -300,7 +301,8 @@ Reading the order (the data that goes into the request):
 * **smart_send_payload_receiver** `( array $receiver, WC_Order $order )` (since 9.0.0)
     Filter on the receiver data read from the order
 * **smart_send_payload_items** `( array $items, WC_Order $order )` (since 9.0.0)
-    Filter on the item lines read from the order
+    Filter on the item lines read from the order. Each row identifies the purchased line with `order_item_id`, and keeps the catalog `product_id` and `variation_id` separate (`variation_id` is 0 for a simple product). Rows also contain `sku`, the saved order-line `name`, `description`, `hs_code`, `country_of_origin`, `quantity`, `unit_weight` in kg, `total_net_amount`, `total_tax_amount` and `product_missing`. Preserve the order-item identity and quantity so parcel allocations can be validated. The API item's `internal_id` and `internal_reference` use the order-item ID.
+    A deleted product or variation is shown as the translatable "Deleted" with an empty SKU; its order-line quantity and amounts are retained, while weight and customs fields are null. Historical product data is not reconstructed. A new outbound or return booking requires an explicit parcel weight when any allocated weight is unknown. Missing required customs data remains an actionable API validation error rather than being guessed.
 * **smart_send_payload_totals** `( array $totals, WC_Order $order )` (since 9.0.0)
     Filter on the order totals read from the order
 * **smart_send_shipment_freetext** `( string|null $freetext, WC_Order $order )` (since 9.0.0)
@@ -342,7 +344,7 @@ Example: react to a completed booking and to a rejected one:
 
 = Meta fields =
 
-The following meta fields are used by the plugin. The order meta keys and their stored formats are a stable public contract - in particular the pickup point selection under **ss_shipping_order_agent_no** (the pickup point number) and **_ss_shipping_order_agent** (the stored pickup point object). Read and write them through the hooks above rather than directly where you can (`smart_send_delivery_details` sees the pickup point and parcel split; `smart_send_order_fulfilled` sees the booked shipment ids):
+The following meta fields are used by the plugin. Version 9 changes the parcel allocation format described below. The other meta keys and stored formats remain unchanged, including the pickup point selection under **ss_shipping_order_agent_no** (the pickup point number) and **_ss_shipping_order_agent** (the stored pickup point object). Read and write them through the hooks above rather than directly where you can (`smart_send_delivery_details` sees the pickup point and parcel split; `smart_send_order_fulfilled` sees the booked shipment ids):
 
 * **smart_send_shipping_method**
     Shipping item meta storing the Smart Send shipping method used when generating shipping labels (copied from the rate's meta at checkout)
@@ -351,7 +353,7 @@ The following meta fields are used by the plugin. The order meta keys and their 
 * **smart_send_auto_generate_return_label**
     Shipping item meta storing whether a return label is automatically created together with the shipping label
 * **ss_shipping_order_parcels**
-    Used for storing information how the orders items are split into parcels
+    Stores the canonical parcel plan: `array('specs' => array(array('reference' => '1', 'weight' => null, 'length' => null, 'width' => null, 'height' => null, 'items' => array(array('order_item_id' => 123, 'quantity' => 2, 'name' => 'Example item')))))`. Order-item IDs are local to the order. Weights and dimensions are per booking: the repository strips them to null when saving the plan. An empty plan clears the stored split. Old product-ID `id`/`name`/`value` rows are not read or migrated; use "Reset to one parcel" and enter the allocation again before booking. An allocation that no longer matches the order requires the same explicit reset.
 * **ss_shipping_order_agent_no**
     Used for storing the id of the selected pickup point
 * **_ss_shipping_order_agent**
@@ -414,6 +416,9 @@ No - this is by design. Neither deactivating nor uninstalling the plugin deletes
 * Support for High-Performance Order Storage (HPOS)
 * Check permissions before pickup-point custom-field lookups or changes, reject metadata rows belonging to another order, and persist pickup-point deletion with both order storage backends
 * Rebuilt order-screen meta box: books without a page reload, lets you change the shipping method, pickup point and parcels (weight and dimensions per box) before booking, and books orders placed with another shipping method. A booking is confirmed right in the box - the shipment with a link into the Smart Send app, every parcel with its tracking number, weight and dimensions, and the documents - and every label the order has is listed under "Booked shipments"; the form stays open, so another label is always one click away
+* Parcel allocations now use WooCommerce order-item IDs, keeping repeated purchases of the same product separate and requiring every ordered unit to be allocated exactly once. Item quantities and discounted amounts are aggregated per line and parcel, with rounding that preserves line totals
+* Replace the old product-ID parcel split format with a canonical parcel plan. Existing splits must be reset and entered again; parcel weights and dimensions remain per booking
+* Deleted products and variations display as "Deleted" without a SKU. Existing booked labels remain accessible; new bookings require an explicit parcel weight when a product's weight is unavailable
 * New filter smart_send_fulfillment_shipping_methods: restrict the shipping methods the order screen's "Smart Send" box offers in its method drop-downs, per order and per direction - see the Developers section
 * Minimum required WordPress version raised to 6.5
 * Minimum required WooCommerce version raised from 4.7 to 8.2
@@ -765,9 +770,11 @@ No - this is by design. Neither deactivating nor uninstalling the plugin deletes
 == Upgrade Notice ==
 
 = 9.0.0 =
-Version 9 is a complete rewrite of the plugin. Make a full site backup and [review update best practices](https://woocommerce.com/document/how-to-update-your-site/) before upgrading from 8.x. Existing settings, shipping methods and order data are kept.
+Version 9 is a complete rewrite of the plugin. Make a full site backup and [review update best practices](https://woocommerce.com/document/how-to-update-your-site/) before upgrading from 8.x. Existing settings, shipping methods, pickup points and booked-label access are kept. Saved parcel splits require the reset described below.
 
 * If your site uses Smart Send hooks or filters (custom code, a Code Snippets plugin or a theme), that code must be updated: the version 8 hooks and filters no longer fire, and the new hook API passes typed objects instead of raw data. The Developers section lists every hook, its arguments and examples. Test your snippets on a staging site before upgrading production.
+* Parcel splits saved in the old product-ID format are not migrated. On affected orders, choose "Reset to one parcel" and enter the allocation again before creating another shipping or return label. Custom integrations must use `order_item_id` and allocate every ordered unit exactly once. Parcel weights and dimensions still apply only to the current booking.
+* Products or variations deleted since the order was placed display as "Deleted" with no SKU. Enter an explicit parcel weight before booking them; missing customs data is not reconstructed. This does not remove access to labels already booked.
 * Requires WordPress 6.5, WooCommerce 8.2 and PHP 7.4 or newer. Sites on older versions should stay on the 8.x series.
 * Free shipping no longer makes a shipping method available for a cart weight outside the configured weight table; the weight table alone decides when the method is offered, and free shipping only zeroes the price. Check your weight tables if you relied on the free-shipping threshold to cover heavy carts.
 * The bulk label actions on the Orders screen process one selected order at a time. Bulk printing of several orders returns in a later 9.x release; if you need it now, stay on version 8.x.

@@ -220,16 +220,25 @@ function save_order_pickup_point(int $order_id, object $agent): void
     SS_SHIPPING_WC()->order_meta()->write($order_id, $details);
 }
 
-/**
- * Store a parcel split on an order through the repository, from rows in
- * the frozen id/name/value meta shape.
- */
-function save_order_parcels(int $order_id, array $rows): void
+/** Store a canonical order-item parcel plan through the repository. */
+function save_order_parcels(int $order_id, array $plan): void
 {
     $details = new \Smart_Send\Delivery\Delivery_Details();
-    $details->set_parcel_plan(\Smart_Send\Delivery\Parcel_Plan::from_box_rows($rows));
-
+    $details->set_parcel_plan(\Smart_Send\Delivery\Parcel_Plan::from_array($plan));
     SS_SHIPPING_WC()->order_meta()->write($order_id, $details);
+}
+
+/** Fixture convenience for orders with exactly one line for the given product. */
+function order_item_id_for_product(WC_Order $order, $product): int
+{
+    $product_id = $product instanceof WC_Product ? $product->get_id() : $product;
+    $matches = array_filter($order->get_items(), static function ($item) use ($product_id) {
+        return (int) ($item->get_variation_id() ?: $item->get_product_id()) === (int) $product_id;
+    });
+    if (count($matches) !== 1) {
+        throw new LogicException('Use the explicit order item ID when a fixture has duplicate product lines.');
+    }
+    return (int) reset($matches)->get_id();
 }
 
 /**

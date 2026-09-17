@@ -86,13 +86,13 @@ function expected_payload(WC_Order $order, array $overrides = []): array
 /**
  * A full expected item line for a simple product.
  */
-function expected_item(WC_Product $product, array $overrides = []): array
+function expected_item(WC_Order $order, WC_Product $product, array $overrides = []): array
 {
     $product_id = (string) $product->get_id();
 
     return array_replace([
-        'internal_id'        => $product_id,
-        'internal_reference' => $product_id,
+        'internal_id'        => (string) order_item_id_for_product($order, $product),
+        'internal_reference' => (string) order_item_id_for_product($order, $product),
         'sku'                => $product->get_sku() ? $product->get_sku() : $product_id,
         'name'               => $product->get_name(),
         'description'        => null,
@@ -105,7 +105,7 @@ function expected_item(WC_Product $product, array $overrides = []): array
         'quantity'           => 1,
         'total_price_excluding_tax' => 100,
         'total_price_including_tax' => 100,
-        'total_tax_amount'   => null,
+        'total_tax_amount'   => 0,
     ], $overrides);
 }
 
@@ -151,7 +151,7 @@ it('books a simple domestic agent order with the full expected payload', functio
                 'length'             => null,
                 'freetext'           => null,
                 'items'              => [
-                    expected_item($product, [
+                    expected_item($order, $product, [
                         'unit_weight'               => 1.5,
                         'quantity'                  => 2,
                         'total_price_excluding_tax' => 200,
@@ -160,7 +160,7 @@ it('books a simple domestic agent order with the full expected payload', functio
                 ],
                 'total_price_excluding_tax' => 200,
                 'total_price_including_tax' => 200,
-                'total_tax_amount'          => null,
+                'total_tax_amount'          => 0,
             ],
         ],
         'subtotal_price_excluding_tax' => 200,
@@ -205,7 +205,7 @@ it('allocates an order-level percentage coupon discount down to the item lines (
                 'length'             => null,
                 'freetext'           => null,
                 'items'              => [
-                    expected_item($product, [
+                    expected_item($order, $product, [
                         'unit_price_excluding_tax'  => 90,
                         'unit_price_including_tax'  => 90,
                         'quantity'                  => 2,
@@ -215,7 +215,7 @@ it('allocates an order-level percentage coupon discount down to the item lines (
                 ],
                 'total_price_excluding_tax' => 180,
                 'total_price_including_tax' => 180,
-                'total_tax_amount'          => null,
+                'total_tax_amount'          => 0,
             ],
         ],
         'subtotal_price_excluding_tax' => 180,
@@ -227,7 +227,7 @@ it('allocates an order-level percentage coupon discount down to the item lines (
     ]));
 });
 
-it('folds an order fee into the parcel totals but not into any item line', function () {
+it('keeps order fees at shipment level while parcel totals reconcile with their items', function () {
     $product = create_simple_product(['name' => 'Product With Fee', 'price' => 100, 'weight' => 1]);
     $order   = create_order([
         'products'        => [$product],
@@ -250,12 +250,11 @@ it('folds an order fee into the parcel totals but not into any item line', funct
                 'width'              => null,
                 'length'             => null,
                 'freetext'           => null,
-                'items'              => [expected_item($product)],
-                // Fee is part of the order subtotal, so the parcel totals
-                // exceed the sum of the item lines.
-                'total_price_excluding_tax' => 125,
-                'total_price_including_tax' => 125,
-                'total_tax_amount'          => null,
+                'items'              => [expected_item($order, $product)],
+                // Fees remain in shipment totals; parcel amounts are allocated merchandise.
+                'total_price_excluding_tax' => 100,
+                'total_price_including_tax' => 100,
+                'total_tax_amount'          => 0,
             ],
         ],
         'subtotal_price_excluding_tax' => 125,
@@ -297,7 +296,7 @@ it('books a taxed order with the v8 tax semantics', function () {
                 'length'             => null,
                 'freetext'           => null,
                 'items'              => [
-                    expected_item($product, [
+                    expected_item($order, $product, [
                         'unit_price_including_tax'  => 125,
                         'total_price_including_tax' => 125,
                         'total_tax_amount'          => 25,
@@ -361,7 +360,7 @@ it('includes customs data on the item lines for an international order', functio
                 'length'             => null,
                 'freetext'           => null,
                 'items'              => [
-                    expected_item($product, [
+                    expected_item($order, $product, [
                         'description'       => 'Cotton t-shirt',
                         'hs_code'           => '61091000',
                         'country_of_origin' => 'DK',
@@ -369,7 +368,7 @@ it('includes customs data on the item lines for an international order', functio
                 ],
                 'total_price_excluding_tax' => 100,
                 'total_price_including_tax' => 100,
-                'total_tax_amount'          => null,
+                'total_tax_amount'          => 0,
             ],
         ],
         'subtotal_price_excluding_tax' => 100,
@@ -422,7 +421,7 @@ it('uses the variation id, sku and weight for variable products', function () {
         'shipping_method' => 'postnord_agent',
     ]);
     $order_id     = (string) $order->get_id();
-    $variation_id = (string) $variation->get_id();
+    $variation_id = (string) order_item_id_for_product($order, $variation);
 
     $payload = capture_shipment_payload($order);
 
@@ -441,7 +440,7 @@ it('uses the variation id, sku and weight for variable products', function () {
                         'internal_id'        => $variation_id,
                         'internal_reference' => $variation_id,
                         'sku'                => $variation->get_sku(),
-                        'name'               => 'Variable Product',
+                        'name'               => array_values($order->get_items())[0]->get_name(),
                         'description'        => null,
                         'hs_code'            => null,
                         'country_of_origin'  => null,
@@ -452,12 +451,12 @@ it('uses the variation id, sku and weight for variable products', function () {
                         'quantity'           => 1,
                         'total_price_excluding_tax' => 100,
                         'total_price_including_tax' => 100,
-                        'total_tax_amount'   => null,
+                        'total_tax_amount'   => 0,
                     ],
                 ],
                 'total_price_excluding_tax' => 100,
                 'total_price_including_tax' => 100,
-                'total_tax_amount'          => null,
+                'total_tax_amount'          => 0,
             ],
         ],
         'subtotal_price_excluding_tax' => 100,
@@ -518,10 +517,10 @@ it('splits the shipment into one parcel per box when parcels meta is set', funct
         'shipping_method' => 'postnord_agent',
         'shipping_total'  => '39',
     ]);
-    save_order_parcels($order->get_id(), [
-        ['id' => $product_a->get_id(), 'name' => 'Box One Product', 'value' => '1'],
-        ['id' => $product_b->get_id(), 'name' => 'Box Two Product', 'value' => '2'],
-    ]);
+    save_order_parcels($order->get_id(), ['specs' => [
+        ['reference' => '1', 'items' => [['order_item_id' => order_item_id_for_product($order, $product_a), 'quantity' => 1, 'name' => 'Box One Product']]],
+        ['reference' => '2', 'items' => [['order_item_id' => order_item_id_for_product($order, $product_b), 'quantity' => 1, 'name' => 'Box Two Product']]],
+    ]]);
 
     $payload = capture_shipment_payload($order);
 
@@ -562,9 +561,10 @@ it('reconciles totals with the order total when a gift card partially covers the
 
     $payload = capture_shipment_payload($order);
 
+    // Shipment totals retain order-level fees; parcels carry the merchandise value.
     // total = 100 - 50 + 39 = 89; subtotal + shipping = total on both bases.
-    expect($payload['parcels'][0]['total_price_excluding_tax'])->toEqual(50)
-        ->and($payload['parcels'][0]['total_price_including_tax'])->toEqual(50)
+    expect($payload['parcels'][0]['total_price_excluding_tax'])->toEqual(100)
+        ->and($payload['parcels'][0]['total_price_including_tax'])->toEqual(100)
         ->and($payload['subtotal_price_excluding_tax'])->toEqual(50)
         ->and($payload['subtotal_price_including_tax'])->toEqual(50)
         ->and($payload['shipping_price_excluding_tax'])->toEqual(39)
@@ -586,9 +586,9 @@ it('clamps negative values to zero when a gift card exceeds the item value', fun
 
     // total = 100 - 120 + 39 = 19. The non-shipping subtotal would be
     // 19 - 39 = -20 (the #54 failure mode); it is clamped to zero and a
-    // zero amount is sent as null. No negative value appears anywhere.
-    expect($payload['parcels'][0]['total_price_excluding_tax'])->toBeNull()
-        ->and($payload['parcels'][0]['total_price_including_tax'])->toBeNull()
+    // zero shipment amount is sent as null. Parcels retain the item value of 100.
+    expect($payload['parcels'][0]['total_price_excluding_tax'])->toEqual(100)
+        ->and($payload['parcels'][0]['total_price_including_tax'])->toEqual(100)
         ->and($payload['parcels'][0]['items'][0]['total_price_excluding_tax'])->toEqual(100)
         ->and($payload['subtotal_price_excluding_tax'])->toBeNull()
         ->and($payload['subtotal_price_including_tax'])->toBeNull()
@@ -714,13 +714,13 @@ it('lets the smart_send_delivery_details filter declare a parcel plan with item 
         'shipping_total'  => '39',
     ]);
 
-    $filter = function (\Smart_Send\Delivery\Delivery_Details $details) use ($product_a, $product_b) {
+    $filter = function (\Smart_Send\Delivery\Delivery_Details $details) use ($order, $product_a, $product_b) {
         // No split is stored on the order, so the filter receives no plan.
         expect($details->get_parcel_plan())->toBeNull();
 
         $plan = new \Smart_Send\Delivery\Parcel_Plan();
-        $plan->add_spec((new \Smart_Send\Delivery\Parcel_Spec())->add_item($product_a->get_id()))
-            ->add_spec((new \Smart_Send\Delivery\Parcel_Spec())->add_item($product_b->get_id()));
+        $plan->add_spec((new \Smart_Send\Delivery\Parcel_Spec())->add_item(order_item_id_for_product($order, $product_a)))
+            ->add_spec((new \Smart_Send\Delivery\Parcel_Spec())->add_item(order_item_id_for_product($order, $product_b)));
 
         return $details->set_parcel_plan($plan);
     };
@@ -842,10 +842,10 @@ it('lets an explicit spec weight win over the item-sum when a plan declares one'
         'shipping_method' => 'postnord_homedelivery',
     ]);
 
-    $filter = function (\Smart_Send\Delivery\Delivery_Details $details) use ($product_a, $product_b) {
+    $filter = function (\Smart_Send\Delivery\Delivery_Details $details) use ($order, $product_a, $product_b) {
         $plan = new \Smart_Send\Delivery\Parcel_Plan();
-        $plan->add_spec((new \Smart_Send\Delivery\Parcel_Spec())->set_weight(9.5)->add_item($product_a->get_id()))
-            ->add_spec((new \Smart_Send\Delivery\Parcel_Spec())->add_item($product_b->get_id()));
+        $plan->add_spec((new \Smart_Send\Delivery\Parcel_Spec())->set_weight(9.5)->add_item(order_item_id_for_product($order, $product_a)))
+            ->add_spec((new \Smart_Send\Delivery\Parcel_Spec())->add_item(order_item_id_for_product($order, $product_b)));
 
         return $details->set_parcel_plan($plan);
     };
@@ -861,72 +861,23 @@ it('lets an explicit spec weight win over the item-sum when a plan declares one'
         ->and($payload['parcels'][1]['weight'])->toEqual(2);
 });
 
-it('books an item-less two-parcel plan declared via smart_send_delivery_details with the full expected payload', function () {
-    // The "declare 2 parcels of size X/Y/Z and weight W with no item info
-    // at all" capability (#139), pinned as a full golden payload: item-less
-    // parcels carry dimensions and weight but no item rows (serialized as
-    // null, the v1 wire convention for "not set") and no amounts of their
-    // own - the declared amounts live at shipment level only.
-    $product = create_simple_product(['name' => 'Simple Product', 'price' => 100, 'weight' => 1.5, 'sku' => 'SIMPLE-' . uniqid()]);
-    $order   = create_order([
-        'products'        => [[$product, 2]],
-        'shipping_method' => 'postnord_homedelivery',
-        'shipping_total'  => '39',
-    ]);
-    $order_id = (string) $order->get_id();
-
+it('rejects an itemless two-parcel plan before sending a booking request', function () {
+    $product = create_simple_product(['price' => 100, 'weight' => 1.5]);
+    $order = create_order(['products' => [[$product, 2]], 'shipping_method' => 'postnord_homedelivery']);
+    $capture = mock_smart_send_api();
     $filter = function (\Smart_Send\Delivery\Delivery_Details $details) {
         $plan = new \Smart_Send\Delivery\Parcel_Plan();
-        $plan->add_spec((new \Smart_Send\Delivery\Parcel_Spec())->set_weight(4)->set_length(30)->set_width(20)->set_height(10))
-            ->add_spec((new \Smart_Send\Delivery\Parcel_Spec())->set_weight(2.5)->set_length(15)->set_width(15)->set_height(15));
-
+        $plan->add_spec((new \Smart_Send\Delivery\Parcel_Spec())->set_weight(4))
+            ->add_spec((new \Smart_Send\Delivery\Parcel_Spec())->set_weight(2.5));
         return $details->set_parcel_plan($plan);
     };
     add_filter('smart_send_delivery_details', $filter);
-    remember_cleanup_callback(function () use ($filter): void {
-        remove_filter('smart_send_delivery_details', $filter);
-    });
+    remember_cleanup_callback(fn () => remove_filter('smart_send_delivery_details', $filter));
 
-    $payload = capture_shipment_payload($order);
-
-    expect($payload)->toEqual(expected_payload($order, [
-        'shipping_method' => 'homedelivery',
-        'parcels'         => [
-            [
-                'internal_id'        => $order_id,
-                'internal_reference' => $order_id,
-                'weight'             => 4,
-                'height'             => 10,
-                'width'              => 20,
-                'length'             => 30,
-                'freetext'           => null,
-                'items'              => null,
-                'total_price_excluding_tax' => null,
-                'total_price_including_tax' => null,
-                'total_tax_amount'          => null,
-            ],
-            [
-                'internal_id'        => $order_id,
-                'internal_reference' => $order_id,
-                'weight'             => 2.5,
-                'height'             => 15,
-                'width'              => 15,
-                'length'             => 15,
-                'freetext'           => null,
-                'items'              => null,
-                'total_price_excluding_tax' => null,
-                'total_price_including_tax' => null,
-                'total_tax_amount'          => null,
-            ],
-        ],
-        // The declared amounts live at shipment level only.
-        'subtotal_price_excluding_tax' => 200,
-        'subtotal_price_including_tax' => 200,
-        'shipping_price_excluding_tax' => 39,
-        'shipping_price_including_tax' => 39,
-        'total_price_excluding_tax'    => 239,
-        'total_price_including_tax'    => 239,
-    ]));
+    $result = SS_SHIPPING_WC()->fulfillment()->fulfill_outbound($order, false);
+    expect($result->is_successful())->toBeFalse()
+        ->and($result->get_outbound_error())->toContain('Review the parcel allocations')
+        ->and($capture->requests)->toBe([]);
 });
 
 it('passes a parcel with no explicit weight through smart_send_parcel_default_weight, and an explicit weight bypasses it (#182)', function () {
@@ -961,14 +912,12 @@ it('passes a parcel with no explicit weight through smart_send_parcel_default_we
         ->and($seen)->toBe([['1', 3.0, [1, 1]]]);
 
     // A plan: the spec without a weight is filtered (item-sum 2 kg), the
-    // spec with an explicit weight never reaches the filter, and an
-    // item-less spec is filtered from 0.
+    // spec with an explicit weight never reaches the filter.
     $seen = [];
-    $plan = function (\Smart_Send\Delivery\Delivery_Details $details) use ($product_a, $product_b) {
+    $plan = function (\Smart_Send\Delivery\Delivery_Details $details) use ($order, $product_a, $product_b) {
         $plan = new \Smart_Send\Delivery\Parcel_Plan();
-        $plan->add_spec((new \Smart_Send\Delivery\Parcel_Spec())->set_reference('a')->set_weight(9.5)->add_item($product_a->get_id()))
-            ->add_spec((new \Smart_Send\Delivery\Parcel_Spec())->set_reference('b')->add_item($product_b->get_id()))
-            ->add_spec((new \Smart_Send\Delivery\Parcel_Spec())->set_reference('c')->set_length(10)->set_width(10)->set_height(10));
+        $plan->add_spec((new \Smart_Send\Delivery\Parcel_Spec())->set_reference('a')->set_weight(9.5)->add_item(order_item_id_for_product($order, $product_a)))
+            ->add_spec((new \Smart_Send\Delivery\Parcel_Spec())->set_reference('b')->add_item(order_item_id_for_product($order, $product_b)));
 
         return $details->set_parcel_plan($plan);
     };
@@ -978,9 +927,8 @@ it('passes a parcel with no explicit weight through smart_send_parcel_default_we
     });
 
     $payload = capture_shipment_payload($order);
-    expect($payload['parcels'])->toHaveCount(3)
+    expect($payload['parcels'])->toHaveCount(2)
         ->and($payload['parcels'][0]['weight'])->toEqual(9.5)
         ->and($payload['parcels'][1]['weight'])->toEqual(2.25)
-        ->and($payload['parcels'][2]['weight'])->toEqual(0.25)
-        ->and($seen)->toBe([['b', 2.0, [1]], ['c', 0.0, []]]);
+        ->and($seen)->toBe([['b', 2.0, [1]]]);
 });

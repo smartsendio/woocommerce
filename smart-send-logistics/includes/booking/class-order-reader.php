@@ -20,7 +20,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 /**
  * Answers every order-data question needed to build the booking request
- * (shipment payload) from a WC_Order, using WooCommerce CRUD getters only.
+ * (shipment payload) from a WC_Order, using WooCommerce data APIs only.
  *
  * This is the single place that knows how to read receiver address data,
  * item lines with weight/price/customs data and order totals. The class
@@ -175,23 +175,31 @@ class Order_Reader {
 	 * A single net amount + tax amount is returned per item line (no
 	 * excl/incl pair) - see #113.
 	 *
+	 * Allocation identity is the order_item_id; product_id and variation_id
+	 * only identify the catalog objects. Deleted catalog objects keep their
+	 * order line's quantity and amounts, but expose no guessed product data.
+	 * A null unit_weight with product_missing tells the builder that an
+	 * explicit parcel weight is required.
+	 *
 	 * @return array[] List of item rows.
 	 */
 	public function get_items_data() {
 		$items = array();
 
 		foreach ( $this->order->get_items() as $item ) {
-			$product = wc_get_product( $item->get_product_id() );
+			$product_ids       = self::product_ids_for_item( $item );
+			$product_id        = $product_ids['product_id'];
+			$variation_id      = $product_ids['variation_id'];
+			$product           = $product_id ? wc_get_product( $product_id ) : false;
+			$product_variation = self::product_for_item( $item );
+			$product_missing   = false === $product_variation;
+			$product_sku       = '';
+			$unit_weight       = null;
 
-			if ( $item->get_variation_id() ) {
-				$product_variation = wc_get_product( $item->get_variation_id() );
-				$product_id        = $item->get_variation_id();
-				$product_sku       = $product_variation->get_sku() ? $product_variation->get_sku() : strval( $item->get_variation_id() );
-			} else {
-				$product_variation = $product;
-				$product_id        = $item->get_product_id();
-				// Ensure id is string and not int.
-				$product_sku = $product->get_sku() ? $product->get_sku() : strval( $item->get_product_id() );
+			if ( ! $product_missing ) {
+				$catalog_id  = $variation_id ? $variation_id : $product_id;
+				$product_sku = $product_variation->get_sku() ? $product_variation->get_sku() : strval( $catalog_id );
+				$unit_weight = round( wc_get_weight( $product_variation->get_weight(), 'kg' ), 2 );
 			}
 
 			$quantity = $item->get_quantity();
@@ -201,19 +209,20 @@ class Order_Reader {
 			$total_net_amount = max( 0.0, (float) $item->get_total() );
 			$total_tax_amount = max( 0.0, (float) $item->get_total_tax() );
 
-			$unit_weight = round( wc_get_weight( $product_variation->get_weight(), 'kg' ), 2 );
-
 			$items[] = array(
-				'id'                => $product_id,
+				'order_item_id'     => $item->get_id(),
+				'product_id'        => $product_id,
+				'variation_id'      => $variation_id,
 				'sku'               => $product_sku,
-				'name'              => $product->get_title(),
-				'description'       => $this->get_product_meta( $product, $product_variation, '_ss_customs_desc' ),
-				'hs_code'           => $this->get_product_meta( $product, $product_variation, '_ss_hs_code' ),
-				'country_of_origin' => $this->get_product_meta( $product, $product_variation, '_ss_country_of_origin' ),
+				'name'              => $product_missing ? __( 'Deleted', 'smart-send-logistics' ) : $item->get_name(),
+				'description'       => $product_missing ? null : $this->get_product_meta( $product, $product_variation, '_ss_customs_desc' ),
+				'hs_code'           => $product_missing ? null : $this->get_product_meta( $product, $product_variation, '_ss_hs_code' ),
+				'country_of_origin' => $product_missing ? null : $this->get_product_meta( $product, $product_variation, '_ss_country_of_origin' ),
 				'quantity'          => $quantity,
 				'unit_weight'       => $unit_weight,
 				'total_net_amount'  => $total_net_amount,
 				'total_tax_amount'  => $total_tax_amount,
+				'product_missing'   => $product_missing,
 			);
 		}
 
@@ -229,7 +238,51 @@ class Order_Reader {
 	}
 
 	/**
-	 * Get the order totals used on the shipment and parcel level.
+	 * Get catalog references without losing deleted variation identity.
+	 *
+	 * WooCommerce rejects deleted catalog IDs while hydrating a saved item.
+	 * Retain its stored references so a deleted variation cannot silently
+	 * become its surviving parent. Explicit unsaved changes still win.
+	 *
+	 * @param WC_Order_Item_Product $item Order line.
+	 * @return array{product_id:int,variation_id:int} Catalog references.
+	 */
+	public static function product_ids_for_item( WC_Order_Item_Product $item ): array {
+		$product_id   = $item->get_product_id();
+		$variation_id = $item->get_variation_id();
+
+		if ( $item->get_id() ) {
+			$changes = $item->get_changes();
+			if ( ! $product_id && ! array_key_exists( 'product_id', $changes ) ) {
+				$product_id = (int) wc_get_order_item_meta( $item->get_id(), '_product_id', true );
+			}
+			if ( ! $variation_id && ! array_key_exists( 'variation_id', $changes ) ) {
+				$variation_id = (int) wc_get_order_item_meta( $item->get_id(), '_variation_id', true );
+			}
+		}
+
+		return array(
+			'product_id'   => $product_id,
+			'variation_id' => $variation_id,
+		);
+	}
+
+	/**
+	 * Get the catalog product referenced by an order line, when it exists.
+	 *
+	 * @param WC_Order_Item_Product $item Order line.
+	 * @return WC_Product|false Existing simple product or variation, or false.
+	 */
+	public static function product_for_item( WC_Order_Item_Product $item ) {
+		$ids        = self::product_ids_for_item( $item );
+		$product_id = $ids['variation_id'] ? $ids['variation_id'] : $ids['product_id'];
+		$product    = $product_id ? wc_get_product( $product_id ) : false;
+
+		return $product instanceof WC_Product && $product->exists() ? $product : false;
+	}
+
+	/**
+	 * Get the order totals used at shipment level; parcels sum their allocated items.
 	 *
 	 * The rule (see issue #72): totals are derived from what WooCommerce
 	 * itself reports via CRUD getters and reconcile with
@@ -363,14 +416,14 @@ class Order_Reader {
 	 * layer, variation-aware: the variation's own value wins, falling
 	 * back to the parent product when the variation has none.
 	 *
-	 * @param WC_Product $product           The (parent) product of the order line.
-	 * @param WC_Product $product_variation The variation, or the product itself for simple products.
-	 * @param string     $meta_key          Meta key to read.
+	 * @param WC_Product|false $product           The (parent) product, or false when deleted.
+	 * @param WC_Product       $product_variation The variation, or the product itself for simple products.
+	 * @param string           $meta_key          Meta key to read.
 	 *
-	 * @return mixed The meta value, or an empty string when not set.
+	 * @return mixed The meta value, an empty string when unset, or null when no parent remains.
 	 */
 	protected function get_product_meta( $product, $product_variation, $meta_key ) {
-		if ( $product_variation && $product_variation->get_id() !== $product->get_id() ) {
+		if ( ! $product || $product_variation->get_id() !== $product->get_id() ) {
 			$value = $product_variation->get_meta( $meta_key, true );
 
 			if ( '' !== $value && null !== $value ) {
@@ -378,6 +431,6 @@ class Order_Reader {
 			}
 		}
 
-		return $product->get_meta( $meta_key, true );
+		return $product ? $product->get_meta( $meta_key, true ) : null;
 	}
 }

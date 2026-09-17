@@ -858,10 +858,10 @@ it('merges submitted details over the stored ones and runs smart_send_delivery_d
         'shipping_total'  => '39',
     ]);
     save_order_pickup_point($order->get_id(), sample_agent());
-    save_order_parcels($order->get_id(), [
-        ['id' => $product_a->get_id(), 'name' => 'Merge Box One', 'value' => '1'],
-        ['id' => $product_b->get_id(), 'name' => 'Merge Box Two', 'value' => '1'],
-    ]);
+    save_order_parcels($order->get_id(), ['specs' => [['reference' => '1', 'items' => [
+        ['order_item_id' => order_item_id_for_product($order, $product_a), 'quantity' => 1, 'name' => 'Merge Box One'],
+        ['order_item_id' => order_item_id_for_product($order, $product_b), 'quantity' => 1, 'name' => 'Merge Box Two'],
+    ]]]]);
 
     $capture = mock_smart_send_api();
 
@@ -871,8 +871,8 @@ it('merges submitted details over the stored ones and runs smart_send_delivery_d
     $submitted = \Smart_Send\Delivery\Delivery_Details::from_array([
         'pickup_point' => sample_agent(['agent_no' => '5678', 'company' => 'Other Shop']),
         'parcel_plan'  => ['specs' => [
-            ['reference' => '1', 'items' => [['id' => $product_a->get_id(), 'quantity' => 1, 'name' => 'Merge Box One']]],
-            ['reference' => '2', 'weight' => 7.5, 'length' => 40, 'width' => 30, 'height' => 20, 'items' => [['id' => $product_b->get_id(), 'quantity' => 1, 'name' => 'Merge Box Two']]],
+            ['reference' => '1', 'items' => [['order_item_id' => order_item_id_for_product($order, $product_a), 'quantity' => 1, 'name' => 'Merge Box One']]],
+            ['reference' => '2', 'weight' => 7.5, 'length' => 40, 'width' => 30, 'height' => 20, 'items' => [['order_item_id' => order_item_id_for_product($order, $product_b), 'quantity' => 1, 'name' => 'Merge Box Two']]],
         ]],
     ]);
 
@@ -917,8 +917,8 @@ it('persists the submitted pickup point and parcel item rows only after a succes
         'shipping_method' => 'postnord_homedelivery',
         'pickup_point'    => sample_agent(['agent_no' => '5678', 'company' => 'Other Shop']),
         'parcel_plan'     => ['specs' => [
-            ['reference' => '1', 'weight' => 4.5, 'length' => 10, 'width' => 10, 'height' => 10, 'items' => [['id' => $product_a->get_id(), 'quantity' => 1, 'name' => 'Persist Box One']]],
-            ['reference' => '2', 'items' => [['id' => $product_b->get_id(), 'quantity' => 1, 'name' => 'Persist Box Two']]],
+            ['reference' => '1', 'weight' => 4.5, 'length' => 10, 'width' => 10, 'height' => 10, 'items' => [['order_item_id' => order_item_id_for_product($order, $product_a), 'quantity' => 1, 'name' => 'Persist Box One']]],
+            ['reference' => '2', 'items' => [['order_item_id' => order_item_id_for_product($order, $product_b), 'quantity' => 1, 'name' => 'Persist Box Two']]],
         ]],
     ]);
 
@@ -949,10 +949,10 @@ it('persists the submitted pickup point and parcel item rows only after a succes
     $fresh = wc_get_order($order->get_id());
     expect($fresh->get_meta('ss_shipping_order_agent_no', true))->toBe('5678')
         ->and($fresh->get_meta('_ss_shipping_order_agent', true)->company)->toBe('Other Shop')
-        ->and($fresh->get_meta('ss_shipping_order_parcels', true))->toEqual([
-            ['id' => $product_a->get_id(), 'name' => 'Persist Box One', 'value' => '1'],
-            ['id' => $product_b->get_id(), 'name' => 'Persist Box Two', 'value' => '2'],
-        ])
+        ->and($fresh->get_meta('ss_shipping_order_parcels', true))->toEqual(['specs' => [
+            ['reference' => '1', 'weight' => null, 'length' => null, 'width' => null, 'height' => null, 'items' => [['order_item_id' => order_item_id_for_product($order, $product_a), 'quantity' => 1, 'name' => 'Persist Box One']]],
+            ['reference' => '2', 'weight' => null, 'length' => null, 'width' => null, 'height' => null, 'items' => [['order_item_id' => order_item_id_for_product($order, $product_b), 'quantity' => 1, 'name' => 'Persist Box Two']]],
+        ]])
         ->and($fresh->get_meta('_ss_shipping_label_id', true))->toBe($result->get_outbound_shipment()->get_shipment_id())
         ->and(SS_SHIPPING_WC()->method_resolver()->resolve_outbound($fresh))->toBe('postnord_agent')
         ->and($fresh->get_meta('_ss_shipping_order_parcel_specs', true))->toBe('');
@@ -981,8 +981,8 @@ it('writes the submitted details before the shipment id, and the auto-return leg
     $submitted = \Smart_Send\Delivery\Delivery_Details::from_array([
         'pickup_point' => sample_agent(['agent_no' => '5678', 'company' => 'Other Shop']),
         'parcel_plan'  => ['specs' => [
-            ['reference' => '1', 'items' => [['id' => $product_a->get_id(), 'quantity' => 1, 'name' => 'Order Box One']]],
-            ['reference' => '2', 'items' => [['id' => $product_b->get_id(), 'quantity' => 1, 'name' => 'Order Box Two']]],
+            ['reference' => '1', 'items' => [['order_item_id' => order_item_id_for_product($order, $product_a), 'quantity' => 1, 'name' => 'Order Box One']]],
+            ['reference' => '2', 'items' => [['order_item_id' => order_item_id_for_product($order, $product_b), 'quantity' => 1, 'name' => 'Order Box Two']]],
         ]],
     ]);
 

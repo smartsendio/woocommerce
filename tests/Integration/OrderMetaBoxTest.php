@@ -361,11 +361,15 @@ it('carries the stored parcel split in the state, one spec per box', function ()
         'products'        => [[$product_a, 2], $product_b],
         'shipping_method' => 'postnord_agent',
     ]);
-    save_order_parcels($order->get_id(), [
-        ['id' => $product_a->get_id(), 'name' => 'Split A', 'value' => '1'],
-        ['id' => $product_a->get_id(), 'name' => 'Split A', 'value' => '2'],
-        ['id' => $product_b->get_id(), 'name' => 'Split B', 'value' => '2'],
-    ]);
+    $item_a = order_item_id_for_product($order, $product_a);
+    $item_b = order_item_id_for_product($order, $product_b);
+    save_order_parcels($order->get_id(), ['specs' => [
+        ['reference' => '1', 'items' => [['order_item_id' => $item_a, 'quantity' => 1, 'name' => 'Split A']]],
+        ['reference' => '2', 'items' => [
+            ['order_item_id' => $item_a, 'quantity' => 1, 'name' => 'Split A'],
+            ['order_item_id' => $item_b, 'quantity' => 1, 'name' => 'Split B'],
+        ]],
+    ]]);
 
     render_meta_box($order);
 
@@ -376,9 +380,62 @@ it('carries the stored parcel split in the state, one spec per box', function ()
     // totalWeight() over exactly this - computed once, in one place.
     expect($specs)->toHaveCount(2)
         ->and($specs[0]['items'])->toHaveCount(1)
-        ->and($specs[0]['items'][0]['id'])->toBe($product_a->get_id())
+        ->and($specs[0]['items'][0]['order_item_id'])->toBe($item_a)
         ->and($specs[0]['weight'])->toBeNull()
-        ->and(array_column($specs[1]['items'], 'id'))->toBe([$product_a->get_id(), $product_b->get_id()]);
+        ->and(array_column($specs[1]['items'], 'order_item_id'))->toBe([$item_a, $item_b])
+        ->and(inlined_meta_box_state()['parcel_plan_error'])->toBeNull();
+});
+
+it('keeps distinct order lines for the same product in the editor state', function () {
+    $product = create_simple_product(['name' => 'Shared catalog product', 'sku' => 'SAME-PRODUCT', 'weight' => 1]);
+    $order = create_order(['products' => [[$product, 2], [$product, 1]], 'shipping_method' => 'postnord_agent']);
+    $lines = array_values($order->get_items());
+    $lines[1]->set_name('The discounted line');
+    $lines[1]->save();
+
+    render_meta_box($order);
+    $units = inlined_meta_box_state()['order']['units'];
+    expect($units)->toHaveCount(3)
+        ->and(array_column($units, 'order_item_id'))->toBe([$lines[0]->get_id(), $lines[0]->get_id(), $lines[1]->get_id()])
+        ->and(array_column($units, 'product_id'))->toBe([$product->get_id(), $product->get_id(), $product->get_id()])
+        ->and($units[2]['name'])->toBe('The discounted line')
+        ->and($units[2]['sku'])->toBe('SAME-PRODUCT');
+});
+
+it('renders deleted products in the state with a placeholder and no SKU', function () {
+    $product = create_simple_product(['name' => 'Removed catalog product', 'sku' => 'REMOVED-PRODUCT', 'weight' => 1]);
+    $order = create_order(['products' => [$product], 'shipping_method' => 'postnord_agent']);
+    $item_id = order_item_id_for_product($order, $product);
+    $product->delete(true);
+
+    render_meta_box($order);
+    $unit = inlined_meta_box_state()['order']['units'][0];
+    expect($unit['order_item_id'])->toBe($item_id)
+        ->and($unit['name'])->toBe('Deleted')
+        ->and($unit['sku'])->toBe('')
+        ->and(inlined_meta_box_state()['parcel_plan_error'])->toBeNull();
+});
+
+it('surfaces a removed order line as a stale stored allocation without changing the metadata', function () {
+    $product = create_simple_product(['name' => 'Removed order line']);
+    $retained = create_simple_product(['name' => 'Retained order line']);
+    $order = create_order(['products' => [$product, $retained], 'shipping_method' => 'postnord_agent']);
+    $item_id = order_item_id_for_product($order, $product);
+    $retained_id = order_item_id_for_product($order, $retained);
+    save_order_parcels($order->get_id(), ['specs' => [['items' => [
+        ['order_item_id' => $item_id, 'quantity' => 1],
+        ['order_item_id' => $retained_id, 'quantity' => 1],
+    ]]]]);
+    $order = wc_get_order($order->get_id());
+    $stored = $order->get_meta('ss_shipping_order_parcels', true);
+    $order->remove_item($item_id);
+    $order->save();
+
+    render_meta_box($order);
+    $state = inlined_meta_box_state();
+    expect($state['parcel_plan_error'])->toBeString()->not->toBeEmpty()
+        ->and(array_column($state['order']['units'], 'order_item_id'))->toBe([$retained_id])
+        ->and(wc_get_order($order->get_id())->get_meta('ss_shipping_order_parcels', true))->toBe($stored);
 });
 
 it('renders no order value at all, and inlines a state that cannot close the script element', function () {

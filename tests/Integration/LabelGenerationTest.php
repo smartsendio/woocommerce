@@ -117,12 +117,12 @@ it('persists submitted delivery overrides through the repository once the bookin
         'shipping_total'  => '39',
     ]);
 
-    $rows = [
-        ['id' => $product_a->get_id(), 'name' => 'Override Box One', 'value' => '1'],
-        ['id' => $product_b->get_id(), 'name' => 'Override Box Two', 'value' => '2'],
-    ];
+    $rows = ['specs' => [
+        ['reference' => '1', 'items' => [['order_item_id' => order_item_id_for_product($order, $product_a), 'quantity' => 1, 'name' => 'Override Box One']]],
+        ['reference' => '2', 'items' => [['order_item_id' => order_item_id_for_product($order, $product_b), 'quantity' => 1, 'name' => 'Override Box Two']]],
+    ]];
     $overrides = new \Smart_Send\Delivery\Delivery_Details();
-    $overrides->set_parcel_plan(\Smart_Send\Delivery\Parcel_Plan::from_box_rows($rows));
+    $overrides->set_parcel_plan(\Smart_Send\Delivery\Parcel_Plan::from_array($rows));
 
     $capture = mock_smart_send_api();
 
@@ -136,8 +136,8 @@ it('persists submitted delivery overrides through the repository once the bookin
         ->and($payload['parcels'][0]['items'][0]['name'])->toBe('Override Box One')
         ->and($payload['parcels'][1]['items'][0]['name'])->toBe('Override Box Two');
 
-    // ...and the split was persisted in the frozen meta row shape.
-    expect(wc_get_order($order->get_id())->get_meta('ss_shipping_order_parcels', true))->toEqual($rows);
+    // ...and the split was persisted in the canonical order-item plan shape.
+    expect(wc_get_order($order->get_id())->get_meta('ss_shipping_order_parcels', true))->toEqual($overrides->get_parcel_plan()->to_array());
 });
 
 it('updates the order status after label generation when configured', function () {

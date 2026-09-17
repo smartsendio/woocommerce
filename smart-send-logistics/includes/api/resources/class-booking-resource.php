@@ -237,8 +237,8 @@ class Booking_Resource {
 		$unit_tax_amount = $item_row['total_tax_amount'] / $quantity;
 
 		$item = new Item();
-		$item->set_internal_id( $this->value_or_null( $item_row['id'] ) )
-			->set_internal_reference( $this->value_or_null( $item_row['id'] ) )
+		$item->set_internal_id( $this->value_or_null( $item_row['order_item_id'] ) )
+			->set_internal_reference( $this->value_or_null( $item_row['order_item_id'] ) )
 			->set_sku( $this->value_or_null( $item_row['sku'] ) )
 			->set_name( $this->value_or_null( $item_row['name'] ) )
 			->set_description( $this->value_or_null( $item_row['description'] ) ) // The product description can be used, but is often too long (255).
@@ -246,12 +246,12 @@ class Booking_Resource {
 			->set_country_of_origin( $this->value_or_null( $item_row['country_of_origin'] ) )
 			->set_image_url( null ) // The product image url can be used, but sometimes includes spaces (bug) which causes validation error.
 			->set_unit_weight( $item_row['unit_weight'] > 0 ? $item_row['unit_weight'] : null )
-			->set_unit_price_excluding_tax( $this->value_or_null( $unit_net_amount ) )
-			->set_unit_price_including_tax( $this->value_or_null( $unit_net_amount + $unit_tax_amount ) )
+			->set_unit_price_excluding_tax( $unit_net_amount )
+			->set_unit_price_including_tax( $unit_net_amount + $unit_tax_amount )
 			->set_quantity( $this->value_or_null( $item_row['quantity'] ) )
-			->set_total_price_excluding_tax( $this->value_or_null( $item_row['total_net_amount'] ) )
-			->set_total_price_including_tax( $this->value_or_null( $this->net_plus_tax( $item_row['total_net_amount'], $item_row['total_tax_amount'] ) ) )
-			->set_total_tax_amount( $this->value_or_null( $item_row['total_tax_amount'] ) );
+			->set_total_price_excluding_tax( $item_row['total_net_amount'] )
+			->set_total_price_including_tax( $this->net_plus_tax( $item_row['total_net_amount'], $item_row['total_tax_amount'] ) )
+			->set_total_tax_amount( $item_row['total_tax_amount'] );
 
 		return $item;
 	}
@@ -284,9 +284,9 @@ class Booking_Resource {
 			->set_width( $resolved_parcel->get_width() )
 			->set_length( $resolved_parcel->get_length() )
 			->set_freetext( $this->value_or_null( $resolved_parcel->get_freetext() ) )
-			->set_total_price_excluding_tax( $this->value_or_null( $resolved_parcel->get_total_net_amount() ) )
-			->set_total_price_including_tax( $has_amounts ? $this->value_or_null( $this->net_plus_tax( $resolved_parcel->get_total_net_amount(), $resolved_parcel->get_total_tax_amount() ) ) : null )
-			->set_total_tax_amount( $this->value_or_null( $resolved_parcel->get_total_tax_amount() ) );
+			->set_total_price_excluding_tax( $resolved_parcel->get_total_net_amount() )
+			->set_total_price_including_tax( $has_amounts ? $this->net_plus_tax( $resolved_parcel->get_total_net_amount(), $resolved_parcel->get_total_tax_amount() ) : null )
+			->set_total_tax_amount( $resolved_parcel->get_total_tax_amount() );
 
 		if ( array() !== $items ) {
 			$parcel->set_items( $items ); // Alternatively add each item using $parcel->add_item(Item $item).

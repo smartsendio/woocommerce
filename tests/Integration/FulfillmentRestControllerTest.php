@@ -135,7 +135,7 @@ it('pins that every request-schema property round-trips through the delivery det
         'pickup_point'    => ['agent_no' => '1234'],
         'parcel_plan'     => [
             'specs' => [
-                ['reference' => '1', 'weight' => null, 'length' => 40.0, 'width' => 30.0, 'height' => 20.0, 'items' => [['id' => 812, 'quantity' => 2, 'name' => 'Hoodie']]],
+                ['reference' => '1', 'weight' => null, 'length' => 40.0, 'width' => 30.0, 'height' => 20.0, 'items' => [['order_item_id' => 812, 'quantity' => 2, 'name' => 'Hoodie']]],
                 ['reference' => '2', 'weight' => 3.5, 'length' => null, 'width' => null, 'height' => null, 'items' => []],
             ],
         ],
@@ -194,7 +194,9 @@ it('returns the state on GET, matching the presenter', function () {
         ->and($state['order']['shipping_country'])->toBe('DK')
         ->and($state['order']['units'])->toHaveCount(1)
         ->and($state['order']['units'][0]['unit_weight'])->toBe(1.0)
-        ->and($state['order']['units'][0])->toHaveKey('sku')
+        ->and($state['order']['units'][0])->toHaveKeys(['order_item_id', 'product_id', 'variation_id', 'sku'])
+        ->and($state['order']['units'][0]['order_item_id'])->toBe(array_key_first($order->get_items()))
+        ->and($state['parcel_plan_error'])->toBeNull()
         ->and($state['delivery_details']['shipping_method'])->toBe('postnord_agent')
         ->and($state['delivery_details']['pickup_point']['agent_no'])->toBe('1234')
         ->and($state['delivery_details']['pickup_point']['display_html'])->toContain('Corner Shop')
@@ -232,31 +234,110 @@ it('rejects a bad flow, a non-numeric weight, a parcel without items and an item
         ->and($bad_weight->get_data()['data']['params'])->toHaveKey('delivery_details')
         ->and($bad_weight->get_data()['data']['params']['delivery_details'])->toContain('weight');
 
-    // A parcel without items: the meta box can no longer produce one (an
-    // emptied box is removed), so the schema path rejects it - the DTO and
-    // the smart_send_delivery_details filter path still allow box-only specs.
+    // Several parcels need explicit allocations; one itemless spec alone
+    // is allowed as an explicit weight/dimension override for all items.
     $no_items = fulfillment_post($order->get_id(), [
         'flow'             => 'outbound',
         'delivery_details' => ['parcel_plan' => ['specs' => [
-            ['weight' => 1.5, 'items' => [['id' => $order->get_items()[array_key_first($order->get_items())]->get_product_id(), 'quantity' => 1]]],
+            ['weight' => 1.5, 'items' => [['order_item_id' => array_key_first($order->get_items()), 'quantity' => 1]]],
             ['weight' => 2.5, 'items' => []],
         ]]],
     ]);
     expect($no_items->get_status())->toBe(400)
         ->and($no_items->get_data()['code'])->toBe('rest_invalid_param')
-        ->and($no_items->get_data()['data']['params']['delivery_details'])->toContain('parcel_plan.specs[1].items: A parcel must contain at least one item.');
+        ->and($no_items->get_data()['data']['params']['delivery_details'])->toContain('parcel_plan: Assign order items to every parcel when using more than one parcel.');
 
     $unknown_item = fulfillment_post($order->get_id(), [
         'flow'             => 'outbound',
-        'delivery_details' => ['parcel_plan' => ['specs' => [['items' => [['id' => 999999, 'quantity' => 1]]]]]],
+        'delivery_details' => ['parcel_plan' => ['specs' => [['items' => [['order_item_id' => 999999, 'quantity' => 1]]]]]],
     ]);
     expect($unknown_item->get_status())->toBe(400)
         ->and($unknown_item->get_data()['code'])->toBe('rest_invalid_param')
-        ->and($unknown_item->get_data()['data']['params']['delivery_details'])->toContain('parcel_plan.specs[0].items[0].id')
-        ->toContain('999999');
+        ->and($unknown_item->get_data()['data']['params']['delivery_details'])->toContain('parcel_plan')
+        ->toContain('no longer in the order');
 
     // Nothing reached the API.
     expect($capture->requests)->toBe([]);
+});
+
+it('rejects submitted allocations that lose, duplicate or misidentify order units before booking', function (string $case) {
+    $product = create_simple_product(['price' => 100]);
+    $order = create_order(['products' => [[$product, 3]], 'shipping_method' => 'postnord_homedelivery']);
+    $item_id = order_item_id_for_product($order, $product);
+    $other_order = create_order(['products' => [$product]]);
+    $specs = match ($case) {
+        'under' => [['items' => [['order_item_id' => $item_id, 'quantity' => 2]]]],
+        'over' => [
+            ['items' => [['order_item_id' => $item_id, 'quantity' => 2]]],
+            ['items' => [['order_item_id' => $item_id, 'quantity' => 2]]],
+        ],
+        'foreign' => [['items' => [['order_item_id' => order_item_id_for_product($other_order, $product), 'quantity' => 3]]]],
+        'legacy' => [['items' => [['id' => $product->get_id(), 'quantity' => 3]]]],
+    };
+    as_rest_user();
+    $capture = mock_smart_send_api();
+
+    $response = fulfillment_post($order->get_id(), [
+        'flow' => 'outbound',
+        'delivery_details' => ['parcel_plan' => ['specs' => $specs]],
+    ]);
+
+    expect($response->get_status())->toBe(400)
+        ->and($response->get_data()['code'])->toBe('rest_invalid_param')
+        ->and($response->get_data()['data']['params'])->toHaveKey('delivery_details')
+        ->and($capture->requests)->toBe([])
+        ->and(wc_get_order($order->get_id())->get_meta('ss_shipping_order_parcels', true))->toBe('');
+})->with(['under', 'over', 'foreign', 'legacy']);
+
+it('surfaces unsupported and stale stored plans until an explicit empty plan resets them', function (bool $legacy) {
+    $order = create_rest_order();
+    $line = array_values($order->get_items())[0];
+    $stored = $legacy
+        ? [['id' => $line->get_product_id(), 'name' => $line->get_name(), 'value' => '2']]
+        : ['specs' => [['items' => [['order_item_id' => $line->get_id(), 'quantity' => 2]]]]];
+    $order->update_meta_data('ss_shipping_order_parcels', $stored);
+    $order->save();
+    as_rest_user();
+    $capture = mock_smart_send_api();
+
+    $state = fulfillment_get($order->get_id())->get_data();
+    expect($state['parcel_plan_error'])->toBeString()->not->toBeEmpty();
+
+    $blocked = fulfillment_post($order->get_id(), ['flow' => 'outbound']);
+    expect($blocked->get_status())->toBe(200)
+        ->and($blocked->get_data()['success'])->toBeFalse()
+        ->and($blocked->get_data()['shipments'][0]['error']['form_fields'])->toHaveKey('parcel_plan')
+        ->and($capture->requests)->toBe([])
+        ->and(wc_get_order($order->get_id())->get_meta('ss_shipping_order_parcels', true))->toBe($stored);
+
+    $reset = fulfillment_post($order->get_id(), [
+        'flow' => 'outbound',
+        'delivery_details' => ['parcel_plan' => ['specs' => []]],
+    ]);
+    expect($reset->get_status())->toBe(200)
+        ->and($reset->get_data()['success'])->toBeTrue()
+        ->and($reset->get_data()['state']['parcel_plan_error'])->toBeNull()
+        ->and($capture->requests)->toHaveCount(1)
+        ->and(wc_get_order($order->get_id())->get_meta('ss_shipping_order_parcels', true))->toBe(['specs' => []]);
+})->with(['legacy product rows' => [true], 'changed order quantities' => [false]]);
+
+it('books all current order items in a single itemless specification with explicit weight', function () {
+    $order = create_rest_order();
+    as_rest_user();
+    $capture = mock_smart_send_api();
+
+    $response = fulfillment_post($order->get_id(), [
+        'flow' => 'outbound',
+        'delivery_details' => ['parcel_plan' => ['specs' => [['weight' => 3.5, 'items' => []]]]],
+    ]);
+
+    expect($response->get_status())->toBe(200)
+        ->and($response->get_data()['success'])->toBeTrue()
+        ->and($capture->requests)->toHaveCount(1);
+    $payload = json_decode($capture->requests[0]['body'], true);
+    expect($payload['parcels'])->toHaveCount(1)
+        ->and($payload['parcels'][0]['weight'])->toEqual(3.5)
+        ->and($payload['parcels'][0]['items'][0]['internal_id'])->toBe((string) array_key_first($order->get_items()));
 });
 
 it('books from the JSON body: the delivery details reach the booking payload and get persisted, and the response carries the run plus the state', function () {
@@ -288,8 +369,8 @@ it('books from the JSON body: the delivery details reach the booking payload and
             'shipping_method' => 'postnord_homedelivery',
             'parcel_plan'     => [
                 'specs' => [
-                    ['reference' => '1', 'weight' => null, 'items' => [['id' => $product_a->get_id(), 'quantity' => 1]]],
-                    ['reference' => '2', 'weight' => 7.5, 'length' => 40, 'width' => 30, 'height' => 20, 'items' => [['id' => $product_b->get_id(), 'quantity' => 1]]],
+                    ['reference' => '1', 'weight' => null, 'items' => [['order_item_id' => order_item_id_for_product($order, $product_a), 'quantity' => 1]]],
+                    ['reference' => '2', 'weight' => 7.5, 'length' => 40, 'width' => 30, 'height' => 20, 'items' => [['order_item_id' => order_item_id_for_product($order, $product_b), 'quantity' => 1]]],
                 ],
             ],
         ],
@@ -308,11 +389,13 @@ it('books from the JSON body: the delivery details reach the booking payload and
         ->and((float) $payload['parcels'][1]['weight'])->toBe(7.5)
         ->and($payload['parcels'][1]['items'][0]['name'])->toBe('Rest Box Two');
 
-    // The split was persisted (persist-after-success) in the frozen row shape.
-    expect(wc_get_order($order->get_id())->get_meta('ss_shipping_order_parcels', true))->toEqual([
-        ['id' => $product_a->get_id(), 'name' => 'Rest Box One', 'value' => '1'],
-        ['id' => $product_b->get_id(), 'name' => 'Rest Box Two', 'value' => '2'],
-    ]);
+    // Persist the order-line allocation; entered dimensions apply to this booking.
+    $stored = wc_get_order($order->get_id())->get_meta('ss_shipping_order_parcels', true);
+    expect($stored['specs'])->toHaveCount(2)
+        ->and($stored['specs'][0]['items'])->toBe([['order_item_id' => order_item_id_for_product($order, $product_a), 'quantity' => 1, 'name' => 'Rest Box One']])
+        ->and($stored['specs'][1]['items'])->toBe([['order_item_id' => order_item_id_for_product($order, $product_b), 'quantity' => 1, 'name' => 'Rest Box Two']])
+        ->and($stored['specs'][1]['weight'])->toBeNull()
+        ->and($stored['specs'][1]['length'])->toBeNull();
 
     // Response shape (section 3.2).
     $data = $response->get_data();
@@ -579,6 +662,7 @@ it('reports a failed leg as a 200 with the structured error and the mapped form 
                 'agent_no'          => ['The agent is invalid.'],
                 'parcels.1.weight'  => ['Too heavy.'],
                 'receiver.zip_code' => ['The receiver zip code does not match the receiver country'],
+                'parcels.0.items.0.hs_code' => ['The HS code is required for customs.'],
             ],
         ], 'resp-rest');
     });
@@ -592,7 +676,7 @@ it('reports a failed leg as a 200 with the structured error and the mapped form 
         ->and($data['shipments'][0]['status'])->toBe('failed')
         ->and($data['shipments'][0]['error']['message'])->toBe('The given data was invalid.')
         ->and($data['shipments'][0]['error']['response_id'])->toBe('resp-rest')
-        ->and($data['shipments'][0]['error']['fields'])->toHaveKeys(['agent_no', 'parcels.1.weight', 'receiver.zip_code'])
+        ->and($data['shipments'][0]['error']['fields'])->toHaveKeys(['agent_no', 'parcels.1.weight', 'receiver.zip_code', 'parcels.0.items.0.hs_code'])
         ->and($data['shipments'][0]['error']['form_fields'])->toBe([
             'pickup_point.agent_no'       => ['The agent is invalid.'],
             'parcel_plan.specs[1].weight' => ['Too heavy.'],
@@ -668,7 +752,10 @@ it('maps API v1 field names onto form fields in one place', function () {
         ->and($presenter->map_api_field('parcels'))->toBe('parcel_plan')
         ->and($presenter->map_api_field('parcels.0'))->toBe('parcel_plan.specs[0]')
         ->and($presenter->map_api_field('parcels.2.weight'))->toBe('parcel_plan.specs[2].weight')
-        ->and($presenter->map_api_field('parcels.0.items.1.quantity'))->toBe('parcel_plan.specs[0].items[1].quantity')
+        ->and($presenter->map_api_field('parcels.0.items.1.quantity'))->toBeNull()
+        ->and($presenter->map_api_field('parcels.0.items.0.hs_code'))->toBeNull()
+        ->and($presenter->map_api_field('parcels.0.items.0.country_of_origin'))->toBeNull()
+        ->and($presenter->map_api_field('parcel_plan.specs.0.items.0.order_item_id'))->toBe('parcel_plan')
         ->and($presenter->map_api_field('shipping_method'))->toBe('shipping_method')
         ->and($presenter->map_api_field('shipping_carrier'))->toBe('shipping_method')
         ->and($presenter->map_api_field('receiver.zip_code'))->toBeNull()
