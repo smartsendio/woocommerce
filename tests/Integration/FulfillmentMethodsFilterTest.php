@@ -29,10 +29,10 @@ function spy_on_logger_for_methods_filter(): object
         }
     };
 
-    SS_Shipping_Logger::$logger = $spy;
+    \Smart_Send\Support\Logger::$logger = $spy;
 
     remember_cleanup_callback(function (): void {
-        SS_Shipping_Logger::$logger = null;
+        \Smart_Send\Support\Logger::$logger = null;
     });
 
     return $spy;

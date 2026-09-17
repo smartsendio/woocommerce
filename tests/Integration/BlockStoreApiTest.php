@@ -2,7 +2,7 @@
 
 /*
  * Tests for the Store API extensions of the Checkout Block (PR 2 of issue
- * #74, SS_Shipping_Store_Api): the cart endpoint carries the server-computed
+ * #74, \Smart_Send\Delivery_Options\Store_API): the cart endpoint carries the server-computed
  * pickup point state ("data down"), the checkout endpoint accepts agent_no
  * and persists the server-resolved pickup point through the repository
  * ("data up") with byte-identical meta to the classic checkout, and an
@@ -103,7 +103,7 @@ function block_cart_setup(string $method_code = 'postnord_agent', array $address
         WC()->session->set('chosen_shipping_methods', null);
         WC()->session->set('shipping_for_package_0', null);
         WC()->session->set('ss_shipping_agents', null);
-        WC()->session->set(SS_Shipping_Store_Api::SESSION_SELECTED_AGENT_NO, null);
+        WC()->session->set(\Smart_Send\Delivery_Options\Store_API::SESSION_SELECTED_AGENT_NO, null);
 
         $customer = WC()->customer;
         $customer->set_shipping_country('');
@@ -168,7 +168,7 @@ function block_cart_extension_data(): array
 {
     $data = StoreApi::container()->get(ExtendSchema::class)->get_endpoint_data('cart');
 
-    return $data->{SS_Shipping_Block_Checkout::INTEGRATION_NAME};
+    return $data->{\Smart_Send\Frontend\Block_Checkout::INTEGRATION_NAME};
 }
 
 /**
@@ -180,7 +180,7 @@ function block_checkout_request(?string $agent_no): WP_REST_Request
 
     if ($agent_no !== null) {
         $request->set_param('extensions', [
-            SS_Shipping_Block_Checkout::INTEGRATION_NAME => ['agent_no' => $agent_no],
+            \Smart_Send\Frontend\Block_Checkout::INTEGRATION_NAME => ['agent_no' => $agent_no],
         ]);
     }
 
@@ -256,7 +256,7 @@ it('applies the smart_send_pickup_point_option_label filter to the labels, like 
     });
     block_cart_setup();
 
-    $filter = function (string $label, SS_Shipping_Pickup_Point $pickup_point) {
+    $filter = function (string $label, \Smart_Send\Delivery\Pickup_Point $pickup_point) {
         return 'Custom Label ' . $pickup_point->get_agent_no();
     };
     add_filter('smart_send_pickup_point_option_label', $filter, 10, 2);
@@ -419,7 +419,7 @@ it('stores and clears the in-progress selection through the registered extension
     block_cart_setup();
 
     $callback = StoreApi::container()->get(ExtendSchema::class)
-        ->get_update_callback(SS_Shipping_Block_Checkout::INTEGRATION_NAME);
+        ->get_update_callback(\Smart_Send\Frontend\Block_Checkout::INTEGRATION_NAME);
 
     $callback(['agent_no' => '1234']);
     expect(block_cart_extension_data()['selected_agent_no'])->toBe('1234');
@@ -443,7 +443,7 @@ it('persists the pickup point byte-identically to the classic checkout path', fu
     // Classic checkout path.
     $classic_order = create_order(['shipping_method' => 'postnord_agent']);
     $_POST['ss_shipping_store_pickup'] = '1234';
-    (new SS_Shipping_Frontend())->process_ss_pickup_points($classic_order->get_id(), []);
+    (new \Smart_Send\Frontend\Checkout())->process_ss_pickup_points($classic_order->get_id(), []);
     unset($_POST['ss_shipping_store_pickup']);
 
     // Block checkout path: the real registered listener on the real action.
@@ -455,10 +455,10 @@ it('persists the pickup point byte-identically to the classic checkout path', fu
     $classic_fresh = wc_get_order($classic_order->get_id());
     $block_fresh   = wc_get_order($block_order->get_id());
 
-    expect(serialize($block_fresh->get_meta(SS_Shipping_Order_Meta::META_AGENT, true)))
-        ->toBe(serialize($classic_fresh->get_meta(SS_Shipping_Order_Meta::META_AGENT, true)))
-        ->and($block_fresh->get_meta(SS_Shipping_Order_Meta::META_AGENT_NO, true))
-        ->toBe($classic_fresh->get_meta(SS_Shipping_Order_Meta::META_AGENT_NO, true));
+    expect(serialize($block_fresh->get_meta(\Smart_Send\Delivery\Order_Meta::META_AGENT, true)))
+        ->toBe(serialize($classic_fresh->get_meta(\Smart_Send\Delivery\Order_Meta::META_AGENT, true)))
+        ->and($block_fresh->get_meta(\Smart_Send\Delivery\Order_Meta::META_AGENT_NO, true))
+        ->toBe($classic_fresh->get_meta(\Smart_Send\Delivery\Order_Meta::META_AGENT_NO, true));
 
     // And the repository reads back the identical pickup point.
     $classic_point = SS_SHIPPING_WC()->order_meta()->read($classic_order->get_id())->get_pickup_point();
@@ -482,7 +482,7 @@ it('rejects checkout with a Store API validation error when an agent method has 
         do_action('woocommerce_store_api_checkout_update_order_from_request', $order, block_checkout_request(null));
     })->toThrow(RouteException::class, 'A pickup point must be selected.');
 
-    expect(wc_get_order($order->get_id())->get_meta(SS_Shipping_Order_Meta::META_AGENT_NO, true))->toBe('');
+    expect(wc_get_order($order->get_id())->get_meta(\Smart_Send\Delivery\Order_Meta::META_AGENT_NO, true))->toBe('');
 });
 
 it('rejects checkout without an agent_no when pickup points WERE available for the address', function () {
@@ -502,7 +502,7 @@ it('rejects checkout without an agent_no when pickup points WERE available for t
         do_action('woocommerce_store_api_checkout_update_order_from_request', $order, block_checkout_request(null));
     })->toThrow(RouteException::class, 'A pickup point must be selected.');
 
-    expect(wc_get_order($order->get_id())->get_meta(SS_Shipping_Order_Meta::META_AGENT_NO, true))->toBe('');
+    expect(wc_get_order($order->get_id())->get_meta(\Smart_Send\Delivery\Order_Meta::META_AGENT_NO, true))->toBe('');
 });
 
 it('accepts checkout without an agent_no when the lookup found NO pickup points for the address', function () {
@@ -524,8 +524,8 @@ it('accepts checkout without an agent_no when the lookup found NO pickup points 
     do_action('woocommerce_store_api_checkout_update_order_from_request', $order, block_checkout_request(null));
 
     $fresh = wc_get_order($order->get_id());
-    expect($fresh->get_meta(SS_Shipping_Order_Meta::META_AGENT_NO, true))->toBe('')
-        ->and($fresh->get_meta(SS_Shipping_Order_Meta::META_AGENT, true))->toBe('');
+    expect($fresh->get_meta(\Smart_Send\Delivery\Order_Meta::META_AGENT_NO, true))->toBe('')
+        ->and($fresh->get_meta(\Smart_Send\Delivery\Order_Meta::META_AGENT, true))->toBe('');
 });
 
 it('accepts checkout without an agent_no when the plugin is not connected', function () {
@@ -544,8 +544,8 @@ it('accepts checkout without an agent_no when the plugin is not connected', func
     do_action('woocommerce_store_api_checkout_update_order_from_request', $order, block_checkout_request(null));
 
     $fresh = wc_get_order($order->get_id());
-    expect($fresh->get_meta(SS_Shipping_Order_Meta::META_AGENT_NO, true))->toBe('')
-        ->and($fresh->get_meta(SS_Shipping_Order_Meta::META_AGENT, true))->toBe('');
+    expect($fresh->get_meta(\Smart_Send\Delivery\Order_Meta::META_AGENT_NO, true))->toBe('')
+        ->and($fresh->get_meta(\Smart_Send\Delivery\Order_Meta::META_AGENT, true))->toBe('');
 });
 
 it('accepts checkout without an agent_no after a failed lookup', function () {
@@ -563,7 +563,7 @@ it('accepts checkout without an agent_no after a failed lookup', function () {
 
     do_action('woocommerce_store_api_checkout_update_order_from_request', $order, block_checkout_request(null));
 
-    expect(wc_get_order($order->get_id())->get_meta(SS_Shipping_Order_Meta::META_AGENT_NO, true))->toBe('');
+    expect(wc_get_order($order->get_id())->get_meta(\Smart_Send\Delivery\Order_Meta::META_AGENT_NO, true))->toBe('');
 });
 
 it('still rejects an empty agent_no string when pickup points were available', function () {
@@ -600,7 +600,7 @@ it('rejects checkout when the submitted agent_no resolves nowhere (cache miss an
         do_action('woocommerce_store_api_checkout_update_order_from_request', $order, block_checkout_request('0000'));
     })->toThrow(RouteException::class, 'A pickup point must be selected.');
 
-    expect(wc_get_order($order->get_id())->get_meta(SS_Shipping_Order_Meta::META_AGENT_NO, true))->toBe('');
+    expect(wc_get_order($order->get_id())->get_meta(\Smart_Send\Delivery\Order_Meta::META_AGENT_NO, true))->toBe('');
 });
 
 it('ignores a stray agent_no on a non-agent method and writes nothing', function () {
@@ -609,11 +609,11 @@ it('ignores a stray agent_no on a non-agent method and writes nothing', function
     do_action('woocommerce_store_api_checkout_update_order_from_request', $order, block_checkout_request('1234'));
 
     $fresh = wc_get_order($order->get_id());
-    expect($fresh->get_meta(SS_Shipping_Order_Meta::META_AGENT_NO, true))->toBe('')
-        ->and($fresh->get_meta(SS_Shipping_Order_Meta::META_AGENT, true))->toBe('');
+    expect($fresh->get_meta(\Smart_Send\Delivery\Order_Meta::META_AGENT_NO, true))->toBe('')
+        ->and($fresh->get_meta(\Smart_Send\Delivery\Order_Meta::META_AGENT, true))->toBe('');
 });
 
-it('falls back to the findByAgentNo API when the agent_no is not in the session cache, and persists the server object', function () {
+it('falls back to the find_by_agent_no API when the agent_no is not in the session cache, and persists the server object', function () {
     if (is_null(WC()->cart)) {
         wc_load_cart();
     }

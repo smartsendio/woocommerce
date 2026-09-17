@@ -1,25 +1,25 @@
 <?php
 
 /*
- * Tests for the Smartsend client/resource error handling (issues #38 and
- * the exception refactor): transport WP_Errors throw ConnectionException,
- * completed non-2xx exchanges throw RequestException (re-thrown by the
- * resources as the domain exceptions UnauthenticatedException /
- * ForbiddenException / ValidationException / ServerException), unusable
- * 2xx bodies throw UnexpectedResponseException from the resource layer,
+ * Tests for the Smart Send client/resource error handling (issues #38 and
+ * the exception refactor): transport WP_Errors throw Connection_Exception,
+ * completed non-2xx exchanges throw Request_Exception (re-thrown by the
+ * resources as the domain exceptions Unauthenticated_Exception /
+ * Forbidden_Exception / Validation_Exception / Server_Exception), unusable
+ * 2xx bodies throw Unexpected_Response_Exception from the resource layer,
  * and every failed request still lands in the log at the error level via
  * the injected request logger.
  */
 
-use Smartsend\Api;
-use Smartsend\Exceptions\ConnectionException;
-use Smartsend\Exceptions\ForbiddenException;
-use Smartsend\Exceptions\HttpClientException;
-use Smartsend\Exceptions\RequestException;
-use Smartsend\Exceptions\ServerException;
-use Smartsend\Exceptions\UnauthenticatedException;
-use Smartsend\Exceptions\UnexpectedResponseException;
-use Smartsend\Exceptions\ValidationException;
+use Smart_Send\API\API;
+use Smart_Send\API\Exceptions\Connection_Exception;
+use Smart_Send\API\Exceptions\Forbidden_Exception;
+use Smart_Send\API\Exceptions\HTTP_Client_Exception;
+use Smart_Send\API\Exceptions\Request_Exception;
+use Smart_Send\API\Exceptions\Server_Exception;
+use Smart_Send\API\Exceptions\Unauthenticated_Exception;
+use Smart_Send\API\Exceptions\Unexpected_Response_Exception;
+use Smart_Send\API\Exceptions\Validation_Exception;
 
 /**
  * Replace the logger's WC_Logger with a spy that records every entry.
@@ -46,10 +46,10 @@ function spy_on_ss_logger(): object
         }
     };
 
-    SS_Shipping_Logger::$logger = $spy;
+    \Smart_Send\Support\Logger::$logger = $spy;
 
     remember_cleanup_callback(function (): void {
-        SS_Shipping_Logger::$logger = null;
+        \Smart_Send\Support\Logger::$logger = null;
     });
 
     return $spy;
@@ -57,16 +57,16 @@ function spy_on_ss_logger(): object
 
 /**
  * An API client wired to the plugin logger, plus a logger spy, like the
- * plugin wires it in SS_Shipping_WC::get_api_handle().
+ * plugin wires it in \Smart_Send\Plugin::get_api_handle().
  *
- * @return array{0: Api, 1: object} [client, logger spy]
+ * @return array{0: API, 1: object} [client, logger spy]
  */
 function create_client_with_log_spy(): array
 {
     $spy = spy_on_ss_logger();
 
-    $api = new Api('secret-token-123', 'example.test');
-    $api->setRequestLogger(['SS_Shipping_Logger', 'log_api_request']);
+    $api = new API('secret-token-123', 'example.test');
+    $api->set_request_logger([\Smart_Send\Support\Logger::class, 'log_api_request']);
 
     return [$api, $spy];
 }
@@ -86,11 +86,11 @@ function mock_smart_send_transport_error(string $code, string $message): object
  * Run $call, asserting it throws an exception of $expected_class, and
  * return the caught exception for further assertions.
  */
-function expect_api_exception(callable $call, string $expected_class): HttpClientException
+function expect_api_exception(callable $call, string $expected_class): HTTP_Client_Exception
 {
     try {
         $call();
-    } catch (HttpClientException $e) {
+    } catch (HTTP_Client_Exception $e) {
         expect($e)->toBeInstanceOf($expected_class);
 
         return $e;
@@ -106,10 +106,10 @@ it('returns data and no exception on a successful response', function () {
         return ss_api_response(200, ['data' => ss_api_shipment_data(['shipment_id' => 'success-shipment'])]);
     });
 
-    $response = $api->account()->getAuthenticatedUser();
+    $response = $api->account()->get_authenticated_user();
 
     expect($response->data()->shipment_id)->toBe('success-shipment');
-    expect($response->statusCode())->toBe(200);
+    expect($response->status_code())->toBe(200);
     expect($spy->entries)->toHaveCount(1);
     expect($spy->entries[0]['level'])->toBe('debug');
 });
@@ -121,22 +121,22 @@ it('exposes the Response-ID header on successful responses', function () {
         return ss_api_response(200, ['data' => ss_api_shipment_data()], 'resp-id-success');
     });
 
-    $response = $api->account()->getAuthenticatedUser();
+    $response = $api->account()->get_authenticated_user();
 
-    expect($response->responseId())->toBe('resp-id-success');
+    expect($response->response_id())->toBe('resp-id-success');
 });
 
-it('leaves responseId null when the API sends no Response-ID header', function () {
+it('leaves response_id null when the API sends no Response-ID header', function () {
     with_ss_settings(['ss_debug' => 'no']);
     [$api] = create_client_with_log_spy();
     mock_smart_send_api();
 
-    $response = $api->account()->getAuthenticatedUser();
+    $response = $api->account()->get_authenticated_user();
 
-    expect($response->responseId())->toBeNull();
+    expect($response->response_id())->toBeNull();
 });
 
-it('throws a ValidationException carrying the response for a 422 body', function () {
+it('throws a Validation_Exception carrying the response for a 422 body', function () {
     with_ss_settings(['ss_debug' => 'no']);
     [$api, $spy] = create_client_with_log_spy();
     mock_smart_send_api(function () {
@@ -144,16 +144,16 @@ it('throws a ValidationException carrying the response for a 422 body', function
     });
 
     $e = expect_api_exception(function () use ($api) {
-        $api->account()->getAuthenticatedUser();
-    }, ValidationException::class);
+        $api->account()->get_authenticated_user();
+    }, Validation_Exception::class);
 
     expect($e->getMessage())->toBe('The given data was invalid.');
     expect($e->errors())->toBe(['receiver.postal_code' => ['The postal code is invalid.']]);
 
-    $response = $e->getResponse();
-    expect($response->statusCode())->toBe(422);
+    $response = $e->get_response();
+    expect($response->status_code())->toBe(422);
     expect($response->message())->toBe('The given data was invalid.');
-    expect($response->responseId())->toBe('test-response-id');
+    expect($response->response_id())->toBe('test-response-id');
 
     // Logged at error level even with debug off, with HTTP status and detail
     expect($spy->entries)->toHaveCount(1);
@@ -162,7 +162,7 @@ it('throws a ValidationException carrying the response for a 422 body', function
     expect($spy->entries[0]['context']['error'])->toBe('The given data was invalid.');
 });
 
-it('throws an UnauthenticatedException for a 401 response', function () {
+it('throws an Unauthenticated_Exception for a 401 response', function () {
     with_ss_settings(['ss_debug' => 'no']);
     [$api] = create_client_with_log_spy();
     mock_smart_send_api(function () {
@@ -170,14 +170,14 @@ it('throws an UnauthenticatedException for a 401 response', function () {
     });
 
     $e = expect_api_exception(function () use ($api) {
-        $api->account()->getAuthenticatedUser();
-    }, UnauthenticatedException::class);
+        $api->account()->get_authenticated_user();
+    }, Unauthenticated_Exception::class);
 
     expect($e->getMessage())->toBe('Invalid API token.');
-    expect($e->getResponse()->statusCode())->toBe(401);
+    expect($e->get_response()->status_code())->toBe(401);
 });
 
-it('throws a ForbiddenException for a 403 response', function () {
+it('throws a Forbidden_Exception for a 403 response', function () {
     with_ss_settings(['ss_debug' => 'no']);
     [$api] = create_client_with_log_spy();
     mock_smart_send_api(function () {
@@ -185,13 +185,13 @@ it('throws a ForbiddenException for a 403 response', function () {
     });
 
     $e = expect_api_exception(function () use ($api) {
-        $api->pickupPoints()->findClosestByAddress('postnord', 'DK', '2300', 'Copenhagen', 'Islands Brygge 39');
-    }, ForbiddenException::class);
+        $api->pickup_points()->find_closest_by_address('postnord', 'DK', '2300', 'Copenhagen', 'Islands Brygge 39');
+    }, Forbidden_Exception::class);
 
     expect($e->getMessage())->toBe('Your plan does not include this feature.');
 });
 
-it('throws a plain RequestException for other 4xx responses', function () {
+it('throws a plain Request_Exception for other 4xx responses', function () {
     with_ss_settings(['ss_debug' => 'no']);
     [$api] = create_client_with_log_spy();
     mock_smart_send_api(function () {
@@ -199,21 +199,21 @@ it('throws a plain RequestException for other 4xx responses', function () {
     });
 
     $e = expect_api_exception(function () use ($api) {
-        $api->pickupPoints()->findByAgentNo('postnord', 'DK', '9999');
-    }, RequestException::class);
+        $api->pickup_points()->find_by_agent_no('postnord', 'DK', '9999');
+    }, Request_Exception::class);
 
-    expect(get_class($e))->toBe(RequestException::class);
+    expect(get_class($e))->toBe(Request_Exception::class);
     expect($e->getMessage())->toBe('Agent number not found.');
 });
 
-it('throws a ConnectionException for a connection failure WP_Error', function () {
+it('throws a Connection_Exception for a connection failure WP_Error', function () {
     with_ss_settings(['ss_debug' => 'no']);
     [$api, $spy] = create_client_with_log_spy();
     mock_smart_send_transport_error('http_request_failed', 'cURL error 7: Failed to connect to app.smartsend.io port 443: Connection refused');
 
     $e = expect_api_exception(function () use ($api) {
-        $api->account()->getAuthenticatedUser();
-    }, ConnectionException::class);
+        $api->account()->get_authenticated_user();
+    }, Connection_Exception::class);
 
     expect($e->getMessage())->toContain('Could not connect to the Smart Send API');
     // The raw transport detail is preserved for support
@@ -231,8 +231,8 @@ it('classifies a timeout WP_Error into the timeout message', function () {
     mock_smart_send_transport_error('http_request_failed', 'cURL error 28: Operation timed out after 30001 milliseconds with 0 bytes received');
 
     $e = expect_api_exception(function () use ($api) {
-        $api->account()->getAuthenticatedUser();
-    }, ConnectionException::class);
+        $api->account()->get_authenticated_user();
+    }, Connection_Exception::class);
 
     expect($e->getMessage())->toContain('timed out');
     expect($e->getMessage())->toContain('cURL error 28');
@@ -248,8 +248,8 @@ it('classifies a stream timeout message from WP_Http_Streams as a timeout too', 
     mock_smart_send_transport_error('http_request_failed', 'stream_socket_client(): unable to connect (Connection timed out)');
 
     $e = expect_api_exception(function () use ($api) {
-        $api->account()->getAuthenticatedUser();
-    }, ConnectionException::class);
+        $api->account()->get_authenticated_user();
+    }, Connection_Exception::class);
 
     expect($e->getMessage())->toContain('timed out');
 });
@@ -260,8 +260,8 @@ it('classifies an SSL failure WP_Error into the SSL message', function () {
     mock_smart_send_transport_error('http_request_failed', 'cURL error 35: SSL connect error');
 
     $e = expect_api_exception(function () use ($api) {
-        $api->account()->getAuthenticatedUser();
-    }, ConnectionException::class);
+        $api->account()->get_authenticated_user();
+    }, Connection_Exception::class);
 
     expect($e->getMessage())->toContain('SSL/TLS');
     expect($e->getMessage())->toContain('cURL error 35');
@@ -276,8 +276,8 @@ it('classifies a certificate verification failure as an SSL failure', function (
     mock_smart_send_transport_error('http_request_failed', 'cURL error 60: SSL certificate problem: unable to get local issuer certificate');
 
     $e = expect_api_exception(function () use ($api) {
-        $api->account()->getAuthenticatedUser();
-    }, ConnectionException::class);
+        $api->account()->get_authenticated_user();
+    }, Connection_Exception::class);
 
     expect($e->getMessage())->toContain('SSL/TLS');
 });
@@ -288,14 +288,14 @@ it('keeps the WP_Error code recognisable for unclassified transport failures', f
     mock_smart_send_transport_error('http_request_not_executed', 'User has blocked requests through HTTP.');
 
     $e = expect_api_exception(function () use ($api) {
-        $api->account()->getAuthenticatedUser();
-    }, ConnectionException::class);
+        $api->account()->get_authenticated_user();
+    }, Connection_Exception::class);
 
     expect($e->getMessage())->toContain('User has blocked requests through HTTP.');
     expect($e->getMessage())->toContain('http_request_not_executed');
 });
 
-it('throws a ServerException for a non-2xx response with an empty body', function () {
+it('throws a Server_Exception for a non-2xx response with an empty body', function () {
     with_ss_settings(['ss_debug' => 'no']);
     [$api, $spy] = create_client_with_log_spy();
     mock_smart_send_api(function () {
@@ -309,8 +309,8 @@ it('throws a ServerException for a non-2xx response with an empty body', functio
     });
 
     $e = expect_api_exception(function () use ($api) {
-        $api->account()->getAuthenticatedUser();
-    }, ServerException::class);
+        $api->account()->get_authenticated_user();
+    }, Server_Exception::class);
 
     expect($e->getMessage())->toContain('empty response');
     expect($e->getMessage())->toContain('HTTP 503');
@@ -320,7 +320,7 @@ it('throws a ServerException for a non-2xx response with an empty body', functio
     expect($spy->entries[0]['message'])->toContain('→ 503');
 });
 
-it('throws a ServerException for a non-2xx response with a non-JSON body', function () {
+it('throws a Server_Exception for a non-2xx response with a non-JSON body', function () {
     with_ss_settings(['ss_debug' => 'no']);
     [$api, $spy] = create_client_with_log_spy();
     mock_smart_send_api(function () {
@@ -334,19 +334,19 @@ it('throws a ServerException for a non-2xx response with a non-JSON body', funct
     });
 
     $e = expect_api_exception(function () use ($api) {
-        $api->account()->getAuthenticatedUser();
-    }, ServerException::class);
+        $api->account()->get_authenticated_user();
+    }, Server_Exception::class);
 
     expect($e->getMessage())->toContain('HTTP 502');
     // The raw body is preserved on the response for support
-    expect($e->getResponse()->rawBody())->toContain('502 Bad Gateway');
+    expect($e->get_response()->raw_body())->toContain('502 Bad Gateway');
 
     expect($spy->entries)->toHaveCount(1);
     expect($spy->entries[0]['level'])->toBe('error');
     expect($spy->entries[0]['message'])->toContain('→ 502');
 });
 
-it('throws a ServerException for a non-2xx response with malformed JSON', function () {
+it('throws a Server_Exception for a non-2xx response with malformed JSON', function () {
     with_ss_settings(['ss_debug' => 'no']);
     [$api] = create_client_with_log_spy();
     mock_smart_send_api(function () {
@@ -360,13 +360,13 @@ it('throws a ServerException for a non-2xx response with malformed JSON', functi
     });
 
     $e = expect_api_exception(function () use ($api) {
-        $api->account()->getAuthenticatedUser();
-    }, ServerException::class);
+        $api->account()->get_authenticated_user();
+    }, Server_Exception::class);
 
     expect($e->getMessage())->toContain('HTTP 500');
 });
 
-it('throws an UnexpectedResponseException for a 2xx response with malformed JSON', function () {
+it('throws an Unexpected_Response_Exception for a 2xx response with malformed JSON', function () {
     // Debug on: the 2xx exchange itself is logged at the debug level.
     with_ss_settings(['ss_debug' => 'yes']);
     [$api, $spy] = create_client_with_log_spy();
@@ -381,8 +381,8 @@ it('throws an UnexpectedResponseException for a 2xx response with malformed JSON
     });
 
     $e = expect_api_exception(function () use ($api) {
-        $api->account()->getAuthenticatedUser();
-    }, UnexpectedResponseException::class);
+        $api->account()->get_authenticated_user();
+    }, Unexpected_Response_Exception::class);
 
     expect($e->getMessage())->toContain('HTTP 200');
     expect($e->getMessage())->toContain('not json at all');
@@ -393,7 +393,7 @@ it('throws an UnexpectedResponseException for a 2xx response with malformed JSON
     expect($spy->entries[0]['level'])->toBe('debug');
 });
 
-it('throws an UnexpectedResponseException for a 2xx response with an empty body', function () {
+it('throws an Unexpected_Response_Exception for a 2xx response with an empty body', function () {
     with_ss_settings(['ss_debug' => 'no']);
     [$api] = create_client_with_log_spy();
     mock_smart_send_api(function () {
@@ -407,8 +407,8 @@ it('throws an UnexpectedResponseException for a 2xx response with an empty body'
     });
 
     $e = expect_api_exception(function () use ($api) {
-        $api->account()->getAuthenticatedUser();
-    }, UnexpectedResponseException::class);
+        $api->account()->get_authenticated_user();
+    }, Unexpected_Response_Exception::class);
 
     expect($e->getMessage())->toContain('empty response');
 });
@@ -421,15 +421,15 @@ it('treats a 2xx response with an empty data list as a successful empty collecti
         return ss_api_response(200, ['data' => []]);
     });
 
-    $response = $api->pickupPoints()->findClosestByAddress('postnord', 'DK', '2300', 'Copenhagen', 'Islands Brygge 39');
+    $response = $api->pickup_points()->find_closest_by_address('postnord', 'DK', '2300', 'Copenhagen', 'Islands Brygge 39');
 
     expect($response->data())->toBe([]);
     expect($spy->entries)->toHaveCount(1);
     expect($spy->entries[0]['level'])->toBe('debug');
 });
 
-it('throws an UnexpectedResponseException when an object endpoint returns an empty data list', function () {
-    // getAuthenticatedUser() expects an account object; an empty list is
+it('throws an Unexpected_Response_Exception when an object endpoint returns an empty data list', function () {
+    // get_authenticated_user() expects an account object; an empty list is
     // not a valid shape for that call even though it is for the pickup
     // point search.
     with_ss_settings(['ss_debug' => 'no']);
@@ -439,8 +439,8 @@ it('throws an UnexpectedResponseException when an object endpoint returns an emp
     });
 
     expect_api_exception(function () use ($api) {
-        $api->account()->getAuthenticatedUser();
-    }, UnexpectedResponseException::class);
+        $api->account()->get_authenticated_user();
+    }, Unexpected_Response_Exception::class);
 });
 
 it('truncates huge non-JSON bodies embedded in the unexpected-response message', function () {
@@ -457,13 +457,13 @@ it('truncates huge non-JSON bodies embedded in the unexpected-response message',
     });
 
     $e = expect_api_exception(function () use ($api) {
-        $api->account()->getAuthenticatedUser();
-    }, UnexpectedResponseException::class);
+        $api->account()->get_authenticated_user();
+    }, Unexpected_Response_Exception::class);
 
     expect($e->getMessage())->toContain('xxx...');
     expect(substr_count($e->getMessage(), 'x'))->toBeLessThanOrEqual(510);
     // The full body stays available on the response
-    expect(strlen($e->getResponse()->rawBody()))->toBe(2000);
+    expect(strlen($e->get_response()->raw_body()))->toBe(2000);
 });
 
 it('still honours the smart_send_sslverify filter', function () {
@@ -488,7 +488,7 @@ it('still honours the smart_send_sslverify filter', function () {
         remove_filter('smart_send_sslverify', '__return_false');
     });
 
-    $response = $api->account()->getAuthenticatedUser();
+    $response = $api->account()->get_authenticated_user();
 
     expect($seen_sslverify)->toBeFalse();
 });

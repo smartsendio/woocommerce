@@ -1,8 +1,8 @@
 <?php
 
 /*
- * State-isolation characterization for the Smartsend API client (#141):
- * two consecutive calls on ONE Api instance must be fully isolated - the
+ * State-isolation characterization for the Smart Send API client (#141):
+ * two consecutive calls on ONE API instance must be fully isolated - the
  * outcome read for the second call must never inherit anything (data,
  * exception, status) from the first call. Pinned against the pre-rework
  * clearAll() behavior; now asserts the immutable-Response guarantee: each
@@ -10,9 +10,9 @@
  * earlier call's Response is untouched by later calls.
  */
 
-use Smartsend\Api;
-use Smartsend\Exceptions\ConnectionException;
-use Smartsend\Exceptions\ValidationException;
+use Smart_Send\API\API;
+use Smart_Send\API\Exceptions\Connection_Exception;
+use Smart_Send\API\Exceptions\Validation_Exception;
 
 /**
  * Respond to the Nth Smart Send API request (1-based) with the matching
@@ -31,9 +31,9 @@ function mock_smart_send_api_sequence(array $responses): void
     });
 }
 
-it('does not leak the first call\'s data into a failing second call on one Api instance', function () {
+it('does not leak the first call\'s data into a failing second call on one API instance', function () {
     with_ss_settings();
-    $api = new Api('secret-token-123', 'example.test');
+    $api = new API('secret-token-123', 'example.test');
 
     mock_smart_send_api_sequence([
         ss_api_response(200, ['data' => ss_api_shipment_data(['shipment_id' => 'first-call-shipment'])]),
@@ -41,24 +41,24 @@ it('does not leak the first call\'s data into a failing second call on one Api i
     ]);
 
     // First call succeeds and carries data.
-    $first = $api->account()->getAuthenticatedUser();
+    $first = $api->account()->get_authenticated_user();
     expect($first->data()->shipment_id)->toBe('first-call-shipment');
-    expect($first->statusCode())->toBe(200);
+    expect($first->status_code())->toBe(200);
 
     // Second call fails at the transport level: it must throw its own
-    // ConnectionException, not surface anything from the first call.
+    // Connection_Exception, not surface anything from the first call.
     expect(function () use ($api) {
-        $api->account()->getAuthenticatedUser();
-    })->toThrow(ConnectionException::class);
+        $api->account()->get_authenticated_user();
+    })->toThrow(Connection_Exception::class);
 
     // And the first call's Response is untouched by the second call.
     expect($first->data()->shipment_id)->toBe('first-call-shipment');
-    expect($first->statusCode())->toBe(200);
+    expect($first->status_code())->toBe(200);
 });
 
-it('does not leak the first call\'s failure into a succeeding second call on one Api instance', function () {
+it('does not leak the first call\'s failure into a succeeding second call on one API instance', function () {
     with_ss_settings();
-    $api = new Api('secret-token-123', 'example.test');
+    $api = new API('secret-token-123', 'example.test');
 
     mock_smart_send_api_sequence([
         ss_api_response(422, ss_api_error_body('The given data was invalid.')),
@@ -68,21 +68,21 @@ it('does not leak the first call\'s failure into a succeeding second call on one
     // First call fails with a validation error.
     $first_exception = null;
     try {
-        $api->account()->getAuthenticatedUser();
-    } catch (ValidationException $e) {
+        $api->account()->get_authenticated_user();
+    } catch (Validation_Exception $e) {
         $first_exception = $e;
     }
-    expect($first_exception)->toBeInstanceOf(ValidationException::class);
-    expect($first_exception->getResponse()->statusCode())->toBe(422);
+    expect($first_exception)->toBeInstanceOf(Validation_Exception::class);
+    expect($first_exception->get_response()->status_code())->toBe(422);
 
     // Second call succeeds: its outcome must not inherit the first
     // call's failure.
-    $second = $api->account()->getAuthenticatedUser();
+    $second = $api->account()->get_authenticated_user();
     expect($second->data()->shipment_id)->toBe('second-call-shipment');
-    expect($second->statusCode())->toBe(200);
+    expect($second->status_code())->toBe(200);
 
     // And the first call's exception/Response is untouched by the second
     // call.
     expect($first_exception->getMessage())->toBe('The given data was invalid.');
-    expect($first_exception->getResponse()->statusCode())->toBe(422);
+    expect($first_exception->get_response()->status_code())->toBe(422);
 });

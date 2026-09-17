@@ -212,7 +212,7 @@ add_filter('pre_http_request', function ($pre, $args, $url) {
     }
 
     // Anything else is the account/authenticate call (the API base URL with
-    // no resource path - Smartsend\Resources\AccountResource::getAuthenticatedUser()).
+    // no resource path - Smart_Send\API\Resources\Account_Resource::get_authenticated_user()).
     $case = $case_of('authenticate');
     if ($case === '401') {
         return $respond(array('message' => 'Invalid API token provided'), 401);

@@ -11,20 +11,20 @@
  * copies through, because a renewal ships the same way as its parent.
  *
  * The exclusion list is built from the meta-key classification on
- * SS_Shipping_Order_Meta (booking_outcome_meta_keys() vs
+ * \Smart_Send\Delivery\Order_Meta (booking_outcome_meta_keys() vs
  * delivery_configuration_meta_keys()); these tests pin the exclusion to
  * that vocabulary via reflection, so a new META_* constant fails here
  * until it is classified into exactly one of the two lists.
  */
 
 /**
- * Every META_* constant on SS_Shipping_Order_Meta, discovered via reflection.
+ * Every META_* constant on \Smart_Send\Delivery\Order_Meta, discovered via reflection.
  *
  * @return array<string, string> constant name => meta key
  */
 function ss_order_meta_key_constants(): array
 {
-    $constants = (new ReflectionClass(SS_Shipping_Order_Meta::class))->getConstants();
+    $constants = (new ReflectionClass(\Smart_Send\Delivery\Order_Meta::class))->getConstants();
 
     return array_filter(
         $constants,
@@ -34,10 +34,10 @@ function ss_order_meta_key_constants(): array
 }
 
 test('the renewal exclusion contains exactly the booking-outcome keys', function () {
-    $booking_outcome = SS_Shipping_Order_Meta::booking_outcome_meta_keys();
+    $booking_outcome = \Smart_Send\Delivery\Order_Meta::booking_outcome_meta_keys();
     expect($booking_outcome)->not->toBeEmpty();
 
-    $compat = new SS_Shipping_Subscriptions_Compat();
+    $compat = new \Smart_Send\Support\Subscriptions_Compat();
     $fragment = $compat->woocommerce_subscriptions_renewal_order_meta_query('SELECT `meta_key` FROM wp_postmeta');
 
     // The original query survives, with an exclusion appended.
@@ -49,16 +49,16 @@ test('the renewal exclusion contains exactly the booking-outcome keys', function
 
     // The append-only booked-labels list is a booking outcome too (#182
     // review): a renewal must not inherit the parent order's timeline.
-    expect($booking_outcome)->toContain(SS_Shipping_Order_Meta::META_LABELS)
-        ->and(SS_Shipping_Order_Meta::META_LABELS)->toBe('_ss_shipping_labels');
+    expect($booking_outcome)->toContain(\Smart_Send\Delivery\Order_Meta::META_LABELS)
+        ->and(\Smart_Send\Delivery\Order_Meta::META_LABELS)->toBe('_ss_shipping_labels');
     expect($fragment)->toContain("'_ss_shipping_labels'");
 });
 
 test('delivery-configuration keys are NOT excluded and copy to renewals', function () {
-    $compat = new SS_Shipping_Subscriptions_Compat();
+    $compat = new \Smart_Send\Support\Subscriptions_Compat();
     $fragment = $compat->woocommerce_subscriptions_renewal_order_meta_query('');
 
-    foreach (SS_Shipping_Order_Meta::delivery_configuration_meta_keys() as $meta_key) {
+    foreach (\Smart_Send\Delivery\Order_Meta::delivery_configuration_meta_keys() as $meta_key) {
         expect($fragment)->not->toContain("'{$meta_key}'");
     }
 });
@@ -67,8 +67,8 @@ test('every META_* constant is classified into exactly one of the two lists', fu
     $constants = ss_order_meta_key_constants();
     expect($constants)->not->toBeEmpty();
 
-    $booking_outcome = SS_Shipping_Order_Meta::booking_outcome_meta_keys();
-    $delivery_config = SS_Shipping_Order_Meta::delivery_configuration_meta_keys();
+    $booking_outcome = \Smart_Send\Delivery\Order_Meta::booking_outcome_meta_keys();
+    $delivery_config = \Smart_Send\Delivery\Order_Meta::delivery_configuration_meta_keys();
 
     // The two lists are disjoint...
     expect(array_intersect($booking_outcome, $delivery_config))->toBe([]);
@@ -78,7 +78,7 @@ test('every META_* constant is classified into exactly one of the two lists', fu
         ->toEqualCanonicalizing(array_merge($booking_outcome, $delivery_config));
 
     // ...and all_meta_keys() is that union.
-    expect(SS_Shipping_Order_Meta::all_meta_keys())
+    expect(\Smart_Send\Delivery\Order_Meta::all_meta_keys())
         ->toEqualCanonicalizing(array_values($constants));
 });
 
@@ -86,7 +86,7 @@ test('the phantom _ss_shipping_label key is gone from the exclusion list', funct
     // '_ss_shipping_label' was never written anywhere; the real keys are
     // suffixed (_ss_shipping_label_id). Quoted-and-delimited match so the
     // real key does not mask a lingering phantom entry.
-    $compat = new SS_Shipping_Subscriptions_Compat();
+    $compat = new \Smart_Send\Support\Subscriptions_Compat();
     $fragment = $compat->woocommerce_subscriptions_renewal_order_meta_query('');
 
     expect($fragment)->not->toContain("'_ss_shipping_label'");

@@ -1,15 +1,15 @@
 <?php
 
 /*
- * Characterization tests for SS_Shipping_Method_Resolver (#139), the
+ * Characterization tests for \Smart_Send\Delivery\Method_Resolver (#139), the
  * dedicated home of the shipping method resolution that used to live on
- * SS_Shipping_Order_Meta::get_smart_send_method_id(): the Smart Send
+ * \Smart_Send\Delivery\Order_Meta::get_smart_send_method_id(): the Smart Send
  * shipping item, the free-shipping mapping, and the honest return-side
  * questions (return method, auto-return flag, the v8 pickup-point
  * fallback oddity).
  */
 
-function method_resolver(): SS_Shipping_Method_Resolver
+function method_resolver(): \Smart_Send\Delivery\Method_Resolver
 {
     return SS_SHIPPING_WC()->method_resolver();
 }
@@ -41,7 +41,7 @@ it('resolves the Smart Send shipping method of an order', function () {
     expect(method_resolver()->resolve_outbound(0))->toBe('');
 });
 
-it('throws a SS_Shipping_Booking_Exception when the return method is configured empty', function () {
+it('throws a \Smart_Send\Booking\Exceptions\Booking_Exception when the return method is configured empty', function () {
     $product = create_simple_product(['price' => 100, 'weight' => 1]);
     $order   = create_order([
         'products'        => [$product],
@@ -50,7 +50,7 @@ it('throws a SS_Shipping_Booking_Exception when the return method is configured 
     ]);
 
     expect(fn () => method_resolver()->resolve_return($order->get_id()))
-        ->toThrow(SS_Shipping_Booking_Exception::class, 'No return method set');
+        ->toThrow(\Smart_Send\Booking\Exceptions\Booking_Exception::class, 'No return method set');
 });
 
 it('maps WooCommerce free shipping to the configured Smart Send method', function () {

@@ -72,7 +72,7 @@ export const Edit = ( { attributes, setAttributes } ) => {
  * real component (registerCheckoutBlock), and WooCommerce's render_block
  * data-attributes filter copies the block attributes onto it as data-*
  * attributes, which is how the edited title/description reach the frontend
- * component as props (see SS_Shipping_Block_Checkout::register_hooks()).
+ * component as props (see Smart_Send\Frontend\Block_Checkout::register_hooks()).
  */
 export const Save = () => {
 	return <div { ...useBlockProps.save() } />;

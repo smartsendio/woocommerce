@@ -53,7 +53,7 @@ function notice_translation_render_pickup_section(): void
     $rate->add_meta_data('smart_send_shipping_method', 'postnord_agent');
 
     ob_start();
-    (new SS_Shipping_Frontend())->display_ss_pickup_points($rate, 0);
+    (new \Smart_Send\Frontend\Checkout())->display_ss_pickup_points($rate, 0);
     ob_end_clean();
 }
 

@@ -1,11 +1,11 @@
 <?php
 
 /*
- * Focused tests for SS_Shipping_Checkout_Debug, the class that surfaces
+ * Focused tests for \Smart_Send\Support\Checkout_Debug, the class that surfaces
  * Smart Send diagnostics in WooCommerce's shipping debug mode checkout bar.
  *
  * add_notice() only shows checkout notices — it never writes to the Smart
- * Send log (call sites log explicitly via SS_Shipping_Logger). Gating
+ * Send log (call sites log explicitly via \Smart_Send\Support\Logger). Gating
  * mirrors WooCommerce core: the woocommerce_shipping_debug_mode option,
  * never when WOOCOMMERCE_CHECKOUT or WC_DOING_AJAX is defined, and
  * deduplicated via wc_has_notice().
@@ -40,10 +40,10 @@ function ss_checkout_debug_spy_logger(): object
         }
     };
 
-    SS_Shipping_Logger::$logger = $spy;
+    \Smart_Send\Support\Logger::$logger = $spy;
 
     remember_cleanup_callback(function (): void {
-        SS_Shipping_Logger::$logger = null;
+        \Smart_Send\Support\Logger::$logger = null;
     });
 
     return $spy;
@@ -78,7 +78,7 @@ beforeEach(function (): void {
 it('adds a checkout notice when shipping debug mode is on', function () {
     with_option('woocommerce_shipping_debug_mode', 'yes');
 
-    SS_Shipping_Checkout_Debug::add_notice('Smart Send checkout debug test notice.');
+    \Smart_Send\Support\Checkout_Debug::add_notice('Smart Send checkout debug test notice.');
 
     expect(ss_checkout_debug_notice_texts())->toBe(['Smart Send checkout debug test notice.']);
 });
@@ -86,7 +86,7 @@ it('adds a checkout notice when shipping debug mode is on', function () {
 it('adds no notice when shipping debug mode is off', function () {
     with_option('woocommerce_shipping_debug_mode', 'no');
 
-    SS_Shipping_Checkout_Debug::add_notice('Smart Send checkout debug test notice.');
+    \Smart_Send\Support\Checkout_Debug::add_notice('Smart Send checkout debug test notice.');
 
     expect(wc_notice_count())->toBe(0);
 });
@@ -95,7 +95,7 @@ it('adds no notice when the option is missing (defaults to off)', function () {
     with_option('woocommerce_shipping_debug_mode', 'no');
     delete_option('woocommerce_shipping_debug_mode');
 
-    SS_Shipping_Checkout_Debug::add_notice('Smart Send checkout debug test notice.');
+    \Smart_Send\Support\Checkout_Debug::add_notice('Smart Send checkout debug test notice.');
 
     expect(wc_notice_count())->toBe(0);
 });
@@ -103,9 +103,9 @@ it('adds no notice when the option is missing (defaults to off)', function () {
 it('deduplicates identical messages via wc_has_notice', function () {
     with_option('woocommerce_shipping_debug_mode', 'yes');
 
-    SS_Shipping_Checkout_Debug::add_notice('Repeated debug message.');
-    SS_Shipping_Checkout_Debug::add_notice('Repeated debug message.');
-    SS_Shipping_Checkout_Debug::add_notice('A different debug message.');
+    \Smart_Send\Support\Checkout_Debug::add_notice('Repeated debug message.');
+    \Smart_Send\Support\Checkout_Debug::add_notice('Repeated debug message.');
+    \Smart_Send\Support\Checkout_Debug::add_notice('A different debug message.');
 
     expect(ss_checkout_debug_notice_texts())->toBe([
         'Repeated debug message.',
@@ -121,7 +121,7 @@ it('never writes to the Smart Send log', function () {
 
     $spy = ss_checkout_debug_spy_logger();
 
-    SS_Shipping_Checkout_Debug::add_notice('Notice that must not be logged.');
+    \Smart_Send\Support\Checkout_Debug::add_notice('Notice that must not be logged.');
 
     expect(ss_checkout_debug_notice_texts())->toBe(['Notice that must not be logged.'])
         ->and($spy->entries)->toBe([]);

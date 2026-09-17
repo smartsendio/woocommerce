@@ -18,7 +18,9 @@ function isolated_plugin_bootstrap(string $version, bool $supported): array
 it('keeps WooCommerce integrations unloaded when the dependency is missing or unsupported', function (string $version) {
     $result = isolated_plugin_bootstrap($version, false);
 
-    expect($result['shipping_methods'])->toBe(['other_shipping' => 'Other_Shipping_Method'])
+    expect($result['early_shipping_class_loaded'])->toBeFalse()
+        ->and($result['early_blocks_class_loaded'])->toBeFalse()
+        ->and($result['shipping_methods'])->toBe(['other_shipping' => 'Other_Shipping_Method'])
         ->and($result['shipping_class_loaded'])->toBeFalse()
         ->and($result['blocks_class_loaded'])->toBeFalse()
         ->and($result['feature_hooks_registered'])->toBeFalse()
@@ -29,9 +31,11 @@ it('keeps WooCommerce integrations unloaded when the dependency is missing or un
 it('loads WooCommerce integrations at and above the supported minimum', function (string $version) {
     $result = isolated_plugin_bootstrap($version, true);
 
-    expect($result['shipping_methods'])->toBe([
+    expect($result['early_shipping_class_loaded'])->toBeFalse()
+        ->and($result['early_blocks_class_loaded'])->toBeFalse()
+        ->and($result['shipping_methods'])->toBe([
         'other_shipping' => 'Other_Shipping_Method',
-        'smart_send_shipping' => 'SS_Shipping_WC_Method',
+        'smart_send_shipping' => \Smart_Send\Shipping_Method\Method::class,
     ])
         ->and($result['shipping_class_loaded'])->toBeTrue()
         ->and($result['blocks_class_loaded'])->toBeTrue()

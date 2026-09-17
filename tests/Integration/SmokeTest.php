@@ -16,8 +16,8 @@ it('loads WordPress and WooCommerce in-process', function () {
 
 it('has the Smart Send plugin active', function () {
     expect(function_exists('SS_SHIPPING_WC'))->toBeTrue()
-        ->and(SS_SHIPPING_WC())->toBeInstanceOf(SS_Shipping_WC::class)
-        ->and(class_exists('Smartsend\\Api'))->toBeTrue();
+        ->and(SS_SHIPPING_WC())->toBeInstanceOf(\Smart_Send\Plugin::class)
+        ->and(class_exists('Smart_Send\\API\\API'))->toBeTrue();
 });
 
 it('creates an order with products and totals', function () {

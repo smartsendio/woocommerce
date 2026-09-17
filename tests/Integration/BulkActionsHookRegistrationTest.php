@@ -1,7 +1,7 @@
 <?php
 
 /*
- * Characterization tests for SS_Shipping_Order_Bulk_Actions::register_hooks().
+ * Characterization tests for \Smart_Send\Admin\Order_Bulk_Actions::register_hooks().
  *
  * The bulk "Generate Labels" / "Generate Return Labels" actions are wired
  * onto one of two screens depending on whether HPOS (the custom orders
@@ -12,7 +12,7 @@
  */
 
 /**
- * Re-register the bulk actions against the live SS_Shipping_Order_Bulk_Actions
+ * Re-register the bulk actions against the live \Smart_Send\Admin\Order_Bulk_Actions
  * component while a given HPOS option value is in effect, mirroring what
  * happens once at plugin bootstrap.
  */

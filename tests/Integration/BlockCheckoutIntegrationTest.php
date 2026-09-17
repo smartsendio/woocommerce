@@ -2,7 +2,7 @@
 
 /*
  * Tests for the Checkout Block integration skeleton (PR 1 of issue #74):
- * SS_Shipping_Block_Checkout registers with the WooCommerce Blocks
+ * \Smart_Send\Frontend\Block_Checkout registers with the WooCommerce Blocks
  * integration registry, its built scripts exist in build/ and register with
  * their generated *.asset.php metadata, and the plugin declares
  * cart_checkout_blocks compatibility (which removes the block-editor
@@ -15,7 +15,7 @@ use Automattic\WooCommerce\Utilities\FeaturesUtil;
 
 it('constructs the block checkout integration component', function () {
     expect(SS_SHIPPING_WC()->block_checkout())
-        ->toBeInstanceOf(SS_Shipping_Block_Checkout::class)
+        ->toBeInstanceOf(\Smart_Send\Frontend\Block_Checkout::class)
         ->toBeInstanceOf(IntegrationInterface::class)
         ->and(SS_SHIPPING_WC()->block_checkout()->get_name())->toBe('smart-send');
 });
@@ -50,14 +50,14 @@ it('still declares HPOS compatibility alongside the blocks declaration', functio
 
 it('ships a built bundle and asset file for every exposed script handle', function () {
     $entries = [
-        SS_Shipping_Block_Checkout::HANDLE_FRONTEND => 'pickup-point-block/frontend',
-        SS_Shipping_Block_Checkout::HANDLE_EDITOR   => 'pickup-point-block/index',
+        \Smart_Send\Frontend\Block_Checkout::HANDLE_FRONTEND => 'pickup-point-block/frontend',
+        \Smart_Send\Frontend\Block_Checkout::HANDLE_EDITOR   => 'pickup-point-block/index',
     ];
 
     $integration = SS_SHIPPING_WC()->block_checkout();
 
-    expect($integration->get_script_handles())->toBe([SS_Shipping_Block_Checkout::HANDLE_FRONTEND])
-        ->and($integration->get_editor_script_handles())->toBe([SS_Shipping_Block_Checkout::HANDLE_EDITOR]);
+    expect($integration->get_script_handles())->toBe([\Smart_Send\Frontend\Block_Checkout::HANDLE_FRONTEND])
+        ->and($integration->get_editor_script_handles())->toBe([\Smart_Send\Frontend\Block_Checkout::HANDLE_EDITOR]);
 
     foreach ($entries as $entry) {
         $js    = SS_SHIPPING_PLUGIN_DIR_PATH . '/build/' . $entry . '.js';
@@ -80,11 +80,11 @@ it('initialize() registers the built scripts with their asset metadata', functio
     $integration->initialize();
 
     remember_cleanup_callback(function (): void {
-        wp_deregister_script(SS_Shipping_Block_Checkout::HANDLE_FRONTEND);
-        wp_deregister_script(SS_Shipping_Block_Checkout::HANDLE_EDITOR);
+        wp_deregister_script(\Smart_Send\Frontend\Block_Checkout::HANDLE_FRONTEND);
+        wp_deregister_script(\Smart_Send\Frontend\Block_Checkout::HANDLE_EDITOR);
     });
 
-    foreach ([SS_Shipping_Block_Checkout::HANDLE_FRONTEND, SS_Shipping_Block_Checkout::HANDLE_EDITOR] as $handle) {
+    foreach ([\Smart_Send\Frontend\Block_Checkout::HANDLE_FRONTEND, \Smart_Send\Frontend\Block_Checkout::HANDLE_EDITOR] as $handle) {
         expect(wp_script_is($handle, 'registered'))->toBeTrue("Script not registered: {$handle}");
 
         $script = wp_scripts()->registered[$handle];
@@ -109,11 +109,11 @@ it('leaves no built-script dependency unregistered after initialize()', function
     $integration->initialize();
 
     remember_cleanup_callback(function (): void {
-        wp_deregister_script(SS_Shipping_Block_Checkout::HANDLE_FRONTEND);
-        wp_deregister_script(SS_Shipping_Block_Checkout::HANDLE_EDITOR);
+        wp_deregister_script(\Smart_Send\Frontend\Block_Checkout::HANDLE_FRONTEND);
+        wp_deregister_script(\Smart_Send\Frontend\Block_Checkout::HANDLE_EDITOR);
     });
 
-    foreach ([SS_Shipping_Block_Checkout::HANDLE_FRONTEND, SS_Shipping_Block_Checkout::HANDLE_EDITOR] as $handle) {
+    foreach ([\Smart_Send\Frontend\Block_Checkout::HANDLE_FRONTEND, \Smart_Send\Frontend\Block_Checkout::HANDLE_EDITOR] as $handle) {
         foreach (wp_scripts()->registered[$handle]->deps as $dependency) {
             expect(wp_script_is($dependency, 'registered'))
                 ->toBeTrue("Dependency '{$dependency}' of {$handle} is not a registered script on this WordPress");
@@ -128,8 +128,8 @@ it('registers a react-jsx-runtime fallback when WordPress has not', function () 
     wp_deregister_script('react-jsx-runtime');
     remember_cleanup_callback(function () use ($core): void {
         wp_deregister_script('react-jsx-runtime');
-        wp_deregister_script(SS_Shipping_Block_Checkout::HANDLE_FRONTEND);
-        wp_deregister_script(SS_Shipping_Block_Checkout::HANDLE_EDITOR);
+        wp_deregister_script(\Smart_Send\Frontend\Block_Checkout::HANDLE_FRONTEND);
+        wp_deregister_script(\Smart_Send\Frontend\Block_Checkout::HANDLE_EDITOR);
         if ($core) {
             wp_scripts()->registered['react-jsx-runtime'] = $core;
         }
@@ -161,8 +161,8 @@ it('keeps the core react-jsx-runtime script when WordPress registers it', functi
     SS_SHIPPING_WC()->block_checkout()->initialize();
 
     remember_cleanup_callback(function (): void {
-        wp_deregister_script(SS_Shipping_Block_Checkout::HANDLE_FRONTEND);
-        wp_deregister_script(SS_Shipping_Block_Checkout::HANDLE_EDITOR);
+        wp_deregister_script(\Smart_Send\Frontend\Block_Checkout::HANDLE_FRONTEND);
+        wp_deregister_script(\Smart_Send\Frontend\Block_Checkout::HANDLE_EDITOR);
     });
 
     expect(wp_scripts()->registered['react-jsx-runtime'])->toBe($core)
@@ -176,8 +176,8 @@ it('opts the pickup point block into the Blocks data-attribute pass', function (
     // React component without this opt-in.
     $allowlist = apply_filters('__experimental_woocommerce_blocks_add_data_attributes_to_block', []);
 
-    expect($allowlist)->toContain(SS_Shipping_Block_Checkout::BLOCK_NAME)
-        ->and(SS_Shipping_Block_Checkout::BLOCK_NAME)->toBe('smart-send/pickup-point-block');
+    expect($allowlist)->toContain(\Smart_Send\Frontend\Block_Checkout::BLOCK_NAME)
+        ->and(\Smart_Send\Frontend\Block_Checkout::BLOCK_NAME)->toBe('smart-send/pickup-point-block');
 });
 
 it('ships the block.json metadata in the built output', function () {
@@ -187,7 +187,7 @@ it('ships the block.json metadata in the built output', function () {
 
     $metadata = json_decode((string) file_get_contents($block_json), true);
 
-    expect($metadata['name'])->toBe(SS_Shipping_Block_Checkout::BLOCK_NAME)
+    expect($metadata['name'])->toBe(\Smart_Send\Frontend\Block_Checkout::BLOCK_NAME)
         ->and($metadata['parent'])->toBe(['woocommerce/checkout-shipping-methods-block'])
         // The lock default is load-bearing: the checkout registry derives
         // the frontend force-render flag from it, and the editor's

@@ -2,7 +2,7 @@
 
 /*
  * Coverage for the internal shipment representation introduced by #113
- * (SS_Shipping_Shipment_Builder / SS_Shipping_Shipment) and the #128
+ * (\Smart_Send\Booking\Shipment_Builder / \Smart_Send\Booking\Shipment) and the #128
  * discount-allocation fix built on top of it. ShipmentPayloadTest.php
  * proves the v1 wire payload translated from this representation is
  * unchanged (or, for the two scenarios #128 deliberately fixes, correctly
@@ -18,22 +18,22 @@
  * the delivery details, the builder turns them into the representation -
  * without going through the (mocked) API call.
  */
-function build_shipment_representation(WC_Order $order, bool $return = false): SS_Shipping_Shipment
+function build_shipment_representation(WC_Order $order, bool $return = false): \Smart_Send\Booking\Shipment
 {
     $details = SS_SHIPPING_WC()->fulfillment()->resolve_delivery_details($order, $return);
-    $builder = new SS_Shipping_Shipment_Builder($order, new SS_Shipping_Order_Reader($order));
+    $builder = new \Smart_Send\Booking\Shipment_Builder($order, new \Smart_Send\Booking\Order_Reader($order));
 
     return $builder->build($details);
 }
 
 /**
- * The public get_* method names of SS_Shipping_Shipment - used to assert
+ * The public get_* method names of \Smart_Send\Booking\Shipment - used to assert
  * the shipment level exposes a single net + tax amount per level, with no
  * excl/incl pair getters.
  */
 function shipment_getter_names(): array
 {
-    $methods = (new ReflectionClass(SS_Shipping_Shipment::class))->getMethods(ReflectionMethod::IS_PUBLIC);
+    $methods = (new ReflectionClass(\Smart_Send\Booking\Shipment::class))->getMethods(ReflectionMethod::IS_PUBLIC);
 
     return array_values(array_filter(
         array_map(fn ($method) => $method->getName(), $methods),
@@ -70,17 +70,17 @@ it('represents shipment, parcel and item totals as a single net + tax amount, wi
             ->and($getter)->not->toContain('including_tax');
     }
 
-    // Parcel level: a typed SS_Shipping_Parcel (#139) with the same single
+    // Parcel level: a typed \Smart_Send\Booking\Parcel (#139) with the same single
     // net/tax pair and no excluding/including-tax getters.
     expect($representation->get_parcels())->toHaveCount(1);
     $parcel = $representation->get_parcels()[0];
-    expect($parcel)->toBeInstanceOf(SS_Shipping_Parcel::class)
+    expect($parcel)->toBeInstanceOf(\Smart_Send\Booking\Parcel::class)
         ->and($parcel->get_total_net_amount())->toEqual(200.0)
         ->and($parcel->get_total_tax_amount())->toEqual(0.0);
     $parcel_getters = array_values(array_filter(
         array_map(
             fn ($method) => $method->getName(),
-            (new ReflectionClass(SS_Shipping_Parcel::class))->getMethods(ReflectionMethod::IS_PUBLIC)
+            (new ReflectionClass(\Smart_Send\Booking\Parcel::class))->getMethods(ReflectionMethod::IS_PUBLIC)
         ),
         fn ($name) => str_starts_with($name, 'get_')
     ));
@@ -202,7 +202,7 @@ it('diverges shipping-method/agent selection between the outbound and return del
         ->and($return->get_pickup_point())->toBeNull();
 });
 
-it('throws a SS_Shipping_Booking_Exception when resolving return delivery details with no return method configured', function () {
+it('throws a \Smart_Send\Booking\Exceptions\Booking_Exception when resolving return delivery details with no return method configured', function () {
     $product = create_simple_product(['price' => 100, 'weight' => 1]);
     $order   = create_order([
         'products'        => [$product],
@@ -211,5 +211,5 @@ it('throws a SS_Shipping_Booking_Exception when resolving return delivery detail
     ]);
 
     expect(fn () => build_shipment_representation($order, true))
-        ->toThrow(SS_Shipping_Booking_Exception::class, 'No return method set');
+        ->toThrow(\Smart_Send\Booking\Exceptions\Booking_Exception::class, 'No return method set');
 });

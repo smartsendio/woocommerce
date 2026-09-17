@@ -4,7 +4,7 @@
  * Entry of the order screen "Smart Send" meta box app (#182).
  *
  * Mounts App on the <fieldset id="smart-send-fulfillment"> that
- * SS_Shipping_Order_Meta_Box renders (a mount point with a placeholder in
+ * Smart_Send\Admin\Order_Meta_Box renders (a mount point with a placeholder in
  * it, no UI - the app is the box's only renderer) and renders from the
  * state the same class inlines as window.smartSendOrderFulfillment, so the
  * first frame needs no round trip. Everything after that goes through the

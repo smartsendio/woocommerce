@@ -1,12 +1,12 @@
 <?php
 
 /*
- * Tests for the static SS_Shipping_Logger, a thin wrapper around
+ * Tests for the static \Smart_Send\Support\Logger, a thin wrapper around
  * wc_get_logger(): the debug setting gates only the debug level inside the
  * class while info/warning/error/critical always log, the smart_send_logging filter
  * can rewrite or suppress entries at all levels, structured data travels in the
  * context array (rendered natively by the WC log viewer), and API requests
- * made through Smartsend\Client produce one concise entry with method,
+ * made through Smart_Send\API\Client produce one concise entry with method,
  * endpoint, HTTP status and timing.
  */
 
@@ -34,10 +34,10 @@ function spy_on_logger(): object
         }
     };
 
-    SS_Shipping_Logger::$logger = $spy;
+    \Smart_Send\Support\Logger::$logger = $spy;
 
     remember_cleanup_callback(function (): void {
-        SS_Shipping_Logger::$logger = null;
+        \Smart_Send\Support\Logger::$logger = null;
     });
 
     return $spy;
@@ -56,13 +56,13 @@ function with_smart_send_logging_filter(callable $callback, int $accepted_args =
 }
 
 /**
- * A Smartsend API client wired to the plugin's logger, like
- * SS_Shipping_WC::get_api_handle() does it.
+ * A Smart Send API client wired to the plugin's logger, like
+ * \Smart_Send\Plugin::get_api_handle() does it.
  */
-function create_logging_api_client(string $token = 'secret-token-123'): \Smartsend\Api
+function create_logging_api_client(string $token = 'secret-token-123'): \Smart_Send\API\API
 {
-    $api = new \Smartsend\Api($token, 'example.test');
-    $api->setRequestLogger(['SS_Shipping_Logger', 'log_api_request']);
+    $api = new \Smart_Send\API\API($token, 'example.test');
+    $api->set_request_logger([\Smart_Send\Support\Logger::class, 'log_api_request']);
 
     return $api;
 }
@@ -71,7 +71,7 @@ it('writes a debug entry with the plugin version and source in the context when 
     with_ss_settings(['ss_debug' => 'yes']);
     $spy = spy_on_logger();
 
-    SS_Shipping_Logger::debug('Hello from the test');
+    \Smart_Send\Support\Logger::debug('Hello from the test');
 
     expect($spy->entries)->toHaveCount(1);
     expect($spy->entries[0]['level'])->toBe('debug');
@@ -84,7 +84,7 @@ it('merges caller-provided context into the entry', function () {
     with_ss_settings(['ss_debug' => 'yes']);
     $spy = spy_on_logger();
 
-    SS_Shipping_Logger::debug('With context', ['order_id' => 42]);
+    \Smart_Send\Support\Logger::debug('With context', ['order_id' => 42]);
 
     expect($spy->entries)->toHaveCount(1);
     expect($spy->entries[0]['context']['order_id'])->toBe(42);
@@ -95,11 +95,11 @@ it('gates only debug on the debug setting; info, warning, error and critical alw
     with_ss_settings(['ss_debug' => 'no']);
     $spy = spy_on_logger();
 
-    SS_Shipping_Logger::debug('gated');
-    SS_Shipping_Logger::info('an info line');
-    SS_Shipping_Logger::warning('a warning');
-    SS_Shipping_Logger::error('an error');
-    SS_Shipping_Logger::critical('a critical failure');
+    \Smart_Send\Support\Logger::debug('gated');
+    \Smart_Send\Support\Logger::info('an info line');
+    \Smart_Send\Support\Logger::warning('a warning');
+    \Smart_Send\Support\Logger::error('an error');
+    \Smart_Send\Support\Logger::critical('a critical failure');
 
     expect(array_column($spy->entries, 'level'))->toBe(['info', 'warning', 'error', 'critical']);
 });
@@ -108,8 +108,8 @@ it('logs debug and info when the debug setting is on', function () {
     with_ss_settings(['ss_debug' => 'yes']);
     $spy = spy_on_logger();
 
-    SS_Shipping_Logger::debug('a trace');
-    SS_Shipping_Logger::info('an info line');
+    \Smart_Send\Support\Logger::debug('a trace');
+    \Smart_Send\Support\Logger::info('an info line');
 
     expect(array_column($spy->entries, 'level'))->toBe(['debug', 'info']);
 });
@@ -119,9 +119,9 @@ it('can be suppressed by returning false from the smart_send_logging filter', fu
     $spy = spy_on_logger();
     with_smart_send_logging_filter('__return_false', 1);
 
-    SS_Shipping_Logger::debug('Suppressed');
-    SS_Shipping_Logger::error('Suppressed error');
-    SS_Shipping_Logger::critical('Suppressed critical');
+    \Smart_Send\Support\Logger::debug('Suppressed');
+    \Smart_Send\Support\Logger::error('Suppressed error');
+    \Smart_Send\Support\Logger::critical('Suppressed critical');
 
     expect($spy->entries)->toBeEmpty();
 });
@@ -131,8 +131,8 @@ it('can be suppressed by returning null from the smart_send_logging filter', fun
     $spy = spy_on_logger();
     with_smart_send_logging_filter('__return_null', 1);
 
-    SS_Shipping_Logger::debug('Suppressed');
-    SS_Shipping_Logger::error('Suppressed error');
+    \Smart_Send\Support\Logger::debug('Suppressed');
+    \Smart_Send\Support\Logger::error('Suppressed error');
 
     expect($spy->entries)->toBeEmpty();
 });
@@ -144,7 +144,7 @@ it('can rewrite the message through the smart_send_logging filter', function () 
         return '[rewritten] ' . $message;
     }, 1);
 
-    SS_Shipping_Logger::debug('A trace');
+    \Smart_Send\Support\Logger::debug('A trace');
 
     expect($spy->entries)->toHaveCount(1);
     expect($spy->entries[0]['message'])->toBe('[rewritten] A trace');
@@ -154,7 +154,7 @@ it('does not suppress the message "0"', function () {
     with_ss_settings(['ss_debug' => 'yes']);
     $spy = spy_on_logger();
 
-    SS_Shipping_Logger::debug('0');
+    \Smart_Send\Support\Logger::debug('0');
 
     expect($spy->entries)->toHaveCount(1);
     expect($spy->entries[0]['message'])->toBe('0');
@@ -170,8 +170,8 @@ it('passes the message, level and context to the smart_send_logging filter', fun
         return $message;
     });
 
-    SS_Shipping_Logger::debug('A trace', ['order_id' => 7]);
-    SS_Shipping_Logger::error('A failure');
+    \Smart_Send\Support\Logger::debug('A trace', ['order_id' => 7]);
+    \Smart_Send\Support\Logger::error('A failure');
 
     expect($seen)->toHaveCount(2);
     expect($seen[0]['message'])->toBe('A trace');
@@ -186,7 +186,7 @@ it('logs errors at the error level even when the debug setting is off', function
     with_ss_settings(['ss_debug' => 'no']);
     $spy = spy_on_logger();
 
-    SS_Shipping_Logger::error('Something broke');
+    \Smart_Send\Support\Logger::error('Something broke');
 
     expect($spy->entries)->toHaveCount(1);
     expect($spy->entries[0]['level'])->toBe('error');
@@ -200,7 +200,7 @@ it('logs successful API calls as one concise line with method, path, HTTP status
         return ss_api_response(200, ['data' => ss_api_shipment_data(['shipment_id' => 'log-test-shipment'])]);
     });
 
-    create_logging_api_client()->account()->getAuthenticatedUser();
+    create_logging_api_client()->account()->get_authenticated_user();
 
     expect($spy->entries)->toHaveCount(1);
     expect($spy->entries[0]['level'])->toBe('debug');
@@ -219,7 +219,7 @@ it('redacts the API token in both the message and the context', function () {
     $spy = spy_on_logger();
     mock_smart_send_api();
 
-    create_logging_api_client('secret-token-123')->account()->getAuthenticatedUser();
+    create_logging_api_client('secret-token-123')->account()->get_authenticated_user();
 
     expect($spy->entries)->toHaveCount(1);
     expect($spy->entries[0]['message'])->not->toContain('secret-token-123');
@@ -235,9 +235,9 @@ it('logs failed API calls at the error level with the error detail in context ev
     });
 
     try {
-        create_logging_api_client()->account()->getAuthenticatedUser();
+        create_logging_api_client()->account()->get_authenticated_user();
         test()->fail('Expected a ValidationException to be thrown.');
-    } catch (Smartsend\Exceptions\ValidationException $e) {
+    } catch (Smart_Send\API\Exceptions\Validation_Exception $e) {
         // The request is logged by the injected request logger before the
         // client throws.
     }
@@ -265,5 +265,5 @@ it('includes the request body of POST requests in the context', function () {
 });
 
 it('exposes the WooCommerce log screen URL', function () {
-    expect(SS_Shipping_Logger::get_log_url())->toContain('page=wc-status&tab=logs');
+    expect(\Smart_Send\Support\Logger::get_log_url())->toContain('page=wc-status&tab=logs');
 });

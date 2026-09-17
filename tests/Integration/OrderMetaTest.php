@@ -1,8 +1,8 @@
 <?php
 
 /*
- * Characterization tests for the SS_Shipping_Order_Meta repository (#139):
- * read()/write() over SS_Shipping_Delivery_Details, the frozen meta keys
+ * Characterization tests for the \Smart_Send\Delivery\Order_Meta repository (#139):
+ * read()/write() over \Smart_Send\Delivery\Delivery_Details, the frozen meta keys
  * and stored formats (a plain agent object under _ss_shipping_order_agent,
  * the agent number under ss_shipping_order_agent_no, the id/name/value
  * parcel rows under ss_shipping_order_parcels), the vConnect fallback, and
@@ -24,7 +24,7 @@ function assert_order_meta_repository_roundtrip(): void
 
     // An unconfigured order reads as empty details.
     $details = $repository->read($order_id);
-    expect($details)->toBeInstanceOf(SS_Shipping_Delivery_Details::class)
+    expect($details)->toBeInstanceOf(\Smart_Send\Delivery\Delivery_Details::class)
         ->and($details->get_pickup_point())->toBeNull()
         ->and($details->get_parcel_plan())->toBeNull()
         ->and($details->get_shipping_method())->toBeNull()
@@ -45,7 +45,7 @@ function assert_order_meta_repository_roundtrip(): void
 
     // ...and read() materializes them back.
     $pickup_point = $repository->read($order_id)->get_pickup_point();
-    expect($pickup_point)->toBeInstanceOf(SS_Shipping_Pickup_Point::class)
+    expect($pickup_point)->toBeInstanceOf(\Smart_Send\Delivery\Pickup_Point::class)
         ->and($pickup_point->get_agent_no())->toBe('1234')
         ->and($pickup_point->get_company())->toBe('Corner Shop')
         ->and($pickup_point->get_internal_id())->toBe('7');
@@ -55,7 +55,7 @@ function assert_order_meta_repository_roundtrip(): void
     $repository->delete_pickup_point($order_id);
     $reloaded = new WC_Order($order_id);
     $reloaded->read_meta_data(true);
-    expect($reloaded->get_meta(SS_Shipping_Order_Meta::META_AGENT, true))->toBe('');
+    expect($reloaded->get_meta(\Smart_Send\Delivery\Order_Meta::META_AGENT, true))->toBe('');
 
     // Parcel plan: write() persists the frozen row shape...
     $rows = [['id' => $product->get_id(), 'name' => 'Integration Test Product', 'value' => '1']];
@@ -64,7 +64,7 @@ function assert_order_meta_repository_roundtrip(): void
 
     // ...read() materializes the plan, preserving the box reference...
     $plan = $repository->read($order_id)->get_parcel_plan();
-    expect($plan)->toBeInstanceOf(SS_Shipping_Parcel_Plan::class)
+    expect($plan)->toBeInstanceOf(\Smart_Send\Delivery\Parcel_Plan::class)
         ->and($plan->get_specs())->toHaveCount(1)
         ->and($plan->get_specs()[0]->get_reference())->toBe('1')
         ->and($plan->to_box_rows())->toEqual($rows);
@@ -78,7 +78,7 @@ function assert_order_meta_repository_roundtrip(): void
     expect(wc_get_order($order_id)->get_meta('ss_shipping_order_agent_no', true))->toBe('1234');
 
     // Shipment/label ids for both normal and return labels (the separate
-    // booking-outcome accessor, see SS_Shipping_Shipment_Ids).
+    // booking-outcome accessor, see \Smart_Send\Fulfillment\Shipment_IDs).
     $shipment_ids = SS_SHIPPING_WC()->shipment_ids();
     $shipment_ids->save($order_id, 'shipment-123', false);
     $shipment_ids->save($order_id, 'return-456', true);
@@ -216,13 +216,13 @@ it('caps the labels list at MAX_LABELS, keeping the newest entries', function ()
     $product = create_simple_product(['price' => 100, 'weight' => 1]);
     $order   = create_order(['products' => [$product], 'shipping_method' => 'postnord_agent']);
 
-    $total = SS_Shipping_Shipment_Ids::MAX_LABELS + 5;
+    $total = \Smart_Send\Fulfillment\Shipment_IDs::MAX_LABELS + 5;
     for ($i = 1; $i <= $total; $i++) {
         $shipment_ids->save($order, 'shipment-' . $i, false, '2026-09-16T11:00:00+00:00');
     }
 
     $labels = $shipment_ids->labels($order);
-    expect($labels)->toHaveCount(SS_Shipping_Shipment_Ids::MAX_LABELS)
+    expect($labels)->toHaveCount(\Smart_Send\Fulfillment\Shipment_IDs::MAX_LABELS)
         ->and($labels[0]['shipment_id'])->toBe('shipment-6')
         ->and(end($labels)['shipment_id'])->toBe('shipment-' . $total);
 });

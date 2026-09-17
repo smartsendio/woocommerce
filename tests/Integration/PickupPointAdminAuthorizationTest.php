@@ -50,7 +50,7 @@ function pickup_admin_order(bool $hpos = true): WC_Order
     return pickup_admin_fresh_order($order->get_id());
 }
 
-function pickup_admin_meta_id(WC_Order $order, string $key = SS_Shipping_Order_Meta::META_AGENT_NO): int
+function pickup_admin_meta_id(WC_Order $order, string $key = \Smart_Send\Delivery\Order_Meta::META_AGENT_NO): int
 {
     foreach ($order->get_meta_data() as $meta) {
         if ($meta->key === $key) {
@@ -74,7 +74,7 @@ function pickup_admin_payload(WC_Order $order, string $operation): array
     return [
         'order_id' => $order->get_id(),
         'post_id' => $order->get_id(),
-        'meta' => [$meta_id => ['key' => SS_Shipping_Order_Meta::META_AGENT_NO, 'value' => '5678']],
+        'meta' => [$meta_id => ['key' => \Smart_Send\Delivery\Order_Meta::META_AGENT_NO, 'value' => '5678']],
         '_ajax_nonce-add-meta' => wp_create_nonce('add-meta'),
     ];
 }
@@ -154,8 +154,8 @@ function pickup_admin_assert_unchanged(WC_Order $order, object $capture): void
 {
     $fresh = pickup_admin_fresh_order($order->get_id());
     expect($capture->requests)->toBe([])
-        ->and($fresh->get_meta(SS_Shipping_Order_Meta::META_AGENT_NO, true))->toBe('1234')
-        ->and($fresh->get_meta(SS_Shipping_Order_Meta::META_AGENT, true))->toEqual(sample_agent());
+        ->and($fresh->get_meta(\Smart_Send\Delivery\Order_Meta::META_AGENT_NO, true))->toBe('1234')
+        ->and($fresh->get_meta(\Smart_Send\Delivery\Order_Meta::META_AGENT, true))->toEqual(sample_agent());
 }
 
 beforeEach(function (): void {
@@ -201,7 +201,7 @@ it('rejects HPOS updates whose row is missing, belongs to another order, or has 
         'different key' => pickup_admin_meta_id($order, 'other_custom_field'),
     ];
     $payload = pickup_admin_payload($order, 'update');
-    $payload['meta'] = [$meta_ids[$invalid_row] => ['key' => SS_Shipping_Order_Meta::META_AGENT_NO, 'value' => '5678']];
+    $payload['meta'] = [$meta_ids[$invalid_row] => ['key' => \Smart_Send\Delivery\Order_Meta::META_AGENT_NO, 'value' => '5678']];
 
     $response = pickup_admin_ajax($payload, 'update');
 
@@ -221,19 +221,19 @@ it('allows an authorized admin update and keeps the companion pickup point in sy
     $fresh = pickup_admin_fresh_order($order->get_id());
     expect($response['died'])->toBeTrue()
         ->and($capture->requests)->toHaveCount(1)
-        ->and($fresh->get_meta(SS_Shipping_Order_Meta::META_AGENT_NO, true))->toBe('5678')
-        ->and($fresh->get_meta(SS_Shipping_Order_Meta::META_AGENT, true)->agent_no)->toBe('5678');
+        ->and($fresh->get_meta(\Smart_Send\Delivery\Order_Meta::META_AGENT_NO, true))->toBe('5678')
+        ->and($fresh->get_meta(\Smart_Send\Delivery\Order_Meta::META_AGENT, true)->agent_no)->toBe('5678');
 })->with(['HPOS' => true, 'post tables' => false]);
 
 it('validates an authorized HPOS addition from either custom field key control', function (string $key_control) {
     $order = pickup_admin_order();
-    SS_SHIPPING_WC()->order_meta()->write($order->get_id(), (new SS_Shipping_Delivery_Details())->clear_pickup_point());
+    SS_SHIPPING_WC()->order_meta()->write($order->get_id(), (new \Smart_Send\Delivery\Delivery_Details())->clear_pickup_point());
     pickup_admin_as_user();
     $capture = mock_smart_send_api(fn () => ss_api_response(200, ['data' => sample_agent(['agent_no' => '5678'])]));
 
     $response = pickup_admin_ajax([
         'order_id' => $order->get_id(),
-        $key_control => SS_Shipping_Order_Meta::META_AGENT_NO,
+        $key_control => \Smart_Send\Delivery\Order_Meta::META_AGENT_NO,
         'metavalue' => '5678',
         '_ajax_nonce-add-meta' => wp_create_nonce('add-meta'),
     ], 'update');
@@ -241,8 +241,8 @@ it('validates an authorized HPOS addition from either custom field key control',
     $fresh = pickup_admin_fresh_order($order->get_id());
     expect($response['died'])->toBeTrue()
         ->and($capture->requests)->toHaveCount(1)
-        ->and($fresh->get_meta(SS_Shipping_Order_Meta::META_AGENT_NO, true))->toBe('5678')
-        ->and($fresh->get_meta(SS_Shipping_Order_Meta::META_AGENT, true)->agent_no)->toBe('5678');
+        ->and($fresh->get_meta(\Smart_Send\Delivery\Order_Meta::META_AGENT_NO, true))->toBe('5678')
+        ->and($fresh->get_meta(\Smart_Send\Delivery\Order_Meta::META_AGENT, true)->agent_no)->toBe('5678');
 })->with(['metakeyinput', 'metakeyselect']);
 
 it('persists deletion of the pickup number and companion through the complete admin handler chain', function (bool $hpos) {
@@ -255,8 +255,8 @@ it('persists deletion of the pickup number and companion through the complete ad
     $fresh = pickup_admin_fresh_order($order->get_id());
     expect($response['died'])->toBeTrue()->and($response['message'])->toBe('1')
         ->and($capture->requests)->toBe([])
-        ->and($fresh->meta_exists(SS_Shipping_Order_Meta::META_AGENT_NO))->toBeFalse()
-        ->and($fresh->meta_exists(SS_Shipping_Order_Meta::META_AGENT))->toBeFalse();
+        ->and($fresh->meta_exists(\Smart_Send\Delivery\Order_Meta::META_AGENT_NO))->toBeFalse()
+        ->and($fresh->meta_exists(\Smart_Send\Delivery\Order_Meta::META_AGENT))->toBeFalse();
 })->with(['HPOS' => true, 'post tables' => false]);
 
 it('lets WordPress reject unauthorized legacy admin requests before generic metadata hooks', function (string $operation) {
@@ -285,8 +285,8 @@ it('validates full-form edits for an order editor without manage_woocommerce', f
     $expected_number = $valid_number ? '5678' : '1234';
     expect($capture->requests)->toHaveCount(1)
         ->and($errors)->toHaveCount($valid_number ? 0 : 1)
-        ->and($fresh->get_meta(SS_Shipping_Order_Meta::META_AGENT_NO, true))->toBe($expected_number)
-        ->and($fresh->get_meta(SS_Shipping_Order_Meta::META_AGENT, true)->agent_no)->toBe($expected_number);
+        ->and($fresh->get_meta(\Smart_Send\Delivery\Order_Meta::META_AGENT_NO, true))->toBe($expected_number)
+        ->and($fresh->get_meta(\Smart_Send\Delivery\Order_Meta::META_AGENT, true)->agent_no)->toBe($expected_number);
 })->with(['valid number' => true, 'invalid number' => false]);
 
 it('rejects full-form pickup edits targeting another order or a different metadata key', function (string $invalid_row) {
@@ -305,7 +305,7 @@ it('rejects full-form pickup edits targeting another order or a different metada
         : pickup_admin_meta_id($order, 'other_custom_field');
 
     pickup_admin_form($order, [
-        'meta' => [$meta_id => ['key' => SS_Shipping_Order_Meta::META_AGENT_NO, 'value' => '5678']],
+        'meta' => [$meta_id => ['key' => \Smart_Send\Delivery\Order_Meta::META_AGENT_NO, 'value' => '5678']],
     ]);
 
     pickup_admin_assert_unchanged($order, $capture);

@@ -1,7 +1,7 @@
 <?php
 
 /*
- * Tests for SS_Shipping_Admin_Notices: transient-backed one-time admin
+ * Tests for \Smart_Send\Support\Admin_Notices: transient-backed one-time admin
  * notices pushed after label-generation actions. Covers the full lifecycle
  * (push → marked redirect → rendered once → cleared), the query-parameter
  * gate that prevents transient lookups on unrelated admin requests, and
@@ -12,7 +12,7 @@
  * A clean notices component for the current user; pending notices and the
  * marker query parameter are wiped again after the test.
  */
-function clean_admin_notices(): SS_Shipping_Admin_Notices
+function clean_admin_notices(): \Smart_Send\Support\Admin_Notices
 {
     $notices = SS_SHIPPING_WC()->admin_notices();
 
@@ -20,7 +20,7 @@ function clean_admin_notices(): SS_Shipping_Admin_Notices
 
     remember_cleanup_callback(function () use ($notices): void {
         $notices->clear();
-        unset($_GET[SS_Shipping_Admin_Notices::QUERY_ARG]);
+        unset($_GET[\Smart_Send\Support\Admin_Notices::QUERY_ARG]);
     });
 
     return $notices;
@@ -38,7 +38,7 @@ it('stores pushed notices in a per-user transient', function () {
     $notices->push([['message' => 'First notice', 'type' => 'success']]);
     $notices->push([['message' => 'Second notice', 'type' => 'error']]);
 
-    $stored = get_transient(SS_Shipping_Admin_Notices::TRANSIENT_PREFIX . get_current_user_id());
+    $stored = get_transient(\Smart_Send\Support\Admin_Notices::TRANSIENT_PREFIX . get_current_user_id());
 
     expect($stored)->toBe([
         ['message' => 'First notice', 'type' => 'success'],
@@ -51,7 +51,7 @@ it('does not create a transient when pushing an empty message list', function ()
 
     $notices->push([]);
 
-    expect(get_transient(SS_Shipping_Admin_Notices::TRANSIENT_PREFIX . get_current_user_id()))->toBeFalse();
+    expect(get_transient(\Smart_Send\Support\Admin_Notices::TRANSIENT_PREFIX . get_current_user_id()))->toBeFalse();
 });
 
 it('adds the marker query parameter to redirect URLs', function () {
@@ -72,7 +72,7 @@ it('renders pending notices exactly once and clears them when the marker paramet
         ['message' => 'Heads up', 'type' => 'unknown-type'],
     ]);
 
-    $_GET[SS_Shipping_Admin_Notices::QUERY_ARG] = '1';
+    $_GET[\Smart_Send\Support\Admin_Notices::QUERY_ARG] = '1';
 
     ob_start();
     $notices->maybe_render();
@@ -86,7 +86,7 @@ it('renders pending notices exactly once and clears them when the marker paramet
         ->toContain('notice-warning');
 
     // The transient is gone and a second render outputs nothing.
-    expect(get_transient(SS_Shipping_Admin_Notices::TRANSIENT_PREFIX . get_current_user_id()))->toBeFalse();
+    expect(get_transient(\Smart_Send\Support\Admin_Notices::TRANSIENT_PREFIX . get_current_user_id()))->toBeFalse();
 
     ob_start();
     $notices->maybe_render();
@@ -98,7 +98,7 @@ it('does not look up pending notices without the marker parameter', function () 
 
     $notices->push([['message' => 'Pending notice', 'type' => 'success']]);
 
-    unset($_GET[SS_Shipping_Admin_Notices::QUERY_ARG]);
+    unset($_GET[\Smart_Send\Support\Admin_Notices::QUERY_ARG]);
 
     // get_transient() runs the pre_transient_{name} filter on every lookup;
     // count invocations to prove maybe_render() never touches storage.
@@ -108,7 +108,7 @@ it('does not look up pending notices without the marker parameter', function () 
 
         return $pre;
     };
-    $filter = 'pre_transient_' . SS_Shipping_Admin_Notices::TRANSIENT_PREFIX . get_current_user_id();
+    $filter = 'pre_transient_' . \Smart_Send\Support\Admin_Notices::TRANSIENT_PREFIX . get_current_user_id();
     add_filter($filter, $counter);
     remember_cleanup_callback(function () use ($filter, $counter): void {
         remove_filter($filter, $counter);
@@ -147,7 +147,7 @@ it('keeps notices isolated per user', function () {
 
     // User B sees nothing on a marked request, and user A's notice survives.
     wp_set_current_user($user_b);
-    $_GET[SS_Shipping_Admin_Notices::QUERY_ARG] = '1';
+    $_GET[\Smart_Send\Support\Admin_Notices::QUERY_ARG] = '1';
 
     ob_start();
     $notices->maybe_render();

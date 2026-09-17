@@ -4,7 +4,7 @@
  * WooCommerce shipping debug mode support (#5): when the merchant enables
  * WooCommerce → Settings → Shipping → "Enable debug mode", every evaluated
  * Smart Send method is surfaced as ONE summary notice through
- * SS_Shipping_Checkout_Debug::add_notice() - the availability verdict with
+ * \Smart_Send\Support\Checkout_Debug::add_notice() - the availability verdict with
  * the evaluated total and cart weight, plus how the offered cost was
  * derived. The step-by-step trace stays in the log only. With the option
  * off nothing changes.
@@ -18,7 +18,7 @@
  * Build a Smart Send shipping method instance with the given instance
  * settings persisted in the options table (restored after the test).
  */
-function ss_debug_create_method(array $instance_settings = [], int $instance_id = 99941): SS_Shipping_WC_Method
+function ss_debug_create_method(array $instance_settings = [], int $instance_id = 99941): \Smart_Send\Shipping_Method\Method
 {
     $settings = array_merge([
         'title'                      => 'SS Debug Method',
@@ -35,7 +35,7 @@ function ss_debug_create_method(array $instance_settings = [], int $instance_id 
 
     with_option('woocommerce_smart_send_shipping_' . $instance_id . '_settings', $settings);
 
-    return new SS_Shipping_WC_Method($instance_id);
+    return new \Smart_Send\Shipping_Method\Method($instance_id);
 }
 
 /**
@@ -276,17 +276,17 @@ it('never adds notices when WC_DOING_AJAX is defined', function () {
 });
 
 /*
- * Focused SS_Shipping_Checkout_Debug gating check that needs WC_DOING_AJAX
+ * Focused \Smart_Send\Support\Checkout_Debug gating check that needs WC_DOING_AJAX
  * defined. It lives here (not in CheckoutDebugTest.php) because that file
  * runs before this one and defining the constant there would poison every
  * notice test in this file.
  */
-it('SS_Shipping_Checkout_Debug adds no notice when WC_DOING_AJAX is defined', function () {
+it('\Smart_Send\Support\Checkout_Debug adds no notice when WC_DOING_AJAX is defined', function () {
     with_option('woocommerce_shipping_debug_mode', 'yes');
 
     expect(defined('WC_DOING_AJAX'))->toBeTrue();
 
-    SS_Shipping_Checkout_Debug::add_notice('Smart Send AJAX-gated debug notice.');
+    \Smart_Send\Support\Checkout_Debug::add_notice('Smart Send AJAX-gated debug notice.');
 
     expect(wc_notice_count())->toBe(0);
 });

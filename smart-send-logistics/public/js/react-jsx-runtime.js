@@ -9,7 +9,7 @@
  * because WooCommerce merges integration handles into the Checkout block's
  * own script dependencies, the whole Checkout block - from loading (#183).
  *
- * SS_Shipping_Block_Checkout registers this file under the same handle when
+ * Smart_Send\Frontend\Block_Checkout registers this file under the same handle when
  * WordPress has not. It mirrors the public surface of react/jsx-runtime:
  * jsx(), jsxs() and Fragment, all on top of the React global WordPress
  * ships (React.createElement takes key and ref out of the props itself).

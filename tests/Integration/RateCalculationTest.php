@@ -1,7 +1,7 @@
 <?php
 
 /*
- * Characterization tests for SS_Shipping_WC_Method rate calculation: the
+ * Characterization tests for \Smart_Send\Shipping_Method\Method rate calculation: the
  * weight-bracket table, the free-shipping rules and the availability
  * options.
  *
@@ -17,7 +17,7 @@
  * Build a Smart Send shipping method instance with the given instance
  * settings persisted in the options table (restored after the test).
  */
-function create_ss_method(array $instance_settings = [], int $instance_id = 99931): SS_Shipping_WC_Method
+function create_ss_method(array $instance_settings = [], int $instance_id = 99931): \Smart_Send\Shipping_Method\Method
 {
     $settings = array_merge([
         'title'                    => 'SS Test Method',
@@ -34,7 +34,7 @@ function create_ss_method(array $instance_settings = [], int $instance_id = 9993
 
     with_option('woocommerce_smart_send_shipping_' . $instance_id . '_settings', $settings);
 
-    return new SS_Shipping_WC_Method($instance_id);
+    return new \Smart_Send\Shipping_Method\Method($instance_id);
 }
 
 /**

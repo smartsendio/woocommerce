@@ -7,7 +7,7 @@
  * first line and the time it was booked under it.
  *
  * It renders state.timeline, which comes from the order meta the
- * fulfillment run appends to (SS_Shipping_Shipment_Ids), so it survives a
+ * fulfillment run appends to (Smart_Send\Fulfillment\Shipment_IDs), so it survives a
  * reload - unlike the green result boxes, which are the memory of the run
  * just made. An order booked before that list existed carries only the
  * frozen shipment ids and no timestamp: such an entry is a link with no

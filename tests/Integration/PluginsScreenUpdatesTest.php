@@ -1,7 +1,7 @@
 <?php
 
 /*
- * Tests for SS_Plugins_Screen_Updates: the plugins-screen "in plugin update
+ * Tests for \Smart_Send\Admin\Plugins_Screen_Updates: the plugins-screen "in plugin update
  * message" notice. The notice is computed purely from a semver major-version
  * comparison between the installed version (SS_SHIPPING_VERSION) and the
  * version offered by the update response - no external request is made.
@@ -21,7 +21,7 @@ function ss_fake_update_response(string $new_version): stdClass
 }
 
 it('shows the upgrade notice when the available version bumps the major component', function () {
-    $updates = new SS_Plugins_Screen_Updates();
+    $updates = new \Smart_Send\Admin\Plugins_Screen_Updates();
 
     $major = (int) explode('.', SS_SHIPPING_VERSION)[0];
 
@@ -35,7 +35,7 @@ it('shows the upgrade notice when the available version bumps the major componen
 });
 
 it('shows no notice when only the minor version changes', function () {
-    $updates = new SS_Plugins_Screen_Updates();
+    $updates = new \Smart_Send\Admin\Plugins_Screen_Updates();
 
     $parts       = explode('.', SS_SHIPPING_VERSION);
     $new_version = $parts[0] . '.' . ((int) ($parts[1] ?? 0) + 1) . '.0';
@@ -48,7 +48,7 @@ it('shows no notice when only the minor version changes', function () {
 });
 
 it('shows no notice when only the patch version changes', function () {
-    $updates = new SS_Plugins_Screen_Updates();
+    $updates = new \Smart_Send\Admin\Plugins_Screen_Updates();
 
     $parts       = explode('.', SS_SHIPPING_VERSION);
     $new_version = $parts[0] . '.' . ($parts[1] ?? '0') . '.' . ((int) ($parts[2] ?? 0) + 1);
@@ -61,7 +61,7 @@ it('shows no notice when only the patch version changes', function () {
 });
 
 it('shows no notice when the version is unchanged', function () {
-    $updates = new SS_Plugins_Screen_Updates();
+    $updates = new \Smart_Send\Admin\Plugins_Screen_Updates();
 
     ob_start();
     $updates->in_plugin_update_message([], ss_fake_update_response(SS_SHIPPING_VERSION));
@@ -71,7 +71,7 @@ it('shows no notice when the version is unchanged', function () {
 });
 
 it('makes no HTTP request to compute the notice', function () {
-    $updates = new SS_Plugins_Screen_Updates();
+    $updates = new \Smart_Send\Admin\Plugins_Screen_Updates();
 
     $requests = 0;
     $recorder = function ($preempt) use (&$requests) {
@@ -94,7 +94,7 @@ it('makes no HTTP request to compute the notice', function () {
 });
 
 it('registers the notice on the plugin-specific update message hook', function () {
-    $updates = new SS_Plugins_Screen_Updates();
+    $updates = new \Smart_Send\Admin\Plugins_Screen_Updates();
     $updates->register_hooks();
 
     expect(has_action('in_plugin_update_message-smart-send-logistics/smart-send-logistics.php', [$updates, 'in_plugin_update_message']))->not->toBeFalse();

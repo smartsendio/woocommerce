@@ -1,11 +1,11 @@
 <?php
 
 /*
- * Tests for the booking stage (#177): SS_Shipping_Booking_Service::book()
+ * Tests for the booking stage (#177): \Smart_Send\Booking\Booking_Service::book()
  * takes the order plus the delivery details fulfillment decided on, runs
- * smart_send_booking_request on the built SS_Shipping_Shipment, sends it,
+ * smart_send_booking_request on the built \Smart_Send\Booking\Shipment, sends it,
  * fires smart_send_booking_completed with the typed result - or fires
- * smart_send_booking_failed and throws SS_Shipping_Booking_Exception
+ * smart_send_booking_failed and throws \Smart_Send\Booking\Exceptions\Booking_Exception
  * (validation errors on errors(), the API exception as previous). Booking
  * never reads order meta or resolves methods itself.
  */
@@ -27,9 +27,9 @@ function create_booking_order(array $args = []): WC_Order
 /**
  * Delivery details built by hand - the booking stage takes them as given.
  */
-function handmade_details(string $method = 'postnord_agent'): SS_Shipping_Delivery_Details
+function handmade_details(string $method = 'postnord_agent'): \Smart_Send\Delivery\Delivery_Details
 {
-    $details = new SS_Shipping_Delivery_Details();
+    $details = new \Smart_Send\Delivery\Delivery_Details();
 
     return $details->set_shipping_method($method);
 }
@@ -47,9 +47,9 @@ it('books with the delivery details it is given, without reading order meta or r
         return ss_api_response(200, ['data' => ss_api_shipment_data(['shipment_id' => 'shipment-given'])]);
     });
 
-    $booked = (new SS_Shipping_Booking_Service())->book($order, handmade_details('gls_shop'), false);
+    $booked = (new \Smart_Send\Booking\Booking_Service())->book($order, handmade_details('gls_shop'), false);
 
-    expect($booked)->toBeInstanceOf(SS_Shipping_Booked_Shipment::class)
+    expect($booked)->toBeInstanceOf(\Smart_Send\Booking\Booked_Shipment::class)
         ->and($booked->get_shipment_id())->toBe('shipment-given')
         ->and($booked->is_return())->toBeFalse();
 
@@ -59,13 +59,13 @@ it('books with the delivery details it is given, without reading order meta or r
         ->and($payload['agent'])->toBeNull();
 });
 
-it('throws a SS_Shipping_Booking_Exception before any request when the details carry no shipping method', function () {
+it('throws a \Smart_Send\Booking\Exceptions\Booking_Exception before any request when the details carry no shipping method', function () {
     $order   = create_booking_order();
     $capture = mock_smart_send_api();
     $failed  = capture_hook_args('smart_send_booking_failed');
 
-    expect(fn () => (new SS_Shipping_Booking_Service())->book($order, new SS_Shipping_Delivery_Details(), false))
-        ->toThrow(SS_Shipping_Booking_Exception::class, 'No shipping method set');
+    expect(fn () => (new \Smart_Send\Booking\Booking_Service())->book($order, new \Smart_Send\Delivery\Delivery_Details(), false))
+        ->toThrow(\Smart_Send\Booking\Exceptions\Booking_Exception::class, 'No shipping method set');
 
     expect($capture->requests)->toBe([])
         ->and($failed->calls)->toBe([]);
@@ -77,7 +77,7 @@ it('runs smart_send_booking_request on the built shipment and books what the fil
 
     $seen = [];
     $filter = function ($shipment, $filtered_order, $is_return) use (&$seen, $order) {
-        expect($shipment)->toBeInstanceOf(SS_Shipping_Shipment::class)
+        expect($shipment)->toBeInstanceOf(\Smart_Send\Booking\Shipment::class)
             ->and($filtered_order)->toBeInstanceOf(WC_Order::class)
             ->and($filtered_order->get_id())->toBe($order->get_id())
             ->and($is_return)->toBeBool();
@@ -112,13 +112,13 @@ it('fires smart_send_booking_completed with the booked shipment, the request shi
     $completed = capture_hook_args('smart_send_booking_completed');
     $failed    = capture_hook_args('smart_send_booking_failed');
 
-    $booked = (new SS_Shipping_Booking_Service())->book($order, handmade_details(), false);
+    $booked = (new \Smart_Send\Booking\Booking_Service())->book($order, handmade_details(), false);
 
     expect($completed->calls)->toHaveCount(1)
         ->and($completed->calls[0])->toHaveCount(3)
         ->and($completed->calls[0][0])->toBe($booked)
         ->and($completed->calls[0][0]->get_shipment_id())->toBe('shipment-completed')
-        ->and($completed->calls[0][1])->toBeInstanceOf(SS_Shipping_Shipment::class)
+        ->and($completed->calls[0][1])->toBeInstanceOf(\Smart_Send\Booking\Shipment::class)
         ->and($completed->calls[0][1]->get_internal_id())->toBe((string) $order->get_id())
         ->and($completed->calls[0][2])->toBeInstanceOf(WC_Order::class)
         ->and($completed->calls[0][2]->get_id())->toBe($order->get_id())
@@ -144,25 +144,25 @@ it('fires smart_send_booking_failed and throws with the validation errors and th
 
     $thrown = null;
     try {
-        (new SS_Shipping_Booking_Service())->book($order, handmade_details(), true);
-    } catch (SS_Shipping_Booking_Exception $e) {
+        (new \Smart_Send\Booking\Booking_Service())->book($order, handmade_details(), true);
+    } catch (\Smart_Send\Booking\Exceptions\Booking_Exception $e) {
         $thrown = $e;
     }
 
-    expect($thrown)->toBeInstanceOf(SS_Shipping_Booking_Exception::class)
+    expect($thrown)->toBeInstanceOf(\Smart_Send\Booking\Exceptions\Booking_Exception::class)
         ->and($thrown->getMessage())->toBe('The given data was invalid.')
         ->and($thrown->errors())->toBe([
             'receiver.postal_code' => ['The postal code is invalid.'],
             'parcels.0.weight'     => ['The weight must be at least 0.1.', 'The weight must be a number.'],
         ])
         ->and($thrown->response_id())->toBe('resp-422')
-        ->and($thrown->getPrevious())->toBeInstanceOf(\Smartsend\Exceptions\ValidationException::class);
+        ->and($thrown->getPrevious())->toBeInstanceOf(\Smart_Send\API\Exceptions\Validation_Exception::class);
 
     // The action fired right before the throw, with the same exception.
     expect($failed->calls)->toHaveCount(1)
         ->and($failed->calls[0])->toHaveCount(3)
         ->and($failed->calls[0][0])->toBe($thrown)
-        ->and($failed->calls[0][1])->toBeInstanceOf(SS_Shipping_Shipment::class)
+        ->and($failed->calls[0][1])->toBeInstanceOf(\Smart_Send\Booking\Shipment::class)
         ->and($failed->calls[0][1]->get_shipping_method())->toBe('agent')
         ->and($failed->calls[0][2])->toBeInstanceOf(WC_Order::class)
         ->and($failed->calls[0][2]->get_id())->toBe($order->get_id())
@@ -177,15 +177,15 @@ it('wraps non-validation API failures with empty errors() and the API exception 
 
     $thrown = null;
     try {
-        (new SS_Shipping_Booking_Service())->book($order, handmade_details(), false);
-    } catch (SS_Shipping_Booking_Exception $e) {
+        (new \Smart_Send\Booking\Booking_Service())->book($order, handmade_details(), false);
+    } catch (\Smart_Send\Booking\Exceptions\Booking_Exception $e) {
         $thrown = $e;
     }
 
     expect($thrown)->not->toBeNull()
         ->and($thrown->errors())->toBe([])
         ->and($thrown->response_id())->toBe('resp-500')
-        ->and($thrown->getPrevious())->toBeInstanceOf(\Smartsend\Exceptions\HttpClientException::class);
+        ->and($thrown->getPrevious())->toBeInstanceOf(\Smart_Send\API\Exceptions\HTTP_Client_Exception::class);
 });
 
 it('renders a multi-message validation failure in the fulfillment error the merchant sees', function () {
@@ -220,10 +220,10 @@ it('carries the weight, dimensions and reference of each request parcel onto the
     $order   = create_order(['products' => [[$product, 3]], 'shipping_method' => 'postnord_agent']);
 
     // Two boxes: the second with explicit measures.
-    $plan = new SS_Shipping_Parcel_Plan();
-    $plan->add_spec((new SS_Shipping_Parcel_Spec())->add_item($product->get_id(), 2));
+    $plan = new \Smart_Send\Delivery\Parcel_Plan();
+    $plan->add_spec((new \Smart_Send\Delivery\Parcel_Spec())->add_item($product->get_id(), 2));
     $plan->add_spec(
-        (new SS_Shipping_Parcel_Spec())
+        (new \Smart_Send\Delivery\Parcel_Spec())
             ->add_item($product->get_id(), 1)
             ->set_weight(2.5)
             ->set_length(40)
@@ -243,7 +243,7 @@ it('carries the weight, dimensions and reference of each request parcel onto the
         ])]);
     });
 
-    $booked  = (new SS_Shipping_Booking_Service())->book($order, $details, false);
+    $booked  = (new \Smart_Send\Booking\Booking_Service())->book($order, $details, false);
     $parcels = $booked->parcels();
 
     expect($parcels)->toHaveCount(2)
@@ -263,7 +263,7 @@ it('carries the weight, dimensions and reference of each request parcel onto the
         ->and($parcels[1]->get_reference())->toBe((string) $order->get_order_number());
 
     // Round-trips through the serializable form.
-    expect(SS_Shipping_Booked_Shipment::from_array($booked->to_array())->parcels()[1]->to_array())
+    expect(\Smart_Send\Booking\Booked_Shipment::from_array($booked->to_array())->parcels()[1]->to_array())
         ->toBe($parcels[1]->to_array());
 });
 
@@ -271,9 +271,9 @@ it('degrades gracefully when the API answers with a different number of parcels 
     $product = create_simple_product(['price' => 100, 'weight' => 1]);
     $order   = create_order(['products' => [[$product, 2]], 'shipping_method' => 'postnord_agent']);
 
-    $plan = new SS_Shipping_Parcel_Plan();
-    $plan->add_spec((new SS_Shipping_Parcel_Spec())->add_item($product->get_id(), 1)->set_weight(1.5));
-    $plan->add_spec((new SS_Shipping_Parcel_Spec())->add_item($product->get_id(), 1)->set_weight(2.5));
+    $plan = new \Smart_Send\Delivery\Parcel_Plan();
+    $plan->add_spec((new \Smart_Send\Delivery\Parcel_Spec())->add_item($product->get_id(), 1)->set_weight(1.5));
+    $plan->add_spec((new \Smart_Send\Delivery\Parcel_Spec())->add_item($product->get_id(), 1)->set_weight(2.5));
 
     mock_smart_send_api(function () {
         return ss_api_response(200, ['data' => ss_api_shipment_data([
@@ -285,8 +285,8 @@ it('degrades gracefully when the API answers with a different number of parcels 
     });
 
     $entries  = [];
-    $previous = SS_Shipping_Logger::$logger;
-    SS_Shipping_Logger::$logger = new class ($entries) {
+    $previous = \Smart_Send\Support\Logger::$logger;
+    \Smart_Send\Support\Logger::$logger = new class ($entries) {
         public function __construct(public array &$entries)
         {
         }
@@ -303,9 +303,9 @@ it('degrades gracefully when the API answers with a different number of parcels 
     };
 
     try {
-        $booked = (new SS_Shipping_Booking_Service())->book($order, handmade_details()->set_parcel_plan($plan), false);
+        $booked = (new \Smart_Send\Booking\Booking_Service())->book($order, handmade_details()->set_parcel_plan($plan), false);
     } finally {
-        SS_Shipping_Logger::$logger = $previous;
+        \Smart_Send\Support\Logger::$logger = $previous;
     }
 
     // The booking stands; only the measures are left out.

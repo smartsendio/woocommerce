@@ -1,7 +1,7 @@
 <?php
 
 /*
- * Characterization tests for label generation via SS_Shipping_Fulfillment_Service with
+ * Characterization tests for label generation via \Smart_Send\Fulfillment\Fulfillment_Service with
  * the Smart Send API mocked through pre_http_request: the success path
  * (order meta, order note, status change), the API error path, auto return
  * labels, and the bulk order actions with the admin notices they produce.
@@ -9,7 +9,7 @@
 
 /**
  * Fulfill an order and return the run's canonical array form
- * (SS_Shipping_Fulfillment_Result::to_array(), what the REST response's
+ * (\Smart_Send\Fulfillment\Fulfillment_Result::to_array(), what the REST response's
  * shipments[] carries). The two public entry points - the REST controller
  * behind the order meta box (#182) and the bulk handler - wrap the
  * fulfillment service the same way.
@@ -29,7 +29,7 @@ function create_labels_for(int $order_id, bool $return = false, bool $save_order
  * Clear pending admin notices for the current user and leave a clean state
  * (no pending transient, no marker query parameter) after the test.
  */
-function with_empty_flash_messages(): SS_Shipping_Admin_Notices
+function with_empty_flash_messages(): \Smart_Send\Support\Admin_Notices
 {
     $notices = SS_SHIPPING_WC()->admin_notices();
 
@@ -37,7 +37,7 @@ function with_empty_flash_messages(): SS_Shipping_Admin_Notices
 
     remember_cleanup_callback(function () use ($notices): void {
         $notices->clear();
-        unset($_GET[SS_Shipping_Admin_Notices::QUERY_ARG]);
+        unset($_GET[\Smart_Send\Support\Admin_Notices::QUERY_ARG]);
     });
 
     return $notices;
@@ -73,7 +73,7 @@ it('creates a label, saves the shipment id and adds an order note on success', f
     });
 
     $fired = [];
-    $listener = function (WC_Order $fulfilled_order, SS_Shipping_Fulfillment_Result $result) use (&$fired): void {
+    $listener = function (WC_Order $fulfilled_order, \Smart_Send\Fulfillment\Fulfillment_Result $result) use (&$fired): void {
         $fired[] = $fulfilled_order->get_id();
     };
     add_action('smart_send_order_fulfilled', $listener, 10, 2);
@@ -121,8 +121,8 @@ it('persists submitted delivery overrides through the repository once the bookin
         ['id' => $product_a->get_id(), 'name' => 'Override Box One', 'value' => '1'],
         ['id' => $product_b->get_id(), 'name' => 'Override Box Two', 'value' => '2'],
     ];
-    $overrides = new SS_Shipping_Delivery_Details();
-    $overrides->set_parcel_plan(SS_Shipping_Parcel_Plan::from_box_rows($rows));
+    $overrides = new \Smart_Send\Delivery\Delivery_Details();
+    $overrides->set_parcel_plan(\Smart_Send\Delivery\Parcel_Plan::from_box_rows($rows));
 
     $capture = mock_smart_send_api();
 
@@ -243,7 +243,7 @@ it('generates a label for a single order via the bulk action and flashes a succe
 
     // maybe_render() prints the notices and clears the transient when the
     // marker query parameter is present.
-    $_GET[SS_Shipping_Admin_Notices::QUERY_ARG] = '1';
+    $_GET[\Smart_Send\Support\Admin_Notices::QUERY_ARG] = '1';
     ob_start();
     $notices->maybe_render();
     $output = ob_get_clean();
@@ -251,7 +251,7 @@ it('generates a label for a single order via the bulk action and flashes a succe
     expect($output)->toContain('notice-success')
         ->toContain('Shipping label created by Smart Send');
     expect($notices->get_pending())->toBe([])
-        ->and(get_transient(SS_Shipping_Admin_Notices::TRANSIENT_PREFIX . get_current_user_id()))->toBeFalse();
+        ->and(get_transient(\Smart_Send\Support\Admin_Notices::TRANSIENT_PREFIX . get_current_user_id()))->toBeFalse();
 });
 
 it('flashes an error for bulk label generation on an order without a Smart Send method', function () {
@@ -376,7 +376,7 @@ it('books nothing and explains the single-order limit when more than one order i
     }
 
     // The link survives the notice renderer's wp_kses_post().
-    $_GET[SS_Shipping_Admin_Notices::QUERY_ARG] = '1';
+    $_GET[\Smart_Send\Support\Admin_Notices::QUERY_ARG] = '1';
     ob_start();
     $notices->maybe_render();
     expect(ob_get_clean())->toContain('notice-error')
