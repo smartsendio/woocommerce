@@ -48,6 +48,10 @@ function capture_doc_screenshot(Webpage|AwaitableWebpage $page, string $area, st
     }
     docs_slowmo_pause();
     $page->assertNoJavaScriptErrors();
+    $documentLanguage = (string) $page->script('document.documentElement.lang');
+    if (strtolower(explode('-', str_replace('_', '-', $documentLanguage))[0]) !== docs_language()) {
+        throw new RuntimeException('Documentation page language differs from the requested locale: ' . $documentLanguage);
+    }
     $viewport = $page->script('({width: innerWidth, height: innerHeight, device_scale_factor: devicePixelRatio})');
     // WP's benign jQuery Migrate log is not a JavaScript failure.
     $temporaryName = 'docs-' . bin2hex(random_bytes(8));
@@ -65,6 +69,7 @@ function capture_doc_screenshot(Webpage|AwaitableWebpage $page, string $area, st
         'file' => docs_language() . '/' . $id . '.png',
         'destination' => 'images/woocommerce/' . docs_language() . '/' . $id . '.png',
         'crop_selector' => $element,
+        'document_language' => $documentLanguage,
         'viewport' => $viewport,
         'width' => $width, 'height' => $height, 'sha256' => hash_file('sha256', $target),
     ]);

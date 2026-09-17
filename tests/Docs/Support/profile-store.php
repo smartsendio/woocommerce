@@ -4,7 +4,9 @@
 $profile = json_decode(file_get_contents(dirname(__DIR__) . '/profile.json'), true);
 $locale = $profile['locales'][$args[0]];
 $options = array(
-    'WPLANG' => $locale,
+    // English is WordPress' built-in default, not an installed language pack.
+    // sanitize_option rejects en_US after switching to another language.
+    'WPLANG' => $locale === 'en_US' ? '' : $locale,
     'blogname' => 'Nordic Example Shop',
     'timezone_string' => $profile['timezone'],
     'woocommerce_currency' => 'DKK',
@@ -34,6 +36,9 @@ foreach ($options as $key => $value) {
 update_option('ss_docs_snapshot', $snapshot);
 foreach ($options as $key => $value) {
     update_option($key, $value);
+}
+if (get_option('WPLANG') !== $options['WPLANG']) {
+    throw new RuntimeException('Unable to set the documentation store language.');
 }
 update_user_meta($admin->ID, 'locale', $locale);
 update_option('ss_docs_active', true);
