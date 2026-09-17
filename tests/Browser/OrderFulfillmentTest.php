@@ -60,6 +60,7 @@ beforeAll(function (): void {
         [],                       // 11: return method override
         [],                       // 12: a return booked from the booked state
         [],                       // 13: the smart_send_fulfillment_shipping_methods filter
+        [],                       // 14: the not-connected state
     ]]);
 });
 
@@ -703,5 +704,25 @@ it('offers only what the smart_send_fulfillment_shipping_methods filter keeps, p
         expect($body['shipping_method'])->toBe('homedelivery');
     } finally {
         ss_browser_remove_methods_filter();
+    }
+});
+
+it('offers a working way out of the not-connected state', function () {
+    $order_id = ss_browser_state()['orders'][14];
+
+    // The callout appears when no API token is configured, and its button
+    // is a real link out of the box - the fieldset stays disabled in this
+    // state, so a rule disabling its buttons must not catch this one.
+    ss_browser_update_plugin_setting('api_token', '');
+
+    try {
+        ss_browser_open_order($order_id)
+            ->assertSeeIn('[data-ss-notice="not_connected"]', 'Smart Send is not connected')
+            ->click('[data-ss-action="open-settings"]')
+            ->assertPathContains('/wp-admin/admin.php')
+            ->assertQueryStringHas('page', 'wc-settings')
+            ->assertQueryStringHas('section', 'smart_send_shipping');
+    } finally {
+        ss_browser_update_plugin_setting('api_token', 'ss-mock-api-token');
     }
 });
