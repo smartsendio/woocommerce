@@ -123,6 +123,10 @@ Single-entry WordPress plugin. `smart-send-logistics/smart-send-logistics.php` i
 
 The API layer follows the same WordPress naming rules as the rest of the plugin. For example, `SS_SHIPPING_WC()->get_api_handle()->pickup_points()->find_by_agent_no()` uses snake_case throughout. PHP model properties also use snake_case, and the existing wire payload keys and null values remain unchanged. Where serialization uses `get_object_vars()`, renaming a property requires an explicit wire-key mapping. Never change an API field or a stored array/object shape merely to match a PHP identifier.
 
+## Optional Subscriptions integration
+
+`Smart_Send\Support\Subscriptions_Compat` targets the documented Subscriptions 4.9+ APIs. It registers modern hooks unconditionally (no effect without the optional plugin), excludes booking outcomes and Shipment Tracking output in `wc_subscriptions_renewal_order_data`, and carries exact source identities on cloned product items through `wcs_renewal_order_items`. `wcs_renewal_order_created` remaps allocations after new item IDs exist, validates both source and destination quantities, saves through `Order_Meta` and removes temporary markers. Never infer item correspondence from products or array positions. An unprovable plan is preserved inside an unsupported wrapper so the existing explicit-reset flow blocks booking. Source subscriptions are unchanged. Contract tests use real WooCommerce orders on both storage backends; they do not run the commercial Subscriptions renewal engine, which is unavailable in our test environment.
+
 ## Logging policy
 
 Two decoupled surfaces with distinct audiences — place every log/notice call deliberately on one of them (see issue #92):
