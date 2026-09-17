@@ -128,7 +128,7 @@ Tests are written with [Pest](https://pestphp.com) and live in [`tests/`](tests/
 |---|---|---|
 | **Integration** (`tests/Integration`) | The bulk of the coverage. WordPress + WooCommerce are loaded **in-process** by `tests/bootstrap.php` from the testing store; tests build orders, carts and settings directly and assert on payloads, rates, order meta, label generation, frontend output. Fixtures come from the factories in `tests/Integration/Helpers.php`, which delete everything they created after each test. | No web server needed. |
 | **Browser** (`tests/Browser`) | Few, slow end-to-end Playwright tests against a **running** store over HTTP: activation, settings, shipping method setup, classic and block checkout, label generation. They seed the store and install the API mock through WP-CLI (`tests/Browser/Support/`). `DevStoreTest.php` checks the store itself (theme, pages, no JS errors) without any Smart Send seeding — run it first when the store misbehaves. | Needs the store served; the runner handles that for localhost URLs. |
-| **Docs** (`tests/Docs`) | Not a correctness suite. Drives real admin UI flows and saves named screenshots to `docs/screenshots/` for the documentation. Runs headed (visible browser) locally so you can watch; headless in CI or with `SS_DOCS_HEADLESS=1`. `SS_DOCS_SLOWMO=1500` pauses at each screenshot state. | Same as Browser. |
+| **Docs** (`tests/Docs`) | Real UI screenshots for English and Danish guides, with focus overlays and borders. An explicit generation tool, separate from normal tests. | Dedicated pinned store on port 8182; see below. |
 
 ### Running them
 
@@ -139,7 +139,7 @@ composer test               # Integration + Browser (what CI runs on every pull 
 composer test:docs          # regenerate documentation screenshots (opens a browser window)
 ```
 
-Every `composer test:*` command goes through [`bin/run-tests.sh`](bin/run-tests.sh), which **rebuilds the testing store (`.env.testing`) from scratch first**, so runs never drift from earlier runs, demo mode or manual clicking. WP-CLI caches downloads. The integration suite normally takes one to two minutes, while the full browser suite can take several minutes. CI bounds each browser attempt to six minutes and retries once after restarting PHP-FPM.
+The Integration and Browser commands go through [`bin/run-tests.sh`](bin/run-tests.sh), which **rebuilds the testing store (`.env.testing`) from scratch first**, so runs never drift from earlier runs, demo mode or manual clicking. WP-CLI caches downloads. The integration suite normally takes one to two minutes, while the full browser suite can take several minutes. CI bounds each browser attempt to six minutes and retries once after restarting PHP-FPM.
 
 For fast iteration against the *existing* testing store, call Pest directly and skip the rebuild:
 
@@ -152,6 +152,27 @@ vendor/bin/pest --testsuite=Browser      # you serve the store yourself in this 
 Browser fixtures and the integration bootstrap share `WP_PATH` (resolved relative to the repository root), with `WP_DEV_PATH` retained as a fallback. Use `WP_URL` for the matching store URL. The Browser/Docs suites recover saved fixture snapshots before their first test, including after a killed attempt: a clean store without a snapshot is left untouched, and shipping methods/settings are restored before the baseline checks run.
 
 `SubscriptionsCompatTest` verifies the documented WooCommerce Subscriptions 4.9+ renewal-copy hook contract using real WooCommerce orders under HPOS and posts. Its fixture dispatches the metadata/items/created hooks in their documented order, reloads persisted state and checks exact item-ID mapping. It does not install the commercial Subscriptions plugin or run its scheduled-renewal/payment engine; that validation remains unavailable. The API floor comes from WooCommerce's [Subscriptions HPOS guidance](https://developer.woocommerce.com/2023/03/07/woocommerce-subscriptions-hpos-understanding-next-steps/), not a tested commercial-plugin version matrix.
+
+### Documentation screenshots
+
+`composer test:docs` runs **only on request**, using `phpunit.docs.xml.dist` and a separate disposable store at `local-dev/docs-wordpress` (`.env.docs`, port 8182). It never rebuilds the ordinary testing store. Neither `composer test` nor an unqualified `vendor/bin/pest` includes Docs.
+
+```bash
+composer test:docs                         # fresh pinned store; English + Danish
+SS_DOCS_HEADLESS=1 composer test:docs       # same run without visible windows
+composer test:docs -- --reuse --locale en --filter 'outbound'
+SS_DOCS_SLOWMO=1500 composer test:docs -- --reuse --locale da
+```
+
+The profile in `tests/Docs/profile.json` pins WordPress, WooCommerce, theme, currency, units, viewport and tax assumptions. Product/rate values are entered excluding tax; checkout displays 25% Danish VAT. The sample pickup/home shipping prices are 31.20/47.20 DKK before tax, shown as 39/59 DKK. The product costs 100 DKK before tax, so four units reach the 500 DKK free-shipping threshold. Use the exact same profile locally and in the manual workflow.
+
+Each screenshot owns fresh fixtures, mocked Smart Send responses and independent orders; email and external requests are blocked during capture. `highlight_element()` adds removable Dumbledore-inspired overlays and borders without rewriting control labels or changing layout. Use `overlay: false` when surrounding settings should remain equally visible, and `clear_highlights()` before another action. English and Danish runs use real installed language packs, including the administrator locale. Missing Smart Send translations are recorded in the bundle; untranslated controls must not be relabelled for a screenshot.
+
+The required images and guide destinations are listed in `tests/Docs/catalog.json`. Add a catalog entry with each scenario. Keep ordinary outbound booking separate from returns; use **Colli shipments / Kolli-forsendelser** only for the advanced guide. Customs screenshots show the product **Shipping** tab. Do not capture hypothetical upcoming bulk UI. Fixture order dates are fixed; booking and native order-note timestamps show the actual run time.
+
+Every run writes to a fresh ignored directory under `docs/screenshots/.runs/` (or an empty `--output` directory). Open the printed `index.html` for a visual review. `manifest.json` records image hashes, dimensions, source revision, installed versions, translation assets and missing images. Filtered bundles are partial; failed runs cannot be mistaken for complete exports, and committed older PNGs are never uploaded as new output.
+
+Before accepting a bundle, check every image for readable focus, visible results/errors, matching prices, accurate locale and synthetic data. Copy only the reviewed `en/` and `da/` folders plus manifest/index/environment metadata into `docs/screenshots/`. Coordinate the image paths and alt text with [docs#121](https://github.com/smartsendio/docs/issues/121); the destination in each manifest entry identifies the path for a separate documentation PR. Generation does not publish documentation or push to the docs repository.
 
 ### Rules for tests
 

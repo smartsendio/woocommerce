@@ -24,6 +24,16 @@ set -euo pipefail
 SUITES="${1:?Usage: bin/run-tests.sh <Integration|Browser|Docs>[,...]}"
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 
+# Screenshots are deliberately outside the normal/default test configuration.
+if [[ "$SUITES" == "Docs" ]]; then
+    shift
+    exec "$REPO_ROOT/bin/run-docs.sh" "$@"
+fi
+if [[ "$SUITES" == *Docs* ]]; then
+    echo "Run Docs separately with composer test:docs." >&2
+    exit 1
+fi
+
 log()  { printf '\033[1;32m==>\033[0m %s\n' "$*"; }
 fail() { printf '\033[1;31mError:\033[0m %s\n' "$*" >&2; exit 1; }
 

@@ -1,186 +1,93 @@
 <?php
 
-/*
-|--------------------------------------------------------------------------
-| Guides -> Shipping -> Configure a Smart Send shipping method
-|--------------------------------------------------------------------------
-|
-| Screenshots for the "add Smart Send to a shipping zone" documentation
-| flow: WooCommerce -> Settings -> Shipping -> a zone -> add the Smart Send
-| method -> pick a carrier method and title it -> save -> confirm it shows
-| up in the zone's method list.
-|
-| The method picker (radio list) and the carrier "Shipping Method" dropdown
-| are the two steps merchants most often get stuck on - the picker because
-| "Smart Send" sits below the built-in methods and is easy to miss, the
-| dropdown because it lists every carrier/service combination Smart Send
-| supports and merchants need to find their own contract's method. Both get
-| a highlighted screenshot.
-|
-| One test per UI state, each producing its own named screenshot under
-| docs/screenshots/ShippingMethod/ (see tests/Docs/Support/Screenshots.php).
-| pest-plugin-browser resets the browser after every test, so each test
-| re-navigates to the state it documents rather than continuing on from the
-| previous one - only the WordPress database carries state across tests.
-|
-| Each test opens with the same explicit
-| visit()->fill()->fill()->click()->navigate() chain rather than delegating
-| to a shared login helper. pest-plugin-browser only recognises a test as a
-| browser test - and boots the Playwright server for it - when the test's
-| own closure literally calls visit(), or the file lives under
-| tests/Browser/ (see Pest\Browser\Support\BrowserTestIdentifier). Neither
-| is true for a call to a helper function defined elsewhere, so the visit()
-| call has to stay inline in every test here.
-|
-| Runs against the "Denmark" shipping zone that bin/setup-local-dev.sh
-| seeds by default. beforeAll snapshots the zone's real methods (the seeded
-| Flat rate) and clears the zone - the "empty zone" screenshot needs it
-| empty, and any Smart Send method left over from a previous run would get
-| duplicated by the "add method" test - and afterAll restores the snapshot,
-| so a Docs run leaves the local store the way it found it (a zone stripped
-| of its Flat rate broke the Browser suite's flat-rate storefront test until
-| someone restored it by hand).
-|
-*/
+require_once __DIR__ . '/ShippingFixtures.php';
 
-beforeAll(function (): void {
-    if (!ss_browser_store_manageable()) {
-        return;
-    }
-
-    // Through WooCommerce's own API (WP-CLI, see the helper's docblock)
-    // rather than by scripting the admin UI - the zone screen is
-    // client-side rendered, so "click Delete until the page looks empty"
-    // can never reliably terminate.
-    ss_browser_snapshot_and_clear_zone_methods(1, 'ss_docs_zone_snapshot');
+beforeEach(function (): void {
+    ss_browser_skip_unless_store_manageable($this);
+    docs_shipping_cleanup();
+    docs_seed_store();
 });
 
-afterAll(function (): void {
-    if (!ss_browser_store_manageable()) {
-        return;
-    }
-
-    ss_browser_restore_zone_methods(1, 'ss_docs_zone_snapshot');
+afterEach(function (): void {
+    docs_shipping_cleanup();
+    docs_cleanup_store();
 });
 
-/**
- * The Denmark zone (zone 1) seeded by bin/setup-local-dev.sh - the zone
- * this documentation flow is captured against.
- */
-function docs_zone_url(): string
-{
-    return ss_zone_page_url(1);
-}
-
-it('starts from an empty shipping zone', function () {
-    // The zone was snapshotted and cleared in beforeAll.
+it('documents an empty shipping zone', function () {
+    $state = docs_shipping_fixture('empty');
     $page = visit(base_url('/wp-login.php'))
-        ->fill('#user_login', admin_username())
-        ->fill('#user_pass', admin_password())
-        ->click('#wp-submit')
-        ->assertPathContains('wp-admin')
-        ->navigate(docs_zone_url());
-
-    $page->assertSee('Denmark')
-        ->assertSee('You can add multiple shipping methods within this zone.');
-
+        ->fill('#user_login', admin_username())->fill('#user_pass', admin_password())->click('#wp-submit')
+        ->navigate(ss_zone_page_url($state['zone_id']))
+        ->assertPresent('.wc-shipping-zone-add-method');
     highlight_element($page, '.wc-shipping-zone-add-method');
-
-    capture_doc_screenshot($page, 'ShippingMethod', 'zone-empty');
+    capture_doc_screenshot($page, 'methods', 'zone-empty');
 });
 
-it('shows the method picker with Smart Send available', function () {
+it('documents the Smart Send method picker', function () {
+    $state = docs_shipping_fixture('empty');
     $page = visit(base_url('/wp-login.php'))
-        ->fill('#user_login', admin_username())
-        ->fill('#user_pass', admin_password())
-        ->click('#wp-submit')
-        ->assertPathContains('wp-admin')
-        ->navigate(docs_zone_url());
+        ->fill('#user_login', admin_username())->fill('#user_pass', admin_password())->click('#wp-submit')
+        ->navigate(ss_zone_page_url($state['zone_id']))
+        ->click('.wc-shipping-zone-add-method')
+        ->assertPresent('label[for="smart_send_shipping"]');
+    highlight_element($page, 'label[for="smart_send_shipping"]');
+    capture_doc_screenshot($page, 'methods', 'method-picker');
+});
 
-    $page->click('Add shipping method')
+it('documents adding Smart Send to the shipping zone', function () {
+    $state = docs_shipping_fixture('empty');
+    $page = visit(base_url('/wp-login.php'))
+        ->fill('#user_login', admin_username())->fill('#user_pass', admin_password())->click('#wp-submit')
+        ->navigate(ss_zone_page_url($state['zone_id']))
+        ->click('.wc-shipping-zone-add-method')
+        ->click('label[for="smart_send_shipping"]')
+        ->assertVisible('.wc-backbone-modal #btn-next')
+        ->click('.wc-backbone-modal #btn-next')
         ->assertSee('Smart Send');
-
-    highlight_element($page, '#smart_send_shipping');
-
-    capture_doc_screenshot($page, 'ShippingMethod', 'method-picker');
+    highlight_element($page, '.wc-shipping-zone-methods');
+    capture_doc_screenshot($page, 'methods', 'method-added');
 });
 
-it('adds the Smart Send method to the zone', function () {
+it('documents the unconfigured method settings', function () {
+    docs_shipping_fixture('unconfigured');
     $page = visit(base_url('/wp-login.php'))
-        ->fill('#user_login', admin_username())
-        ->fill('#user_pass', admin_password())
-        ->click('#wp-submit')
-        ->assertPathContains('wp-admin')
-        ->navigate(docs_zone_url());
-
-    // The add-method dialog interaction (including the hidden-radio
-    // clickable-label selector detail) lives in the shared step helper -
-    // see tests/Support/ShippingMethodSteps.php.
-    ss_step_add_smart_send_method($page);
-    $page->assertSee('Advanced shipping solution for PostNord, GLS and Bring');
-
-    capture_doc_screenshot($page, 'ShippingMethod', 'method-added-to-zone');
+        ->fill('#user_login', admin_username())->fill('#user_pass', admin_password())->click('#wp-submit')
+        ->navigate(docs_method_settings_url())
+        ->assertPresent('#woocommerce_smart_send_shipping_method');
+    highlight_element($page, 'tr:has(#woocommerce_smart_send_shipping_method)');
+    capture_doc_screenshot($page, 'methods', 'settings-empty');
 });
 
-it('shows the empty method settings form', function () {
+it('documents a filled method settings form', function () {
+    docs_shipping_fixture('unconfigured');
     $page = visit(base_url('/wp-login.php'))
-        ->fill('#user_login', admin_username())
-        ->fill('#user_pass', admin_password())
-        ->click('#wp-submit')
-        ->assertPathContains('wp-admin')
-        ->navigate(docs_zone_url());
-
-    ss_step_open_method_settings($page);
-
-    highlight_element($page, '#woocommerce_smart_send_shipping_method');
-
-    capture_doc_screenshot($page, 'ShippingMethod', 'settings-form-empty');
+        ->fill('#user_login', admin_username())->fill('#user_pass', admin_password())->click('#wp-submit')
+        ->navigate(docs_method_settings_url());
+    ss_step_fill_method_settings($page, docs_text('Pickup point', 'Afhentningssted'), 'postnord_agent');
+    ss_step_fill_weight_row($page, 0, '', '', '31.20');
+    $page->assertValue('#woocommerce_smart_send_shipping_method', 'postnord_agent');
+    highlight_element($page, 'tr:has(#woocommerce_smart_send_shipping_method)');
+    capture_doc_screenshot($page, 'methods', 'settings-filled');
 });
 
-it('fills in the method title and carrier method', function () {
+it('documents saved method settings', function () {
+    docs_shipping_fixture('unconfigured');
     $page = visit(base_url('/wp-login.php'))
-        ->fill('#user_login', admin_username())
-        ->fill('#user_pass', admin_password())
-        ->click('#wp-submit')
-        ->assertPathContains('wp-admin')
-        ->navigate(docs_zone_url());
-
-    ss_step_open_method_settings($page);
-
-    // ss_set_input_value() under the hood, not fill() - see the shared
-    // step helpers for why the title field defeats fill()'s retry loop.
-    ss_step_fill_method_settings($page, 'Smart Send Shipping', 'postnord_collect');
-
-    highlight_element($page, '#woocommerce_smart_send_shipping_method');
-
-    capture_doc_screenshot($page, 'ShippingMethod', 'settings-form-filled');
+        ->fill('#user_login', admin_username())->fill('#user_pass', admin_password())->click('#wp-submit')
+        ->navigate(docs_method_settings_url());
+    ss_step_fill_method_settings($page, docs_text('Pickup point', 'Afhentningssted'), 'postnord_agent');
+    ss_step_fill_weight_row($page, 0, '', '', '31.20');
+    $page->click('button[name="save"]')->assertPresent('#message.updated');
+    highlight_element($page, '#message.updated');
+    capture_doc_screenshot($page, 'methods', 'settings-saved');
 });
 
-it('saves the configured method', function () {
+it('documents the configured zone method', function () {
+    $state = docs_shipping_fixture('single');
     $page = visit(base_url('/wp-login.php'))
-        ->fill('#user_login', admin_username())
-        ->fill('#user_pass', admin_password())
-        ->click('#wp-submit')
-        ->assertPathContains('wp-admin')
-        ->navigate(docs_zone_url());
-
-    ss_step_open_method_settings($page);
-    ss_step_fill_method_settings($page, 'Smart Send Shipping', 'postnord_collect');
-    ss_step_save_method_settings($page);
-
-    capture_doc_screenshot($page, 'ShippingMethod', 'settings-saved');
-});
-
-it('lists the configured method in the zone', function () {
-    $page = visit(base_url('/wp-login.php'))
-        ->fill('#user_login', admin_username())
-        ->fill('#user_pass', admin_password())
-        ->click('#wp-submit')
-        ->assertPathContains('wp-admin')
-        ->navigate(docs_zone_url());
-
-    $page->assertSee('Smart Send')
-        ->assertDontSee('You can add multiple shipping methods within this zone.');
-
-    capture_doc_screenshot($page, 'ShippingMethod', 'zone-method-configured');
+        ->fill('#user_login', admin_username())->fill('#user_pass', admin_password())->click('#wp-submit')
+        ->navigate(ss_zone_page_url($state['zone_id']))
+        ->assertSee(docs_text('Pickup point', 'Afhentningssted'));
+    highlight_element($page, '.wc-shipping-zone-methods');
+    capture_doc_screenshot($page, 'methods', 'zone-configured');
 });

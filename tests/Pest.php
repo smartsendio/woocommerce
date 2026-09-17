@@ -36,6 +36,7 @@ pest()->browser()->timeout(15_000);
 */
 
 require __DIR__ . '/Docs/Support/Screenshots.php';
+require __DIR__ . '/Docs/Support/Store.php';
 
 /*
 |--------------------------------------------------------------------------

@@ -1,0 +1,606 @@
+{
+  "checkout-block/pickup-selected": {
+    "page": "integrations/woocommerce/pickup-points",
+    "anchor": "pickup-selected",
+    "title": {
+      "en": "Selected pickup point in Checkout block",
+      "da": "Valgt afhentningssted i Checkout-blokken"
+    },
+    "fixture": "checkout-block/pickup-selected",
+    "expected_state": "Pickup method selected and Harbour Parcel Shop persisted as the selected point.",
+    "translation_notes": {
+      "da": "The real Smart Send block still renders \"Pickup Point\" and \"Select where you would like to pick up your order.\" in English with the installed Danish language pack. Keep screenshots truthful; translate these product strings in a separate change."
+    }
+  },
+  "checkout-block/pickup-selector": {
+    "page": "integrations/woocommerce/pickup-points",
+    "anchor": "pickup-selector",
+    "title": {
+      "en": "Pickup selection in Checkout block",
+      "da": "Valg af afhentningssted i Checkout-blokken"
+    },
+    "fixture": "checkout-block/pickup-selector",
+    "expected_state": "Pickup method selected; populated Smart Send selector is visible.",
+    "translation_notes": {
+      "da": "The real Smart Send block still renders \"Pickup Point\" and \"Select where you would like to pick up your order.\" in English with the installed Danish language pack. Keep screenshots truthful; translate these product strings in a separate change."
+    }
+  },
+  "checkout-block/shipping-methods": {
+    "page": "integrations/woocommerce/pickup-points",
+    "anchor": "shipping-methods",
+    "title": {
+      "en": "Shipping methods in Checkout block",
+      "da": "Fragtmetoder i Checkout-blokken"
+    },
+    "fixture": "checkout-block/shipping-methods",
+    "expected_state": "Home delivery and pickup methods visible with tax-inclusive prices of 59 and 39 DKK.",
+    "translation_notes": {
+      "da": "The real Smart Send block still renders \"Pickup Point\" and \"Select where you would like to pick up your order.\" in English with the installed Danish language pack. Keep screenshots truthful; translate these product strings in a separate change."
+    }
+  },
+  "checkout-classic/pickup-selected": {
+    "page": "integrations/woocommerce/pickup-points",
+    "anchor": "pickup-selected",
+    "title": {
+      "en": "Selected pickup point in classic checkout",
+      "da": "Valgt afhentningssted i klassisk checkout"
+    },
+    "fixture": "checkout-classic/pickup-selected",
+    "expected_state": "Pickup method selected and Harbour Parcel Shop persisted after checkout refresh.",
+    "translation_notes": {
+      "da": "The stored checkout privacy-policy copy was initialized in English. This is merchant-configurable content, distinct from installed UI translations."
+    }
+  },
+  "checkout-classic/pickup-selector": {
+    "page": "integrations/woocommerce/pickup-points",
+    "anchor": "pickup-selector",
+    "title": {
+      "en": "Pickup selection in classic checkout",
+      "da": "Valg af afhentningssted i klassisk checkout"
+    },
+    "fixture": "checkout-classic/pickup-selector",
+    "expected_state": "Populated native pickup selector visible after selecting pickup shipping.",
+    "translation_notes": {
+      "da": "The stored checkout privacy-policy copy was initialized in English. This is merchant-configurable content, distinct from installed UI translations."
+    }
+  },
+  "checkout-classic/shipping-methods": {
+    "page": "integrations/woocommerce/pickup-points",
+    "anchor": "shipping-methods",
+    "title": {
+      "en": "Shipping methods in classic checkout",
+      "da": "Fragtmetoder i klassisk checkout"
+    },
+    "fixture": "checkout-classic/shipping-methods",
+    "expected_state": "Home delivery and pickup methods visible with tax-inclusive prices of 59 and 39 DKK.",
+    "translation_notes": {
+      "da": "The stored checkout privacy-policy copy was initialized in English. This is merchant-configurable content, distinct from installed UI translations."
+    }
+  },
+  "colli/allocation-error": {
+    "page": "integrations/woocommerce/colli-shipments",
+    "anchor": "allocation-error",
+    "title": {
+      "en": "Colli shipments: incomplete item allocation",
+      "da": "Kolli-forsendelser: ufuldstændig varefordeling"
+    },
+    "fixture": "colli/allocation-error",
+    "expected_state": "Advanced parcel editor shows an actionable validation error because only two of three units are allocated.",
+    "translation_notes": {
+      "da": "Smart Send's order panel currently renders its new controls in English with the installed Danish language pack, including \"Shipping method\", \"Parcels\" and the booking buttons. Preserve the real UI; complete the product translations in a separate change."
+    }
+  },
+  "colli/item-allocation": {
+    "page": "integrations/woocommerce/colli-shipments",
+    "anchor": "item-allocation",
+    "title": {
+      "en": "Colli shipments: allocation across two colli",
+      "da": "Kolli-forsendelser: fordeling på to kolli"
+    },
+    "fixture": "colli/item-allocation",
+    "expected_state": "Advanced parcel editor shows three units split across two colli.",
+    "translation_notes": {
+      "da": "Smart Send's order panel currently renders its new controls in English with the installed Danish language pack, including \"Shipping method\", \"Parcels\" and the booking buttons. Preserve the real UI; complete the product translations in a separate change."
+    }
+  },
+  "colli/summary": {
+    "page": "integrations/woocommerce/colli-shipments",
+    "anchor": "summary",
+    "title": {
+      "en": "Colli shipments: collapsed summary",
+      "da": "Kolli-forsendelser: sammenfoldet oversigt"
+    },
+    "fixture": "colli/summary",
+    "expected_state": "Advanced guide shows the collapsed parcel summary before opening the editor.",
+    "translation_notes": {
+      "da": "Smart Send's order panel currently renders its new controls in English with the installed Danish language pack, including \"Shipping method\", \"Parcels\" and the booking buttons. Preserve the real UI; complete the product translations in a separate change."
+    }
+  },
+  "colli/weights-dimensions": {
+    "page": "integrations/woocommerce/colli-shipments",
+    "anchor": "weights-dimensions",
+    "title": {
+      "en": "Colli shipments: weights and dimensions",
+      "da": "Kolli-forsendelser: vægt og mål"
+    },
+    "fixture": "colli/weights-dimensions",
+    "expected_state": "Advanced parcel editor shows explicit weight in kg and dimensions in cm.",
+    "translation_notes": {
+      "da": "Smart Send's order panel currently renders its new controls in English with the installed Danish language pack, including \"Shipping method\", \"Parcels\" and the booking buttons. Preserve the real UI; complete the product translations in a separate change."
+    }
+  },
+  "connection/token-settings": {
+    "page": "integrations/woocommerce/connection",
+    "anchor": "token-settings",
+    "title": {
+      "en": "Enter an API token",
+      "da": "Indtast API-token"
+    },
+    "fixture": "connection/token-settings",
+    "expected_state": "Real Smart Send connection settings with a synthetic demonstration token."
+  },
+  "connection/validation-error": {
+    "page": "integrations/woocommerce/connection",
+    "anchor": "validation-error",
+    "title": {
+      "en": "Invalid API token",
+      "da": "Ugyldigt API-token"
+    },
+    "fixture": "connection/validation-error",
+    "expected_state": "Account validation failed; the actual validation error is visible."
+  },
+  "connection/validation-success": {
+    "page": "integrations/woocommerce/connection",
+    "anchor": "validation-success",
+    "title": {
+      "en": "Validated Smart Send connection",
+      "da": "Valideret forbindelse til Smart Send"
+    },
+    "fixture": "connection/validation-success",
+    "expected_state": "Successful mocked account validation with fictional account details."
+  },
+  "customs/product-shipping-fields": {
+    "page": "integrations/woocommerce/customs",
+    "anchor": "product-shipping-fields",
+    "title": {
+      "en": "Product customs information",
+      "da": "Produktets toldinformationer"
+    },
+    "fixture": "customs/product-shipping-fields",
+    "expected_state": "Saved product Shipping tab shows Country of origin DK, Customs description Cotton T-shirt, and Harmonized Tariff Schedule 61091000.",
+    "translation_notes": {
+      "da": "The actual menu/tab path is Varer → Varedata → Forsendelse. The labels Oprindelsesland and Toldbeskrivelse are translated; \"Harmonized Tariff Schedule\" remains English with the installed language pack. \"Cotton T-shirt\" is the intentional customs description value."
+    }
+  },
+  "examples/advanced-conditions": {
+    "page": "integrations/woocommerce/shipping-examples",
+    "anchor": "advanced-conditions",
+    "title": {
+      "en": "Shipping class and role restrictions",
+      "da": "Begrænsninger på fragtklasser og roller"
+    },
+    "fixture": "examples/advanced-conditions",
+    "expected_state": "Advanced settings require all products in Standard parcels and exclude the administrator role."
+  },
+  "examples/advanced-conditions-checkout": {
+    "page": "integrations/woocommerce/shipping-examples",
+    "anchor": "advanced-conditions-checkout",
+    "title": {
+      "en": "Cart matching the shipping restrictions",
+      "da": "Kurv som opfylder fragtbetingelserne"
+    },
+    "fixture": "examples/advanced-conditions-checkout",
+    "expected_state": "Guest cart contains only Standard parcels products; pickup is available at 39 DKK including VAT.",
+    "translation_notes": {
+      "da": "The stored checkout privacy-policy copy was initialized in English. This is merchant-configurable content, distinct from installed UI translations."
+    }
+  },
+  "examples/free-shipping-mapping": {
+    "page": "integrations/woocommerce/shipping-examples",
+    "anchor": "free-shipping-mapping",
+    "title": {
+      "en": "Map WooCommerce free shipping to a carrier service",
+      "da": "Knyt WooCommerce gratis fragt til en transportørydelse"
+    },
+    "fixture": "examples/free-shipping-mapping",
+    "expected_state": "Global Smart Send setting maps native WooCommerce free shipping to PostNord home delivery."
+  },
+  "examples/free-threshold-checkout": {
+    "page": "integrations/woocommerce/shipping-examples",
+    "anchor": "free-threshold-checkout",
+    "title": {
+      "en": "Free pickup at a 500 DKK subtotal",
+      "da": "Gratis afhentning ved en subtotal på 500 DKK"
+    },
+    "fixture": "examples/free-threshold-checkout",
+    "expected_state": "Four products at 100 DKK excluding VAT give a 500 DKK tax-inclusive subtotal; selected pickup is free and total remains 500 DKK.",
+    "translation_notes": {
+      "da": "The stored checkout privacy-policy copy was initialized in English. This is merchant-configurable content, distinct from installed UI translations."
+    }
+  },
+  "examples/free-threshold-settings": {
+    "page": "integrations/woocommerce/shipping-examples",
+    "anchor": "free-threshold-settings",
+    "title": {
+      "en": "Configure the free shipping threshold",
+      "da": "Opsæt grænsen for gratis fragt"
+    },
+    "fixture": "examples/free-threshold-settings",
+    "expected_state": "Pickup method uses a minimum order amount of 500 DKK for free shipping."
+  },
+  "examples/pickup-home-checkout": {
+    "page": "integrations/woocommerce/shipping-examples",
+    "anchor": "pickup-home-checkout",
+    "title": {
+      "en": "Pickup and home delivery prices at checkout",
+      "da": "Priser for afhentning og hjemmelevering i checkout"
+    },
+    "fixture": "examples/pickup-home-checkout",
+    "expected_state": "One product at 125 DKK including VAT; shipping labels show pickup 39 DKK and home delivery 59 DKK including VAT.",
+    "translation_notes": {
+      "da": "The stored checkout privacy-policy copy was initialized in English. This is merchant-configurable content, distinct from installed UI translations."
+    }
+  },
+  "examples/pickup-home-home-settings": {
+    "page": "integrations/woocommerce/shipping-examples",
+    "anchor": "pickup-home-home-settings",
+    "title": {
+      "en": "Home delivery price before VAT",
+      "da": "Pris for hjemmelevering før moms"
+    },
+    "fixture": "examples/pickup-home-home-settings",
+    "expected_state": "Home delivery method has a taxable base shipping price of 47.20 DKK, giving 59 DKK including VAT."
+  },
+  "examples/pickup-home-settings": {
+    "page": "integrations/woocommerce/shipping-examples",
+    "anchor": "pickup-home-settings",
+    "title": {
+      "en": "Pickup price before VAT",
+      "da": "Pris for afhentning før moms"
+    },
+    "fixture": "examples/pickup-home-settings",
+    "expected_state": "Pickup method has a taxable base shipping price of 31.20 DKK, giving 39 DKK including VAT."
+  },
+  "examples/weight-band-checkout": {
+    "page": "integrations/woocommerce/shipping-examples",
+    "anchor": "weight-band-checkout",
+    "title": {
+      "en": "Checkout for a five kilogram cart",
+      "da": "Checkout for en kurv på fem kg"
+    },
+    "fixture": "examples/weight-band-checkout",
+    "expected_state": "Five products of 1 kg each use the second weight band; pickup costs 59 DKK including VAT.",
+    "translation_notes": {
+      "da": "The stored checkout privacy-policy copy was initialized in English. This is merchant-configurable content, distinct from installed UI translations."
+    }
+  },
+  "examples/weight-bands": {
+    "page": "integrations/woocommerce/shipping-examples",
+    "anchor": "weight-bands",
+    "title": {
+      "en": "Configure weight-based shipping prices",
+      "da": "Opsæt vægtbaserede fragtpriser"
+    },
+    "fixture": "examples/weight-bands",
+    "expected_state": "Weight bands are 0 to below 5 kg at 31.20 DKK and 5 to below 20 kg at 47.20 DKK, excluding VAT."
+  },
+  "help/booking-field-error": {
+    "page": "integrations/woocommerce/troubleshooting",
+    "anchor": "booking-field-error",
+    "title": {
+      "en": "Booking validation error",
+      "da": "Valideringsfejl ved booking"
+    },
+    "fixture": "help/booking-field-error",
+    "expected_state": "Actual booking field validation error is visible in the Smart Send order panel.",
+    "translation_notes": {
+      "da": "Smart Send's order panel currently renders its new controls in English with the installed Danish language pack, including \"Shipping method\", \"Parcels\" and the booking buttons. Preserve the real UI; complete the product translations in a separate change."
+    }
+  },
+  "help/log-location": {
+    "page": "integrations/woocommerce/troubleshooting",
+    "anchor": "log-location",
+    "title": {
+      "en": "Smart Send logs in WooCommerce",
+      "da": "Smart Send-log i WooCommerce"
+    },
+    "fixture": "help/log-location",
+    "expected_state": "WooCommerce Status logs show a synthetic Smart Send log entry and its source."
+  },
+  "help/no-smart-send-method": {
+    "page": "integrations/woocommerce/troubleshooting",
+    "anchor": "no-smart-send-method",
+    "title": {
+      "en": "Order without a Smart Send shipping method",
+      "da": "Ordre uden en Smart Send-fragtmetode"
+    },
+    "fixture": "help/no-smart-send-method",
+    "expected_state": "Real order panel explains the state of an order using a native flat-rate method.",
+    "translation_notes": {
+      "da": "Smart Send's order panel currently renders its new controls in English with the installed Danish language pack, including \"Shipping method\", \"Parcels\" and the booking buttons. Preserve the real UI; complete the product translations in a separate change."
+    }
+  },
+  "help/not-connected": {
+    "page": "integrations/woocommerce/troubleshooting",
+    "anchor": "not-connected",
+    "title": {
+      "en": "Order panel without a Smart Send connection",
+      "da": "Ordrepanel uden forbindelse til Smart Send"
+    },
+    "fixture": "help/not-connected",
+    "expected_state": "Real order panel shows the disconnected account state.",
+    "translation_notes": {
+      "da": "Smart Send's order panel currently renders its new controls in English with the installed Danish language pack, including \"Shipping method\", \"Parcels\" and the booking buttons. Preserve the real UI; complete the product translations in a separate change."
+    }
+  },
+  "history/booked-timeline": {
+    "page": "integrations/woocommerce/tracking",
+    "anchor": "booked-timeline",
+    "title": {
+      "en": "Persisted shipment history",
+      "da": "Gemt forsendelseshistorik"
+    },
+    "fixture": "history/booked-timeline",
+    "expected_state": "Previously booked shipment remains in the timeline after reloading the order.",
+    "translation_notes": {
+      "da": "Smart Send's order panel currently renders its new controls in English with the installed Danish language pack, including \"Shipping method\", \"Parcels\" and the booking buttons. Preserve the real UI; complete the product translations in a separate change."
+    }
+  },
+  "history/order-note-after-reload": {
+    "page": "integrations/woocommerce/tracking",
+    "anchor": "order-note-after-reload",
+    "title": {
+      "en": "Booking note after reloading the order",
+      "da": "Bookingnote efter genindlæsning af ordren"
+    },
+    "fixture": "history/order-note-after-reload",
+    "expected_state": "Native WooCommerce order notes show the note created by booking, after full-page reload."
+  },
+  "methods/method-added": {
+    "page": "integrations/woocommerce/shipping-methods",
+    "anchor": "method-added",
+    "title": {
+      "en": "Smart Send method added to the zone",
+      "da": "Smart Send-metode tilføjet til zonen"
+    },
+    "fixture": "methods/method-added",
+    "expected_state": "Zone method table contains the newly added Smart Send method."
+  },
+  "methods/method-picker": {
+    "page": "integrations/woocommerce/shipping-methods",
+    "anchor": "method-picker",
+    "title": {
+      "en": "Choose Smart Send in the method picker",
+      "da": "Vælg Smart Send i metodevælgeren"
+    },
+    "fixture": "methods/method-picker",
+    "expected_state": "Real WooCommerce add-method dialog shows the Smart Send option."
+  },
+  "methods/settings-empty": {
+    "page": "integrations/woocommerce/shipping-methods",
+    "anchor": "settings-empty",
+    "title": {
+      "en": "New shipping method settings",
+      "da": "Indstillinger for en ny fragtmetode"
+    },
+    "fixture": "methods/settings-empty",
+    "expected_state": "Independent unconfigured Smart Send method shows its initial settings."
+  },
+  "methods/settings-filled": {
+    "page": "integrations/woocommerce/shipping-methods",
+    "anchor": "settings-filled",
+    "title": {
+      "en": "Completed shipping method settings",
+      "da": "Udfyldte indstillinger for fragtmetoden"
+    },
+    "fixture": "methods/settings-filled",
+    "expected_state": "Actual Smart Send settings form contains the example values before saving."
+  },
+  "methods/settings-saved": {
+    "page": "integrations/woocommerce/shipping-methods",
+    "anchor": "settings-saved",
+    "title": {
+      "en": "Saved shipping method settings",
+      "da": "Gemte indstillinger for fragtmetoden"
+    },
+    "fixture": "methods/settings-saved",
+    "expected_state": "Saved Smart Send settings are visible after submitting the form."
+  },
+  "methods/zone-configured": {
+    "page": "integrations/woocommerce/shipping-methods",
+    "anchor": "zone-configured",
+    "title": {
+      "en": "Configured shipping method in its zone",
+      "da": "Opsat fragtmetode i zonen"
+    },
+    "fixture": "methods/zone-configured",
+    "expected_state": "Zone method table shows the configured Smart Send shipping method."
+  },
+  "methods/zone-empty": {
+    "page": "integrations/woocommerce/shipping-methods",
+    "anchor": "zone-empty",
+    "title": {
+      "en": "Zone before adding a shipping method",
+      "da": "Zone før tilføjelse af en fragtmetode"
+    },
+    "fixture": "methods/zone-empty",
+    "expected_state": "Real WooCommerce shipping zone has no shipping methods yet."
+  },
+  "outbound/booked-documents": {
+    "page": "integrations/woocommerce/shipping-labels",
+    "anchor": "booked-documents",
+    "title": {
+      "en": "Booked outbound shipment and documents",
+      "da": "Booket udgående forsendelse og dokumenter"
+    },
+    "fixture": "outbound/booked-documents",
+    "expected_state": "Successful outbound booking shows shipment result, tracking and document link.",
+    "translation_notes": {
+      "da": "Smart Send's order panel currently renders its new controls in English with the installed Danish language pack, including \"Shipping method\", \"Parcels\" and the booking buttons. Preserve the real UI; complete the product translations in a separate change."
+    }
+  },
+  "outbound/method-change": {
+    "page": "integrations/woocommerce/shipping-labels",
+    "anchor": "method-change",
+    "title": {
+      "en": "Change the outbound service",
+      "da": "Skift ydelse for udgående fragt"
+    },
+    "fixture": "outbound/method-change",
+    "expected_state": "Real outbound service control is open for selecting another service.",
+    "translation_notes": {
+      "da": "Smart Send's order panel currently renders its new controls in English with the installed Danish language pack, including \"Shipping method\", \"Parcels\" and the booking buttons. Preserve the real UI; complete the product translations in a separate change."
+    }
+  },
+  "outbound/pickup-changed": {
+    "page": "integrations/woocommerce/shipping-labels",
+    "anchor": "pickup-changed",
+    "title": {
+      "en": "Updated pickup point on an order",
+      "da": "Opdateret afhentningssted på en ordre"
+    },
+    "fixture": "outbound/pickup-changed",
+    "expected_state": "Pickup lookup has completed and the chosen replacement point is visible.",
+    "translation_notes": {
+      "da": "Smart Send's order panel currently renders its new controls in English with the installed Danish language pack, including \"Shipping method\", \"Parcels\" and the booking buttons. Preserve the real UI; complete the product translations in a separate change."
+    }
+  },
+  "outbound/pickup-edit": {
+    "page": "integrations/woocommerce/shipping-labels",
+    "anchor": "pickup-edit",
+    "title": {
+      "en": "Edit an order pickup point",
+      "da": "Rediger en ordres afhentningssted"
+    },
+    "fixture": "outbound/pickup-edit",
+    "expected_state": "Real order pickup editing controls are open.",
+    "translation_notes": {
+      "da": "Smart Send's order panel currently renders its new controls in English with the installed Danish language pack, including \"Shipping method\", \"Parcels\" and the booking buttons. Preserve the real UI; complete the product translations in a separate change."
+    }
+  },
+  "outbound/ready": {
+    "page": "integrations/woocommerce/shipping-labels",
+    "anchor": "ready",
+    "title": {
+      "en": "Order ready for outbound booking",
+      "da": "Ordre klar til booking af udgående fragt"
+    },
+    "fixture": "outbound/ready",
+    "expected_state": "Single-parcel order with a connected account and pickup service is ready for ordinary outbound booking.",
+    "translation_notes": {
+      "da": "Smart Send's order panel currently renders its new controls in English with the installed Danish language pack, including \"Shipping method\", \"Parcels\" and the booking buttons. Preserve the real UI; complete the product translations in a separate change."
+    }
+  },
+  "returns/method-settings": {
+    "page": "integrations/woocommerce/return-shipping",
+    "anchor": "method-settings",
+    "title": {
+      "en": "Configure the return service and default",
+      "da": "Opsæt returydelse og standardvalg"
+    },
+    "fixture": "returns/method-settings",
+    "expected_state": "Shipping method settings show return service and automatic return-label option."
+  },
+  "returns/outbound-and-return": {
+    "page": "integrations/woocommerce/return-shipping",
+    "anchor": "outbound-and-return",
+    "title": {
+      "en": "Booked outbound and return shipments",
+      "da": "Bookede udgående forsendelser og returforsendelser"
+    },
+    "fixture": "returns/outbound-and-return",
+    "expected_state": "Combined booking has separate successful outbound and return results.",
+    "translation_notes": {
+      "da": "Smart Send's order panel currently renders its new controls in English with the installed Danish language pack, including \"Shipping method\", \"Parcels\" and the booking buttons. Preserve the real UI; complete the product translations in a separate change."
+    }
+  },
+  "returns/partial-success": {
+    "page": "integrations/woocommerce/return-shipping",
+    "anchor": "partial-success",
+    "title": {
+      "en": "Outbound booked and return failed",
+      "da": "Udgående fragt booket og returbooking fejlet"
+    },
+    "fixture": "returns/partial-success",
+    "expected_state": "Combined action leaves a successful outbound shipment and a separate return error visible.",
+    "translation_notes": {
+      "da": "Smart Send's order panel currently renders its new controls in English with the installed Danish language pack, including \"Shipping method\", \"Parcels\" and the booking buttons. Preserve the real UI; complete the product translations in a separate change."
+    }
+  },
+  "returns/return-only-booked": {
+    "page": "integrations/woocommerce/return-shipping",
+    "anchor": "return-only-booked",
+    "title": {
+      "en": "Booked return shipment",
+      "da": "Booket returforsendelse"
+    },
+    "fixture": "returns/return-only-booked",
+    "expected_state": "Return-only booking shows a successful return result without creating an outbound shipment.",
+    "translation_notes": {
+      "da": "Smart Send's order panel currently renders its new controls in English with the installed Danish language pack, including \"Shipping method\", \"Parcels\" and the booking buttons. Preserve the real UI; complete the product translations in a separate change."
+    }
+  },
+  "returns/return-only-ready": {
+    "page": "integrations/woocommerce/return-shipping",
+    "anchor": "return-only-ready",
+    "title": {
+      "en": "Order ready for return-only booking",
+      "da": "Ordre klar til separat returbooking"
+    },
+    "fixture": "returns/return-only-ready",
+    "expected_state": "Order panel is configured to book only return shipping.",
+    "translation_notes": {
+      "da": "Smart Send's order panel currently renders its new controls in English with the installed Danish language pack, including \"Shipping method\", \"Parcels\" and the booking buttons. Preserve the real UI; complete the product translations in a separate change."
+    }
+  },
+  "setup/plugin-active": {
+    "page": "integrations/woocommerce/installation",
+    "anchor": "plugin-active",
+    "title": {
+      "en": "Installed and active plugin",
+      "da": "Installeret og aktivt plugin"
+    },
+    "fixture": "setup/plugin-active",
+    "expected_state": "WordPress Plugins page shows the locally installed active Smart Send plugin."
+  },
+  "setup/settings-location": {
+    "page": "integrations/woocommerce/installation",
+    "anchor": "settings-location",
+    "title": {
+      "en": "Open Smart Send settings",
+      "da": "Åbn Smart Send-indstillinger"
+    },
+    "fixture": "setup/settings-location",
+    "expected_state": "WooCommerce Shipping settings show the route to Smart Send settings."
+  },
+  "zones/country-selection": {
+    "page": "integrations/woocommerce/shipping-zones",
+    "anchor": "country-selection",
+    "title": {
+      "en": "Choose the zone countries",
+      "da": "Vælg zonens lande"
+    },
+    "fixture": "zones/country-selection",
+    "expected_state": "Native WooCommerce zone editor shows the example country selection."
+  },
+  "zones/create-zone": {
+    "page": "integrations/woocommerce/shipping-zones",
+    "anchor": "create-zone",
+    "title": {
+      "en": "Create a WooCommerce shipping zone",
+      "da": "Opret en WooCommerce-fragtzone"
+    },
+    "fixture": "zones/create-zone",
+    "expected_state": "Native WooCommerce new shipping zone editor is open."
+  },
+  "zones/denmark-before-nordics": {
+    "page": "integrations/woocommerce/shipping-zones",
+    "anchor": "denmark-before-nordics",
+    "title": {
+      "en": "Denmark before the Nordic zone",
+      "da": "Danmark før den nordiske zone"
+    },
+    "fixture": "zones/denmark-before-nordics",
+    "expected_state": "Denmark DK is ordered before Nordic countries DK, SE, NO, FI, illustrating WooCommerce first-match behavior."
+  }
+}
