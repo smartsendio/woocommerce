@@ -75,7 +75,9 @@ Let the customer choose a pickup point close to them during checkout. The parcel
 Shipping to pickup points is the most widely used delivery method thanks to its flexibility and lower shipping cost.
 
 = Shipping labels =
-Create shipping labels with a single click from the WooCommerce order screen. The order data is sent to the carrier, and the PDF label is ready to print right away. Tracking numbers are saved on the order, added to the order note and, with the WooCommerce Shipment Tracking plugin, shown to the customer.
+Create shipping labels with a single click from the WooCommerce order screen. The order data is sent to the carrier, and the PDF label is ready to print right away. Tracking numbers are saved on the order, added to the order note and, with the WooCommerce Shipment Tracking plugin, shown to the customer. The Smart Send box shows the result immediately; reload the page to see the new note in WooCommerce's order history.
+
+Creating another label requires an extra confirmation when any requested shipping or return label already exists, including a return label created together with a shipping label. Existing shipments are not cancelled. Editing the form or dismissing the warning cancels the pending confirmation.
 
 Easily create:
 
@@ -189,6 +191,8 @@ Example: append the agent number to the plain-text label:
 
 Fulfillment runs when the merchant creates a label on the order page or uses the bulk action. For each label (outbound, and the return label when one is created) it decides the delivery details, books, and then applies the side effects on the order one step at a time. Every step has a filter, and the run ends with one action.
 
+For the order-screen REST request, `with_return: null` follows the original order shipping method's automatic-return setting; true/false overrides it. Changing the outbound method for this booking does not change that default, and a submitted `return_method` alone does not request a return label. Before any lookup or booking, the endpoint requires `confirm_rebook: true` if any requested direction already has a label. A stale order screen receives `409 smart_send_already_booked` and asks for one new confirming click while keeping the merchant's edits.
+
 Deciding what ships:
 
 * **smart_send_delivery_details** `( Smart_Send\Delivery\Delivery_Details $details, WC_Order $order, bool $is_return )` (since 9.0.0)
@@ -224,7 +228,7 @@ Side effects on the order, in the order they run (the submitted delivery details
 * **smart_send_fulfillment_save_documents** `( bool $save, Smart_Send\Booking\Booked_Shipment $shipment, WC_Order $order )` (since 9.0.0)
     Filter on whether a copy of the shipment's documents is saved in the uploads folder; defaults to the "Save shipping labels in uploads folder" setting. When saved, the label document's `download_url()` points at the copy. A copy that cannot be saved does not fail the label: the shipment stays fulfilled with a warning (`get_warnings($shipment)` on the result, `save_documents` = `'failed'` in `get_steps($shipment)`) and `download_url()` falls back to the Smart Send URL
 * **smart_send_fulfillment_order_note** `( string $note_html, Smart_Send\Booking\Booked_Shipment $shipment, WC_Order $order )` (since 9.0.0)
-    Filter on the order note added once the shipment is booked (document links, codes, tracking numbers). Return an empty string to add no note. Replaces `smart_send_shipping_label_comment`
+    Filter on the order note added once the shipment is booked (document links, codes, tracking numbers). The filtered content is saved through `WC_Order::add_order_note()`. Return an empty string to add no note. WooCommerce displays saved notes in its native history after a page reload; the Smart Send box displays the booking result immediately. Replaces `smart_send_shipping_label_comment`
 * **smart_send_fulfillment_tracking** `( bool $push, Smart_Send\Booking\Booked_Shipment $shipment, WC_Order $order )` (since 9.0.0)
     Filter on whether the parcels' tracking numbers are pushed to the WooCommerce Shipment Tracking plugin; defaults to true for an outbound shipment and false for a return shipment
 * **smart_send_fulfillment_order_status** `( string|false $status, Smart_Send\Booking\Booked_Shipment $shipment, WC_Order $order )` (since 9.0.0)
@@ -233,7 +237,7 @@ Side effects on the order, in the order they run (the submitted delivery details
 When the run is done:
 
 * **smart_send_order_fulfilled** `( WC_Order $order, Smart_Send\Fulfillment\Fulfillment_Result $result )` (since 9.0.0)
-    Action fired once per run, after every side effect of every label is applied, when at least one shipment was fulfilled. The result carries `shipments()`, `get_outbound_shipment()` and `get_return_shipment()` (each a `\Smart_Send\Booking\Booked_Shipment`, see Booking below), `get_order_note($shipment)`, `get_order_note_id($shipment)`, `get_steps($shipment)` (which side effects ran), `get_warnings($shipment)` and, for a leg that failed, `get_outbound_error()`/`get_return_error()` (HTML), `get_validation_errors($is_return)` and `get_error_details($is_return)` (message, Response-ID, field errors, HTML). `to_array()` is the serializable form: one row per attempted label with `direction`, `status` (`fulfilled`/`failed`), the shipment's `to_array()`, `steps`, `order_note`, `warnings` or `error`. Replaces `smart_send_shipping_label_created` (8.x), which no longer fires
+    Action fired once per run, after every side effect of every label is applied, when at least one shipment was fulfilled. The result carries `shipments()`, `get_outbound_shipment()` and `get_return_shipment()` (each a `\Smart_Send\Booking\Booked_Shipment`, see Booking below), `get_order_note($shipment)`, `get_order_note_id($shipment)`, `get_steps($shipment)` (which side effects ran), `get_warnings($shipment)` and, for a leg that failed, `get_outbound_error()`/`get_return_error()` (HTML), `get_validation_errors($is_return)` and `get_error_details($is_return)` (message, Response-ID, field errors, HTML). `to_array()` is the serializable form: one row per attempted label with `direction`, `status` (`fulfilled`/`failed`), the shipment's `to_array()`, `steps`, `order_note` (`{id: int|null}`), `warnings` or `error`. `steps.order_note` records whether the note was saved; the serialized result and REST response contain no note HTML. Replaces `smart_send_shipping_label_created` (8.x), which no longer fires
 
 Example: offer only PostNord pickup point services on the order screen for heavy orders:
 
@@ -429,7 +433,9 @@ No - this is by design. Neither deactivating nor uninstalling the plugin deletes
 * Use the plain-text smart_send_pickup_point_label filter for pickup labels; remove the pre-release option-label and default-selection filters
 * Support for High-Performance Order Storage (HPOS)
 * Check permissions before pickup-point custom-field lookups or changes, reject metadata rows belonging to another order, and persist pickup-point deletion with both order storage backends
-* Rebuilt order-screen meta box: books without a page reload, lets you change the shipping method, pickup point and parcels (weight and dimensions per box) before booking, and books orders placed with another shipping method. A booking is confirmed right in the box - the shipment with a link into the Smart Send app, every parcel with its tracking number, weight and dimensions, and the documents - and every label the order has is listed under "Booked shipments"; the form stays open, so another label is always one click away
+* Rebuilt order-screen meta box: books without a page reload, lets you change the shipping method, pickup point and parcels (weight and dimensions per box) before booking, and books orders placed with another shipping method. A booking is confirmed right in the box - the shipment with a link into the Smart Send app, every parcel with its tracking number, weight and dimensions, and the documents - and every label the order has is listed under "Booked shipments"; the form stays open for further bookings
+* Require confirmation before repeating any requested shipping or return label, including combined bookings; a stale order screen can confirm after the server reports an existing label
+* Save booking notes through WooCommerce's order-note API and show them in its native history after a reload, while the Smart Send box confirms the booking immediately
 * Parcel allocations now use WooCommerce order-item IDs, keeping repeated purchases of the same product separate and requiring every ordered unit to be allocated exactly once. Item quantities and discounted amounts are aggregated per line and parcel, with rounding that preserves line totals
 * Replace the old product-ID parcel split format with a canonical parcel plan. Existing splits must be reset and entered again; parcel weights and dimensions remain per booking
 * Deleted products and variations display as "Deleted" without a SKU. Existing booked labels remain accessible; new bookings require an explicit parcel weight when a product's weight is unavailable

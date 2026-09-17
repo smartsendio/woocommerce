@@ -12,7 +12,7 @@ jobs:
   pest:
     name: Pest browser tests (PHP ${{ matrix.php-version }} / WP ${{ matrix.wp-version }} / WC ${{ matrix.wc-version }} / ${{ matrix.order-storage }} orders)${{ matrix.canary && ' [canary]' || '' }}
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 20
     strategy:
       fail-fast: false
       matrix:
@@ -247,7 +247,7 @@ jobs:
           }
 
       - name: Run Pest browser tests
-        timeout-minutes: 10
+        timeout-minutes: 13
         env:
           WP_BASE_URL: http://127.0.0.1:8181
         # The tests are self-contained, so retry the suite once to absorb
@@ -255,17 +255,17 @@ jobs:
         # Restart php-fpm before the retry: a crashed worker can leave the
         # pool wedged, making the retry hang until the step timeout (#79).
         #
-        # Each attempt is bounded with timeout(1): a green suite finishes in
-        # about a minute, but a single wedged request has been observed to
-        # hang an attempt until the 10-minute step timeout, so an unbounded
-        # first attempt (or retry) costs the whole job (#79, run
-        # 31552508461). 270s x 2 attempts still fits inside the step timeout.
+        # Keep each attempt bounded so a wedged request cannot consume the
+        # entire step (#79). The 51-journey suite exceeded the old 270s cap
+        # on PHP 8.5 and posts storage while still making progress (run
+        # 35247018670). Two 360s attempts leave time for the restart within
+        # the 13-minute step; the job also allows setup and diagnostics.
         run: |
-          timeout -k 15 270 vendor/bin/pest --testsuite=Browser || {
+          timeout -k 15 360 vendor/bin/pest --testsuite=Browser || {
             echo "::warning::Browser test run failed - restarting php-fpm and retrying once"
             sudo service "php${{ matrix.php-version }}-fpm" restart
             sleep 2
-            timeout -k 15 270 vendor/bin/pest --testsuite=Browser
+            timeout -k 15 360 vendor/bin/pest --testsuite=Browser
           }
 
       - name: Show server and WordPress logs

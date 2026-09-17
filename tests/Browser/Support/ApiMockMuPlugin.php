@@ -30,7 +30,7 @@
  *
  * Cases authenticate: success 401
  * Cases pickup-points: success empty
- * Cases booking: success 422-wrong-zip 422-agent-no 422-customs
+ * Cases booking: success 422-wrong-zip 422-agent-no 422-customs 500-return
  * Cases labels-combine: success
  * Cases agent-lookup: success not-found
  *
@@ -137,6 +137,10 @@ add_filter('pre_http_request', function ($pre, $args, $url) {
     if (strpos($url, 'shipments/labels') !== false) {
         $record('booking');
         $case = $case_of('booking');
+        $sent = json_decode(isset($args['body']) ? (string) $args['body'] : '', true);
+        if ($case === '500-return' && strpos($sent['shipping_method'] ?? '', 'return') !== false) {
+            return $respond(array('message' => 'The return booking failed.'), 500);
+        }
         if ($case === '422-agent-no') {
             // A validation failure on a field the meta box owns: the
             // presenter maps agent_no onto pickup_point.agent_no.
@@ -167,7 +171,7 @@ add_filter('pre_http_request', function ($pre, $args, $url) {
             ), 422);
         }
 
-        if ($error = $generic('booking', $case, array('422-wrong-zip', '422-agent-no', '422-customs'))) {
+        if ($error = $generic('booking', $case, array('422-wrong-zip', '422-agent-no', '422-customs', '500-return'))) {
             return $error;
         }
 
@@ -175,7 +179,6 @@ add_filter('pre_http_request', function ($pre, $args, $url) {
         // sent (what the real API does): the plugin correlates the two by
         // index to carry the booked weight/dimensions/reference onto the
         // booked parcels, so a split booking must answer with a split.
-        $sent = json_decode(isset($args['body']) ? (string) $args['body'] : '', true);
         $count = (isset($sent['parcels']) && is_array($sent['parcels'])) ? max(1, count($sent['parcels'])) : 1;
 
         $parcels = array();

@@ -361,14 +361,14 @@ class Fulfillment_Result {
 	 *   array( 'direction' => 'outbound'|'return', 'status' => 'fulfilled',
 	 *          'shipment' => Booked_Shipment::to_array(),
 	 *          'steps' => array( 'save_documents' => bool|'failed', 'order_note' => bool, 'tracking' => bool, 'order_status' => string|false ),
-	 *          'order_note' => array( 'id' => int|null, 'html' => null ),
+	 *          'order_note' => array( 'id' => int|null ),
 	 *          'warnings' => string[] )
 	 *   array( 'direction' => 'outbound'|'return', 'status' => 'failed',
 	 *          'error' => array( 'message' => string, 'response_id' => string|null, 'fields' => array, 'html' => string ) )
 	 *
-	 * order_note.html (the note rendered as WooCommerce's order-note
-	 * list item) is filled by the REST controller (#182 PR 2); it is
-	 * null here.
+	 * Notes are persisted through WooCommerce and rendered in its native
+	 * history after a page reload. The result carries only their IDs and
+	 * persistence status in steps.order_note, never order-history markup.
 	 *
 	 * @return array[]
 	 */
@@ -393,8 +393,7 @@ class Fulfillment_Result {
 				'shipment'   => $entry['shipment']->to_array(),
 				'steps'      => $entry['steps'],
 				'order_note' => array(
-					'id'   => $entry['note_id'],
-					'html' => null,
+					'id' => $entry['note_id'],
 				),
 				'warnings'   => $entry['warnings'],
 			);

@@ -66,6 +66,9 @@ beforeAll(function (): void {
         [],                       // 17: a deleted product on an existing order
         [],                       // 18: a stale canonical parcel plan
         [],                       // 19: carrier change during a pending pickup lookup
+        ['auto_return' => true],   // 20: return booked before a combined booking
+        ['auto_return' => true],   // 21: another screen books before this one submits
+        ['auto_return' => true],   // 22: confirmed combined booking with a failed return
     ]]);
 });
 
@@ -108,7 +111,7 @@ function ss_browser_open_order(int $order_id)
         ->assertSeeIn('#woocommerce-ss-shipping-label .hndle', 'Smart Send');
 }
 
-it('creates a shipping label from the meta box without a page reload and prepends the order note', function () {
+it('shows booking feedback immediately and the native order note after a page reload', function () {
     $order_id = ss_browser_state()['orders'][0];
     ss_browser_reset_api_requests();
 
@@ -171,8 +174,8 @@ it('creates a shipping label from the meta box without a page reload and prepend
         ->assertSeeIn('[data-ss-section="timeline"]', 'Booked shipments')
         ->assertSeeIn('[data-ss-timeline="outbound"]', 'Shipment')
         ->assertCount('[data-ss-timeline="outbound"]', 1)
-        // The order note the server added was prepended to WooCommerce's list.
-        ->assertSeeIn('ul.order_notes', 'Tracking number: BROWSERTRACK1')
+        // The app owns only its result box; native history waits for a reload.
+        ->assertDontSeeIn('ul.order_notes', 'Tracking number: BROWSERTRACK1')
         // Same URL: nothing reloaded.
         ->assertQueryStringHas('action', 'edit');
 
@@ -196,19 +199,24 @@ it('creates a shipping label from the meta box without a page reload and prepend
     expect($requests)->toHaveCount(1)
         ->and($requests[0]['body']['shipping_method'])->toBe('agent')
         ->and($requests[0]['body']['agent']['agent_no'])->toBe('1234');
+
+    $page->refresh()
+        ->assertSeeIn('ul.order_notes', 'Tracking number: BROWSERTRACK1')
+        ->assertNotPresent('[data-ss-result="outbound"]')
+        ->assertPresent('[data-ss-timeline="outbound"]');
 });
 
 it('pre-ticks the return checkbox from the method setting and books both labels in one run', function () {
     $order_id = ss_browser_state()['orders'][2];
 
-    ss_browser_open_order($order_id)
+    $page = ss_browser_open_order($order_id)
         ->assertChecked('[data-ss-field="with_return"]')
         ->assertSeeIn('[data-ss-value="return_method"]', 'Return Drop Off')
         ->click('[data-ss-action="create-label"]')
         ->assertPresent('[data-ss-result="outbound"]')
         ->assertPresent('[data-ss-result="return"]')
         ->assertSeeIn('[data-ss-result="return"]', 'Download return label (PDF)')
-        ->assertSeeIn('ul.order_notes', 'Download return shipping label')
+        ->assertDontSeeIn('ul.order_notes', 'Download return shipping label')
         // One timeline entry per leg, the return (newest) first.
         ->assertPresent('[data-ss-timeline="outbound"]')
         ->assertPresent('[data-ss-timeline="return"]');
@@ -217,6 +225,12 @@ it('pre-ticks the return checkbox from the method setting and books both labels 
     expect($meta['label_id'])->toStartWith('browser-shipment-')
         ->and($meta['return_label_id'])->toStartWith('browser-shipment-')
         ->and(array_column($meta['labels'], 'direction'))->toBe(['outbound', 'return']);
+
+    $page->refresh()
+        ->assertSeeIn('ul.order_notes', 'Download shipping label')
+        ->assertSeeIn('ul.order_notes', 'Download return shipping label')
+        ->assertNotPresent('[data-ss-result="outbound"]')
+        ->assertNotPresent('[data-ss-result="return"]');
 });
 
 it('creates only a return label from the secondary action before any outbound label exists', function () {
@@ -702,6 +716,121 @@ it('keeps the timeline but not the green box after a reload, and books again beh
         );
 
     expect(array_column($meta['labels'], 'shipment_id'))->toBe([$first, $meta['label_id']]);
+});
+
+it('confirms a previously booked return before a combined booking and cancels consent on edits or dismissal', function () {
+    $order_id = ss_browser_state()['orders'][20];
+    ss_browser_reset_api_requests();
+
+    $page = ss_browser_open_order($order_id)
+        ->assertChecked('[data-ss-field="with_return"]')
+        ->click('[data-ss-action="create-return-label"]')
+        ->assertPresent('[data-ss-result="return"]')
+        ->click('[data-ss-action="create-label"]')
+        ->assertSeeIn('[data-ss-notice="rebook"]', 'This order already has a return label.')
+        ->assertSeeIn('[data-ss-action="create-label"]', 'Yes, create another');
+
+    expect(ss_browser_api_requests('booking'))->toHaveCount(1);
+    expect(ss_browser_shipment_ids($order_id)['label_id'])->toBe('');
+
+    $page->click('[data-ss-notice="rebook"] .components-notice__dismiss')
+        ->assertNotPresent('[data-ss-notice="rebook"]')
+        ->assertSeeIn('[data-ss-action="create-label"]', 'Create shipping label')
+        ->click('[data-ss-action="create-label"]')
+        ->assertSeeIn('[data-ss-notice="rebook"]', 'This order already has a return label.')
+        ->uncheck('[data-ss-field="with_return"]')
+        ->assertNotPresent('[data-ss-notice="rebook"]')
+        ->assertSeeIn('[data-ss-action="create-label"]', 'Create shipping label')
+        ->check('[data-ss-field="with_return"]')
+        ->click('[data-ss-action="create-label"]')
+        ->assertSeeIn('[data-ss-action="create-label"]', 'Yes, create another');
+
+    expect(ss_browser_api_requests('booking'))->toHaveCount(1);
+
+    $page->click('[data-ss-action="create-label"]')
+        ->assertPresent('[data-ss-result="outbound"]')
+        ->assertPresent('[data-ss-result="return"]')
+        ->assertCount('[data-ss-timeline="outbound"]', 1)
+        ->assertCount('[data-ss-timeline="return"]', 2)
+        ->click('[data-ss-action="create-label"]')
+        ->assertSeeIn('[data-ss-notice="rebook"]', 'This order already has shipping and return labels.');
+
+    expect(ss_browser_api_requests('booking'))->toHaveCount(3);
+});
+
+it('offers confirmation after a server conflict on a stale page while preserving form changes', function () {
+    $order_id = ss_browser_state()['orders'][21];
+    ss_browser_reset_api_requests();
+
+    $page = ss_browser_open_order($order_id)
+        ->assertChecked('[data-ss-field="with_return"]')
+        ->click('[data-ss-action="edit-parcels"]')
+        ->fill('[data-ss-field="parcel_plan.specs[0].weight"]', '2.5')
+        ->click('[data-ss-action="done-parcels"]');
+
+    // A different admin screen has booked after this page received its state.
+    ss_browser_wp_eval(<<<PHP
+\$order = wc_get_order({$order_id});
+\$order->update_meta_data('_ss_shipping_return_label_id', 'another-screen-return');
+\$order->save();
+echo json_encode(array('saved' => true));
+PHP);
+
+    $page->click('[data-ss-action="create-label"]')
+        ->assertSeeIn('[data-ss-notice="rebook"]', 'This order already has a return label.')
+        ->assertSeeIn('[data-ss-action="create-label"]', 'Yes, create another')
+        ->assertSeeIn('[data-ss-section="parcel_plan"]', '2.50 kg')
+        ->assertNotPresent('[data-ss-result="outbound"]');
+
+    expect(ss_browser_api_requests('booking'))->toBe([]);
+
+    $page->click('[data-ss-action="create-label"]')
+        ->assertPresent('[data-ss-result="outbound"]')
+        ->assertPresent('[data-ss-result="return"]')
+        ->assertNotPresent('[data-ss-notice="rebook"]');
+
+    $requests = ss_browser_api_requests('booking');
+    expect($requests)->toHaveCount(2)
+        ->and($requests[0]['body']['parcels'][0]['weight'])->toEqual(2.5)
+        ->and($requests[1]['body']['parcels'][0]['weight'])->toEqual(2.5);
+});
+
+it('keeps the successful result and native note when a confirmed combined booking has a failed return', function () {
+    $order_id = ss_browser_state()['orders'][22];
+    ss_browser_wp_eval(<<<PHP
+\$order = wc_get_order({$order_id});
+\$order->update_meta_data('_ss_shipping_return_label_id', 'previous-return');
+\$order->save();
+echo json_encode(array('saved' => true));
+PHP);
+    ss_browser_reset_api_requests();
+    ss_browser_set_api_scenarios(['booking' => '500-return']);
+
+    try {
+        $page = ss_browser_open_order($order_id)
+            ->click('[data-ss-action="create-label"]')
+            ->assertSeeIn('[data-ss-notice="rebook"]', 'This order already has a return label.');
+
+        expect(ss_browser_api_requests('booking'))->toBe([]);
+
+        $page->click('[data-ss-action="create-label"]')
+            ->assertPresent('[data-ss-result="outbound"]')
+            ->assertNotPresent('[data-ss-result="return"]')
+            ->assertSeeIn('[data-ss-notice="return_failed"]', 'The return booking failed.')
+            ->assertDontSeeIn('ul.order_notes', 'Tracking number: BROWSERTRACK1');
+
+        $meta = ss_browser_shipment_ids($order_id);
+        expect($meta['label_id'])->toStartWith('browser-shipment-')
+            ->and($meta['return_label_id'])->toBe('previous-return')
+            ->and(ss_browser_api_requests('booking'))->toHaveCount(2);
+
+        $page->refresh()
+            ->assertSeeIn('ul.order_notes', 'Tracking number: BROWSERTRACK1')
+            ->assertDontSeeIn('ul.order_notes', 'Download return shipping label')
+            ->assertNotPresent('[data-ss-result="outbound"]');
+    } finally {
+        ss_browser_set_api_scenarios(null);
+    }
 });
 
 it('books a return from the same page, adding its own timeline entry', function () {
