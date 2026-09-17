@@ -478,6 +478,12 @@ it('keeps repeated product lines separate when allocating and reloading parcels'
     $lines = ss_browser_wp_eval(<<<PHP
 \$order = wc_get_order({$order_id});
 \$first = array_values(\$order->get_items())[0];
+// Fix both net amounts explicitly: the store may price products including
+// VAT, so two catalog units priced100 need not have a net total of200.
+\$first->set_subtotal('200');
+\$first->set_total('200');
+\$first->set_taxes(array('subtotal' => array(), 'total' => array()));
+\$first->save();
 \$second = new WC_Order_Item_Product();
 \$second->set_product(\$first->get_product());
 \$second->set_name('Discounted duplicate line');
