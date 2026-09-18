@@ -159,18 +159,6 @@ class Method_Settings {
 				),
 				'desc_tip'    => false,
 			),
-			'api_token_validate'                  => array(
-				'title'             => __( 'Validate API Token', 'smart-send-logistics' ),
-				'type'              => 'button',
-				'custom_attributes' => array(
-					'onclick' => Test_Connection::button_onclick( 'woocommerce_smart_send_shipping_api_token_validate' ),
-				),
-				'description'       => __(
-					'Save the settings before clicking the button to validate API Token.',
-					'smart-send-logistics'
-				),
-				'desc_tip'          => false,
-			),
 			Settings::KEY_DEBUG                   => array(
 				'title'       => __( 'Debug Log', 'smart-send-logistics' ),
 				'type'        => 'checkbox',

@@ -1,7 +1,7 @@
 .ss-connection {
-	display: inline-block;
+	display: block;
 	margin-top: 5px !important;
-	margin-left: 5px !important;
+	margin-left: 0 !important;
 }
 
 #smart-send-logistics-update .dummy {

@@ -1,121 +1,82 @@
 <?php
 
-/*
-|--------------------------------------------------------------------------
-| Guides -> Checkout -> Pickup point selection (block checkout)
-|--------------------------------------------------------------------------
-|
-| The block-checkout mirror of the classic checkout screenshots (issue
-| #74): the shipping options in the Checkout block, the pickup point block
-| appearing below them when a pickup point shipping method is chosen, and a
-| pickup point selected.
-|
-| One test per UI state, each producing its own named screenshot under
-| docs/screenshots/BlockCheckout/ (see tests/Docs/Support/Screenshots.php).
-| The block checkout page carries the stock minimal Checkout block markup
-| (ss_browser_create_block_checkout_page()), so these screenshots show the
-| default, no-merchant-action rendering. The tests wait on the block's
-| data-status="ready" affordance before capturing, so the dropdown is
-| always populated in the shots; the visit() call stays inline in every
-| test closure for pest-plugin-browser to recognise it as a browser test
-| (see the ShippingMethod test's docblock).
-|
-*/
-
-beforeAll(function (): void {
-    if (!ss_browser_store_manageable()) {
-        return;
-    }
-
-    ss_browser_seed_store();
-    $GLOBALS['ss_docs_block_checkout_page_id'] = ss_browser_create_block_checkout_page();
-});
-
-afterAll(function (): void {
-    if (!ss_browser_store_manageable()) {
-        return;
-    }
-
-    if (!empty($GLOBALS['ss_docs_block_checkout_page_id'])) {
-        ss_browser_delete_block_checkout_page($GLOBALS['ss_docs_block_checkout_page_id']);
-        unset($GLOBALS['ss_docs_block_checkout_page_id']);
-    }
-
-    ss_browser_cleanup_store();
-});
+require_once dirname(__DIR__) . '/ShippingMethod/ShippingFixtures.php';
 
 beforeEach(function (): void {
     ss_browser_skip_unless_store_manageable($this);
+    docs_shipping_cleanup();
+    docs_seed_store();
+    docs_shipping_fixture();
+    $GLOBALS['ss_docs_block_checkout_page_id'] = ss_browser_create_block_checkout_page();
+    $id = (int) $GLOBALS['ss_docs_block_checkout_page_id'];
+    $title = var_export(docs_text('Checkout', 'Kasse'), true);
+    ss_browser_wp_eval("wp_update_post(array('ID' => $id, 'post_title' => $title)); update_post_meta($id, '_wp_page_template', 'template-fullwidth.php'); echo json_encode(array('updated' => true));");
 });
 
-it('shows the shipping options in the checkout block', function () {
-    $state = ss_browser_state();
-
-    $page = visit(base_url('/?add-to-cart=' . $state['product_id']));
-
-    $page = $page->navigate(base_url('/?page_id=' . $GLOBALS['ss_docs_block_checkout_page_id']))
-        ->assertSee('Contact information')
-        ->fill('#email', 'ss-browser-test@smartsend.io')
-        ->fill('#shipping-first_name', 'Docs')
-        ->fill('#shipping-last_name', 'Screenshot')
-        ->fill('#shipping-address_1', 'Islands Brygge 39')
-        ->fill('#shipping-city', 'Copenhagen')
-        ->fill('#shipping-postcode', '2300')
-        ->fill('#shipping-phone', '+4512345678')
-        ->assertSee('Flat rate')
-        ->assertSee('Smart Send Pickup Point');
-
-    highlight_element($page, '.wc-block-components-shipping-rates-control');
-
-    capture_doc_screenshot($page, 'BlockCheckout', 'checkout-shipping-options');
+afterEach(function (): void {
+    // The shared store state records and cleans this page, even after a failed capture.
+    unset($GLOBALS['ss_docs_block_checkout_page_id']);
+    docs_shipping_cleanup();
+    docs_cleanup_store();
 });
 
-it('shows the pickup point block when the pickup point method is chosen', function () {
-    $state = ss_browser_state();
-
-    $page = visit(base_url('/?add-to-cart=' . $state['product_id']));
-
-    $page = $page->navigate(base_url('/?page_id=' . $GLOBALS['ss_docs_block_checkout_page_id']))
-        ->assertSee('Contact information')
-        ->fill('#email', 'ss-browser-test@smartsend.io')
-        ->fill('#shipping-first_name', 'Docs')
-        ->fill('#shipping-last_name', 'Screenshot')
-        ->fill('#shipping-address_1', 'Islands Brygge 39')
-        ->fill('#shipping-city', 'Copenhagen')
+function docs_block_checkout($page): void
+{
+    $page->navigate(base_url('/?page_id=' . $GLOBALS['ss_docs_block_checkout_page_id']))
+        ->assertPresent('#email')
+        ->fill('#email', 'alex@example.com')
+        ->fill('#shipping-first_name', 'Alex')
+        ->fill('#shipping-last_name', 'Example')
+        ->fill('#shipping-address_1', 'Eksempelvej 12')
+        ->fill('#shipping-city', docs_text('Copenhagen', 'København'))
         ->fill('#shipping-postcode', '2300')
         ->fill('#shipping-phone', '+4512345678')
-        ->assertSee('Smart Send Pickup Point')
-        ->click('input[value="smart_send_shipping:' . $state['instance_id'] . '"]')
+        ->assertSee(docs_text('Home delivery', 'Hjemmelevering'))
+        ->assertSee(docs_text('Pickup point', 'Afhentningssted'));
+    docs_block_wait_for_total($page, '184.00');
+}
+
+function docs_block_select_pickup($page): void
+{
+    $state = ss_browser_state();
+    $page->click('input[value="smart_send_shipping:' . $state['instance_id'] . '"]')
         ->assertPresent('.ss-pickup-point-block[data-status="ready"]')
         ->assertPresent('#ss-pickup-point-select option[value="1234"]');
+    docs_block_wait_for_total($page, '164.00');
+}
 
-    highlight_element($page, '.ss-pickup-point-block');
+/** Address and pickup updates can finish before the order summary recalculates. */
+function docs_block_wait_for_total($page, string $expected): void
+{
+    $expected = json_encode($expected);
+    ss_wait_for_script($page, "(function () { const total = document.querySelector('.wc-block-components-totals-footer-item .wc-block-components-totals-item__value'); if (!total || document.querySelector('.wc-block-components-skeleton__element')) return false; const match = total.textContent.match(/[0-9][0-9.,]*/); return match && match[0].replace(/\\./g, '').replace(',', '.') === $expected; })()", 15);
+}
 
-    capture_doc_screenshot($page, 'BlockCheckout', 'pickup-point-block');
+it('documents the shipping methods in block checkout', function () {
+    $state = ss_browser_state();
+    $page = visit(base_url('/?add-to-cart=' . $state['product_id']))->assertPresent('html > body');
+    docs_block_checkout($page);
+    highlight_element($page, '.wc-block-components-shipping-rates-control');
+    capture_doc_screenshot($page, 'checkout-block', 'shipping-methods');
 });
 
-it('shows a selected pickup point in the checkout block', function () {
+it('documents the pickup selector in block checkout', function () {
     $state = ss_browser_state();
+    $page = visit(base_url('/?add-to-cart=' . $state['product_id']))->assertPresent('html > body');
+    docs_block_checkout($page);
+    docs_block_select_pickup($page);
+    highlight_element($page, '.ss-pickup-point-block');
+    capture_doc_screenshot($page, 'checkout-block', 'pickup-selector');
+});
 
-    $page = visit(base_url('/?add-to-cart=' . $state['product_id']));
-
-    $page = $page->navigate(base_url('/?page_id=' . $GLOBALS['ss_docs_block_checkout_page_id']))
-        ->assertSee('Contact information')
-        ->fill('#email', 'ss-browser-test@smartsend.io')
-        ->fill('#shipping-first_name', 'Docs')
-        ->fill('#shipping-last_name', 'Screenshot')
-        ->fill('#shipping-address_1', 'Islands Brygge 39')
-        ->fill('#shipping-city', 'Copenhagen')
-        ->fill('#shipping-postcode', '2300')
-        ->fill('#shipping-phone', '+4512345678')
-        ->assertSee('Smart Send Pickup Point')
-        ->click('input[value="smart_send_shipping:' . $state['instance_id'] . '"]')
-        ->assertPresent('.ss-pickup-point-block[data-status="ready"]')
-        ->assertPresent('#ss-pickup-point-select option[value="1234"]')
-        ->select('#ss-pickup-point-select', '1234')
-        ->assertPresent('.ss-pickup-point-block[data-selected-agent="1234"]');
-
-    highlight_element($page, '#ss-pickup-point-select');
-
-    capture_doc_screenshot($page, 'BlockCheckout', 'pickup-point-selected');
+it('documents a selected pickup point in block checkout', function () {
+    $state = ss_browser_state();
+    $page = visit(base_url('/?add-to-cart=' . $state['product_id']))->assertPresent('html > body');
+    docs_block_checkout($page);
+    docs_block_select_pickup($page);
+    $page->select('#ss-pickup-point-select', '1234')
+        ->assertPresent('.ss-pickup-point-block[data-selected-agent="1234"][data-status="ready"]');
+    docs_block_wait_for_total($page, '164.00');
+    highlight_element($page, '.ss-pickup-point-block');
+    capture_doc_screenshot($page, 'checkout-block', 'pickup-selected');
 });

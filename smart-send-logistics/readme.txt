@@ -115,7 +115,7 @@ See our written guide on the [Smart Send website](https://smartsend.io/woocommer
 3. Choose the 'Shipping' tab in the top menu bar
 4. Click on 'Smart Send' in the list under the tabs
 5. Enter the API Token you received in your welcome email and click save. Signup [here](https://smartsend.io/woocommerce/api-token/) to get an API Token.
-6. Once the API Token is saved, press 'Validate API Token' to connect your WooCommerce store to Smart Send.
+6. Save the settings to validate the API Token. The connection result appears below the API Token field every time you save.
 
 == Developers ==
 

@@ -28,7 +28,7 @@
  * endpoint and case names - keep them in sync when adding either ('success'
  * means no override; three-digit codes are always valid on every endpoint).
  *
- * Cases authenticate: success 401
+ * Cases authenticate: success 401 403-subscription
  * Cases pickup-points: success empty
  * Cases booking: success 422-wrong-zip 422-agent-no 422-customs 500-return
  * Cases labels-combine: success
@@ -38,6 +38,7 @@
  *  - authenticate '401'      -> the real "Invalid API token provided" body
  *                               (also reachable as the generic 401; named so
  *                               the exact message is pinned for tests)
+ *  - authenticate '403-subscription' -> the team has no subscription
  *  - pickup-points 'empty'   -> an empty data set (no pickup points near the
  *                               address; a valid empty-collection response)
  *  - booking '422-wrong-zip' -> a validation failure in the shape the real
@@ -230,7 +231,10 @@ add_filter('pre_http_request', function ($pre, $args, $url) {
     if ($case === '401') {
         return $respond(array('message' => 'Invalid API token provided'), 401);
     }
-    if ($error = $generic('authenticate', $case, array('401'))) {
+    if ($case === '403-subscription') {
+        return $respond(array('message' => 'The team does not have a subscription.'), 403);
+    }
+    if ($error = $generic('authenticate', $case, array('401', '403-subscription'))) {
         return $error;
     }
 

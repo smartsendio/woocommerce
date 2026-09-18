@@ -35,7 +35,10 @@
     "test": "bin/run-tests.sh Integration,Browser",
     "test:integration": "bin/run-tests.sh Integration",
     "test:browser": "bin/run-tests.sh Browser",
-    "test:docs": "bin/run-tests.sh Docs",
+    "test:docs": [
+      "Composer\\Config::disableProcessTimeout",
+      "bin/run-docs.sh"
+    ],
     "demo:on": "bin/demo-store.sh on",
     "demo:off": "bin/demo-store.sh off",
     "demo:scenario": "bin/demo-store.sh scenario"

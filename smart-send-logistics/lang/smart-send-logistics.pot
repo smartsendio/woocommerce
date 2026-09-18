@@ -9,7 +9,7 @@ msgstr ""
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"POT-Creation-Date: 2026-09-17T17:36:21+00:00\n"
+"POT-Creation-Date: 2026-09-18T12:33:02+00:00\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "X-Generator: WP-CLI 2.12.0\n"
 "X-Domain: smart-send-logistics\n"
@@ -17,7 +17,7 @@ msgstr ""
 #. Plugin Name of the plugin
 #: smart-send-logistics.php
 #: admin/class-order-meta-box.php:91
-#: includes/shipping-method/class-method-settings.php:303
+#: includes/shipping-method/class-method-settings.php:291
 #: includes/shipping-method/class-method.php:50
 msgid "Smart Send"
 msgstr ""
@@ -795,7 +795,7 @@ msgid "Cart weight should be strictly less than this value for the shipping rate
 msgstr ""
 
 #: includes/shipping-method/class-method-form-renderer.php:221
-#: includes/shipping-method/class-method-settings.php:333
+#: includes/shipping-method/class-method-settings.php:321
 msgid "Cost"
 msgstr ""
 
@@ -822,288 +822,279 @@ msgid "Sign up for a Smart Send account <a href=\"%s\" target=\"_blank\">here</a
 msgstr ""
 
 #: includes/shipping-method/class-method-settings.php:163
-#: includes/shipping-method/class-test-connection.php:149
-msgid "Validate API Token"
-msgstr ""
-
-#: includes/shipping-method/class-method-settings.php:168
-msgid "Save the settings before clicking the button to validate API Token."
-msgstr ""
-
-#: includes/shipping-method/class-method-settings.php:175
 msgid "Debug Log"
 msgstr ""
 
-#: includes/shipping-method/class-method-settings.php:177
+#: includes/shipping-method/class-method-settings.php:165
 msgid "Enable logging"
 msgstr ""
 
 #. translators: 1: opening link tag pointing at the log file, 2: closing link tag.
-#: includes/shipping-method/class-method-settings.php:181
+#: includes/shipping-method/class-method-settings.php:169
 #, php-format
 msgid "A log file containing the communication to the Smart Send server will be maintained if this option is checked. This can be used in case of technical issues and can be found %1$shere%2$s."
 msgstr ""
 
-#: includes/shipping-method/class-method-settings.php:190
+#: includes/shipping-method/class-method-settings.php:178
 msgid "Shipping Labels"
 msgstr ""
 
-#: includes/shipping-method/class-method-settings.php:192
+#: includes/shipping-method/class-method-settings.php:180
 msgid "Settings for generating shipping labels."
 msgstr ""
 
-#: includes/shipping-method/class-method-settings.php:195
+#: includes/shipping-method/class-method-settings.php:183
 msgid "Set order status after label print"
 msgstr ""
 
-#: includes/shipping-method/class-method-settings.php:201
+#: includes/shipping-method/class-method-settings.php:189
 msgid "Do not change order status"
 msgstr ""
 
-#: includes/shipping-method/class-method-settings.php:206
+#: includes/shipping-method/class-method-settings.php:194
 msgid "Shipping method used for WooCommerce method Free Shipping"
 msgstr ""
 
-#: includes/shipping-method/class-method-settings.php:212
+#: includes/shipping-method/class-method-settings.php:200
 msgid "Selecting a shipping method will make it possible to make shipping labels for order places with WooCommerces native Free Shipping method."
 msgstr ""
 
-#: includes/shipping-method/class-method-settings.php:219
+#: includes/shipping-method/class-method-settings.php:207
 msgid "Include order comment on label"
 msgstr ""
 
-#: includes/shipping-method/class-method-settings.php:225
+#: includes/shipping-method/class-method-settings.php:213
 msgid "Save a copy of the PDF"
 msgstr ""
 
-#: includes/shipping-method/class-method-settings.php:228
+#: includes/shipping-method/class-method-settings.php:216
 msgid "This will save a copy of the generated PDF label in the WordPress uploads-folder"
 msgstr ""
 
-#: includes/shipping-method/class-method-settings.php:235
+#: includes/shipping-method/class-method-settings.php:223
 msgid "Pickup Points"
 msgstr ""
 
-#: includes/shipping-method/class-method-settings.php:237
+#: includes/shipping-method/class-method-settings.php:225
 msgid "Settings for displaying pickup points during checkout."
 msgstr ""
 
-#: includes/shipping-method/class-method-settings.php:243
+#: includes/shipping-method/class-method-settings.php:231
 msgid "Dropdown format"
 msgstr ""
 
-#: includes/shipping-method/class-method-settings.php:244
+#: includes/shipping-method/class-method-settings.php:232
 msgid "How the pickup points are listed during checkout."
 msgstr ""
 
-#: includes/shipping-method/class-method-settings.php:252
+#: includes/shipping-method/class-method-settings.php:240
 msgid "Select Default"
 msgstr ""
 
-#: includes/shipping-method/class-method-settings.php:253
+#: includes/shipping-method/class-method-settings.php:241
 msgid "Enable Select Default"
 msgstr ""
 
-#: includes/shipping-method/class-method-settings.php:254
+#: includes/shipping-method/class-method-settings.php:242
 msgid "This will automatically select the closest pickup point and let the customer change to a different pickup point. This means that the customer will not be forced to select a pickup point before completing the order."
 msgstr ""
 
-#: includes/shipping-method/class-method-settings.php:260
+#: includes/shipping-method/class-method-settings.php:248
 msgid "Shipping methods"
 msgstr ""
 
-#: includes/shipping-method/class-method-settings.php:262
+#: includes/shipping-method/class-method-settings.php:250
 msgid "Settings for shipping methods."
 msgstr ""
 
-#: includes/shipping-method/class-method-settings.php:265
+#: includes/shipping-method/class-method-settings.php:253
 msgid "Sort shipping methods"
 msgstr ""
 
-#: includes/shipping-method/class-method-settings.php:267
+#: includes/shipping-method/class-method-settings.php:255
 msgid "Enable automatic sorting by cost on checkout page"
 msgstr ""
 
-#: includes/shipping-method/class-method-settings.php:270
+#: includes/shipping-method/class-method-settings.php:258
 msgid "Shipping methods will be sorted in ascending order, according to the cost, instead of by order of appearance in Shipping Zone table as per default"
 msgstr ""
 
-#: includes/shipping-method/class-method-settings.php:297
+#: includes/shipping-method/class-method-settings.php:285
 msgid "Method Title"
 msgstr ""
 
-#: includes/shipping-method/class-method-settings.php:299
+#: includes/shipping-method/class-method-settings.php:287
 msgid "This controls the title which the user sees during checkout."
 msgstr ""
 
-#: includes/shipping-method/class-method-settings.php:307
+#: includes/shipping-method/class-method-settings.php:295
 msgid "Shipping Method"
 msgstr ""
 
-#: includes/shipping-method/class-method-settings.php:310
+#: includes/shipping-method/class-method-settings.php:298
 msgid "This is the shipping method used when generating shipping labels."
 msgstr ""
 
-#: includes/shipping-method/class-method-settings.php:318
+#: includes/shipping-method/class-method-settings.php:306
 msgid "Tax status"
 msgstr ""
 
-#: includes/shipping-method/class-method-settings.php:321
+#: includes/shipping-method/class-method-settings.php:309
 msgid "Determines if the shipping cost is taxable. Remember to set a shipping tax in WooCommerce."
 msgstr ""
 
-#: includes/shipping-method/class-method-settings.php:328
+#: includes/shipping-method/class-method-settings.php:316
 msgid "Taxable"
 msgstr ""
 
-#: includes/shipping-method/class-method-settings.php:329
+#: includes/shipping-method/class-method-settings.php:317
 msgctxt "Tax status"
 msgid "None"
 msgstr ""
 
-#: includes/shipping-method/class-method-settings.php:335
+#: includes/shipping-method/class-method-settings.php:323
 msgid "Configure the shipping method cost and free shipping."
 msgstr ""
 
-#: includes/shipping-method/class-method-settings.php:345
+#: includes/shipping-method/class-method-settings.php:333
 msgid "Flat rate requires..."
 msgstr ""
 
-#: includes/shipping-method/class-method-settings.php:350
+#: includes/shipping-method/class-method-settings.php:338
 msgid "Always disabled"
 msgstr ""
 
-#: includes/shipping-method/class-method-settings.php:351
+#: includes/shipping-method/class-method-settings.php:339
 msgid "Always enabled"
 msgstr ""
 
-#: includes/shipping-method/class-method-settings.php:352
+#: includes/shipping-method/class-method-settings.php:340
 msgid "A valid free shipping coupon"
 msgstr ""
 
-#: includes/shipping-method/class-method-settings.php:353
+#: includes/shipping-method/class-method-settings.php:341
 msgid "A minimum order amount"
 msgstr ""
 
-#: includes/shipping-method/class-method-settings.php:354
+#: includes/shipping-method/class-method-settings.php:342
 msgid "A minimum order amount OR a coupon"
 msgstr ""
 
-#: includes/shipping-method/class-method-settings.php:355
+#: includes/shipping-method/class-method-settings.php:343
 msgid "A minimum order amount AND a coupon"
 msgstr ""
 
-#: includes/shipping-method/class-method-settings.php:359
+#: includes/shipping-method/class-method-settings.php:347
 msgid "Flat fee cost"
 msgstr ""
 
-#: includes/shipping-method/class-method-settings.php:362
+#: includes/shipping-method/class-method-settings.php:350
 msgid "Shipping method cost if rules apply. To apply free shipping the value must be \"0\"."
 msgstr ""
 
-#: includes/shipping-method/class-method-settings.php:370
+#: includes/shipping-method/class-method-settings.php:358
 msgid "Minimum order amount"
 msgstr ""
 
-#: includes/shipping-method/class-method-settings.php:373
+#: includes/shipping-method/class-method-settings.php:361
 msgid "Users will need to spend at least this amount (including VAT) to get free shipping (if enabled above)."
 msgstr ""
 
-#: includes/shipping-method/class-method-settings.php:381
-#: includes/shipping-method/class-method-settings.php:386
+#: includes/shipping-method/class-method-settings.php:369
+#: includes/shipping-method/class-method-settings.php:374
 msgid "Advanced Settings"
 msgstr ""
 
-#: includes/shipping-method/class-method-settings.php:383
+#: includes/shipping-method/class-method-settings.php:371
 msgid "Configure the advanced settings."
 msgstr ""
 
-#: includes/shipping-method/class-method-settings.php:388
-#: includes/shipping-method/class-method-settings.php:482
+#: includes/shipping-method/class-method-settings.php:376
+#: includes/shipping-method/class-method-settings.php:470
 msgid "Enable"
 msgstr ""
 
-#: includes/shipping-method/class-method-settings.php:390
+#: includes/shipping-method/class-method-settings.php:378
 msgid "Enable/disable advanced settings and to show/hide settings."
 msgstr ""
 
-#: includes/shipping-method/class-method-settings.php:397
+#: includes/shipping-method/class-method-settings.php:385
 msgid "Display shipping method if..."
 msgstr ""
 
-#: includes/shipping-method/class-method-settings.php:400
+#: includes/shipping-method/class-method-settings.php:388
 msgid "Select when to display the shipping method based on shipping class."
 msgstr ""
 
-#: includes/shipping-method/class-method-settings.php:406
+#: includes/shipping-method/class-method-settings.php:394
 msgid "N/A"
 msgstr ""
 
-#: includes/shipping-method/class-method-settings.php:407
+#: includes/shipping-method/class-method-settings.php:395
 msgid "ALL products belong to one of the shipping classes"
 msgstr ""
 
-#: includes/shipping-method/class-method-settings.php:411
+#: includes/shipping-method/class-method-settings.php:399
 msgid "At least ONE product belongs to one of the shipping classes"
 msgstr ""
 
-#: includes/shipping-method/class-method-settings.php:415
+#: includes/shipping-method/class-method-settings.php:403
 msgid "ALL products do NOT belong to one of the shipping classes"
 msgstr ""
 
-#: includes/shipping-method/class-method-settings.php:419
+#: includes/shipping-method/class-method-settings.php:407
 msgid "At least ONE product does NOT belongs to one of the shipping classes"
 msgstr ""
 
-#: includes/shipping-method/class-method-settings.php:427
+#: includes/shipping-method/class-method-settings.php:415
 msgid "Shipping classes"
 msgstr ""
 
-#: includes/shipping-method/class-method-settings.php:430
+#: includes/shipping-method/class-method-settings.php:418
 msgid "Shipping classes used to display the shipping method."
 msgstr ""
 
-#: includes/shipping-method/class-method-settings.php:454
+#: includes/shipping-method/class-method-settings.php:442
 msgid "Exclude User role"
 msgstr ""
 
-#: includes/shipping-method/class-method-settings.php:457
+#: includes/shipping-method/class-method-settings.php:445
 msgid "Do NOT display shipping method for these user roles."
 msgstr ""
 
-#: includes/shipping-method/class-method-settings.php:462
+#: includes/shipping-method/class-method-settings.php:450
 msgid "Return shipping"
 msgstr ""
 
-#: includes/shipping-method/class-method-settings.php:464
+#: includes/shipping-method/class-method-settings.php:452
 msgid "Configure how to handle return shipping."
 msgstr ""
 
-#: includes/shipping-method/class-method-settings.php:468
+#: includes/shipping-method/class-method-settings.php:456
 msgid "Return Shipping Method"
 msgstr ""
 
-#: includes/shipping-method/class-method-settings.php:471
+#: includes/shipping-method/class-method-settings.php:459
 msgid "This is the shipping method used when generating a return shipping labels."
 msgstr ""
 
-#: includes/shipping-method/class-method-settings.php:480
+#: includes/shipping-method/class-method-settings.php:468
 msgid "Auto Generate Return Label"
 msgstr ""
 
-#: includes/shipping-method/class-method-settings.php:484
+#: includes/shipping-method/class-method-settings.php:472
 msgid "Should a return label automatically be generated whenever a normal shipping labels is generated."
 msgstr ""
 
-#: includes/shipping-method/class-method-settings.php:497
+#: includes/shipping-method/class-method-settings.php:485
 msgid "\"Method Title\" cannot be empty"
 msgstr ""
 
-#: includes/shipping-method/class-method-settings.php:502
+#: includes/shipping-method/class-method-settings.php:490
 msgid "Change the \"Method Title\" field to something human readable. This is what your customers see at checkout."
 msgstr ""
 
-#: includes/shipping-method/class-method-settings.php:516
+#: includes/shipping-method/class-method-settings.php:504
 msgid "Select a \"Shipping Method\""
 msgstr ""
 
@@ -1112,49 +1103,57 @@ msgid "Advanced shipping solution for PostNord, GLS and Bring."
 msgstr ""
 
 #. translators: 1: shipping rate label, 2: number of matched weight table rows, 3: list of matched rows, 4: shipping rate id, 5: last matched row.
-#: includes/shipping-method/class-method.php:331
+#: includes/shipping-method/class-method.php:360
 #, php-format
 msgid "Smart Send \"%1$s\": %2$d overlapping weight table rows matched (%3$s) - the rows share rate id %4$s, so only the LAST matching row (%5$s) is offered and the earlier matches were overwritten."
 msgstr ""
 
 #. translators: 1: shipping rate label, 2: shipping rate id, 3: package contents cost, 4: cart weight, 5: weight unit.
-#: includes/shipping-method/class-method.php:413
+#: includes/shipping-method/class-method.php:442
 #, php-format
 msgid "Smart Send: Evaluated method \"%1$s\" (%2$s) as not available (total=%3$s, weight=%4$s %5$s): the cart weight matched no weight table row."
 msgstr ""
 
 #. translators: 1: shipping rate label, 2: shipping rate id, 3: package contents cost, 4: cart weight, 5: weight unit, 6: flat fee cost.
-#: includes/shipping-method/class-method.php:431
+#: includes/shipping-method/class-method.php:460
 #, php-format
 msgid "Smart Send: Evaluated method \"%1$s\" (%2$s) as available (total=%3$s, weight=%4$s %5$s). Flat fee cost %6$s applied."
 msgstr ""
 
 #. translators: 1: shipping rate label, 2: shipping rate id, 3: package contents cost, 4: cart weight, 5: weight unit, 6: applied weight table row as "min-max unit", 7: rate cost.
-#: includes/shipping-method/class-method.php:447
+#: includes/shipping-method/class-method.php:476
 #, php-format
 msgid "Smart Send: Evaluated method \"%1$s\" (%2$s) as available (total=%3$s, weight=%4$s %5$s). Weight table row %6$s applied, cost %7$s."
 msgstr ""
 
 #. translators: 1: shipping method title, 2: shipping rate id, 3: customer role.
-#: includes/shipping-method/class-method.php:527
+#: includes/shipping-method/class-method.php:556
 #, php-format
 msgid "Smart Send: Evaluated method \"%1$s\" (%2$s) as not available: customer role \"%3$s\" is excluded."
 msgstr ""
 
-#: includes/shipping-method/class-test-connection.php:92
-msgid "Validating connection..."
+#: includes/shipping-method/class-test-connection.php:80
+msgid "Enter an API Token and save the settings to connect to Smart Send."
 msgstr ""
 
-#. translators: 1: email address of the connected Smart Send account, 2: website of the connected Smart Send account.
-#: includes/shipping-method/class-test-connection.php:125
-#, php-format
-msgid "API Token verified: Connected to Smart Send as %1$s from %2$s"
+#: includes/shipping-method/class-test-connection.php:94
+msgid "Connected to Smart Send"
 msgstr ""
 
-#. translators: %s: error message returned by the Smart Send API.
-#: includes/shipping-method/class-test-connection.php:133
-#, php-format
-msgid "API Token validation failed: %s. Make sure to save the settings before validating."
+#: includes/shipping-method/class-test-connection.php:100
+msgid "The API Token is invalid. Enter a valid API Token and save the settings again."
+msgstr ""
+
+#: includes/shipping-method/class-test-connection.php:101
+msgid "Smart Send denied access. Check the team access and subscription in Smart Send."
+msgstr ""
+
+#: includes/shipping-method/class-test-connection.php:102
+msgid "No team is registered for this webshop in Smart Send. Register the webshop in Smart Send and save the settings again."
+msgstr ""
+
+#: includes/shipping-method/class-test-connection.php:106
+msgid "The connection to Smart Send could not be verified. Please try saving the settings again later."
 msgstr ""
 
 #: public/class-checkout.php:195

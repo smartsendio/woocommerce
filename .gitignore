@@ -3,6 +3,8 @@
 /local-dev
 /.env
 /.env.testing
+/.env.docs
+/docs/screenshots/.runs/
 /node_modules
 .DS_Store
 .phpunit.cache

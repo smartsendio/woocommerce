@@ -88,6 +88,35 @@ class Method extends WC_Shipping_Flat_Rate {
 	}
 
 	/**
+	 * Save settings, then validate the newly saved global API Token.
+	 *
+	 * @return bool Whether WooCommerce changed any saved values.
+	 */
+	public function process_admin_options() {
+		$saved = parent::process_admin_options();
+		if ( 0 === $this->get_instance_id() ) {
+			SS_SHIPPING_WC()->test_connection()->validate_saved_token();
+		}
+		return $saved;
+	}
+
+	/**
+	 * Add connection feedback inside the API Token field's table cell.
+	 *
+	 * @param string $key Field key.
+	 * @param array  $data Field definition.
+	 * @return string
+	 */
+	public function generate_text_html( $key, $data ) {
+		$result = \Smart_Send\Support\Settings::KEY_API_TOKEN === $key ? SS_SHIPPING_WC()->test_connection()->result_html() : '';
+		if ( '' !== $result ) {
+			$data['custom_attributes']['aria-describedby'] = 'ss-connection-result';
+		}
+		$html = parent::generate_text_html( $key, $data );
+		return str_replace( '</td>', $result . '</td>', $html );
+	}
+
+	/**
 	 * load admin scripts on settings page only
 	 */
 	public function load_admin_scripts( $hook ) {
