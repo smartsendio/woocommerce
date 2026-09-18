@@ -2,8 +2,8 @@
     "schema_version": 1,
     "status": "complete",
     "scope": "full",
-    "generated_at": "2026-09-17T23:54:08+00:00",
-    "source_commit": "ef3282b7e2ef4072fb588012d0ea06efbe2fc628",
+    "generated_at": "2026-09-18T00:16:26+00:00",
+    "source_commit": "16adff911feeef3e8428f9760b424dc1f9829170",
     "working_tree_dirty": false,
     "source_files_sha256": {
         "bin/docs-screenshots.php": "65189aceb8e2c1689ca897e2bfb06abf57a3d26807847c671d11950587c00956",
@@ -122,7 +122,7 @@
         "tests/Docs/ShippingMethod/ShippingFixtures.php": "89517c681e8d1ed1ed34c89fdc65d47279300fbc61265291a976bb5a14b22ccf",
         "tests/Docs/ShippingZones/ShippingZonesTest.php": "4328a4d91020ac5216734f287d00ff9425482d18ff9a998525c3d6920d8f600a",
         "tests/Docs/Support/DocsMuPlugin.php": "531f6358a19269b6fa1bd0a6c56b4f1b3b8c891bf70f1b0441654644b57a5ca5",
-        "tests/Docs/Support/Screenshots.php": "4c939cb0acf2703d97127e240deed8b9dbcd3b8e55a53a9c0c1adf32de942d5a",
+        "tests/Docs/Support/Screenshots.php": "56f7efa1c99940c07f7e65b2fcde25a08271e77a1c2916c1506c5012f1faca2b",
         "tests/Docs/Support/Store.php": "4e7510413c5c6d162bccdb935d6f1ff7b2c683edc61910d85e70a7a131b5a02d",
         "tests/Docs/Support/cleanup-store.php": "8b4be2779646ef281be4e031addf92d1dac1f9b365367768ea5bff2bed9abdee",
         "tests/Docs/Support/decorate-store.php": "ae23f9695ee68cc765c4c6c5bca3e26d12cf68b2635b51fc4e23a91db08430db",
@@ -1496,7 +1496,7 @@
             },
             "width": 1440,
             "height": 1000,
-            "sha256": "618fb2acead6ad2931bb6cfb94a645e45bccc6233e1266a9c43a700cfc8abe63"
+            "sha256": "139544bcbcbda48077dac6af5116eabd4ef30208dd55eb12f4f0ad9857493b46"
         },
         {
             "page": "integrations/woocommerce/pickup-points",
@@ -1523,7 +1523,7 @@
             },
             "width": 1440,
             "height": 1000,
-            "sha256": "e632cb612ec64e0e1b996ab47c60336d781e3c48e88c3f678417d6f869c4520e"
+            "sha256": "7cdec30000e351d478858dbd5b99f845b8a726d05691b8d4852e3e7276e73f1f"
         },
         {
             "page": "integrations/woocommerce/pickup-points",
@@ -1550,7 +1550,7 @@
             },
             "width": 1440,
             "height": 1000,
-            "sha256": "ff1d9bcadfe8929b6586aa78d22f9e97360eef0e0aa3c8b52298cb6dd6650185"
+            "sha256": "de972ab4e3ddd4b49a2b962fe7d8a8b36ce21c43e570e574911821b2c13914f7"
         },
         {
             "page": "integrations/woocommerce/pickup-points",
@@ -1577,7 +1577,7 @@
             },
             "width": 1440,
             "height": 1000,
-            "sha256": "51c2e5a6c66560d918e745a30ea329da81ab1434596f200620597a382161cd98"
+            "sha256": "0033b3fa0b7c37b41f92568bc9e91e0d0579cb83d68a44b357af0a62343baf0b"
         },
         {
             "page": "integrations/woocommerce/pickup-points",
@@ -1604,7 +1604,7 @@
             },
             "width": 1440,
             "height": 1000,
-            "sha256": "94a2eff7728b77010d5c09d472584afc7ebc6284512b56f1d242114e10a71d52"
+            "sha256": "5bf3404762b996a4de6d1b3f7ba0ad4a2a2d9521244d3af237d19300e3e030fd"
         },
         {
             "page": "integrations/woocommerce/pickup-points",
@@ -1631,7 +1631,7 @@
             },
             "width": 1440,
             "height": 1000,
-            "sha256": "8ab030ef62f31cd806111510a8ec6c2bdfeb8b75298b665011fe7f1ecc91c3dc"
+            "sha256": "5c691c5dc42200c849cc5d5819660f8af7b428f15cc8b2364c42ee3f398ac676"
         },
         {
             "page": "integrations/woocommerce/colli-shipments",
@@ -1658,7 +1658,7 @@
             },
             "width": 560,
             "height": 1212,
-            "sha256": "f7cb10534a2bca2825e8abf6254cff47854479e9c81b0e0feec37c0ac3d66ba0"
+            "sha256": "3916f80893c227ae39515e11d16bd00ce80aff590f4d7d3a50496fb0600d204b"
         },
         {
             "page": "integrations/woocommerce/colli-shipments",
@@ -1685,7 +1685,7 @@
             },
             "width": 560,
             "height": 1584,
-            "sha256": "d4c2294c97e151d7d36e4f49b40ec301273c7071d4b324b8f8d2019f7bc6962a"
+            "sha256": "4562d543ad045fc768603a7e7dbb714a1ae2775564296fc310418ca3ae74aaed"
         },
         {
             "page": "integrations/woocommerce/colli-shipments",
@@ -1712,7 +1712,7 @@
             },
             "width": 560,
             "height": 924,
-            "sha256": "1f0f5bcf6a36cb03b426921b4bf25446bc844ac698ac14dedf0f79d53a9c152a"
+            "sha256": "8486cc0016d17d4759c73b4bcb0da131e3f7806d770e7663445ae6bd686a2242"
         },
         {
             "page": "integrations/woocommerce/colli-shipments",
@@ -1739,7 +1739,7 @@
             },
             "width": 560,
             "height": 1584,
-            "sha256": "753d0863eb36a1c6cad8e999d674b2e4a2fab12a104bd9193e65c607799bdfc3"
+            "sha256": "7dd2e6970364749ab6912936f0696d701a278fa843b5a383c01be378a077fe63"
         },
         {
             "page": "integrations/woocommerce/connection",
@@ -1766,7 +1766,7 @@
             },
             "width": 1440,
             "height": 1000,
-            "sha256": "a73e94a29aa7d9f7eee93c4a1ab5a8c241692f77f2df6f2400dfd0918789d733"
+            "sha256": "d15d52c05f903ada9e0a77bfa4694f608025e5c16ac75a6b4a2fa52be3a76cd4"
         },
         {
             "page": "integrations/woocommerce/connection",
@@ -1793,7 +1793,7 @@
             },
             "width": 1440,
             "height": 1000,
-            "sha256": "feca0b6bfcf6896482b2a8843a91472abdad1930940412b89073f5a730d224f3"
+            "sha256": "f74ca82810515da3f199cf203e4e9ee48e66caa314543c3611d9da9da289249f"
         },
         {
             "page": "integrations/woocommerce/connection",
@@ -1820,7 +1820,7 @@
             },
             "width": 1440,
             "height": 1000,
-            "sha256": "1a73d01139ce34d3c69fad3fadf0b28e9620d33b85e46d814875f747d7c7502b"
+            "sha256": "ec90991278138545eec27917cd8bb89d757ee22ec56da9dfa88e24984277bdf3"
         },
         {
             "page": "integrations/woocommerce/customs",
@@ -1847,7 +1847,7 @@
             },
             "width": 1440,
             "height": 1000,
-            "sha256": "7b95cb3a9e98ed74bf48f9a940f46bee90e60073726df218cf94cdd9347b4ae5"
+            "sha256": "11cccc412577f75b1879b114cfb94933e7cba42ea13f767e8fc8b368aa1cf265"
         },
         {
             "page": "integrations/woocommerce/shipping-examples",
@@ -1874,7 +1874,7 @@
             },
             "width": 1440,
             "height": 1000,
-            "sha256": "8a629b26c9496b59fe597e32d8c92ce62bce2920b562f7221ded59c2359e2794"
+            "sha256": "4395824da288d1570a5f591c5e8a1dbdbc7a950eb1579d84db3d6b0edde5471b"
         },
         {
             "page": "integrations/woocommerce/shipping-examples",
@@ -1898,7 +1898,7 @@
             },
             "width": 1440,
             "height": 1000,
-            "sha256": "9968f334b7ede2ad2bc3afcafa6b3df7752bfcd4f80f49abd82abeb482765637"
+            "sha256": "4c83ebc9769338b5a6c8540ca8ec54bb8de5b9be7cbcb3133e51566c9c435585"
         },
         {
             "page": "integrations/woocommerce/shipping-examples",
@@ -1922,7 +1922,7 @@
             },
             "width": 1440,
             "height": 1000,
-            "sha256": "c50b91248dc1bfe177cd399cdd286a4bfec28188b17c6d3781cda93def2ae9db"
+            "sha256": "5d4666837da54131f1c6e26ccc6d3e76c83b3bbf688b35c2f15d9b1f0a1c06ce"
         },
         {
             "page": "integrations/woocommerce/shipping-examples",
@@ -1949,7 +1949,7 @@
             },
             "width": 1440,
             "height": 1000,
-            "sha256": "36ff17090402bb2e07853426523c78c81e8999f41dea5e9df3e27d79c8f50fef"
+            "sha256": "22c0a1a46069404c67a6c9e78cee20296b16fbe47303285500f77c865dbac660"
         },
         {
             "page": "integrations/woocommerce/shipping-examples",
@@ -1973,7 +1973,7 @@
             },
             "width": 1440,
             "height": 1000,
-            "sha256": "65283b16ae52f1c1ec322dca1069b4413040ec8a17a87e196d3026c28c6afba9"
+            "sha256": "821bf87a75cd3c2d5540f8e886c4cc1d2786a46bb4264bdb7dcd29189e6da025"
         },
         {
             "page": "integrations/woocommerce/shipping-examples",
@@ -2000,7 +2000,7 @@
             },
             "width": 1440,
             "height": 1000,
-            "sha256": "8ab030ef62f31cd806111510a8ec6c2bdfeb8b75298b665011fe7f1ecc91c3dc"
+            "sha256": "5c691c5dc42200c849cc5d5819660f8af7b428f15cc8b2364c42ee3f398ac676"
         },
         {
             "page": "integrations/woocommerce/shipping-examples",
@@ -2024,7 +2024,7 @@
             },
             "width": 1440,
             "height": 1000,
-            "sha256": "de65035754d7d2be2cbc4de26241080aec11c5331c37d5729cf0f03b12c86139"
+            "sha256": "a404de03c12fa5040af9370bdabce363bf664132c3b3df33a24584f4d363e44f"
         },
         {
             "page": "integrations/woocommerce/shipping-examples",
@@ -2048,7 +2048,7 @@
             },
             "width": 1440,
             "height": 1000,
-            "sha256": "d2c2765204482c4fb9ecc8b603533d710daa48464b632bd62743eeca6d967314"
+            "sha256": "dff0a80786708f652ee2ddaaf2d7ef6a4743807c00f9fe49ed5070037604cc3a"
         },
         {
             "page": "integrations/woocommerce/shipping-examples",
@@ -2075,7 +2075,7 @@
             },
             "width": 1440,
             "height": 1000,
-            "sha256": "0b18464e5cc34878e08ad702bae111e2493f5c959587bc25bb578802be69b425"
+            "sha256": "2f76c1f969c723bc6225b23925554689cab3e49cd08eb5b44f6d6b269f3830b3"
         },
         {
             "page": "integrations/woocommerce/shipping-examples",
@@ -2099,7 +2099,7 @@
             },
             "width": 1440,
             "height": 1000,
-            "sha256": "ca88cde04d55854999dd907707d0a5b1903b63fccc30e75e1058c0e6623a2884"
+            "sha256": "60c1f11e893c084c8c4df64e2b3d970ad74f17a495c5f2cf6efe6a234acf7bf8"
         },
         {
             "page": "integrations/woocommerce/troubleshooting",
@@ -2126,7 +2126,7 @@
             },
             "width": 560,
             "height": 1134,
-            "sha256": "e3dfec28c1a97d62e20af0c0ff2e7f62f66ce6b2b60bc3ac20aed4ef67e53f31"
+            "sha256": "7174c0e8a0a5696960ec1dc71b9679baf31190f3d3966468475215e434833b9c"
         },
         {
             "page": "integrations/woocommerce/troubleshooting",
@@ -2153,7 +2153,7 @@
             },
             "width": 1440,
             "height": 1000,
-            "sha256": "d36ba9f9efd2a1dffaed86227efad9034d9a366f85b4e586ae3164224e66ad19"
+            "sha256": "7ab43e62f4bcc3aa76dd826a791926d07fd55074ec082b45d219e35a838ac544"
         },
         {
             "page": "integrations/woocommerce/troubleshooting",
@@ -2180,7 +2180,7 @@
             },
             "width": 560,
             "height": 892,
-            "sha256": "b99edabcc88d7e7fd0fe26475abf95786c26674985cf36079377e1f3d4b03d25"
+            "sha256": "3288078822f8f6bc0cf9cea0b73f5e76b207bfc728670654798b8fd7b381f139"
         },
         {
             "page": "integrations/woocommerce/troubleshooting",
@@ -2207,7 +2207,7 @@
             },
             "width": 560,
             "height": 1182,
-            "sha256": "90dd543d9c2d5cbd2ae496013b99ffa3e07397824d0e9a2e985e0e94211540a4"
+            "sha256": "cf845109b262a16b6eab067e931b24eaf12ee090533e635bc2d49da68e1c6d6a"
         },
         {
             "page": "integrations/woocommerce/tracking",
@@ -2234,7 +2234,7 @@
             },
             "width": 560,
             "height": 1106,
-            "sha256": "0ff7af7f690993b2d6e334bd9f70e13ab32d9843ea48cd556e97250258d97fa2"
+            "sha256": "efe368c1abfa18b380f6a2bac9002102e4307c7c3e0f89dc1d65898347ee070d"
         },
         {
             "page": "integrations/woocommerce/tracking",
@@ -2258,7 +2258,7 @@
             },
             "width": 560,
             "height": 1186,
-            "sha256": "2bae2ba4b644ea2483b3f2e3a56e62398d09b5d83fd2b1efe82e7dd04864dc6d"
+            "sha256": "c3d7fd1ab18892ba2ed202d7078ad93aee8c8c96471a5e119a270fc8ce5b7e88"
         },
         {
             "page": "integrations/woocommerce/shipping-methods",
@@ -2282,7 +2282,7 @@
             },
             "width": 1440,
             "height": 1000,
-            "sha256": "7312cd88352d2d3004aae9813fcc1cc66e8852c13950ed2c400e360732228d2a"
+            "sha256": "4ddd4914347e7c7e1f32f48e6f1c64f9acd16cb789731a7a50cfbd6af568a6c3"
         },
         {
             "page": "integrations/woocommerce/shipping-methods",
@@ -2306,7 +2306,7 @@
             },
             "width": 1440,
             "height": 1000,
-            "sha256": "d31b0380b6a52518e2543ac925add77e6f2cfdc04de9a5f9a7b2008bd855836b"
+            "sha256": "adeece88af52ce7d603e1d170e420719849e66b5f742e0eab6d8aa9dc3588741"
         },
         {
             "page": "integrations/woocommerce/shipping-methods",
@@ -2330,7 +2330,7 @@
             },
             "width": 1440,
             "height": 1000,
-            "sha256": "3a0cf700517962e0ae37f104f0357b1951d7eb75752e0bd808a706bbc59f63eb"
+            "sha256": "b1f89ca3c6fdeb7f81e5f13f95687d280065665b1cb22cb529abca7bc4f462f6"
         },
         {
             "page": "integrations/woocommerce/shipping-methods",
@@ -2354,7 +2354,7 @@
             },
             "width": 1440,
             "height": 1000,
-            "sha256": "5e35840f262181e16ed4d6d6e3004c183ec42ee67375280f105a00168166b309"
+            "sha256": "fb1aea85977aa5183c92ece3b6f329ed9b2848038c5ba25fdcabf26d84cfac68"
         },
         {
             "page": "integrations/woocommerce/shipping-methods",
@@ -2378,7 +2378,7 @@
             },
             "width": 1440,
             "height": 1000,
-            "sha256": "2008b17addbd208a5445acdddebb8ac9e006fba064387642085b6398acddc78f"
+            "sha256": "1287c87b033497df7fc3cdee18a8d90998a90fccc465abb556bb7b674cd85428"
         },
         {
             "page": "integrations/woocommerce/shipping-methods",
@@ -2402,7 +2402,7 @@
             },
             "width": 1440,
             "height": 1000,
-            "sha256": "9d7f88de1c1c1bc9fdb55caa8d3cf5b5c34c0d4c3743968c375f92da53fbd1bd"
+            "sha256": "00087ca4f5772787b14f4fdf74a2ea618880df8e01df070ccc50b4fdd91158e4"
         },
         {
             "page": "integrations/woocommerce/shipping-methods",
@@ -2426,7 +2426,7 @@
             },
             "width": 1440,
             "height": 1000,
-            "sha256": "84454be203daebfa57cfd565b3fc58a349fdbf68d612e8fdaa1e4c8b1ba72edc"
+            "sha256": "607dd379ffae3e509188cb5ff1caf28e9ac2b5f85e10c91c1878ac23069e3c67"
         },
         {
             "page": "integrations/woocommerce/shipping-labels",
@@ -2453,7 +2453,7 @@
             },
             "width": 560,
             "height": 1410,
-            "sha256": "0c1486c62bd57b7cf629148cffbc07869eab66a3ba09a1f9ef264f502a8c64b0"
+            "sha256": "f82d2e83c8f9e4f0eef1e21f76be1c2fcea2337265c99253527d4fdc7de8cd7f"
         },
         {
             "page": "integrations/woocommerce/shipping-labels",
@@ -2480,7 +2480,7 @@
             },
             "width": 560,
             "height": 932,
-            "sha256": "12b1b0e9c608adcdbb2de21a3e7ee5abdce5b4a0168732e95fad1e3de08c107b"
+            "sha256": "07db06aa25174b4a0663d23a94f70f2be75564452819d13aa02c3933e06dc6d1"
         },
         {
             "page": "integrations/woocommerce/shipping-labels",
@@ -2507,7 +2507,7 @@
             },
             "width": 560,
             "height": 924,
-            "sha256": "dbbd5f7043b2b62c30f96f49f3b021ef129041e8736966a2bb4cfc26476cef90"
+            "sha256": "21daa127e03fee723c9d751df0ec18948978caf590ea33ed8ae2924e48d24fa6"
         },
         {
             "page": "integrations/woocommerce/shipping-labels",
@@ -2534,7 +2534,7 @@
             },
             "width": 560,
             "height": 1016,
-            "sha256": "fd1047dcaea063fbc7412b6df9d62c51a4eeaa15e84c084f230b418734ae75cb"
+            "sha256": "05b154d8823e85a4e2dd0bc77e7c9333ba18d75fab7ec3be935be1b1ef15afdb"
         },
         {
             "page": "integrations/woocommerce/shipping-labels",
@@ -2561,7 +2561,7 @@
             },
             "width": 560,
             "height": 924,
-            "sha256": "40c5a080f22d74a08553f94c96b12326997b9b7ec214367d28c0735b2a716537"
+            "sha256": "64ec79d755e2957eb1c11bd988cb09edd6535f2ff7983d29beadae2eab4b4f7a"
         },
         {
             "page": "integrations/woocommerce/return-shipping",
@@ -2585,7 +2585,7 @@
             },
             "width": 1440,
             "height": 1000,
-            "sha256": "0c9468cfc510bc6c95c16884024f46319ab8a840b6aa8978004fa5bd2f6ae558"
+            "sha256": "2bf04f73c0d1be3d40550c9ecffe838e8d3c525eaccfc052532e839255945cd9"
         },
         {
             "page": "integrations/woocommerce/return-shipping",
@@ -2612,7 +2612,7 @@
             },
             "width": 560,
             "height": 1802,
-            "sha256": "33df3050eadabbdc4ed727aabbfd0904dae288f79e6cfb885bc92371cdc42de3"
+            "sha256": "a7be062fe2e0103995715e536cd435ad12f12c12bae434327bfb9ac0266eb4a2"
         },
         {
             "page": "integrations/woocommerce/return-shipping",
@@ -2639,7 +2639,7 @@
             },
             "width": 560,
             "height": 1530,
-            "sha256": "100a50cb9ca93948b79d0328005995e209439767919f5326b35dc573a00d0534"
+            "sha256": "c38c0f4a6e525bdd86bf2825e6d13461a3ad7cf164be37de7d9834a4c3e1c5fa"
         },
         {
             "page": "integrations/woocommerce/return-shipping",
@@ -2666,7 +2666,7 @@
             },
             "width": 560,
             "height": 1410,
-            "sha256": "e298149a75b7e67c051e10a077cbfb0406b3ab5688288fdd3bca7bce20386e41"
+            "sha256": "e330073534e91d582052905d8f2853c446e4ab2fe04de4f000ac39d065da450a"
         },
         {
             "page": "integrations/woocommerce/return-shipping",
@@ -2693,7 +2693,7 @@
             },
             "width": 560,
             "height": 924,
-            "sha256": "9aac79acc4863a43527f829ca2ff2916b6f4a79f7fb54ba9914a9c2e2bea54d1"
+            "sha256": "704eb809d64325cf906c5682289c673b6d97d2bdfcf10e378c6e3eab6b6b0837"
         },
         {
             "page": "integrations/woocommerce/installation",
@@ -2720,7 +2720,7 @@
             },
             "width": 1440,
             "height": 1000,
-            "sha256": "a183f726bfbe83617bda442cc1d9ed96c862452c469a33703f7f3a7d5b49ab71"
+            "sha256": "3dc469f27a67487c6f35b7a2c5e880ec3656687dc2f2ab401a1f167ef425c40c"
         },
         {
             "page": "integrations/woocommerce/installation",
@@ -2747,7 +2747,7 @@
             },
             "width": 1440,
             "height": 1000,
-            "sha256": "6c78be4449e660983afda7e56acb0fad053082e8a028e3748b2e1eb97bb2e0b1"
+            "sha256": "d1c6c072829169e7c8c9397fea9bfaf3f04abd90552e58fb25d52a3c5149726f"
         },
         {
             "page": "integrations/woocommerce/shipping-zones",
@@ -2771,7 +2771,7 @@
             },
             "width": 1440,
             "height": 1000,
-            "sha256": "34a465f886f1b970bd5d270b23c6eec5ae51e3b342f1494223893a2c88328f41"
+            "sha256": "c4cbeb920426bde2ffc70dd52061ef6c2ca64e3ff9062224cdd0fe90a425bfe3"
         },
         {
             "page": "integrations/woocommerce/shipping-zones",
@@ -2795,7 +2795,7 @@
             },
             "width": 1440,
             "height": 1000,
-            "sha256": "3c3510511173a692ae7ae4f4cd7fbaaa8455359016f2aa9d3691312ac4a68aae"
+            "sha256": "72938f3c779756431a73b7accbe2dac172368b3924737f9799aca2e089b0af15"
         },
         {
             "page": "integrations/woocommerce/shipping-zones",
@@ -2819,7 +2819,7 @@
             },
             "width": 1440,
             "height": 1000,
-            "sha256": "2b09ff10a78cbdf117f9540a6f59bd80696420d563f8e6afd44b50501ea9c5c3"
+            "sha256": "ca5008b49cb1491da4cfb56bed9ad4b50c71f7fec379899f274a85ea04210ba0"
         },
         {
             "page": "integrations/woocommerce/pickup-points",
@@ -2846,7 +2846,7 @@
             },
             "width": 1440,
             "height": 1000,
-            "sha256": "8b99ca5ead1252492123e6d439900c21918da51fc820ab1b8ee0b0b2557400a5"
+            "sha256": "2e3a5f4cebffcc17b41e1ba59c5ae04ca9042cbbffd784a3712a4cc4c106cee4"
         },
         {
             "page": "integrations/woocommerce/pickup-points",
@@ -2873,7 +2873,7 @@
             },
             "width": 1440,
             "height": 1000,
-            "sha256": "84e563bcee5ace07526a2f95f4e79999a2cabdc29e39c5cf1a2b598b850fa83d"
+            "sha256": "b1bb7c251222ddb1655b08d7ba669cf895bd826f6558213554acc113ed99e24d"
         },
         {
             "page": "integrations/woocommerce/pickup-points",
@@ -2900,7 +2900,7 @@
             },
             "width": 1440,
             "height": 1000,
-            "sha256": "301170088b9481d4bc1dd6c94ae55dfd1ce3ff9c9ed9f04a8f067986757c4b7f"
+            "sha256": "3c1c5f70d2b487e6bd5782994af573cd7f916767e537fc08f64b9dab324e47a6"
         },
         {
             "page": "integrations/woocommerce/pickup-points",
@@ -2927,7 +2927,7 @@
             },
             "width": 1440,
             "height": 1000,
-            "sha256": "c5464df4c224fb36d37ff0efd1100782cb19ca3aa9a514af7c556a2450b07a35"
+            "sha256": "9745ec0b75b3abd7463a6e2d2102caa38c995ac62f9c051064b2dd30ac2653bd"
         },
         {
             "page": "integrations/woocommerce/pickup-points",
@@ -2954,7 +2954,7 @@
             },
             "width": 1440,
             "height": 1000,
-            "sha256": "c41957156bdc2ad980e5444c75e7d107b8c926363aefe5564b8549f61b24d6d9"
+            "sha256": "78978110e272e51cb9e9dd4019607ae797dc00da8e3755ffc1f9fa91bb8efaa1"
         },
         {
             "page": "integrations/woocommerce/pickup-points",
@@ -2981,7 +2981,7 @@
             },
             "width": 1440,
             "height": 1000,
-            "sha256": "78f76f0b57e4aee09c4520395a1633afbd710f5c9b9bf15f4d429c4253815aa6"
+            "sha256": "ee173f3becb88fd4645af1b62a7d310c1ca6293cda6cb4e570fa22ea1cc062cd"
         },
         {
             "page": "integrations/woocommerce/colli-shipments",
@@ -3008,7 +3008,7 @@
             },
             "width": 560,
             "height": 1212,
-            "sha256": "f7cb10534a2bca2825e8abf6254cff47854479e9c81b0e0feec37c0ac3d66ba0"
+            "sha256": "3916f80893c227ae39515e11d16bd00ce80aff590f4d7d3a50496fb0600d204b"
         },
         {
             "page": "integrations/woocommerce/colli-shipments",
@@ -3035,7 +3035,7 @@
             },
             "width": 560,
             "height": 1584,
-            "sha256": "6b45662fc281e24947d06c9e57e936254c4418a79713c308bb3f06e90a96179c"
+            "sha256": "6ff2bfe05af6a3f6460e0f4ddffc99280034bccc7986089f36033cf25166ea45"
         },
         {
             "page": "integrations/woocommerce/colli-shipments",
@@ -3062,7 +3062,7 @@
             },
             "width": 560,
             "height": 924,
-            "sha256": "1f0f5bcf6a36cb03b426921b4bf25446bc844ac698ac14dedf0f79d53a9c152a"
+            "sha256": "8486cc0016d17d4759c73b4bcb0da131e3f7806d770e7663445ae6bd686a2242"
         },
         {
             "page": "integrations/woocommerce/colli-shipments",
@@ -3089,7 +3089,7 @@
             },
             "width": 560,
             "height": 1584,
-            "sha256": "731d47a6a40e0a9130316012a61c2597349008173d94ecc3bbb3f98b88a1bf5c"
+            "sha256": "28ebdb58f3a30812b6a8aac25777a8c98a2708c7151a7e7323c62eb84f6e5bcf"
         },
         {
             "page": "integrations/woocommerce/connection",
@@ -3116,7 +3116,7 @@
             },
             "width": 1440,
             "height": 1000,
-            "sha256": "bcf5242a679c509abe145b72127fc72ef8bb5a9e540558fcd64f05b1146eedac"
+            "sha256": "c663f09f1bd7cf91bfe053971f965d2858c4db6b51952ef1f901664ea591be72"
         },
         {
             "page": "integrations/woocommerce/connection",
@@ -3143,7 +3143,7 @@
             },
             "width": 1440,
             "height": 1000,
-            "sha256": "120992b693ece5fcdc98adb8be67f607f57ac045f06bf683960ca7a4ddc3b686"
+            "sha256": "5fa13ed7372bbd80d86646bd1a3935e5a6d18db45d4f89464ab9e6da1c70c4b9"
         },
         {
             "page": "integrations/woocommerce/connection",
@@ -3170,7 +3170,7 @@
             },
             "width": 1440,
             "height": 1000,
-            "sha256": "17d71ca607f2c60e37315b7ac20e2a44586ad3ce33f42f4456ec66aeb9f84336"
+            "sha256": "08399e1f2f6d2a0d090b6c1da1045e7f73d0bb39db8cdc9a976570d723747d21"
         },
         {
             "page": "integrations/woocommerce/customs",
@@ -3197,7 +3197,7 @@
             },
             "width": 1440,
             "height": 1000,
-            "sha256": "5d0def3c74aea1d53a8e58adc7cdb047e52679791567d2db5b7ca1ff52784f45"
+            "sha256": "8faa8b2f9700a76a1aa5ca6c941ed5d422ce29582cf0311f84b48cdb6d024648"
         },
         {
             "page": "integrations/woocommerce/shipping-examples",
@@ -3224,7 +3224,7 @@
             },
             "width": 1440,
             "height": 1000,
-            "sha256": "700f9b3d748cdc51fd3bea6ef3447eb1de9b966aace6a7bde0c4e7ce98103ea1"
+            "sha256": "72f40463fc3c5cfb2253635660c297a03ba19a1e2599a4c841c034ac3152c096"
         },
         {
             "page": "integrations/woocommerce/shipping-examples",
@@ -3248,7 +3248,7 @@
             },
             "width": 1440,
             "height": 1000,
-            "sha256": "f2e389d2f52fe42c1d8d79cf9b23b612bab65c54867bfb5b09db4b6d0818f8bd"
+            "sha256": "3c585b705d6cf7af72087fc9cb6f3e758ff86426edbee6ff7b97c6080f68206b"
         },
         {
             "page": "integrations/woocommerce/shipping-examples",
@@ -3272,7 +3272,7 @@
             },
             "width": 1440,
             "height": 1000,
-            "sha256": "50ae6495502fff1cc3adddbfe3759a488ecbc49831463acc05477df136c513da"
+            "sha256": "572fe53002e0302b562621f12c1a78233d9cde1b305ffcc0260eabf53e24f663"
         },
         {
             "page": "integrations/woocommerce/shipping-examples",
@@ -3299,7 +3299,7 @@
             },
             "width": 1440,
             "height": 1000,
-            "sha256": "cb3950fe0a0b84e595704534696e792a457929de1f9473a5921247a0f322f874"
+            "sha256": "acad6100412c0d8dde42ab850821f3bf2ef47b277d311a8caa7c3f36db2cedf1"
         },
         {
             "page": "integrations/woocommerce/shipping-examples",
@@ -3323,7 +3323,7 @@
             },
             "width": 1440,
             "height": 1000,
-            "sha256": "5629077f77a3e91cfda2c3723ecc21a4238c43d49fbf3d39d2dd4c4718b5188d"
+            "sha256": "9749de06f3c2dbd829324bd545cc9339e86dfa21b5194e7dc2872448f4064c9a"
         },
         {
             "page": "integrations/woocommerce/shipping-examples",
@@ -3350,7 +3350,7 @@
             },
             "width": 1440,
             "height": 1000,
-            "sha256": "78f76f0b57e4aee09c4520395a1633afbd710f5c9b9bf15f4d429c4253815aa6"
+            "sha256": "2b2511a8046e4af927b849b3a4764fb455c3fd0ef2aaf8ed35efd85d14345376"
         },
         {
             "page": "integrations/woocommerce/shipping-examples",
@@ -3374,7 +3374,7 @@
             },
             "width": 1440,
             "height": 1000,
-            "sha256": "3c2cd0d80bc347e3d02e906bac04d3d840952c15e252622c84a05d5afa0abcd6"
+            "sha256": "0e5244f33571e49c2ef4ef96fe98cd5b1406e40dbcd41ec6bb8c1d770ce7e7f2"
         },
         {
             "page": "integrations/woocommerce/shipping-examples",
@@ -3398,7 +3398,7 @@
             },
             "width": 1440,
             "height": 1000,
-            "sha256": "ab10c54b0c9fd6ec900b0f78ab5c5cd0517d3e64d5401fa351873eceb821bb0e"
+            "sha256": "b50599ff2f51acc6ab373f7dadcf6d8557ee28fff8f69130c20d2d0e5294a8cb"
         },
         {
             "page": "integrations/woocommerce/shipping-examples",
@@ -3425,7 +3425,7 @@
             },
             "width": 1440,
             "height": 1000,
-            "sha256": "e99f068bb65f9b85c87424694035eb1a2f9b8ba7a350db2b26960be10c6b5bd1"
+            "sha256": "8a9143899c59b2ce07193d5104b1c59a2d6612e9d53d01f4d716a8d14eea0cbb"
         },
         {
             "page": "integrations/woocommerce/shipping-examples",
@@ -3449,7 +3449,7 @@
             },
             "width": 1440,
             "height": 1000,
-            "sha256": "48881ac86b2ac22207e00978a1ec6b5a0f106e70ad58352f1975bdc4ec7c59d0"
+            "sha256": "ec1ffd4fb409601a1cdc68298ee0c652c79ed51ae28a9d32c5b97d49765e5468"
         },
         {
             "page": "integrations/woocommerce/troubleshooting",
@@ -3476,7 +3476,7 @@
             },
             "width": 560,
             "height": 1134,
-            "sha256": "69c0a17723fa2859a3535bd52ffa1f944cffed37762a421154063264a233d2e7"
+            "sha256": "e07785df68eeb1f57c9ffd30daf6628b4fbbeb99215fc85158e2f917c2ba220b"
         },
         {
             "page": "integrations/woocommerce/troubleshooting",
@@ -3503,7 +3503,7 @@
             },
             "width": 1440,
             "height": 1000,
-            "sha256": "6309681b687a23882dd420bad2b801647781c50510766aaff1dd8ff12afce21c"
+            "sha256": "25f413db316ec5df403b631533dd37ebbf1553490513b35debd7869ad9376881"
         },
         {
             "page": "integrations/woocommerce/troubleshooting",
@@ -3530,7 +3530,7 @@
             },
             "width": 560,
             "height": 892,
-            "sha256": "b99edabcc88d7e7fd0fe26475abf95786c26674985cf36079377e1f3d4b03d25"
+            "sha256": "3288078822f8f6bc0cf9cea0b73f5e76b207bfc728670654798b8fd7b381f139"
         },
         {
             "page": "integrations/woocommerce/troubleshooting",
@@ -3557,7 +3557,7 @@
             },
             "width": 560,
             "height": 1182,
-            "sha256": "90dd543d9c2d5cbd2ae496013b99ffa3e07397824d0e9a2e985e0e94211540a4"
+            "sha256": "cf845109b262a16b6eab067e931b24eaf12ee090533e635bc2d49da68e1c6d6a"
         },
         {
             "page": "integrations/woocommerce/tracking",
@@ -3584,7 +3584,7 @@
             },
             "width": 560,
             "height": 1106,
-            "sha256": "83fe22cf20bf7854a4de3b32136d550aea797d18edf93346a90b91a33775ca15"
+            "sha256": "c4498c115e01b26fc0d39fb08759cfc4e9f66cd93a3ee65dc5bf88b4e5f4ede4"
         },
         {
             "page": "integrations/woocommerce/tracking",
@@ -3608,7 +3608,7 @@
             },
             "width": 560,
             "height": 1258,
-            "sha256": "3909eb5771933117c5834e218f9d81a6fb84f18dcce1bd480cb087e2d71dee6e"
+            "sha256": "ee1b82c023603a49ce3c8c9fe101dccc51397f1865b36a32b473bfbac85f46dd"
         },
         {
             "page": "integrations/woocommerce/shipping-methods",
@@ -3632,7 +3632,7 @@
             },
             "width": 1440,
             "height": 1000,
-            "sha256": "a57d24ddff300c2e279e38658fd17f327019e4cc0ef7621cbe8ae0d2953aa6a3"
+            "sha256": "e44dd191179b298bbc959a5fdd30da5f58ce8f5e07d9fb2df804f8f42668f376"
         },
         {
             "page": "integrations/woocommerce/shipping-methods",
@@ -3656,7 +3656,7 @@
             },
             "width": 1440,
             "height": 1000,
-            "sha256": "00e965e3aaa5d7fdb12b6692609208c2e74b46375806c53277e55f6d576d45f3"
+            "sha256": "807429dbf0f52f4313b0d3db74643439bf9aa1fd371535daee5ad1a1b2755973"
         },
         {
             "page": "integrations/woocommerce/shipping-methods",
@@ -3680,7 +3680,7 @@
             },
             "width": 1440,
             "height": 1000,
-            "sha256": "ab5213b0c9a7d7e05ee0fd0e40b029ed5554ac577e33e17e5b8b4a859136edac"
+            "sha256": "0fc6c152d5a1e9e0cfd87c59da7b2d529a9d554a8cf5df1c04c49bb47950258b"
         },
         {
             "page": "integrations/woocommerce/shipping-methods",
@@ -3704,7 +3704,7 @@
             },
             "width": 1440,
             "height": 1000,
-            "sha256": "39b3803704da8179575ef0d61560b74cd7bb643fc4d573ddcfa4f98dc53aa4ba"
+            "sha256": "b42a89924ea4b50b77776a8c2c098655dc9126a9f3657966eed7b79537d470fe"
         },
         {
             "page": "integrations/woocommerce/shipping-methods",
@@ -3728,7 +3728,7 @@
             },
             "width": 1440,
             "height": 1000,
-            "sha256": "bdb0649bd9e1b6f8aacde181235a3c08a7e59b8f273f3eac43903bfc187ca543"
+            "sha256": "e4cd9d2a7cacb8e4d22e24df9604ed0998528a6785765a23c5208bb43f151cf0"
         },
         {
             "page": "integrations/woocommerce/shipping-methods",
@@ -3752,7 +3752,7 @@
             },
             "width": 1440,
             "height": 1000,
-            "sha256": "e24c6ed8ada56dc63a3dfb35e288441be9b6e36d081a74ea1685cce91e8839de"
+            "sha256": "d4e6708ade8c6b69c7be9280c7736aba9c1d4dec60395c5db65887804f0f545b"
         },
         {
             "page": "integrations/woocommerce/shipping-methods",
@@ -3776,7 +3776,7 @@
             },
             "width": 1440,
             "height": 1000,
-            "sha256": "0c9d74b7e21b9c2aab7c20bbe2557d72ef289e48eee1c7bd06315b8b0b48daa6"
+            "sha256": "3f0a8184155a4cde3f15b3bac80e767be61f630e24be3308cdddbaff2f67efbc"
         },
         {
             "page": "integrations/woocommerce/shipping-labels",
@@ -3803,7 +3803,7 @@
             },
             "width": 560,
             "height": 1410,
-            "sha256": "163aa90a516cd4107278a23e20c65a6bb8d773e69409698db2e6bf54b0e1cdde"
+            "sha256": "37edc856fa7102f6fed720487b98a1ad8501b73125d4ab91d9c3f576cf12f73c"
         },
         {
             "page": "integrations/woocommerce/shipping-labels",
@@ -3830,7 +3830,7 @@
             },
             "width": 560,
             "height": 932,
-            "sha256": "12b1b0e9c608adcdbb2de21a3e7ee5abdce5b4a0168732e95fad1e3de08c107b"
+            "sha256": "07db06aa25174b4a0663d23a94f70f2be75564452819d13aa02c3933e06dc6d1"
         },
         {
             "page": "integrations/woocommerce/shipping-labels",
@@ -3857,7 +3857,7 @@
             },
             "width": 560,
             "height": 924,
-            "sha256": "7b0023b4a4b39dc325c88638b029e10ee5318786e64ddefcb3e5cb273b6dd103"
+            "sha256": "d76cd774db12e8ea4fbfbaa61e768ae54f28b2d2fe472f22b5e26b4655223e1b"
         },
         {
             "page": "integrations/woocommerce/shipping-labels",
@@ -3884,7 +3884,7 @@
             },
             "width": 560,
             "height": 1016,
-            "sha256": "fd1047dcaea063fbc7412b6df9d62c51a4eeaa15e84c084f230b418734ae75cb"
+            "sha256": "05b154d8823e85a4e2dd0bc77e7c9333ba18d75fab7ec3be935be1b1ef15afdb"
         },
         {
             "page": "integrations/woocommerce/shipping-labels",
@@ -3911,7 +3911,7 @@
             },
             "width": 560,
             "height": 924,
-            "sha256": "40c5a080f22d74a08553f94c96b12326997b9b7ec214367d28c0735b2a716537"
+            "sha256": "64ec79d755e2957eb1c11bd988cb09edd6535f2ff7983d29beadae2eab4b4f7a"
         },
         {
             "page": "integrations/woocommerce/return-shipping",
@@ -3935,7 +3935,7 @@
             },
             "width": 1440,
             "height": 1000,
-            "sha256": "bd1a1d3304dd0f435ab445fc05a716a5d871859a90b8fb96c91b2d5fc977fe33"
+            "sha256": "d242c7b851e3b200d4275f492d4bfeae69012e407632c3be6214d3a03bd17663"
         },
         {
             "page": "integrations/woocommerce/return-shipping",
@@ -3962,7 +3962,7 @@
             },
             "width": 560,
             "height": 1802,
-            "sha256": "d61492a8a1e7ece1a75204da3bd8a2b2fe04c076d750227189dce5dfac3eabb8"
+            "sha256": "fd7ba0c7d520c58c1f16203e3b969d9db2501ec826d3c0987351e6fc74f7fee9"
         },
         {
             "page": "integrations/woocommerce/return-shipping",
@@ -3989,7 +3989,7 @@
             },
             "width": 560,
             "height": 1530,
-            "sha256": "61aecf05221da4ab613721a00abc6fd1245246af11196a7355983efdce75b71f"
+            "sha256": "3911492cc24b06bb3ac043682a9f216c5c62f19bf5e7ff19c84891a517bf6756"
         },
         {
             "page": "integrations/woocommerce/return-shipping",
@@ -4016,7 +4016,7 @@
             },
             "width": 560,
             "height": 1410,
-            "sha256": "ce7ee527f1417e3d3cf2d7932ba6d02303015d17e98b55955d457e79cd03ee92"
+            "sha256": "29cc7ab135e8cdcf5963376682cf8ed5860ef08c6f97f2be1ee7afb7be87a5b7"
         },
         {
             "page": "integrations/woocommerce/return-shipping",
@@ -4043,7 +4043,7 @@
             },
             "width": 560,
             "height": 924,
-            "sha256": "9aac79acc4863a43527f829ca2ff2916b6f4a79f7fb54ba9914a9c2e2bea54d1"
+            "sha256": "704eb809d64325cf906c5682289c673b6d97d2bdfcf10e378c6e3eab6b6b0837"
         },
         {
             "page": "integrations/woocommerce/installation",
@@ -4070,7 +4070,7 @@
             },
             "width": 1440,
             "height": 1000,
-            "sha256": "c098263d84e43ac93278c438144fcfb71b7206d9f27c3b6c696e4519460f6c3f"
+            "sha256": "b651697805d526ba82a3f985ecb0647b850e1c43e579305406d56e1ea12fdd1a"
         },
         {
             "page": "integrations/woocommerce/installation",
@@ -4097,7 +4097,7 @@
             },
             "width": 1440,
             "height": 1000,
-            "sha256": "7d401ffeb4b5d0f31bfa0a957029d6ab802229fd50cfbfff476ae300a08d0c6b"
+            "sha256": "470d51f680039286c6034b0e683e2eb26762cdefe079ce00e4f9f03af452e883"
         },
         {
             "page": "integrations/woocommerce/shipping-zones",
@@ -4121,7 +4121,7 @@
             },
             "width": 1440,
             "height": 1000,
-            "sha256": "1fc84a5e78b19a549db58c003195a6d6ea0b03df003cc15fe8d588f9075d3f89"
+            "sha256": "52b2225fa61393d525157905c2b1190e7532ca48e484200beb69bc50a8c8ed04"
         },
         {
             "page": "integrations/woocommerce/shipping-zones",
@@ -4145,7 +4145,7 @@
             },
             "width": 1440,
             "height": 1000,
-            "sha256": "8c9cf08c04f53155acfe20ea5bc1bdad1589cc47a3e1ada81e4d195ec0b378b3"
+            "sha256": "115af75272b7b37ef0e7d5513267c0f420c0b7f92a4565a359e70eedadcc5c05"
         },
         {
             "page": "integrations/woocommerce/shipping-zones",
@@ -4169,7 +4169,7 @@
             },
             "width": 1440,
             "height": 1000,
-            "sha256": "5de911c408953d0a7eca70c717d1a6945a23a24a00b89b5719bfb5749553f7c1"
+            "sha256": "b5bc22c4884c02b885f30f2fcc28a61707c0e5cb3bc1bb81c1da9c75152fa5f1"
         }
     ],
     "missing": [],
