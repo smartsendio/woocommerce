@@ -68,6 +68,7 @@ it('documents saving a synthetic API token', function () {
         ->navigate(docs_connection_settings_url())
         ->fill('#woocommerce_smart_send_shipping_api_token', 'docs-example-token-not-valid-for-real-api')
         ->click('button[name="save"]')
+        ->assertVisible('#message.updated')
         ->assertValue('#woocommerce_smart_send_shipping_api_token', 'docs-example-token-not-valid-for-real-api')
         ->assertVisible('#woocommerce_smart_send_shipping_api_token_validate');
 

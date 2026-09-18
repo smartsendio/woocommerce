@@ -43,7 +43,8 @@ it('documents adding Smart Send to the shipping zone', function () {
         ->click('label[for="smart_send_shipping"]')
         ->assertVisible('.wc-backbone-modal #btn-next')
         ->click('.wc-backbone-modal #btn-next')
-        ->assertSee('Smart Send');
+        ->assertNotPresent('.wc-backbone-modal')
+        ->assertSeeIn('.wc-shipping-zone-method-rows .wc-shipping-zone-method-title', 'Smart Send');
     highlight_element($page, '.wc-shipping-zone-methods');
     capture_doc_screenshot($page, 'methods', 'method-added');
 });
