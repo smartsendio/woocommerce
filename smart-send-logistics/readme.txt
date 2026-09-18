@@ -452,6 +452,7 @@ No - this is by design. Neither deactivating nor uninstalling the plugin deletes
 * Parcel allocations now use WooCommerce order-item IDs, keeping repeated purchases of the same product separate and requiring every ordered unit to be allocated exactly once. Item quantities and discounted amounts are aggregated per line and parcel, with rounding that preserves line totals
 * Replace the old product-ID parcel split format with a canonical parcel plan. Existing splits must be reset and entered again; parcel weights and dimensions remain per booking
 * Deleted products and variations display as "Deleted" without a SKU. Existing booked labels remain accessible; new bookings require an explicit parcel weight when a product's weight is unavailable
+* Read and save product customs fields through WooCommerce product objects; preserve quoted text and leading-zero HS codes, ignore malformed inputs, and keep variation overrides intact
 * New filter smart_send_fulfillment_shipping_methods: restrict the shipping methods the order screen's "Smart Send" box offers in its method drop-downs, per order and per direction - see the Developers section
 * Minimum required WordPress version raised to 6.5
 * Minimum required WooCommerce version raised from 4.7 to 8.2
