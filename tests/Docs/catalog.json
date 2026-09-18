@@ -1,6 +1,6 @@
 {
   "checkout-block/pickup-selected": {
-    "page": "integrations/woocommerce/pickup-points",
+    "page": "integrations/woocommerce/shipping-methods",
     "anchor": "pickup-selected",
     "title": {
       "en": "Selected pickup point in Checkout block",
@@ -13,7 +13,7 @@
     }
   },
   "checkout-block/pickup-selector": {
-    "page": "integrations/woocommerce/pickup-points",
+    "page": "integrations/woocommerce/shipping-methods",
     "anchor": "pickup-selector",
     "title": {
       "en": "Pickup selection in Checkout block",
@@ -26,7 +26,7 @@
     }
   },
   "checkout-block/shipping-methods": {
-    "page": "integrations/woocommerce/pickup-points",
+    "page": "integrations/woocommerce/shipping-methods",
     "anchor": "shipping-methods",
     "title": {
       "en": "Shipping methods in Checkout block",
@@ -39,7 +39,7 @@
     }
   },
   "checkout-classic/pickup-selected": {
-    "page": "integrations/woocommerce/pickup-points",
+    "page": "integrations/woocommerce/shipping-methods",
     "anchor": "pickup-selected",
     "title": {
       "en": "Selected pickup point in classic checkout",
@@ -52,7 +52,7 @@
     }
   },
   "checkout-classic/pickup-selector": {
-    "page": "integrations/woocommerce/pickup-points",
+    "page": "integrations/woocommerce/shipping-methods",
     "anchor": "pickup-selector",
     "title": {
       "en": "Pickup selection in classic checkout",
@@ -65,7 +65,7 @@
     }
   },
   "checkout-classic/shipping-methods": {
-    "page": "integrations/woocommerce/pickup-points",
+    "page": "integrations/woocommerce/shipping-methods",
     "anchor": "shipping-methods",
     "title": {
       "en": "Shipping methods in classic checkout",
@@ -78,7 +78,7 @@
     }
   },
   "colli/allocation-error": {
-    "page": "integrations/woocommerce/colli-shipments",
+    "page": "integrations/woocommerce/shipping-labels",
     "anchor": "allocation-error",
     "title": {
       "en": "Colli shipments: incomplete item allocation",
@@ -91,7 +91,7 @@
     }
   },
   "colli/item-allocation": {
-    "page": "integrations/woocommerce/colli-shipments",
+    "page": "integrations/woocommerce/shipping-labels",
     "anchor": "item-allocation",
     "title": {
       "en": "Colli shipments: allocation across two colli",
@@ -104,7 +104,7 @@
     }
   },
   "colli/summary": {
-    "page": "integrations/woocommerce/colli-shipments",
+    "page": "integrations/woocommerce/shipping-labels",
     "anchor": "summary",
     "title": {
       "en": "Colli shipments: collapsed summary",
@@ -117,7 +117,7 @@
     }
   },
   "colli/weights-dimensions": {
-    "page": "integrations/woocommerce/colli-shipments",
+    "page": "integrations/woocommerce/shipping-labels",
     "anchor": "weights-dimensions",
     "title": {
       "en": "Colli shipments: weights and dimensions",
@@ -130,7 +130,7 @@
     }
   },
   "connection/token-settings": {
-    "page": "integrations/woocommerce/connection",
+    "page": "integrations/woocommerce/introduction",
     "anchor": "token-settings",
     "title": {
       "en": "Enter an API token",
@@ -143,7 +143,7 @@
     }
   },
   "connection/validation-error": {
-    "page": "integrations/woocommerce/connection",
+    "page": "integrations/woocommerce/introduction",
     "anchor": "validation-error",
     "title": {
       "en": "Invalid API token",
@@ -156,7 +156,7 @@
     }
   },
   "connection/validation-success": {
-    "page": "integrations/woocommerce/connection",
+    "page": "integrations/woocommerce/introduction",
     "anchor": "validation-success",
     "title": {
       "en": "Validated Smart Send connection",
@@ -169,7 +169,7 @@
     }
   },
   "customs/product-shipping-fields": {
-    "page": "integrations/woocommerce/customs",
+    "page": "integrations/woocommerce/shipping-labels",
     "anchor": "product-shipping-fields",
     "title": {
       "en": "Product customs information",
@@ -182,7 +182,7 @@
     }
   },
   "examples/advanced-conditions": {
-    "page": "integrations/woocommerce/shipping-examples",
+    "page": "integrations/woocommerce/shipping-methods",
     "anchor": "advanced-conditions",
     "title": {
       "en": "Shipping class and role restrictions",
@@ -192,7 +192,7 @@
     "expected_state": "Advanced settings require all products in Standard parcels and exclude the administrator role."
   },
   "examples/advanced-conditions-checkout": {
-    "page": "integrations/woocommerce/shipping-examples",
+    "page": "integrations/woocommerce/shipping-methods",
     "anchor": "advanced-conditions-checkout",
     "title": {
       "en": "Cart matching the shipping restrictions",
@@ -205,7 +205,7 @@
     }
   },
   "examples/free-shipping-mapping": {
-    "page": "integrations/woocommerce/shipping-examples",
+    "page": "integrations/woocommerce/shipping-methods",
     "anchor": "free-shipping-mapping",
     "title": {
       "en": "Map WooCommerce free shipping to a carrier service",
@@ -215,7 +215,7 @@
     "expected_state": "Global Smart Send setting maps native WooCommerce free shipping to PostNord home delivery."
   },
   "examples/free-threshold-checkout": {
-    "page": "integrations/woocommerce/shipping-examples",
+    "page": "integrations/woocommerce/shipping-methods",
     "anchor": "free-threshold-checkout",
     "title": {
       "en": "Free pickup at a 500 DKK subtotal",
@@ -228,7 +228,7 @@
     }
   },
   "examples/free-threshold-settings": {
-    "page": "integrations/woocommerce/shipping-examples",
+    "page": "integrations/woocommerce/shipping-methods",
     "anchor": "free-threshold-settings",
     "title": {
       "en": "Configure the free shipping threshold",
@@ -238,7 +238,7 @@
     "expected_state": "Pickup method uses a minimum order amount of 500 DKK for free shipping."
   },
   "examples/pickup-home-checkout": {
-    "page": "integrations/woocommerce/shipping-examples",
+    "page": "integrations/woocommerce/shipping-methods",
     "anchor": "pickup-home-checkout",
     "title": {
       "en": "Pickup and home delivery prices at checkout",
@@ -251,7 +251,7 @@
     }
   },
   "examples/pickup-home-home-settings": {
-    "page": "integrations/woocommerce/shipping-examples",
+    "page": "integrations/woocommerce/shipping-methods",
     "anchor": "pickup-home-home-settings",
     "title": {
       "en": "Home delivery price before VAT",
@@ -261,7 +261,7 @@
     "expected_state": "Home delivery method has a taxable base shipping price of 47.20 DKK, giving 59 DKK including VAT."
   },
   "examples/pickup-home-settings": {
-    "page": "integrations/woocommerce/shipping-examples",
+    "page": "integrations/woocommerce/shipping-methods",
     "anchor": "pickup-home-settings",
     "title": {
       "en": "Pickup price before VAT",
@@ -271,7 +271,7 @@
     "expected_state": "Pickup method has a taxable base shipping price of 31.20 DKK, giving 39 DKK including VAT."
   },
   "examples/weight-band-checkout": {
-    "page": "integrations/woocommerce/shipping-examples",
+    "page": "integrations/woocommerce/shipping-methods",
     "anchor": "weight-band-checkout",
     "title": {
       "en": "Checkout for a five kilogram cart",
@@ -284,7 +284,7 @@
     }
   },
   "examples/weight-bands": {
-    "page": "integrations/woocommerce/shipping-examples",
+    "page": "integrations/woocommerce/shipping-methods",
     "anchor": "weight-bands",
     "title": {
       "en": "Configure weight-based shipping prices",
@@ -294,7 +294,7 @@
     "expected_state": "Weight bands are 0 to below 5 kg at 31.20 DKK and 5 to below 20 kg at 47.20 DKK, excluding VAT."
   },
   "help/booking-field-error": {
-    "page": "integrations/woocommerce/troubleshooting",
+    "page": "integrations/woocommerce/faq",
     "anchor": "booking-field-error",
     "title": {
       "en": "Booking validation error",
@@ -307,7 +307,7 @@
     }
   },
   "help/log-location": {
-    "page": "integrations/woocommerce/troubleshooting",
+    "page": "integrations/woocommerce/faq",
     "anchor": "log-location",
     "title": {
       "en": "Smart Send logs in WooCommerce",
@@ -320,7 +320,7 @@
     }
   },
   "help/no-smart-send-method": {
-    "page": "integrations/woocommerce/troubleshooting",
+    "page": "integrations/woocommerce/faq",
     "anchor": "no-smart-send-method",
     "title": {
       "en": "Order without a Smart Send shipping method",
@@ -333,7 +333,7 @@
     }
   },
   "help/not-connected": {
-    "page": "integrations/woocommerce/troubleshooting",
+    "page": "integrations/woocommerce/faq",
     "anchor": "not-connected",
     "title": {
       "en": "Order panel without a Smart Send connection",
@@ -346,7 +346,7 @@
     }
   },
   "history/booked-timeline": {
-    "page": "integrations/woocommerce/tracking",
+    "page": "integrations/woocommerce/shipping-labels",
     "anchor": "booked-timeline",
     "title": {
       "en": "Persisted shipment history",
@@ -359,7 +359,7 @@
     }
   },
   "history/order-note-after-reload": {
-    "page": "integrations/woocommerce/tracking",
+    "page": "integrations/woocommerce/shipping-labels",
     "anchor": "order-note-after-reload",
     "title": {
       "en": "Booking note after reloading the order",
@@ -504,7 +504,7 @@
     }
   },
   "returns/method-settings": {
-    "page": "integrations/woocommerce/return-shipping",
+    "page": "integrations/woocommerce/tips-and-tricks",
     "anchor": "method-settings",
     "title": {
       "en": "Configure the return service and default",
@@ -566,7 +566,7 @@
     }
   },
   "setup/plugin-active": {
-    "page": "integrations/woocommerce/installation",
+    "page": "integrations/woocommerce/introduction",
     "anchor": "plugin-active",
     "title": {
       "en": "Installed and active plugin",
@@ -579,7 +579,7 @@
     }
   },
   "setup/settings-location": {
-    "page": "integrations/woocommerce/installation",
+    "page": "integrations/woocommerce/introduction",
     "anchor": "settings-location",
     "title": {
       "en": "Open Smart Send settings",
@@ -592,7 +592,7 @@
     }
   },
   "zones/country-selection": {
-    "page": "integrations/woocommerce/shipping-zones",
+    "page": "integrations/woocommerce/shipping-methods",
     "anchor": "country-selection",
     "title": {
       "en": "Choose the zone countries",
@@ -602,7 +602,7 @@
     "expected_state": "Native WooCommerce zone editor shows the example country selection."
   },
   "zones/create-zone": {
-    "page": "integrations/woocommerce/shipping-zones",
+    "page": "integrations/woocommerce/shipping-methods",
     "anchor": "create-zone",
     "title": {
       "en": "Create a WooCommerce shipping zone",
@@ -612,7 +612,7 @@
     "expected_state": "Native WooCommerce new shipping zone editor is open."
   },
   "zones/denmark-before-nordics": {
-    "page": "integrations/woocommerce/shipping-zones",
+    "page": "integrations/woocommerce/shipping-methods",
     "anchor": "denmark-before-nordics",
     "title": {
       "en": "Denmark before the Nordic zone",

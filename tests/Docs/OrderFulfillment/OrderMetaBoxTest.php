@@ -50,7 +50,7 @@ it('documents an order ready for an outbound label', function () {
         ->assertNotPresent('[data-ss-section="parcel_editor"]');
 
     highlight_element($page, '#smart-send-fulfillment', outlineOffset: -2, context: '#woocommerce-ss-shipping-label');
-    capture_doc_screenshot($page, 'outbound', 'ready', element: '#woocommerce-ss-shipping-label');
+    capture_doc_screenshot($page, 'outbound', 'ready');
 });
 
 it('documents changing the outbound service', function () {
@@ -66,7 +66,7 @@ it('documents changing the outbound service', function () {
         ->assertPresent('[data-ss-field="shipping_method"] option[value="postnord_agent"]');
 
     highlight_element($page, '[data-ss-section="shipping_method"]', context: '#woocommerce-ss-shipping-label');
-    capture_doc_screenshot($page, 'outbound', 'method-change', element: '#woocommerce-ss-shipping-label');
+    capture_doc_screenshot($page, 'outbound', 'method-change');
 });
 
 it('documents editing the pickup point number', function () {
@@ -82,7 +82,7 @@ it('documents editing the pickup point number', function () {
         ->assertEnabled('[data-ss-action="lookup-pickup-point"]');
 
     highlight_element($page, '[data-ss-section="pickup_point"]', context: '#woocommerce-ss-shipping-label');
-    capture_doc_screenshot($page, 'outbound', 'pickup-edit', element: '#woocommerce-ss-shipping-label');
+    capture_doc_screenshot($page, 'outbound', 'pickup-edit');
 });
 
 it('documents the pickup point returned by a lookup', function () {
@@ -100,7 +100,7 @@ it('documents the pickup point returned by a lookup', function () {
         ->assertNotPresent('[data-ss-field="pickup_point.agent_no"]');
 
     highlight_element($page, '[data-ss-section="pickup_point"]', context: '#woocommerce-ss-shipping-label');
-    capture_doc_screenshot($page, 'outbound', 'pickup-changed', element: '#woocommerce-ss-shipping-label');
+    capture_doc_screenshot($page, 'outbound', 'pickup-changed');
 });
 
 it('documents a booked outbound shipment and its PDF link', function () {
@@ -119,7 +119,7 @@ it('documents a booked outbound shipment and its PDF link', function () {
         ->assertNotPresent('[data-ss-result="return"]');
 
     highlight_element($page, '[data-ss-result="outbound"]', outlineOffset: -2, context: '#woocommerce-ss-shipping-label');
-    capture_doc_screenshot($page, 'outbound', 'booked-documents', element: '#woocommerce-ss-shipping-label');
+    capture_doc_screenshot($page, 'outbound', 'booked-documents');
 });
 
 it('documents the configured return service and automatic return default', function () {
@@ -163,7 +163,7 @@ it('documents the separate return-only booking action', function () {
     // Keep the configured return service visible; a border identifies the
     // separate return action without obscuring the rest of the order panel.
     highlight_element($page, '[data-ss-action="create-return-label"]', overlay: false, outlineOffset: -2, context: '#woocommerce-ss-shipping-label');
-    capture_doc_screenshot($page, 'returns', 'return-only-ready', element: '#woocommerce-ss-shipping-label');
+    capture_doc_screenshot($page, 'returns', 'return-only-ready');
 });
 
 it('documents a booked return without an outbound booking', function () {
@@ -183,7 +183,7 @@ it('documents a booked return without an outbound booking', function () {
         ->assertNotPresent('[data-ss-timeline="outbound"]');
 
     highlight_element($page, '[data-ss-result="return"]', outlineOffset: -2, context: '#woocommerce-ss-shipping-label');
-    capture_doc_screenshot($page, 'returns', 'return-only-booked', element: '#woocommerce-ss-shipping-label');
+    capture_doc_screenshot($page, 'returns', 'return-only-booked');
 });
 
 it('documents outbound and return booked together', function () {
@@ -202,7 +202,7 @@ it('documents outbound and return booked together', function () {
         ->assertPresent('[data-ss-timeline="return"]');
 
     highlight_element($page, '[data-ss-section="actions"]', outlineOffset: -2, context: '#woocommerce-ss-shipping-label');
-    capture_doc_screenshot($page, 'returns', 'outbound-and-return', element: '#woocommerce-ss-shipping-label');
+    capture_doc_screenshot($page, 'returns', 'outbound-and-return');
 });
 
 it('documents outbound success when the return booking fails', function () {
@@ -223,7 +223,7 @@ it('documents outbound success when the return booking fails', function () {
         ->assertNotPresent('[data-ss-timeline="return"]');
 
     highlight_element($page, '#smart-send-fulfillment', outlineOffset: -2, context: '#woocommerce-ss-shipping-label');
-    capture_doc_screenshot($page, 'returns', 'partial-success', element: '#woocommerce-ss-shipping-label');
+    capture_doc_screenshot($page, 'returns', 'partial-success');
 });
 
 it('documents the persistent shipment timeline after reloading', function () {
@@ -242,7 +242,7 @@ it('documents the persistent shipment timeline after reloading', function () {
         ->assertPresent('[data-ss-timeline="outbound"]');
 
     highlight_element($page, '[data-ss-section="timeline"]', outlineOffset: -2, context: '#woocommerce-ss-shipping-label');
-    capture_doc_screenshot($page, 'history', 'booked-timeline', element: '#woocommerce-ss-shipping-label');
+    capture_doc_screenshot($page, 'history', 'booked-timeline');
 });
 
 it('documents the native WooCommerce order note after reloading', function () {
@@ -260,7 +260,7 @@ it('documents the native WooCommerce order note after reloading', function () {
         ->assertPresent('ul.order_notes a[href*="labels/label.pdf"]');
 
     highlight_element($page, '#woocommerce-order-notes ul.order_notes li:first-child', context: '#woocommerce-order-notes');
-    capture_doc_screenshot($page, 'history', 'order-note-after-reload', element: '#woocommerce-order-notes');
+    capture_doc_screenshot($page, 'history', 'order-note-after-reload');
 });
 
 it('documents the collapsed Colli shipment summary', function () {
@@ -276,7 +276,7 @@ it('documents the collapsed Colli shipment summary', function () {
         ->assertNotPresent('[data-ss-section="parcel_editor"]');
 
     highlight_element($page, '[data-ss-section="parcel_plan"]', outlineOffset: -2, context: '#woocommerce-ss-shipping-label');
-    capture_doc_screenshot($page, 'colli', 'summary', element: '#woocommerce-ss-shipping-label');
+    capture_doc_screenshot($page, 'colli', 'summary');
 });
 
 it('documents three units allocated across two colli', function () {
@@ -294,7 +294,7 @@ it('documents three units allocated across two colli', function () {
         ->assertSeeIn('[data-ss-box="2"] [data-ss-value="line.count"]', '× 1');
 
     highlight_element($page, '[data-ss-section="parcel_editor"]', context: '#woocommerce-ss-shipping-label');
-    capture_doc_screenshot($page, 'colli', 'item-allocation', element: '#woocommerce-ss-shipping-label');
+    capture_doc_screenshot($page, 'colli', 'item-allocation');
 });
 
 it('documents explicit Colli weights and dimensions including packaging', function () {
@@ -319,7 +319,7 @@ it('documents explicit Colli weights and dimensions including packaging', functi
         ->assertSeeIn('[data-ss-value="parcel_plan.summary"]', '3.50 kg');
 
     highlight_element($page, '[data-ss-section="parcel_editor"]', context: '#woocommerce-ss-shipping-label');
-    capture_doc_screenshot($page, 'colli', 'weights-dimensions', element: '#woocommerce-ss-shipping-label');
+    capture_doc_screenshot($page, 'colli', 'weights-dimensions');
 });
 
 it('documents the actionable error for an incomplete Colli allocation', function () {
@@ -351,7 +351,7 @@ PHP);
         ->assertNotPresent('[data-ss-action="edit-parcels"]');
 
     highlight_element($page, '[data-ss-section="parcel_plan"]', outlineOffset: -2, context: '#woocommerce-ss-shipping-label');
-    capture_doc_screenshot($page, 'colli', 'allocation-error', element: '#woocommerce-ss-shipping-label');
+    capture_doc_screenshot($page, 'colli', 'allocation-error');
 });
 
 it('documents a booking validation error next to its pickup point field', function () {
@@ -369,7 +369,7 @@ it('documents a booking validation error next to its pickup point field', functi
         ->assertNotPresent('[data-ss-result="outbound"]');
 
     highlight_element($page, '[data-ss-section="pickup_point"]', context: '#woocommerce-ss-shipping-label');
-    capture_doc_screenshot($page, 'help', 'booking-field-error', element: '#woocommerce-ss-shipping-label');
+    capture_doc_screenshot($page, 'help', 'booking-field-error');
 });
 
 it('documents selecting a Smart Send service for a standard WooCommerce order', function () {
@@ -385,7 +385,7 @@ it('documents selecting a Smart Send service for a standard WooCommerce order', 
         ->assertPresent('[data-ss-field="shipping_method"]');
 
     highlight_element($page, '[data-ss-section="details"]', outlineOffset: -2, context: '#woocommerce-ss-shipping-label');
-    capture_doc_screenshot($page, 'help', 'no-smart-send-method', element: '#woocommerce-ss-shipping-label');
+    capture_doc_screenshot($page, 'help', 'no-smart-send-method');
 });
 
 it('documents the connection notice and its settings link', function () {
@@ -403,5 +403,5 @@ it('documents the connection notice and its settings link', function () {
         ->assertDisabled('[data-ss-action="create-label"]');
 
     highlight_element($page, '[data-ss-notice="not_connected"]', outlineOffset: -2, context: '#woocommerce-ss-shipping-label');
-    capture_doc_screenshot($page, 'help', 'not-connected', element: '#woocommerce-ss-shipping-label');
+    capture_doc_screenshot($page, 'help', 'not-connected');
 });

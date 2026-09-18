@@ -35,6 +35,7 @@ function docs_slowmo_pause(): void
     }
 }
 
+/** Capture the complete viewport by default; element crops require a deliberate exception. */
 function capture_doc_screenshot(Webpage|AwaitableWebpage $page, string $area, string $name, bool $fullPage = false, ?string $element = null): string
 {
     $catalog = json_decode(file_get_contents(dirname(__DIR__) . '/catalog.json'), true, flags: JSON_THROW_ON_ERROR);
@@ -107,7 +108,7 @@ function highlight_element(
             const options = {$options};
             const target = document.querySelector(options.selector);
             const context = options.context ? document.querySelector(options.context) : target;
-            if (!context) throw new Error('Documentation crop context is missing');
+            if (!context) throw new Error('Documentation framing context is missing');
             context.scrollIntoView({block: 'center', inline: 'nearest', behavior: 'instant'});
             const rect = target.getBoundingClientRect();
             if (!rect.width || !rect.height) throw new Error('Documentation highlight is not visible: ' + options.selector);
