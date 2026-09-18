@@ -108,7 +108,7 @@ echo json_encode([
     'blocks_class_loaded' => class_exists(\Smart_Send\Frontend\Block_Checkout::class, false),
     'early_shipping_class_loaded' => $early_shipping_class_loaded,
     'early_blocks_class_loaded' => $early_blocks_class_loaded,
-    'feature_hooks_registered' => isset($GLOBALS['bootstrap_hooks']['wp_ajax_ss_test_connection']),
+    'feature_hooks_registered' => (bool) array_filter($GLOBALS['bootstrap_hooks']['admin_enqueue_scripts'][10] ?? [], static fn ($callback) => is_array($callback) && $callback[0] instanceof \Smart_Send\Shipping_Method\Test_Connection),
     'compatibility' => $GLOBALS['bootstrap_compatibility'],
     'notice' => trim(strip_tags($notice)),
 ], JSON_THROW_ON_ERROR);

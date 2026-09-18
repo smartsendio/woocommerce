@@ -70,7 +70,7 @@ it('documents saving a synthetic API token', function () {
         ->click('button[name="save"]')
         ->assertVisible('#message.updated')
         ->assertValue('#woocommerce_smart_send_shipping_api_token', 'docs-example-token-not-valid-for-real-api')
-        ->assertVisible('#woocommerce_smart_send_shipping_api_token_validate');
+        ->assertVisible('.ss-connection.updated');
 
     highlight_element($page, '#mainform .form-table');
     capture_doc_screenshot($page, 'connection', 'token-settings');
@@ -83,11 +83,11 @@ it('documents successful API token validation', function () {
         ->click('#wp-submit')
         ->assertPathContains('wp-admin')
         ->navigate(docs_connection_settings_url())
-        ->click('#woocommerce_smart_send_shipping_api_token_validate')
+        ->click('button[name="save"]')
         ->assertVisible('.ss-connection.updated')
         ->assertMissing('.ss-connection.error');
 
-    highlight_element($page, '#woocommerce_smart_send_shipping_api_token_validate + .ss-connection');
+    highlight_element($page, '.ss-connection');
     capture_doc_screenshot($page, 'connection', 'validation-success');
 });
 
@@ -101,14 +101,12 @@ it('documents an invalid API token response', function () {
         ->click('#wp-submit')
         ->assertPathContains('wp-admin')
         ->navigate(docs_connection_settings_url())
-        ->click('#woocommerce_smart_send_shipping_api_token_validate')
+        ->click('button[name="save"]')
         ->assertVisible('.ss-connection.error')
-        ->assertSee('Invalid API token provided')
         ->assertMissing('.ss-connection.updated');
 
-    // The real plugin renders the mocked account error. Do not replace its
-    // wording to make a locale appear more completely translated than it is.
-    highlight_element($page, '#woocommerce_smart_send_shipping_api_token_validate + .ss-connection');
+    // Capture the real translated feedback from saving the settings.
+    highlight_element($page, '.ss-connection');
     capture_doc_screenshot($page, 'connection', 'validation-error');
 });
 

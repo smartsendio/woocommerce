@@ -2,7 +2,7 @@
 
 /*
  * The plugin's general settings surface, end-to-end: the settings page
- * itself, the "Validate API Token" test-connection flow (success and
+ * itself, the validate-on-save connection flow (success and
  * failure, against the mocked API), the debug log reaching the WooCommerce
  * log viewer, and the order-status-after-label setting taking effect.
  *
@@ -49,32 +49,42 @@ it('renders the Smart Send settings page', function () {
     login_as_admin()
         ->navigate(ss_settings_page_url())
         ->assertSee('API Token')
-        ->assertSee('Validate API Token');
+        ->assertMissing('#woocommerce_smart_send_shipping_api_token_validate');
 });
 
 it('validates the API token with a valid token', function () {
     login_as_admin()
         ->navigate(ss_settings_page_url())
-        ->click('#woocommerce_smart_send_shipping_api_token_validate')
-        // The AJAX handler validates the saved token against the (mocked)
-        // account endpoint and reports the connected account.
-        ->assertSeeIn('.ss-connection', 'API Token verified')
-        ->assertSeeIn('.ss-connection', 'mock@smartsend.test');
+        ->fill('#woocommerce_smart_send_shipping_api_token', 'new-browser-token')
+        ->click('button[name="save"]')
+        ->waitForEvent('load')
+        ->assertSeeIn('.ss-connection', 'Connected to Smart Send')
+        ->click('button[name="save"]')
+        ->waitForEvent('load')
+        ->assertSeeIn('.ss-connection', 'Connected to Smart Send')
+        ->fill('#woocommerce_smart_send_shipping_api_token', 'edited-unsaved-token')
+        ->assertMissing('.ss-connection');
 });
 
-it('shows a clear error for an invalid API token', function () {
-    ss_browser_set_api_scenarios(array('authenticate' => '401'));
+it('shows actionable feedback for connection failures after saving', function ($status, $message) {
+    ss_browser_set_api_scenarios(['authenticate' => $status]);
 
     try {
         login_as_admin()
             ->navigate(ss_settings_page_url())
-            ->click('#woocommerce_smart_send_shipping_api_token_validate')
-            ->assertSeeIn('.ss-connection', 'API Token validation failed')
-            ->assertSeeIn('.ss-connection', 'Invalid API token provided');
+            ->click('button[name="save"]')
+            ->assertSeeIn('.ss-connection.error', $message)
+            ->assertMissing('.ss-connection.updated');
     } finally {
         ss_browser_set_api_scenarios(null);
     }
-});
+})->with([
+    ['401', 'Invalid API token provided'],
+    ['403', 'Mocked HTTP 403'],
+    ['403-subscription', 'The team does not have a subscription.'],
+    ['404', 'Mocked HTTP 404'],
+    ['500', 'Mocked HTTP 500'],
+]);
 
 it('enabling debug logging produces entries in the WooCommerce log viewer', function () {
     // Start from a clean slate so the entries seen below are provably from
@@ -96,8 +106,8 @@ PHP);
         // check the log viewer lists the smart-send-logistics source.
         login_as_admin()
             ->navigate(ss_settings_page_url())
-            ->click('#woocommerce_smart_send_shipping_api_token_validate')
-            ->assertSeeIn('.ss-connection', 'API Token verified')
+            ->click('button[name="save"]')
+            ->assertSeeIn('.ss-connection', 'Connected to Smart Send')
             ->navigate(base_url('/wp-admin/admin.php?page=wc-status&tab=logs'))
             ->assertSee('smart-send-logistics');
     } finally {
