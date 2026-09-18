@@ -2,8 +2,8 @@
     "schema_version": 1,
     "status": "complete",
     "scope": "full",
-    "generated_at": "2026-09-18T00:16:26+00:00",
-    "source_commit": "16adff911feeef3e8428f9760b424dc1f9829170",
+    "generated_at": "2026-09-18T11:28:41+00:00",
+    "source_commit": "5d4348d858058c17e2d4fa7ad609b054c5963397",
     "working_tree_dirty": false,
     "source_files_sha256": {
         "bin/docs-screenshots.php": "65189aceb8e2c1689ca897e2bfb06abf57a3d26807847c671d11950587c00956",
@@ -116,19 +116,19 @@
         "tests/Docs/Checkout/ClassicCheckoutPickupPointTest.php": "d9e1d25fe254092115e46f63b5b5bb79e3104417ba029e7db570ef5278d825ea",
         "tests/Docs/Customs/ProductCustomsTest.php": "888f460ea22c948fa963962405456d2690959ecb94b0eeb5d3ed1c0ad2029c66",
         "tests/Docs/Examples/ShippingExamplesTest.php": "46b57b87d44ed5640ee63630f63489a31e54390a5f7878dc02896df33229ac22",
-        "tests/Docs/OrderFulfillment/OrderMetaBoxTest.php": "63639c4dbd24963d851dd914888de69cf83215344a24768f548c3795ce5c1eb4",
-        "tests/Docs/Setup/ConnectionTest.php": "e872604b5cd87b49a9eac074e2d34faf6a102ab9df39d1d9555466e49d3c88d0",
-        "tests/Docs/ShippingMethod/ConfigureShippingMethodTest.php": "f90e3ffb44ff58816d025ac3d92f808fbf1c3102f8393e3203bf697544a75a0e",
+        "tests/Docs/OrderFulfillment/OrderMetaBoxTest.php": "fc6fad6db3ce0f4a8814790499586dbdd3b555ffb8682a7ba9bb0e641009c8ec",
+        "tests/Docs/Setup/ConnectionTest.php": "f912767bb4c41807f73d5a788b9f7f5fa8a659d2e4837688e8012a615ec386ca",
+        "tests/Docs/ShippingMethod/ConfigureShippingMethodTest.php": "0ec3bae0d610749151f8e5d36ee94bb3fcfd97aa606000b64675424041fa6f91",
         "tests/Docs/ShippingMethod/ShippingFixtures.php": "89517c681e8d1ed1ed34c89fdc65d47279300fbc61265291a976bb5a14b22ccf",
         "tests/Docs/ShippingZones/ShippingZonesTest.php": "4328a4d91020ac5216734f287d00ff9425482d18ff9a998525c3d6920d8f600a",
         "tests/Docs/Support/DocsMuPlugin.php": "531f6358a19269b6fa1bd0a6c56b4f1b3b8c891bf70f1b0441654644b57a5ca5",
-        "tests/Docs/Support/Screenshots.php": "56f7efa1c99940c07f7e65b2fcde25a08271e77a1c2916c1506c5012f1faca2b",
+        "tests/Docs/Support/Screenshots.php": "2c01b6a102cd6523c3e7c910d2b17a30082b8db6858809c60ca87fef642ad11a",
         "tests/Docs/Support/Store.php": "4e7510413c5c6d162bccdb935d6f1ff7b2c683edc61910d85e70a7a131b5a02d",
         "tests/Docs/Support/cleanup-store.php": "8b4be2779646ef281be4e031addf92d1dac1f9b365367768ea5bff2bed9abdee",
         "tests/Docs/Support/decorate-store.php": "ae23f9695ee68cc765c4c6c5bca3e26d12cf68b2635b51fc4e23a91db08430db",
         "tests/Docs/Support/profile-store.php": "5619c27884722528a388a7d94e35de7d5b977e729a85e0e8d591b92b58c672bf",
         "tests/Docs/bootstrap.php": "fe53856964e6bb1df9f7d6b433cbd7ccdc07a7ad30bf1d218b5c785a37fad09e",
-        "tests/Docs/catalog.json": "32a42ee68c7d50de98cdaa37df43c064953a2416b796ce93ea830fd869cd4814",
+        "tests/Docs/catalog.json": "31e1d27b94c118b717ab4c440e340df3dbed86f351ef0beed7c13923fe155613",
         "tests/Docs/profile.json": "cc32cef5e9f3efe9faca62e7570d4a6661441b0beeaf599b2a783ccd42d2e1da",
         "tests/Pest.php": "9fcc4eadb303267df7d18bb5c14099a82a84f55f3f0fdec70e70c237a415856e",
         "tests/Support/API/v1-wire-before-namespaces.json": "0dea64c1b43b7caae838ffa33b1964de82ffd85e945a7eee915beab55da0f4bf",
@@ -1472,7 +1472,7 @@
     "missing_count": 0,
     "images": [
         {
-            "page": "integrations/woocommerce/pickup-points",
+            "page": "integrations/woocommerce/shipping-methods",
             "anchor": "pickup-selected",
             "title": {
                 "en": "Selected pickup point in Checkout block",
@@ -1496,10 +1496,10 @@
             },
             "width": 1440,
             "height": 1000,
-            "sha256": "139544bcbcbda48077dac6af5116eabd4ef30208dd55eb12f4f0ad9857493b46"
+            "sha256": "1e56bbb68979c0b4edf22b3f6f0f9dd68142674ddbfb7bc1797ede8bf4586af6"
         },
         {
-            "page": "integrations/woocommerce/pickup-points",
+            "page": "integrations/woocommerce/shipping-methods",
             "anchor": "pickup-selector",
             "title": {
                 "en": "Pickup selection in Checkout block",
@@ -1526,7 +1526,7 @@
             "sha256": "7cdec30000e351d478858dbd5b99f845b8a726d05691b8d4852e3e7276e73f1f"
         },
         {
-            "page": "integrations/woocommerce/pickup-points",
+            "page": "integrations/woocommerce/shipping-methods",
             "anchor": "shipping-methods",
             "title": {
                 "en": "Shipping methods in Checkout block",
@@ -1553,7 +1553,7 @@
             "sha256": "de972ab4e3ddd4b49a2b962fe7d8a8b36ce21c43e570e574911821b2c13914f7"
         },
         {
-            "page": "integrations/woocommerce/pickup-points",
+            "page": "integrations/woocommerce/shipping-methods",
             "anchor": "pickup-selected",
             "title": {
                 "en": "Selected pickup point in classic checkout",
@@ -1580,7 +1580,7 @@
             "sha256": "0033b3fa0b7c37b41f92568bc9e91e0d0579cb83d68a44b357af0a62343baf0b"
         },
         {
-            "page": "integrations/woocommerce/pickup-points",
+            "page": "integrations/woocommerce/shipping-methods",
             "anchor": "pickup-selector",
             "title": {
                 "en": "Pickup selection in classic checkout",
@@ -1604,10 +1604,10 @@
             },
             "width": 1440,
             "height": 1000,
-            "sha256": "5bf3404762b996a4de6d1b3f7ba0ad4a2a2d9521244d3af237d19300e3e030fd"
+            "sha256": "8f1926ce8cb25703f316bf37c6043ba41cc1ede343771ee00448bad89189b163"
         },
         {
-            "page": "integrations/woocommerce/pickup-points",
+            "page": "integrations/woocommerce/shipping-methods",
             "anchor": "shipping-methods",
             "title": {
                 "en": "Shipping methods in classic checkout",
@@ -1634,7 +1634,7 @@
             "sha256": "5c691c5dc42200c849cc5d5819660f8af7b428f15cc8b2364c42ee3f398ac676"
         },
         {
-            "page": "integrations/woocommerce/colli-shipments",
+            "page": "integrations/woocommerce/shipping-labels",
             "anchor": "allocation-error",
             "title": {
                 "en": "Colli shipments: incomplete item allocation",
@@ -1649,19 +1649,19 @@
             "locale": "da",
             "file": "da/colli/allocation-error.png",
             "destination": "images/woocommerce/da/colli/allocation-error.png",
-            "crop_selector": "#woocommerce-ss-shipping-label",
+            "crop_selector": null,
             "document_language": "da-DK",
             "viewport": {
                 "width": 1440,
                 "height": 1000,
                 "device_scale_factor": 2
             },
-            "width": 560,
-            "height": 1212,
-            "sha256": "3916f80893c227ae39515e11d16bd00ce80aff590f4d7d3a50496fb0600d204b"
+            "width": 1440,
+            "height": 1000,
+            "sha256": "8b4ef7b5c9c87788412c3cf06f61babdaafc90d5df840191f5271bf6972b74bf"
         },
         {
-            "page": "integrations/woocommerce/colli-shipments",
+            "page": "integrations/woocommerce/shipping-labels",
             "anchor": "item-allocation",
             "title": {
                 "en": "Colli shipments: allocation across two colli",
@@ -1676,19 +1676,19 @@
             "locale": "da",
             "file": "da/colli/item-allocation.png",
             "destination": "images/woocommerce/da/colli/item-allocation.png",
-            "crop_selector": "#woocommerce-ss-shipping-label",
+            "crop_selector": null,
             "document_language": "da-DK",
             "viewport": {
                 "width": 1440,
                 "height": 1000,
                 "device_scale_factor": 2
             },
-            "width": 560,
-            "height": 1584,
-            "sha256": "4562d543ad045fc768603a7e7dbb714a1ae2775564296fc310418ca3ae74aaed"
+            "width": 1440,
+            "height": 1000,
+            "sha256": "bedfc6b7de0975596473a6ce8573271b1bd23ea3320d2b1df0f0808f750ab425"
         },
         {
-            "page": "integrations/woocommerce/colli-shipments",
+            "page": "integrations/woocommerce/shipping-labels",
             "anchor": "summary",
             "title": {
                 "en": "Colli shipments: collapsed summary",
@@ -1703,19 +1703,19 @@
             "locale": "da",
             "file": "da/colli/summary.png",
             "destination": "images/woocommerce/da/colli/summary.png",
-            "crop_selector": "#woocommerce-ss-shipping-label",
+            "crop_selector": null,
             "document_language": "da-DK",
             "viewport": {
                 "width": 1440,
                 "height": 1000,
                 "device_scale_factor": 2
             },
-            "width": 560,
-            "height": 924,
-            "sha256": "8486cc0016d17d4759c73b4bcb0da131e3f7806d770e7663445ae6bd686a2242"
+            "width": 1440,
+            "height": 1000,
+            "sha256": "ec43d7ddfe7e08ddfb9b831cb2e9c40ecc98d2c5e8388b241afb0fd687f1138e"
         },
         {
-            "page": "integrations/woocommerce/colli-shipments",
+            "page": "integrations/woocommerce/shipping-labels",
             "anchor": "weights-dimensions",
             "title": {
                 "en": "Colli shipments: weights and dimensions",
@@ -1730,19 +1730,19 @@
             "locale": "da",
             "file": "da/colli/weights-dimensions.png",
             "destination": "images/woocommerce/da/colli/weights-dimensions.png",
-            "crop_selector": "#woocommerce-ss-shipping-label",
+            "crop_selector": null,
             "document_language": "da-DK",
             "viewport": {
                 "width": 1440,
                 "height": 1000,
                 "device_scale_factor": 2
             },
-            "width": 560,
-            "height": 1584,
-            "sha256": "7dd2e6970364749ab6912936f0696d701a278fa843b5a383c01be378a077fe63"
+            "width": 1440,
+            "height": 1000,
+            "sha256": "b159acafb88765e5c9c06a1e63c7cc0c9649f7132ba74605b20fb3181bb84266"
         },
         {
-            "page": "integrations/woocommerce/connection",
+            "page": "integrations/woocommerce/introduction",
             "anchor": "token-settings",
             "title": {
                 "en": "Enter an API token",
@@ -1769,7 +1769,7 @@
             "sha256": "d15d52c05f903ada9e0a77bfa4694f608025e5c16ac75a6b4a2fa52be3a76cd4"
         },
         {
-            "page": "integrations/woocommerce/connection",
+            "page": "integrations/woocommerce/introduction",
             "anchor": "validation-error",
             "title": {
                 "en": "Invalid API token",
@@ -1796,7 +1796,7 @@
             "sha256": "f74ca82810515da3f199cf203e4e9ee48e66caa314543c3611d9da9da289249f"
         },
         {
-            "page": "integrations/woocommerce/connection",
+            "page": "integrations/woocommerce/introduction",
             "anchor": "validation-success",
             "title": {
                 "en": "Validated Smart Send connection",
@@ -1823,7 +1823,7 @@
             "sha256": "ec90991278138545eec27917cd8bb89d757ee22ec56da9dfa88e24984277bdf3"
         },
         {
-            "page": "integrations/woocommerce/customs",
+            "page": "integrations/woocommerce/shipping-labels",
             "anchor": "product-shipping-fields",
             "title": {
                 "en": "Product customs information",
@@ -1847,10 +1847,10 @@
             },
             "width": 1440,
             "height": 1000,
-            "sha256": "11cccc412577f75b1879b114cfb94933e7cba42ea13f767e8fc8b368aa1cf265"
+            "sha256": "84cba294ba4f21155da068972ade1047423776d2bc36bb100b6b17efee677fb1"
         },
         {
-            "page": "integrations/woocommerce/shipping-examples",
+            "page": "integrations/woocommerce/shipping-methods",
             "anchor": "advanced-conditions-checkout",
             "title": {
                 "en": "Cart matching the shipping restrictions",
@@ -1877,7 +1877,7 @@
             "sha256": "4395824da288d1570a5f591c5e8a1dbdbc7a950eb1579d84db3d6b0edde5471b"
         },
         {
-            "page": "integrations/woocommerce/shipping-examples",
+            "page": "integrations/woocommerce/shipping-methods",
             "anchor": "advanced-conditions",
             "title": {
                 "en": "Shipping class and role restrictions",
@@ -1898,10 +1898,10 @@
             },
             "width": 1440,
             "height": 1000,
-            "sha256": "4c83ebc9769338b5a6c8540ca8ec54bb8de5b9be7cbcb3133e51566c9c435585"
+            "sha256": "abdee9984d181b365bf52a283dd9ce5644e228e8c484c1ba95a9a1d7df3bd415"
         },
         {
-            "page": "integrations/woocommerce/shipping-examples",
+            "page": "integrations/woocommerce/shipping-methods",
             "anchor": "free-shipping-mapping",
             "title": {
                 "en": "Map WooCommerce free shipping to a carrier service",
@@ -1925,7 +1925,7 @@
             "sha256": "5d4666837da54131f1c6e26ccc6d3e76c83b3bbf688b35c2f15d9b1f0a1c06ce"
         },
         {
-            "page": "integrations/woocommerce/shipping-examples",
+            "page": "integrations/woocommerce/shipping-methods",
             "anchor": "free-threshold-checkout",
             "title": {
                 "en": "Free pickup at a 500 DKK subtotal",
@@ -1952,7 +1952,7 @@
             "sha256": "22c0a1a46069404c67a6c9e78cee20296b16fbe47303285500f77c865dbac660"
         },
         {
-            "page": "integrations/woocommerce/shipping-examples",
+            "page": "integrations/woocommerce/shipping-methods",
             "anchor": "free-threshold-settings",
             "title": {
                 "en": "Configure the free shipping threshold",
@@ -1976,7 +1976,7 @@
             "sha256": "821bf87a75cd3c2d5540f8e886c4cc1d2786a46bb4264bdb7dcd29189e6da025"
         },
         {
-            "page": "integrations/woocommerce/shipping-examples",
+            "page": "integrations/woocommerce/shipping-methods",
             "anchor": "pickup-home-checkout",
             "title": {
                 "en": "Pickup and home delivery prices at checkout",
@@ -2003,7 +2003,7 @@
             "sha256": "5c691c5dc42200c849cc5d5819660f8af7b428f15cc8b2364c42ee3f398ac676"
         },
         {
-            "page": "integrations/woocommerce/shipping-examples",
+            "page": "integrations/woocommerce/shipping-methods",
             "anchor": "pickup-home-home-settings",
             "title": {
                 "en": "Home delivery price before VAT",
@@ -2027,7 +2027,7 @@
             "sha256": "a404de03c12fa5040af9370bdabce363bf664132c3b3df33a24584f4d363e44f"
         },
         {
-            "page": "integrations/woocommerce/shipping-examples",
+            "page": "integrations/woocommerce/shipping-methods",
             "anchor": "pickup-home-settings",
             "title": {
                 "en": "Pickup price before VAT",
@@ -2048,10 +2048,10 @@
             },
             "width": 1440,
             "height": 1000,
-            "sha256": "dff0a80786708f652ee2ddaaf2d7ef6a4743807c00f9fe49ed5070037604cc3a"
+            "sha256": "3ad7631aafd62c09578399b4f81b99c0cbb65b33f271e37ea0db1a265035c591"
         },
         {
-            "page": "integrations/woocommerce/shipping-examples",
+            "page": "integrations/woocommerce/shipping-methods",
             "anchor": "weight-band-checkout",
             "title": {
                 "en": "Checkout for a five kilogram cart",
@@ -2078,7 +2078,7 @@
             "sha256": "2f76c1f969c723bc6225b23925554689cab3e49cd08eb5b44f6d6b269f3830b3"
         },
         {
-            "page": "integrations/woocommerce/shipping-examples",
+            "page": "integrations/woocommerce/shipping-methods",
             "anchor": "weight-bands",
             "title": {
                 "en": "Configure weight-based shipping prices",
@@ -2102,7 +2102,7 @@
             "sha256": "60c1f11e893c084c8c4df64e2b3d970ad74f17a495c5f2cf6efe6a234acf7bf8"
         },
         {
-            "page": "integrations/woocommerce/troubleshooting",
+            "page": "integrations/woocommerce/faq",
             "anchor": "booking-field-error",
             "title": {
                 "en": "Booking validation error",
@@ -2117,19 +2117,19 @@
             "locale": "da",
             "file": "da/help/booking-field-error.png",
             "destination": "images/woocommerce/da/help/booking-field-error.png",
-            "crop_selector": "#woocommerce-ss-shipping-label",
+            "crop_selector": null,
             "document_language": "da-DK",
             "viewport": {
                 "width": 1440,
                 "height": 1000,
                 "device_scale_factor": 2
             },
-            "width": 560,
-            "height": 1134,
-            "sha256": "7174c0e8a0a5696960ec1dc71b9679baf31190f3d3966468475215e434833b9c"
+            "width": 1440,
+            "height": 1000,
+            "sha256": "a2329da05f8ee9d94611c5c2067db3b4340d896f3bc29111ce0f0c21799bd14c"
         },
         {
-            "page": "integrations/woocommerce/troubleshooting",
+            "page": "integrations/woocommerce/faq",
             "anchor": "log-location",
             "title": {
                 "en": "Smart Send logs in WooCommerce",
@@ -2153,10 +2153,10 @@
             },
             "width": 1440,
             "height": 1000,
-            "sha256": "7ab43e62f4bcc3aa76dd826a791926d07fd55074ec082b45d219e35a838ac544"
+            "sha256": "6f8599e6ae22c13893614fa4a0d510dda85397e8c582528a1098ada0faa0dd33"
         },
         {
-            "page": "integrations/woocommerce/troubleshooting",
+            "page": "integrations/woocommerce/faq",
             "anchor": "no-smart-send-method",
             "title": {
                 "en": "Order without a Smart Send shipping method",
@@ -2171,19 +2171,19 @@
             "locale": "da",
             "file": "da/help/no-smart-send-method.png",
             "destination": "images/woocommerce/da/help/no-smart-send-method.png",
-            "crop_selector": "#woocommerce-ss-shipping-label",
+            "crop_selector": null,
             "document_language": "da-DK",
             "viewport": {
                 "width": 1440,
                 "height": 1000,
                 "device_scale_factor": 2
             },
-            "width": 560,
-            "height": 892,
-            "sha256": "3288078822f8f6bc0cf9cea0b73f5e76b207bfc728670654798b8fd7b381f139"
+            "width": 1440,
+            "height": 1000,
+            "sha256": "06687a8ae4ab7779c97524da69761699d737df0096a131f8b35c31bf2e3afdda"
         },
         {
-            "page": "integrations/woocommerce/troubleshooting",
+            "page": "integrations/woocommerce/faq",
             "anchor": "not-connected",
             "title": {
                 "en": "Order panel without a Smart Send connection",
@@ -2198,19 +2198,19 @@
             "locale": "da",
             "file": "da/help/not-connected.png",
             "destination": "images/woocommerce/da/help/not-connected.png",
-            "crop_selector": "#woocommerce-ss-shipping-label",
+            "crop_selector": null,
             "document_language": "da-DK",
             "viewport": {
                 "width": 1440,
                 "height": 1000,
                 "device_scale_factor": 2
             },
-            "width": 560,
-            "height": 1182,
-            "sha256": "cf845109b262a16b6eab067e931b24eaf12ee090533e635bc2d49da68e1c6d6a"
+            "width": 1440,
+            "height": 1000,
+            "sha256": "7eefc941f8d291e1bc3d8ac68e536d76f4e31bbd0f817a87d4536a6a2f0752c0"
         },
         {
-            "page": "integrations/woocommerce/tracking",
+            "page": "integrations/woocommerce/shipping-labels",
             "anchor": "booked-timeline",
             "title": {
                 "en": "Persisted shipment history",
@@ -2225,19 +2225,19 @@
             "locale": "da",
             "file": "da/history/booked-timeline.png",
             "destination": "images/woocommerce/da/history/booked-timeline.png",
-            "crop_selector": "#woocommerce-ss-shipping-label",
+            "crop_selector": null,
             "document_language": "da-DK",
             "viewport": {
                 "width": 1440,
                 "height": 1000,
                 "device_scale_factor": 2
             },
-            "width": 560,
-            "height": 1106,
-            "sha256": "efe368c1abfa18b380f6a2bac9002102e4307c7c3e0f89dc1d65898347ee070d"
+            "width": 1440,
+            "height": 1000,
+            "sha256": "069f592cb2c57ac117f45aaf235847e2aa9263b74e27e6fdb457cb35b349e501"
         },
         {
-            "page": "integrations/woocommerce/tracking",
+            "page": "integrations/woocommerce/shipping-labels",
             "anchor": "order-note-after-reload",
             "title": {
                 "en": "Booking note after reloading the order",
@@ -2249,16 +2249,16 @@
             "locale": "da",
             "file": "da/history/order-note-after-reload.png",
             "destination": "images/woocommerce/da/history/order-note-after-reload.png",
-            "crop_selector": "#woocommerce-order-notes",
+            "crop_selector": null,
             "document_language": "da-DK",
             "viewport": {
                 "width": 1440,
                 "height": 1000,
                 "device_scale_factor": 2
             },
-            "width": 560,
-            "height": 1186,
-            "sha256": "c3d7fd1ab18892ba2ed202d7078ad93aee8c8c96471a5e119a270fc8ce5b7e88"
+            "width": 1440,
+            "height": 1000,
+            "sha256": "a26e1d0245da9e19f811293e534989e84904714dd7dd4e91a2f4998273c096bf"
         },
         {
             "page": "integrations/woocommerce/shipping-methods",
@@ -2282,7 +2282,7 @@
             },
             "width": 1440,
             "height": 1000,
-            "sha256": "4ddd4914347e7c7e1f32f48e6f1c64f9acd16cb789731a7a50cfbd6af568a6c3"
+            "sha256": "afed56d35bf4bde17795feea27e3f38ca52c3e01e47f806402e4223c3e631c91"
         },
         {
             "page": "integrations/woocommerce/shipping-methods",
@@ -2444,16 +2444,16 @@
             "locale": "da",
             "file": "da/outbound/booked-documents.png",
             "destination": "images/woocommerce/da/outbound/booked-documents.png",
-            "crop_selector": "#woocommerce-ss-shipping-label",
+            "crop_selector": null,
             "document_language": "da-DK",
             "viewport": {
                 "width": 1440,
                 "height": 1000,
                 "device_scale_factor": 2
             },
-            "width": 560,
-            "height": 1410,
-            "sha256": "f82d2e83c8f9e4f0eef1e21f76be1c2fcea2337265c99253527d4fdc7de8cd7f"
+            "width": 1440,
+            "height": 1000,
+            "sha256": "d2b3b5b88f398451fbc6632be847d4435de1f9f448a805aa510e802f9b1ddc1f"
         },
         {
             "page": "integrations/woocommerce/shipping-labels",
@@ -2471,16 +2471,16 @@
             "locale": "da",
             "file": "da/outbound/method-change.png",
             "destination": "images/woocommerce/da/outbound/method-change.png",
-            "crop_selector": "#woocommerce-ss-shipping-label",
+            "crop_selector": null,
             "document_language": "da-DK",
             "viewport": {
                 "width": 1440,
                 "height": 1000,
                 "device_scale_factor": 2
             },
-            "width": 560,
-            "height": 932,
-            "sha256": "07db06aa25174b4a0663d23a94f70f2be75564452819d13aa02c3933e06dc6d1"
+            "width": 1440,
+            "height": 1000,
+            "sha256": "5e16601c7d92db2e6240f1b4248694fb47271e199d5c9ab28e4abd82f9a7ae25"
         },
         {
             "page": "integrations/woocommerce/shipping-labels",
@@ -2498,16 +2498,16 @@
             "locale": "da",
             "file": "da/outbound/pickup-changed.png",
             "destination": "images/woocommerce/da/outbound/pickup-changed.png",
-            "crop_selector": "#woocommerce-ss-shipping-label",
+            "crop_selector": null,
             "document_language": "da-DK",
             "viewport": {
                 "width": 1440,
                 "height": 1000,
                 "device_scale_factor": 2
             },
-            "width": 560,
-            "height": 924,
-            "sha256": "21daa127e03fee723c9d751df0ec18948978caf590ea33ed8ae2924e48d24fa6"
+            "width": 1440,
+            "height": 1000,
+            "sha256": "13261ca20de73c5ba48ef37c5ead80a044b837210a7e828b822e0a201a0b184b"
         },
         {
             "page": "integrations/woocommerce/shipping-labels",
@@ -2525,16 +2525,16 @@
             "locale": "da",
             "file": "da/outbound/pickup-edit.png",
             "destination": "images/woocommerce/da/outbound/pickup-edit.png",
-            "crop_selector": "#woocommerce-ss-shipping-label",
+            "crop_selector": null,
             "document_language": "da-DK",
             "viewport": {
                 "width": 1440,
                 "height": 1000,
                 "device_scale_factor": 2
             },
-            "width": 560,
-            "height": 1016,
-            "sha256": "05b154d8823e85a4e2dd0bc77e7c9333ba18d75fab7ec3be935be1b1ef15afdb"
+            "width": 1440,
+            "height": 1000,
+            "sha256": "e071ca9b9649d3f591c8a2ccf98f0208ebb67bff8eae022b983b412ffe8d2cc6"
         },
         {
             "page": "integrations/woocommerce/shipping-labels",
@@ -2552,19 +2552,19 @@
             "locale": "da",
             "file": "da/outbound/ready.png",
             "destination": "images/woocommerce/da/outbound/ready.png",
-            "crop_selector": "#woocommerce-ss-shipping-label",
+            "crop_selector": null,
             "document_language": "da-DK",
             "viewport": {
                 "width": 1440,
                 "height": 1000,
                 "device_scale_factor": 2
             },
-            "width": 560,
-            "height": 924,
-            "sha256": "64ec79d755e2957eb1c11bd988cb09edd6535f2ff7983d29beadae2eab4b4f7a"
+            "width": 1440,
+            "height": 1000,
+            "sha256": "837b9757ec9e915a388fa2cf7ad04f0e1c33359d91fa0c4ab9b794250f5435d3"
         },
         {
-            "page": "integrations/woocommerce/return-shipping",
+            "page": "integrations/woocommerce/tips-and-tricks",
             "anchor": "method-settings",
             "title": {
                 "en": "Configure the return service and default",
@@ -2603,16 +2603,16 @@
             "locale": "da",
             "file": "da/returns/outbound-and-return.png",
             "destination": "images/woocommerce/da/returns/outbound-and-return.png",
-            "crop_selector": "#woocommerce-ss-shipping-label",
+            "crop_selector": null,
             "document_language": "da-DK",
             "viewport": {
                 "width": 1440,
                 "height": 1081,
                 "device_scale_factor": 2
             },
-            "width": 560,
-            "height": 1802,
-            "sha256": "a7be062fe2e0103995715e536cd435ad12f12c12bae434327bfb9ac0266eb4a2"
+            "width": 1440,
+            "height": 1081,
+            "sha256": "937a318fb070802b3d4b18107ec1e6c18f6bb629970fba4de16641c1cd999dea"
         },
         {
             "page": "integrations/woocommerce/return-shipping",
@@ -2630,16 +2630,16 @@
             "locale": "da",
             "file": "da/returns/partial-success.png",
             "destination": "images/woocommerce/da/returns/partial-success.png",
-            "crop_selector": "#woocommerce-ss-shipping-label",
+            "crop_selector": null,
             "document_language": "da-DK",
             "viewport": {
                 "width": 1440,
                 "height": 1000,
                 "device_scale_factor": 2
             },
-            "width": 560,
-            "height": 1530,
-            "sha256": "c38c0f4a6e525bdd86bf2825e6d13461a3ad7cf164be37de7d9834a4c3e1c5fa"
+            "width": 1440,
+            "height": 1000,
+            "sha256": "5c15c980947916d54402b9b4287b4de210922ecbdb25355d132643410cbd106b"
         },
         {
             "page": "integrations/woocommerce/return-shipping",
@@ -2657,16 +2657,16 @@
             "locale": "da",
             "file": "da/returns/return-only-booked.png",
             "destination": "images/woocommerce/da/returns/return-only-booked.png",
-            "crop_selector": "#woocommerce-ss-shipping-label",
+            "crop_selector": null,
             "document_language": "da-DK",
             "viewport": {
                 "width": 1440,
                 "height": 1000,
                 "device_scale_factor": 2
             },
-            "width": 560,
-            "height": 1410,
-            "sha256": "e330073534e91d582052905d8f2853c446e4ab2fe04de4f000ac39d065da450a"
+            "width": 1440,
+            "height": 1000,
+            "sha256": "2822c2f3c49a806f04e07bf2ec9dad0050081772054de27ab8c41e1a43cc245e"
         },
         {
             "page": "integrations/woocommerce/return-shipping",
@@ -2684,19 +2684,19 @@
             "locale": "da",
             "file": "da/returns/return-only-ready.png",
             "destination": "images/woocommerce/da/returns/return-only-ready.png",
-            "crop_selector": "#woocommerce-ss-shipping-label",
+            "crop_selector": null,
             "document_language": "da-DK",
             "viewport": {
                 "width": 1440,
                 "height": 1000,
                 "device_scale_factor": 2
             },
-            "width": 560,
-            "height": 924,
-            "sha256": "704eb809d64325cf906c5682289c673b6d97d2bdfcf10e378c6e3eab6b6b0837"
+            "width": 1440,
+            "height": 1000,
+            "sha256": "364fe258b264f8acd045e0ceabcdf5dbcf5c1b63904d304a6e38bb4c00463a40"
         },
         {
-            "page": "integrations/woocommerce/installation",
+            "page": "integrations/woocommerce/introduction",
             "anchor": "plugin-active",
             "title": {
                 "en": "Installed and active plugin",
@@ -2723,7 +2723,7 @@
             "sha256": "3dc469f27a67487c6f35b7a2c5e880ec3656687dc2f2ab401a1f167ef425c40c"
         },
         {
-            "page": "integrations/woocommerce/installation",
+            "page": "integrations/woocommerce/introduction",
             "anchor": "settings-location",
             "title": {
                 "en": "Open Smart Send settings",
@@ -2750,7 +2750,7 @@
             "sha256": "d1c6c072829169e7c8c9397fea9bfaf3f04abd90552e58fb25d52a3c5149726f"
         },
         {
-            "page": "integrations/woocommerce/shipping-zones",
+            "page": "integrations/woocommerce/shipping-methods",
             "anchor": "country-selection",
             "title": {
                 "en": "Choose the zone countries",
@@ -2774,7 +2774,7 @@
             "sha256": "c4cbeb920426bde2ffc70dd52061ef6c2ca64e3ff9062224cdd0fe90a425bfe3"
         },
         {
-            "page": "integrations/woocommerce/shipping-zones",
+            "page": "integrations/woocommerce/shipping-methods",
             "anchor": "create-zone",
             "title": {
                 "en": "Create a WooCommerce shipping zone",
@@ -2798,7 +2798,7 @@
             "sha256": "72938f3c779756431a73b7accbe2dac172368b3924737f9799aca2e089b0af15"
         },
         {
-            "page": "integrations/woocommerce/shipping-zones",
+            "page": "integrations/woocommerce/shipping-methods",
             "anchor": "denmark-before-nordics",
             "title": {
                 "en": "Denmark before the Nordic zone",
@@ -2822,7 +2822,7 @@
             "sha256": "ca5008b49cb1491da4cfb56bed9ad4b50c71f7fec379899f274a85ea04210ba0"
         },
         {
-            "page": "integrations/woocommerce/pickup-points",
+            "page": "integrations/woocommerce/shipping-methods",
             "anchor": "pickup-selected",
             "title": {
                 "en": "Selected pickup point in Checkout block",
@@ -2849,7 +2849,7 @@
             "sha256": "2e3a5f4cebffcc17b41e1ba59c5ae04ca9042cbbffd784a3712a4cc4c106cee4"
         },
         {
-            "page": "integrations/woocommerce/pickup-points",
+            "page": "integrations/woocommerce/shipping-methods",
             "anchor": "pickup-selector",
             "title": {
                 "en": "Pickup selection in Checkout block",
@@ -2876,7 +2876,7 @@
             "sha256": "b1bb7c251222ddb1655b08d7ba669cf895bd826f6558213554acc113ed99e24d"
         },
         {
-            "page": "integrations/woocommerce/pickup-points",
+            "page": "integrations/woocommerce/shipping-methods",
             "anchor": "shipping-methods",
             "title": {
                 "en": "Shipping methods in Checkout block",
@@ -2903,7 +2903,7 @@
             "sha256": "3c1c5f70d2b487e6bd5782994af573cd7f916767e537fc08f64b9dab324e47a6"
         },
         {
-            "page": "integrations/woocommerce/pickup-points",
+            "page": "integrations/woocommerce/shipping-methods",
             "anchor": "pickup-selected",
             "title": {
                 "en": "Selected pickup point in classic checkout",
@@ -2930,7 +2930,7 @@
             "sha256": "9745ec0b75b3abd7463a6e2d2102caa38c995ac62f9c051064b2dd30ac2653bd"
         },
         {
-            "page": "integrations/woocommerce/pickup-points",
+            "page": "integrations/woocommerce/shipping-methods",
             "anchor": "pickup-selector",
             "title": {
                 "en": "Pickup selection in classic checkout",
@@ -2957,7 +2957,7 @@
             "sha256": "78978110e272e51cb9e9dd4019607ae797dc00da8e3755ffc1f9fa91bb8efaa1"
         },
         {
-            "page": "integrations/woocommerce/pickup-points",
+            "page": "integrations/woocommerce/shipping-methods",
             "anchor": "shipping-methods",
             "title": {
                 "en": "Shipping methods in classic checkout",
@@ -2981,10 +2981,10 @@
             },
             "width": 1440,
             "height": 1000,
-            "sha256": "ee173f3becb88fd4645af1b62a7d310c1ca6293cda6cb4e570fa22ea1cc062cd"
+            "sha256": "f7ad8d47215ff64d10a24c79eda5ca187e66af4f9ddebd73db6c6840920f4767"
         },
         {
-            "page": "integrations/woocommerce/colli-shipments",
+            "page": "integrations/woocommerce/shipping-labels",
             "anchor": "allocation-error",
             "title": {
                 "en": "Colli shipments: incomplete item allocation",
@@ -2999,19 +2999,19 @@
             "locale": "en",
             "file": "en/colli/allocation-error.png",
             "destination": "images/woocommerce/en/colli/allocation-error.png",
-            "crop_selector": "#woocommerce-ss-shipping-label",
+            "crop_selector": null,
             "document_language": "en-US",
             "viewport": {
                 "width": 1440,
                 "height": 1000,
                 "device_scale_factor": 2
             },
-            "width": 560,
-            "height": 1212,
-            "sha256": "3916f80893c227ae39515e11d16bd00ce80aff590f4d7d3a50496fb0600d204b"
+            "width": 1440,
+            "height": 1000,
+            "sha256": "596cde17d16283584f1d4b97b7ec6e0b77beb881717c15339346f98406c37050"
         },
         {
-            "page": "integrations/woocommerce/colli-shipments",
+            "page": "integrations/woocommerce/shipping-labels",
             "anchor": "item-allocation",
             "title": {
                 "en": "Colli shipments: allocation across two colli",
@@ -3026,19 +3026,19 @@
             "locale": "en",
             "file": "en/colli/item-allocation.png",
             "destination": "images/woocommerce/en/colli/item-allocation.png",
-            "crop_selector": "#woocommerce-ss-shipping-label",
+            "crop_selector": null,
             "document_language": "en-US",
             "viewport": {
                 "width": 1440,
                 "height": 1000,
                 "device_scale_factor": 2
             },
-            "width": 560,
-            "height": 1584,
-            "sha256": "6ff2bfe05af6a3f6460e0f4ddffc99280034bccc7986089f36033cf25166ea45"
+            "width": 1440,
+            "height": 1000,
+            "sha256": "bf0fbe4ffb63e44a81e9cdd36c1594918266f9b52e978ed2e7e9ab405de4b424"
         },
         {
-            "page": "integrations/woocommerce/colli-shipments",
+            "page": "integrations/woocommerce/shipping-labels",
             "anchor": "summary",
             "title": {
                 "en": "Colli shipments: collapsed summary",
@@ -3053,19 +3053,19 @@
             "locale": "en",
             "file": "en/colli/summary.png",
             "destination": "images/woocommerce/en/colli/summary.png",
-            "crop_selector": "#woocommerce-ss-shipping-label",
+            "crop_selector": null,
             "document_language": "en-US",
             "viewport": {
                 "width": 1440,
                 "height": 1000,
                 "device_scale_factor": 2
             },
-            "width": 560,
-            "height": 924,
-            "sha256": "8486cc0016d17d4759c73b4bcb0da131e3f7806d770e7663445ae6bd686a2242"
+            "width": 1440,
+            "height": 1000,
+            "sha256": "3835cf9ccf76f13ad31e5bbfe767e9a66859060f07cce557aed76a3fadc1f84d"
         },
         {
-            "page": "integrations/woocommerce/colli-shipments",
+            "page": "integrations/woocommerce/shipping-labels",
             "anchor": "weights-dimensions",
             "title": {
                 "en": "Colli shipments: weights and dimensions",
@@ -3080,19 +3080,19 @@
             "locale": "en",
             "file": "en/colli/weights-dimensions.png",
             "destination": "images/woocommerce/en/colli/weights-dimensions.png",
-            "crop_selector": "#woocommerce-ss-shipping-label",
+            "crop_selector": null,
             "document_language": "en-US",
             "viewport": {
                 "width": 1440,
                 "height": 1000,
                 "device_scale_factor": 2
             },
-            "width": 560,
-            "height": 1584,
-            "sha256": "28ebdb58f3a30812b6a8aac25777a8c98a2708c7151a7e7323c62eb84f6e5bcf"
+            "width": 1440,
+            "height": 1000,
+            "sha256": "983038c0c28958d76b57b6bb56c8776275fa2e78a25c0904f98e920d83df2957"
         },
         {
-            "page": "integrations/woocommerce/connection",
+            "page": "integrations/woocommerce/introduction",
             "anchor": "token-settings",
             "title": {
                 "en": "Enter an API token",
@@ -3119,7 +3119,7 @@
             "sha256": "c663f09f1bd7cf91bfe053971f965d2858c4db6b51952ef1f901664ea591be72"
         },
         {
-            "page": "integrations/woocommerce/connection",
+            "page": "integrations/woocommerce/introduction",
             "anchor": "validation-error",
             "title": {
                 "en": "Invalid API token",
@@ -3146,7 +3146,7 @@
             "sha256": "5fa13ed7372bbd80d86646bd1a3935e5a6d18db45d4f89464ab9e6da1c70c4b9"
         },
         {
-            "page": "integrations/woocommerce/connection",
+            "page": "integrations/woocommerce/introduction",
             "anchor": "validation-success",
             "title": {
                 "en": "Validated Smart Send connection",
@@ -3173,7 +3173,7 @@
             "sha256": "08399e1f2f6d2a0d090b6c1da1045e7f73d0bb39db8cdc9a976570d723747d21"
         },
         {
-            "page": "integrations/woocommerce/customs",
+            "page": "integrations/woocommerce/shipping-labels",
             "anchor": "product-shipping-fields",
             "title": {
                 "en": "Product customs information",
@@ -3197,10 +3197,10 @@
             },
             "width": 1440,
             "height": 1000,
-            "sha256": "8faa8b2f9700a76a1aa5ca6c941ed5d422ce29582cf0311f84b48cdb6d024648"
+            "sha256": "ff79e5c7ceb05735406afe25ffb1afa0c9a56cf4e7680e43280a60d52602d7e5"
         },
         {
-            "page": "integrations/woocommerce/shipping-examples",
+            "page": "integrations/woocommerce/shipping-methods",
             "anchor": "advanced-conditions-checkout",
             "title": {
                 "en": "Cart matching the shipping restrictions",
@@ -3224,10 +3224,10 @@
             },
             "width": 1440,
             "height": 1000,
-            "sha256": "72f40463fc3c5cfb2253635660c297a03ba19a1e2599a4c841c034ac3152c096"
+            "sha256": "d347480b8968bf98b98d8cae9345196ad12abdbfc802dfaf348555f2c7f6ffb5"
         },
         {
-            "page": "integrations/woocommerce/shipping-examples",
+            "page": "integrations/woocommerce/shipping-methods",
             "anchor": "advanced-conditions",
             "title": {
                 "en": "Shipping class and role restrictions",
@@ -3248,10 +3248,10 @@
             },
             "width": 1440,
             "height": 1000,
-            "sha256": "3c585b705d6cf7af72087fc9cb6f3e758ff86426edbee6ff7b97c6080f68206b"
+            "sha256": "bc30823aa5fe88601a0a91a9242522cc35a09ff2a813d4969e93873dd934715d"
         },
         {
-            "page": "integrations/woocommerce/shipping-examples",
+            "page": "integrations/woocommerce/shipping-methods",
             "anchor": "free-shipping-mapping",
             "title": {
                 "en": "Map WooCommerce free shipping to a carrier service",
@@ -3272,10 +3272,10 @@
             },
             "width": 1440,
             "height": 1000,
-            "sha256": "572fe53002e0302b562621f12c1a78233d9cde1b305ffcc0260eabf53e24f663"
+            "sha256": "6d99f0c7c4b28b0c72e1f7ff28f4029a3a8598bb6c5c81d94f643f01dc5e7950"
         },
         {
-            "page": "integrations/woocommerce/shipping-examples",
+            "page": "integrations/woocommerce/shipping-methods",
             "anchor": "free-threshold-checkout",
             "title": {
                 "en": "Free pickup at a 500 DKK subtotal",
@@ -3302,7 +3302,7 @@
             "sha256": "acad6100412c0d8dde42ab850821f3bf2ef47b277d311a8caa7c3f36db2cedf1"
         },
         {
-            "page": "integrations/woocommerce/shipping-examples",
+            "page": "integrations/woocommerce/shipping-methods",
             "anchor": "free-threshold-settings",
             "title": {
                 "en": "Configure the free shipping threshold",
@@ -3323,10 +3323,10 @@
             },
             "width": 1440,
             "height": 1000,
-            "sha256": "9749de06f3c2dbd829324bd545cc9339e86dfa21b5194e7dc2872448f4064c9a"
+            "sha256": "8710deca87a65ccbf1eff748e33742ef30b66736c1cc090f8fdcd199e91156c6"
         },
         {
-            "page": "integrations/woocommerce/shipping-examples",
+            "page": "integrations/woocommerce/shipping-methods",
             "anchor": "pickup-home-checkout",
             "title": {
                 "en": "Pickup and home delivery prices at checkout",
@@ -3353,7 +3353,7 @@
             "sha256": "2b2511a8046e4af927b849b3a4764fb455c3fd0ef2aaf8ed35efd85d14345376"
         },
         {
-            "page": "integrations/woocommerce/shipping-examples",
+            "page": "integrations/woocommerce/shipping-methods",
             "anchor": "pickup-home-home-settings",
             "title": {
                 "en": "Home delivery price before VAT",
@@ -3374,10 +3374,10 @@
             },
             "width": 1440,
             "height": 1000,
-            "sha256": "0e5244f33571e49c2ef4ef96fe98cd5b1406e40dbcd41ec6bb8c1d770ce7e7f2"
+            "sha256": "7687ed24ce068aaaaa5a36379c15a390640178493f2716b489c134eb1942a43c"
         },
         {
-            "page": "integrations/woocommerce/shipping-examples",
+            "page": "integrations/woocommerce/shipping-methods",
             "anchor": "pickup-home-settings",
             "title": {
                 "en": "Pickup price before VAT",
@@ -3398,10 +3398,10 @@
             },
             "width": 1440,
             "height": 1000,
-            "sha256": "b50599ff2f51acc6ab373f7dadcf6d8557ee28fff8f69130c20d2d0e5294a8cb"
+            "sha256": "4e53c2614484c5af2a2f933876b18a4c8556c52871ffa14426c19bec5ad2c0ca"
         },
         {
-            "page": "integrations/woocommerce/shipping-examples",
+            "page": "integrations/woocommerce/shipping-methods",
             "anchor": "weight-band-checkout",
             "title": {
                 "en": "Checkout for a five kilogram cart",
@@ -3425,10 +3425,10 @@
             },
             "width": 1440,
             "height": 1000,
-            "sha256": "8a9143899c59b2ce07193d5104b1c59a2d6612e9d53d01f4d716a8d14eea0cbb"
+            "sha256": "9cc7ba90b9382f1808452a6f40cf3604729da73a4504eef03df95f115f051f8c"
         },
         {
-            "page": "integrations/woocommerce/shipping-examples",
+            "page": "integrations/woocommerce/shipping-methods",
             "anchor": "weight-bands",
             "title": {
                 "en": "Configure weight-based shipping prices",
@@ -3449,10 +3449,10 @@
             },
             "width": 1440,
             "height": 1000,
-            "sha256": "ec1ffd4fb409601a1cdc68298ee0c652c79ed51ae28a9d32c5b97d49765e5468"
+            "sha256": "f7d08d286110b08d4c3d0537fae4e61fd0e95c120e5fe7e5e1ea09784344b224"
         },
         {
-            "page": "integrations/woocommerce/troubleshooting",
+            "page": "integrations/woocommerce/faq",
             "anchor": "booking-field-error",
             "title": {
                 "en": "Booking validation error",
@@ -3467,19 +3467,19 @@
             "locale": "en",
             "file": "en/help/booking-field-error.png",
             "destination": "images/woocommerce/en/help/booking-field-error.png",
-            "crop_selector": "#woocommerce-ss-shipping-label",
+            "crop_selector": null,
             "document_language": "en-US",
             "viewport": {
                 "width": 1440,
                 "height": 1000,
                 "device_scale_factor": 2
             },
-            "width": 560,
-            "height": 1134,
-            "sha256": "e07785df68eeb1f57c9ffd30daf6628b4fbbeb99215fc85158e2f917c2ba220b"
+            "width": 1440,
+            "height": 1000,
+            "sha256": "57be017ecfbcf1ee1dba90ea82cf0b489843d5076822049e4e57d318a4c451bd"
         },
         {
-            "page": "integrations/woocommerce/troubleshooting",
+            "page": "integrations/woocommerce/faq",
             "anchor": "log-location",
             "title": {
                 "en": "Smart Send logs in WooCommerce",
@@ -3503,10 +3503,10 @@
             },
             "width": 1440,
             "height": 1000,
-            "sha256": "25f413db316ec5df403b631533dd37ebbf1553490513b35debd7869ad9376881"
+            "sha256": "4efcd3741c44c3432b60381b86ac46ea49458179d8e11fc8a3d797aa564e75e3"
         },
         {
-            "page": "integrations/woocommerce/troubleshooting",
+            "page": "integrations/woocommerce/faq",
             "anchor": "no-smart-send-method",
             "title": {
                 "en": "Order without a Smart Send shipping method",
@@ -3521,19 +3521,19 @@
             "locale": "en",
             "file": "en/help/no-smart-send-method.png",
             "destination": "images/woocommerce/en/help/no-smart-send-method.png",
-            "crop_selector": "#woocommerce-ss-shipping-label",
+            "crop_selector": null,
             "document_language": "en-US",
             "viewport": {
                 "width": 1440,
                 "height": 1000,
                 "device_scale_factor": 2
             },
-            "width": 560,
-            "height": 892,
-            "sha256": "3288078822f8f6bc0cf9cea0b73f5e76b207bfc728670654798b8fd7b381f139"
+            "width": 1440,
+            "height": 1000,
+            "sha256": "130f772d0a1cbbdbcb719c39f0501bb0536091a3099f8b31809c314102314b7a"
         },
         {
-            "page": "integrations/woocommerce/troubleshooting",
+            "page": "integrations/woocommerce/faq",
             "anchor": "not-connected",
             "title": {
                 "en": "Order panel without a Smart Send connection",
@@ -3548,19 +3548,19 @@
             "locale": "en",
             "file": "en/help/not-connected.png",
             "destination": "images/woocommerce/en/help/not-connected.png",
-            "crop_selector": "#woocommerce-ss-shipping-label",
+            "crop_selector": null,
             "document_language": "en-US",
             "viewport": {
                 "width": 1440,
                 "height": 1000,
                 "device_scale_factor": 2
             },
-            "width": 560,
-            "height": 1182,
-            "sha256": "cf845109b262a16b6eab067e931b24eaf12ee090533e635bc2d49da68e1c6d6a"
+            "width": 1440,
+            "height": 1000,
+            "sha256": "ac7c3793730a4fbb5077538699138274f9303af90f09ab935dad80d1a44a575d"
         },
         {
-            "page": "integrations/woocommerce/tracking",
+            "page": "integrations/woocommerce/shipping-labels",
             "anchor": "booked-timeline",
             "title": {
                 "en": "Persisted shipment history",
@@ -3575,19 +3575,19 @@
             "locale": "en",
             "file": "en/history/booked-timeline.png",
             "destination": "images/woocommerce/en/history/booked-timeline.png",
-            "crop_selector": "#woocommerce-ss-shipping-label",
+            "crop_selector": null,
             "document_language": "en-US",
             "viewport": {
                 "width": 1440,
                 "height": 1000,
                 "device_scale_factor": 2
             },
-            "width": 560,
-            "height": 1106,
-            "sha256": "c4498c115e01b26fc0d39fb08759cfc4e9f66cd93a3ee65dc5bf88b4e5f4ede4"
+            "width": 1440,
+            "height": 1000,
+            "sha256": "dff3d3fb34fd3de9f44dd878dc15357ae45e0883dc2c9eceee12157ac2b7a720"
         },
         {
-            "page": "integrations/woocommerce/tracking",
+            "page": "integrations/woocommerce/shipping-labels",
             "anchor": "order-note-after-reload",
             "title": {
                 "en": "Booking note after reloading the order",
@@ -3599,16 +3599,16 @@
             "locale": "en",
             "file": "en/history/order-note-after-reload.png",
             "destination": "images/woocommerce/en/history/order-note-after-reload.png",
-            "crop_selector": "#woocommerce-order-notes",
+            "crop_selector": null,
             "document_language": "en-US",
             "viewport": {
                 "width": 1440,
                 "height": 1000,
                 "device_scale_factor": 2
             },
-            "width": 560,
-            "height": 1258,
-            "sha256": "ee1b82c023603a49ce3c8c9fe101dccc51397f1865b36a32b473bfbac85f46dd"
+            "width": 1440,
+            "height": 1000,
+            "sha256": "2f6e9792c7337b586eff38d64c5e8aadb90d15434efb5269b2f5977b99f89794"
         },
         {
             "page": "integrations/woocommerce/shipping-methods",
@@ -3632,7 +3632,7 @@
             },
             "width": 1440,
             "height": 1000,
-            "sha256": "e44dd191179b298bbc959a5fdd30da5f58ce8f5e07d9fb2df804f8f42668f376"
+            "sha256": "c672f1274c10b226b647b00855b20bd7f2eaa88af0dca75b1fc620e558eaa4da"
         },
         {
             "page": "integrations/woocommerce/shipping-methods",
@@ -3794,16 +3794,16 @@
             "locale": "en",
             "file": "en/outbound/booked-documents.png",
             "destination": "images/woocommerce/en/outbound/booked-documents.png",
-            "crop_selector": "#woocommerce-ss-shipping-label",
+            "crop_selector": null,
             "document_language": "en-US",
             "viewport": {
                 "width": 1440,
                 "height": 1000,
                 "device_scale_factor": 2
             },
-            "width": 560,
-            "height": 1410,
-            "sha256": "37edc856fa7102f6fed720487b98a1ad8501b73125d4ab91d9c3f576cf12f73c"
+            "width": 1440,
+            "height": 1000,
+            "sha256": "798cf259ffcf3f7cd05bf890b17ab23a6d1d8d7c39d39103f971cfd54411a174"
         },
         {
             "page": "integrations/woocommerce/shipping-labels",
@@ -3821,16 +3821,16 @@
             "locale": "en",
             "file": "en/outbound/method-change.png",
             "destination": "images/woocommerce/en/outbound/method-change.png",
-            "crop_selector": "#woocommerce-ss-shipping-label",
+            "crop_selector": null,
             "document_language": "en-US",
             "viewport": {
                 "width": 1440,
                 "height": 1000,
                 "device_scale_factor": 2
             },
-            "width": 560,
-            "height": 932,
-            "sha256": "07db06aa25174b4a0663d23a94f70f2be75564452819d13aa02c3933e06dc6d1"
+            "width": 1440,
+            "height": 1000,
+            "sha256": "d6ec6fcf5a6fe2d39ebb6cb64496e3f1e7b66034ee7ea14c57a137babde6793d"
         },
         {
             "page": "integrations/woocommerce/shipping-labels",
@@ -3848,16 +3848,16 @@
             "locale": "en",
             "file": "en/outbound/pickup-changed.png",
             "destination": "images/woocommerce/en/outbound/pickup-changed.png",
-            "crop_selector": "#woocommerce-ss-shipping-label",
+            "crop_selector": null,
             "document_language": "en-US",
             "viewport": {
                 "width": 1440,
                 "height": 1000,
                 "device_scale_factor": 2
             },
-            "width": 560,
-            "height": 924,
-            "sha256": "d76cd774db12e8ea4fbfbaa61e768ae54f28b2d2fe472f22b5e26b4655223e1b"
+            "width": 1440,
+            "height": 1000,
+            "sha256": "8dd949af76050d7e19fa1a9f4c621f390253538259e509f46bbd4d1be8f46ae2"
         },
         {
             "page": "integrations/woocommerce/shipping-labels",
@@ -3875,16 +3875,16 @@
             "locale": "en",
             "file": "en/outbound/pickup-edit.png",
             "destination": "images/woocommerce/en/outbound/pickup-edit.png",
-            "crop_selector": "#woocommerce-ss-shipping-label",
+            "crop_selector": null,
             "document_language": "en-US",
             "viewport": {
                 "width": 1440,
                 "height": 1000,
                 "device_scale_factor": 2
             },
-            "width": 560,
-            "height": 1016,
-            "sha256": "05b154d8823e85a4e2dd0bc77e7c9333ba18d75fab7ec3be935be1b1ef15afdb"
+            "width": 1440,
+            "height": 1000,
+            "sha256": "cca1a5c420d3f078dce79ca21a00327b66ee649f5120bb28cb5f9833b6240003"
         },
         {
             "page": "integrations/woocommerce/shipping-labels",
@@ -3902,19 +3902,19 @@
             "locale": "en",
             "file": "en/outbound/ready.png",
             "destination": "images/woocommerce/en/outbound/ready.png",
-            "crop_selector": "#woocommerce-ss-shipping-label",
+            "crop_selector": null,
             "document_language": "en-US",
             "viewport": {
                 "width": 1440,
                 "height": 1000,
                 "device_scale_factor": 2
             },
-            "width": 560,
-            "height": 924,
-            "sha256": "64ec79d755e2957eb1c11bd988cb09edd6535f2ff7983d29beadae2eab4b4f7a"
+            "width": 1440,
+            "height": 1000,
+            "sha256": "a00e0b6ed73bf136af6400e552d47366c008afc8f1d08fd7c4cf304336cfd9f4"
         },
         {
-            "page": "integrations/woocommerce/return-shipping",
+            "page": "integrations/woocommerce/tips-and-tricks",
             "anchor": "method-settings",
             "title": {
                 "en": "Configure the return service and default",
@@ -3953,16 +3953,16 @@
             "locale": "en",
             "file": "en/returns/outbound-and-return.png",
             "destination": "images/woocommerce/en/returns/outbound-and-return.png",
-            "crop_selector": "#woocommerce-ss-shipping-label",
+            "crop_selector": null,
             "document_language": "en-US",
             "viewport": {
                 "width": 1440,
                 "height": 1081,
                 "device_scale_factor": 2
             },
-            "width": 560,
-            "height": 1802,
-            "sha256": "fd7ba0c7d520c58c1f16203e3b969d9db2501ec826d3c0987351e6fc74f7fee9"
+            "width": 1440,
+            "height": 1081,
+            "sha256": "505cf8fe34fd2eac8eae08120eb27bb18aba4313d89b7f05fa6c3ee63000f7e7"
         },
         {
             "page": "integrations/woocommerce/return-shipping",
@@ -3980,16 +3980,16 @@
             "locale": "en",
             "file": "en/returns/partial-success.png",
             "destination": "images/woocommerce/en/returns/partial-success.png",
-            "crop_selector": "#woocommerce-ss-shipping-label",
+            "crop_selector": null,
             "document_language": "en-US",
             "viewport": {
                 "width": 1440,
                 "height": 1000,
                 "device_scale_factor": 2
             },
-            "width": 560,
-            "height": 1530,
-            "sha256": "3911492cc24b06bb3ac043682a9f216c5c62f19bf5e7ff19c84891a517bf6756"
+            "width": 1440,
+            "height": 1000,
+            "sha256": "0cf9f4ab47cf770e5ecc501024c449a606f6700a0c3cdc84f6b59b4aff0c42d1"
         },
         {
             "page": "integrations/woocommerce/return-shipping",
@@ -4007,16 +4007,16 @@
             "locale": "en",
             "file": "en/returns/return-only-booked.png",
             "destination": "images/woocommerce/en/returns/return-only-booked.png",
-            "crop_selector": "#woocommerce-ss-shipping-label",
+            "crop_selector": null,
             "document_language": "en-US",
             "viewport": {
                 "width": 1440,
                 "height": 1000,
                 "device_scale_factor": 2
             },
-            "width": 560,
-            "height": 1410,
-            "sha256": "29cc7ab135e8cdcf5963376682cf8ed5860ef08c6f97f2be1ee7afb7be87a5b7"
+            "width": 1440,
+            "height": 1000,
+            "sha256": "81626e722af61b904582d1f0a805bc9727ba9b8331c17eb1c2d07682817030fa"
         },
         {
             "page": "integrations/woocommerce/return-shipping",
@@ -4034,19 +4034,19 @@
             "locale": "en",
             "file": "en/returns/return-only-ready.png",
             "destination": "images/woocommerce/en/returns/return-only-ready.png",
-            "crop_selector": "#woocommerce-ss-shipping-label",
+            "crop_selector": null,
             "document_language": "en-US",
             "viewport": {
                 "width": 1440,
                 "height": 1000,
                 "device_scale_factor": 2
             },
-            "width": 560,
-            "height": 924,
-            "sha256": "704eb809d64325cf906c5682289c673b6d97d2bdfcf10e378c6e3eab6b6b0837"
+            "width": 1440,
+            "height": 1000,
+            "sha256": "35ddebe8002a6d30f623909a819545efedf1a58d8004f1b74e55943c59ecfdfd"
         },
         {
-            "page": "integrations/woocommerce/installation",
+            "page": "integrations/woocommerce/introduction",
             "anchor": "plugin-active",
             "title": {
                 "en": "Installed and active plugin",
@@ -4073,7 +4073,7 @@
             "sha256": "b651697805d526ba82a3f985ecb0647b850e1c43e579305406d56e1ea12fdd1a"
         },
         {
-            "page": "integrations/woocommerce/installation",
+            "page": "integrations/woocommerce/introduction",
             "anchor": "settings-location",
             "title": {
                 "en": "Open Smart Send settings",
@@ -4100,7 +4100,7 @@
             "sha256": "470d51f680039286c6034b0e683e2eb26762cdefe079ce00e4f9f03af452e883"
         },
         {
-            "page": "integrations/woocommerce/shipping-zones",
+            "page": "integrations/woocommerce/shipping-methods",
             "anchor": "country-selection",
             "title": {
                 "en": "Choose the zone countries",
@@ -4124,7 +4124,7 @@
             "sha256": "52b2225fa61393d525157905c2b1190e7532ca48e484200beb69bc50a8c8ed04"
         },
         {
-            "page": "integrations/woocommerce/shipping-zones",
+            "page": "integrations/woocommerce/shipping-methods",
             "anchor": "create-zone",
             "title": {
                 "en": "Create a WooCommerce shipping zone",
@@ -4148,7 +4148,7 @@
             "sha256": "115af75272b7b37ef0e7d5513267c0f420c0b7f92a4565a359e70eedadcc5c05"
         },
         {
-            "page": "integrations/woocommerce/shipping-zones",
+            "page": "integrations/woocommerce/shipping-methods",
             "anchor": "denmark-before-nordics",
             "title": {
                 "en": "Denmark before the Nordic zone",
