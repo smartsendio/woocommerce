@@ -41,10 +41,18 @@ it('documents adding Smart Send to the shipping zone', function () {
         ->navigate(ss_zone_page_url($state['zone_id']))
         ->click('.wc-shipping-zone-add-method')
         ->click('label[for="smart_send_shipping"]')
-        ->assertVisible('.wc-backbone-modal #btn-next')
-        ->click('.wc-backbone-modal #btn-next')
-        ->assertNotPresent('.wc-backbone-modal')
-        ->assertSeeIn('.wc-shipping-zone-method-rows .wc-shipping-zone-method-title', 'Smart Send');
+        ->assertEnabled('.wc-backbone-modal #btn-next');
+    $page->click('.wc-backbone-modal #btn-next');
+    // The picker itself already says Smart Send. Wait for the completed
+    // AJAX result in the zone table before framing the newly added method.
+    ss_wait_for_script($page, <<<'JS'
+        (function () {
+            const modal = document.querySelector('.wc-backbone-modal');
+            const row = document.querySelector('.wc-shipping-zone-method-rows .wc-shipping-zone-method-title');
+            return !modal && row && row.textContent.includes('Smart Send');
+        })()
+        JS
+    );
     highlight_element($page, '.wc-shipping-zone-methods');
     capture_doc_screenshot($page, 'methods', 'method-added');
 });
