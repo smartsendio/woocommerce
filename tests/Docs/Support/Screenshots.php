@@ -91,7 +91,7 @@ function highlight_element(
     string $selector,
     bool $overlay = true,
     int $outlineOffset = 6,
-    string $outlineColor = '#f97316',
+    string $outlineColor = 'rgb(46, 92, 74)',
     ?string $context = null,
 ): void {
     clear_highlights($page);
