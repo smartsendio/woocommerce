@@ -3,7 +3,7 @@
 /*
  * Tests for the checkout pickup point selector extension hooks: the renderer-independent hooks
  * added in v9 (#73) - smart_send_pickup_point_search_params,
- * smart_send_pickup_points_found, smart_send_pickup_point_label and
+ * smart_send_pickup_point_list, smart_send_pickup_point_label and
  * smart_send_pickup_point_timeout,
  * which shipped in 8.2.0 (as smart_send_agent_timeout) and was renamed
  * alongside the others in #105.
@@ -154,7 +154,7 @@ it('passes the documented params to smart_send_pickup_point_search_params and us
         ->and($output)->toContain('ss_shipping_store_pickup');
 });
 
-it('lets smart_send_pickup_points_found trim the list before rendering and caching', function () {
+it('lets smart_send_pickup_point_list trim the list before rendering and caching', function () {
     mock_smart_send_api(function () {
         return ss_api_response(200, ['data' => [
             sample_agent(['agent_no' => '1111', 'company' => 'First Shop']),
@@ -173,9 +173,9 @@ it('lets smart_send_pickup_points_found trim the list before rendering and cachi
         // Keep only the second pickup point.
         return [$ss_pickup_points[1]];
     };
-    add_filter('smart_send_pickup_points_found', $filter, 10, 2);
+    add_filter('smart_send_pickup_point_list', $filter, 10, 2);
     remember_cleanup_callback(function () use ($filter): void {
-        remove_filter('smart_send_pickup_points_found', $filter, 10);
+        remove_filter('smart_send_pickup_point_list', $filter, 10);
     });
 
     $output = selector_hooks_render();
@@ -195,7 +195,7 @@ it('lets smart_send_pickup_points_found trim the list before rendering and cachi
         ->and($read_back[0]->get_agent_no())->toBe('2222');
 });
 
-it('lets smart_send_pickup_points_found add a pickup point built directly from the value object', function () {
+it('lets smart_send_pickup_point_list add a pickup point built directly from the value object', function () {
     mock_smart_send_api(function () {
         return ss_api_response(200, ['data' => [sample_agent()]]);
     });
@@ -211,9 +211,9 @@ it('lets smart_send_pickup_points_found add a pickup point built directly from t
 
         return array_merge([$own], $ss_pickup_points);
     };
-    add_filter('smart_send_pickup_points_found', $filter, 10, 2);
+    add_filter('smart_send_pickup_point_list', $filter, 10, 2);
     remember_cleanup_callback(function () use ($filter): void {
-        remove_filter('smart_send_pickup_points_found', $filter, 10);
+        remove_filter('smart_send_pickup_point_list', $filter, 10);
     });
 
     $output = selector_hooks_render();
@@ -228,7 +228,7 @@ it('lets smart_send_pickup_points_found add a pickup point built directly from t
         ->and($cached->get_company())->toBe('Own Shop');
 });
 
-it('drops entries returned by smart_send_pickup_points_found that are not value objects, with a warning', function () {
+it('drops entries returned by smart_send_pickup_point_list that are not value objects, with a warning', function () {
     $spy = spy_on_logger_for_selector_hooks();
     mock_smart_send_api(function () {
         return ss_api_response(200, ['data' => [sample_agent()]]);
@@ -238,9 +238,9 @@ it('drops entries returned by smart_send_pickup_points_found that are not value 
         // A raw object or array is no longer accepted (#170).
         return array_merge($ss_pickup_points, [sample_agent(['agent_no' => '5555', 'company' => 'Raw Shop'])]);
     };
-    add_filter('smart_send_pickup_points_found', $filter, 10, 2);
+    add_filter('smart_send_pickup_point_list', $filter, 10, 2);
     remember_cleanup_callback(function () use ($filter): void {
-        remove_filter('smart_send_pickup_points_found', $filter, 10);
+        remove_filter('smart_send_pickup_point_list', $filter, 10);
     });
 
     $output = selector_hooks_render();
@@ -251,7 +251,7 @@ it('drops entries returned by smart_send_pickup_points_found that are not value 
 
     $warnings = array_values(array_filter($spy->entries, fn ($entry) => $entry['level'] === 'warning'));
     expect($warnings)->toHaveCount(1)
-        ->and($warnings[0]['message'])->toContain('smart_send_pickup_points_found')
+        ->and($warnings[0]['message'])->toContain('smart_send_pickup_point_list')
         ->and($warnings[0]['context']['entry_type'])->toBe('stdClass');
 });
 

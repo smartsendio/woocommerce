@@ -78,7 +78,7 @@ class Pickup_Point_Lookup {
 	 *
 	 * The raw API pickup point objects are mapped into
 	 * Pickup_Point value objects right here, at the API
-	 * boundary (#170): the smart_send_pickup_points_found filter, the
+	 * boundary (#170): the smart_send_pickup_point_list filter, the
 	 * session cache and every consumer downstream (formatter, classic
 	 * checkout, Store API cart extension) see the typed DTO only.
 	 *
@@ -107,7 +107,7 @@ class Pickup_Point_Lookup {
 		 * pickup points at checkout, before the API call is made.
 		 *
 		 * The number of returned pickup points is determined by the API
-		 * and cannot be requested here; use the smart_send_pickup_points_found
+		 * and cannot be requested here; use the smart_send_pickup_point_list
 		 * filter to trim the returned list.
 		 *
 		 * @since 9.0.0
@@ -187,7 +187,7 @@ class Pickup_Point_Lookup {
 		 * @return Pickup_Point[] The pickup points to cache and render.
 		 */
 		$ss_pickup_points = $this->only_pickup_points(
-			apply_filters( 'smart_send_pickup_points_found', $ss_pickup_points, $search_params ),
+			apply_filters( 'smart_send_pickup_point_list', $ss_pickup_points, $search_params ),
 			$carrier,
 			$country
 		);
@@ -432,7 +432,7 @@ class Pickup_Point_Lookup {
 	 * (a snippet returning something else is logged and dropped rather
 	 * than crashing checkout), re-indexed from 0.
 	 *
-	 * @param mixed $filtered The smart_send_pickup_points_found return value.
+	 * @param mixed $filtered The smart_send_pickup_point_list return value.
 	 *
 	 * @return Pickup_Point[]
 	 */
@@ -451,7 +451,7 @@ class Pickup_Point_Lookup {
 				}
 			} else {
 				Logger::warning(
-					'The smart_send_pickup_points_found filter returned an entry that is not a Pickup_Point - entry dropped.',
+					'The smart_send_pickup_point_list filter returned an entry that is not a Pickup_Point - entry dropped.',
 					array( 'entry_type' => is_object( $pickup_point ) ? get_class( $pickup_point ) : gettype( $pickup_point ) )
 				);
 			}
