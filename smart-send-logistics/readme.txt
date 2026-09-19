@@ -144,7 +144,7 @@ Pickup points:
 
 * **smart_send_pickup_point_search_params** `( array $params )` (since 9.0.0)
     Filter the search parameters (carrier, country, postal_code, city, street) before looking up the closest pickup points
-* **smart_send_pickup_points_found** `( Smart_Send\Delivery\Pickup_Point[] $pickup_points, array $params )` (since 9.0.0)
+* **smart_send_pickup_point_list** `( Smart_Send\Delivery\Pickup_Point[] $pickup_points, array $params )` (since 9.0.0)
     Filter the available pickup points before caching and displaying them: return fewer to limit the list, or reorder them. Return only `\Smart_Send\Delivery\Pickup_Point` objects (`get_agent_no()`, `get_company()`, `get_address_line1()`, `get_postal_code()`, `get_city()`, `get_country()`, `get_distance()`, `get_carrier()`, `get_latitude()`/`get_longitude()`, `get_opening_hours()`, `to_array()`). Points must match the lookup's carrier and country.
 * **smart_send_pickup_point_label** `( string $label, Smart_Send\Delivery\Pickup_Point $pickup_point )` (since 9.0.0)
     Filter a pickup point's plain-text display label. Return text, not HTML or pre-escaped markup; each renderer escapes the label for its own output. This contract applies to pickup point labels independently of whether a future interface uses a list or map.
@@ -153,13 +153,13 @@ Pickup points:
 
 Pickup point identity is the exact agent number together with its carrier and country. Submitted names and addresses are not trusted: checkout and label creation resolve the point from compatible server data or the API. Nearest search results and the customer's explicit selection are stored separately. An explicit compatible choice survives a refreshed list, even when the chosen point is no longer among the nearest results; changing carrier or country requires a compatible choice. If no points are available, checkout permits the existing fallback only when a server lookup for the current address confirms that state.
 
-The **Select Default** setting chooses the first available point only when there is no explicit compatible choice. Use `smart_send_pickup_points_found` to influence that order. There is no separate default-selection filter. The wider checkout interface rewrite remains planned for a later 9.x release; these contracts do not depend on the current dropdown.
+The **Select Default** setting chooses the first available point only when there is no explicit compatible choice. Use `smart_send_pickup_point_list` to influence that order. There is no separate default-selection filter. The wider checkout interface rewrite remains planned for a later 9.x release; these contracts do not depend on the current dropdown.
 
 The selected pickup point is shown on the order details page and in order emails through WooCommerce's `woocommerce_order_details_after_order_table` and `woocommerce_email_after_order_table` actions.
 
 Example: prioritize points open on Saturdays, preserving distance order within each group, and display at most five. Enable **Select Default** to use the first point as the automatic default:
 
-    add_filter( 'smart_send_pickup_points_found', function ( array $pickup_points, array $params ) {
+    add_filter( 'smart_send_pickup_point_list', function ( array $pickup_points, array $params ) {
         $saturday = array();
         $other = array();
         foreach ( $pickup_points as $pickup_point ) {
@@ -438,6 +438,7 @@ No - this is by design. Neither deactivating nor uninstalling the plugin deletes
 * Revised hook and filter API (smart_send_*) for every stage: shipping methods at checkout, fulfillment and booking. Several version 8 hooks were removed or changed; review custom snippets against the Developers section
 * Support for the WooCommerce Checkout Block: pickup point selection now works in the block-based checkout as well as the classic checkout
 * Validate pickup points against their carrier and country, preserve explicit choices when nearest results refresh, and resolve missing caches through the API before saving an order or booking a label
+* Use smart_send_pickup_point_list to filter, reorder or limit pickup points before caching and checkout display
 * Use the plain-text smart_send_pickup_point_label filter for pickup labels; remove the pre-release option-label and default-selection filters
 * Support for High-Performance Order Storage (HPOS)
 * Check permissions before pickup-point custom-field lookups or changes, reject metadata rows belonging to another order, and persist pickup-point deletion with both order storage backends
@@ -805,7 +806,7 @@ No - this is by design. Neither deactivating nor uninstalling the plugin deletes
 Version 9 is a complete rewrite of the plugin. Make a full site backup and [review update best practices](https://woocommerce.com/document/how-to-update-your-site/) before upgrading from 8.x. Existing settings, shipping methods, pickup points and booked-label access are kept. Saved parcel splits require the reset described below.
 
 * If your site uses Smart Send hooks or filters (custom code, a Code Snippets plugin or a theme), review every snippet: several version 8 hooks were removed or changed, and shipment/pickup hooks now pass typed objects. Other hooks retain their existing signatures. The Developers section lists the current hooks, removed hooks, arguments and examples. Update affected snippets and test them on a staging site before upgrading production.
-* For snippets using pre-release version 9 hooks, rename `smart_send_pickup_point_option_label` to `smart_send_pickup_point_label` and return plain text. `smart_send_default_selected_pickup_point` is removed without an alias: reorder `smart_send_pickup_points_found` results and use the **Select Default** setting instead. Compatible explicit customer choices are preserved. Older stored points missing carrier/country information are verified through the API when next used.
+* For snippets using pre-release version 9 hooks, rename `smart_send_pickup_point_option_label` to `smart_send_pickup_point_label` and return plain text. `smart_send_default_selected_pickup_point` is removed without an alias: reorder `smart_send_pickup_point_list` results and use the **Select Default** setting instead. Compatible explicit customer choices are preserved. Older stored points missing carrier/country information are verified through the API when next used.
 * Parcel splits saved in the old product-ID format are not migrated. On affected orders, choose "Reset to one parcel" and enter the allocation again before creating another shipping or return label. Custom integrations must use `order_item_id` and allocate every ordered unit exactly once. Parcel weights and dimensions still apply only to the current booking.
 * Products or variations deleted since the order was placed display as "Deleted" with no SKU. Enter an explicit parcel weight before booking them; missing customs data is not reconstructed. This does not remove access to labels already booked.
 * Requires WordPress 6.5, WooCommerce 8.2 and PHP 7.4 or newer. Sites on older versions should stay on the 8.x series.

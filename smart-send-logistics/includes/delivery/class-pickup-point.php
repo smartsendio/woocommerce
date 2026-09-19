@@ -28,7 +28,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  * original property set, and to_object() reproduces them.
  *
  * This is also the shape the checkout hooks pass (#170):
- * smart_send_pickup_points_found and smart_send_pickup_point_label
+ * smart_send_pickup_point_list and smart_send_pickup_point_label
  * receive instances of this
  * class, never raw API objects. Every field the Smart Send API delivers
  * for a pickup point is modeled here (identity, carrier, name and
