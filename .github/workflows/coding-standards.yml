@@ -33,5 +33,36 @@ jobs:
       - name: Run phpcs
         run: vendor/bin/phpcs
 
+      # testVersion is the open-ended "7.4-" (phpcs.compat.xml.dist), so
+      # the scan covers the whole supported range up to the newest PHP the
+      # installed PHPCompatibility release knows about. Runtime proof for
+      # PHP 8.x comes from the browser/integration matrices (up to 8.5).
       - name: Run PHP compatibility scan (PHP 7.4+)
         run: vendor/bin/phpcs --standard=phpcs.compat.xml.dist
+
+  packaged-autoload:
+    name: Packaged PHP autoload (PHP 7.4)
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up minimum supported PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '7.4'
+          coverage: none
+          tools: none
+
+      # The deployed payload is a direct copy of smart-send-logistics/. No
+      # Composer install, generated class map or repository files may assist it.
+      # Linux also catches filename case errors hidden by common macOS setups.
+      - name: Verify every class in an isolated release package
+        shell: bash
+        run: |
+          package_root="$(mktemp -d)"
+          trap 'rm -rf "$package_root"' EXIT
+          cp -R smart-send-logistics "$package_root/smart-send-logistics"
+          cp tests/Support/Autoload/smoke.php "$package_root/smoke.php"
+          cd "$package_root"
+          php -d auto_prepend_file= -d auto_append_file= -d "open_basedir=$package_root" smoke.php "$package_root/smart-send-logistics"

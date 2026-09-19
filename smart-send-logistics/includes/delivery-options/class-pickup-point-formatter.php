@@ -1,0 +1,248 @@
+<?php
+
+namespace Smart_Send\Delivery_Options;
+
+use Smart_Send\Delivery\Pickup_Point;
+use Smart_Send\Frontend\Checkout;
+use Smart_Send\Support\Settings;
+
+if ( ! defined( 'ABSPATH' ) ) {
+	exit; // Exit if accessed directly
+}
+
+/**
+ * Smart Send pickup point formatter.
+ *
+ * The single place a pickup point is turned into display text (#139),
+ * consolidating the three diverging historic copies: the checkout
+ * drop-down / order-details formatting from Checkout, the
+ * settings-screen format option labels from the plugin singleton, and
+ * the order meta box's address block.
+ *
+ * @package Smart_Send
+ * @category Shipping
+ * @author   Smart Send
+ */
+
+class Pickup_Point_Formatter {
+
+	/**
+	 * Memoized translated format option labels.
+	 *
+	 * @var array
+	 */
+	protected array $format_options = array();
+
+	/**
+	 * Typed plugin settings reader.
+	 *
+	 * @var Settings
+	 */
+	protected Settings $settings;
+
+	/**
+	 * The settings reader is stateless, so a fresh default is safe for
+	 * ad-hoc construction (tests construct the formatter directly).
+	 *
+	 * @param Settings|null $settings Typed plugin settings reader.
+	 */
+	public function __construct( ?Settings $settings = null ) {
+		$this->settings = null === $settings ? new Settings() : $settings;
+	}
+
+	/**
+	 * The translated "Dropdown display format" option labels, keyed by
+	 * format id.
+	 *
+	 * Built lazily on first call (not in a constructor): the plugin
+	 * bootstraps before the init action, and since WordPress 6.7 any
+	 * translation call for our text domain that runs before init
+	 * triggers a _load_textdomain_just_in_time "called incorrectly"
+	 * notice.
+	 *
+	 * @return array
+	 */
+	public function get_format_options() {
+		if ( empty( $this->format_options ) ) {
+			$this->format_options = array(
+				'1' => __( '#Company, #Street', 'smart-send-logistics' ),
+				'2' => __( '#Company, #Street, #Zipcode', 'smart-send-logistics' ),
+				'3' => __( '#Company, #Street, #City', 'smart-send-logistics' ),
+				'4' => __( '#Company, #Street, #Zipcode #City', 'smart-send-logistics' ),
+				'5' => __( '#Company, #Zipcode', 'smart-send-logistics' ),
+				'6' => __( '#Company, #Zipcode, #City', 'smart-send-logistics' ),
+				'7' => __( '#Company, #City', 'smart-send-logistics' ),
+			);
+		}
+
+		return $this->format_options;
+	}
+
+	/**
+	 * Format a pickup point label (format id 0 reads the "Dropdown display
+	 * format" setting). Negative ids retain the default block template;
+	 * order pages and emails use format_order_address() for output escaping.
+	 *
+	 * @param Pickup_Point|object $pickup_point The pickup point (value object or plain agent object).
+	 * @param int                             $format_id    The format id; 0 resolves the setting, negative forces the default block template.
+	 *
+	 * @return string
+	 */
+	// The parameter stays docblock-typed only: PHP 7.4 has no union types
+	// and both the value object and the plain API agent object are
+	// legitimate callers (normalize() accepts either).
+	public function format( $pickup_point, $format_id = 0 ): string {
+		$pickup_point = $this->normalize( $pickup_point );
+
+		if ( 0 == $format_id ) { // phpcs:ignore Universal.Operators.StrictComparisons.LooseEqual -- pre-existing loose comparison; tightening is a behaviour change out of scope for the #139 move.
+			// Find the setting
+			$format_id = $this->settings->dropdown_display_format();
+		}
+
+		switch ( $format_id ) {
+			case 1:
+				$address_format = '#Company, #Street';
+				break;
+			case 2:
+				$address_format = '#Company, #Street, #Zipcode';
+				break;
+			case 3:
+				$address_format = '#Company, #Street, #City';
+				break;
+			case 4:
+				$address_format = '#Company, #Street, #Zipcode #City';
+				break;
+			case 5:
+				$address_format = '#Company, #Zipcode';
+				break;
+			case 6:
+				$address_format = '#Company, #Zipcode, #City';
+				break;
+			case 7:
+				$address_format = '#Company, #City';
+				break;
+			default:
+				$address_format = '#Company<br>#Street<br>#Country #Zipcode #City';
+				break;
+		}
+
+		$place_holders = array(
+			'#AgentNo',
+			'#Company',
+			'#Street',
+			'#Zipcode',
+			'#City',
+			'#Country',
+		);
+
+		$place_holders_vals = array(
+			$pickup_point->get_agent_no(),
+			$pickup_point->get_company(),
+			$pickup_point->get_address_line1(),
+			$pickup_point->get_postal_code(),
+			$pickup_point->get_city(),
+			$pickup_point->get_country(),
+		);
+
+		$formatted_address = str_replace( $place_holders, $place_holders_vals, $address_format );
+
+		if ( ! empty( $pickup_point->get_distance() ) && $format_id > 0 ) {
+			if ( $pickup_point->get_distance() < 1 ) {
+				/* translators: %s: distance in meters. */
+				$formatted_distance = sprintf( __( '%sm', 'smart-send-logistics' ), number_format( $pickup_point->get_distance() * 1000, 0, '.', '' ) );
+			} else {
+				/* translators: %s: distance in kilometers. */
+				$formatted_distance = sprintf( __( '%skm', 'smart-send-logistics' ), number_format( $pickup_point->get_distance(), 2, '.', '' ) );
+			}
+			$formatted_address = sprintf( '%1$s: %2$s', $formatted_distance, $formatted_address );
+		}
+
+		return $formatted_address;
+	}
+
+	/**
+	 * The checkout drop-down label of a pickup point: the configured
+	 * "Dropdown display format" with the smart_send_pickup_point_label
+	 * filter applied - the single pipeline shared by the classic checkout
+	 * drop-down and the Checkout Block cart extension (#74).
+	 *
+	 * @param Pickup_Point|object $pickup_point The pickup point (value object or plain agent object).
+	 *
+	 * @return string
+	 */
+	// The parameter stays docblock-typed only: PHP 7.4 has no union types
+	// and both the value object and the plain API agent object are
+	// legitimate callers (format() normalizes either).
+	public function dropdown_label( $pickup_point ): string {
+		$formatted_address = $this->format( $pickup_point );
+
+		/*
+		 * Filter the plain-text label of a pickup point, usable by lists and maps.
+		 * Consumers escape this text at the rendering boundary.
+		 *
+		 * @since 9.0.0
+		 *
+		 * @param string                   $formatted_address The label formatted per the "Dropdown display format" setting.
+		 * @param Pickup_Point $pickup_point      The pickup point (typed value object, not a raw API object - #170).
+		 *
+		 * @return string The plain-text label to render.
+		 */
+		return apply_filters( 'smart_send_pickup_point_label', $formatted_address, $this->normalize( $pickup_point ) );
+	}
+
+	/**
+	 * The full address for order pages and emails, independent of the
+	 * checkout's abbreviated label setting and label filter.
+	 *
+	 * @param Pickup_Point $pickup_point Selected pickup point.
+	 * @param bool         $plain_text   Whether to return plain text instead of escaped HTML.
+	 * @return string
+	 */
+	public function format_order_address( Pickup_Point $pickup_point, bool $plain_text = false ): string {
+		$lines = array(
+			$pickup_point->get_company(),
+			$pickup_point->get_address_line1(),
+			trim( $pickup_point->get_country() . ' ' . $pickup_point->get_postal_code() . ' ' . $pickup_point->get_city() ),
+		);
+
+		if ( $plain_text ) {
+			return wp_strip_all_tags( html_entity_decode( implode( "\n", $lines ), ENT_QUOTES | ENT_HTML5, 'UTF-8' ) );
+		}
+
+		return implode( '<br>', array_map( 'esc_html', $lines ) );
+	}
+
+	/**
+	 * The order meta box's address block markup for the selected pickup
+	 * point.
+	 *
+	 * @param Pickup_Point|object|null $pickup_point The pickup point, or an empty value.
+	 *
+	 * @return string
+	 */
+	public function format_admin_block( $pickup_point ) {
+		if ( empty( $pickup_point ) ) {
+			return '';
+		}
+
+		$pickup_point = $this->normalize( $pickup_point );
+
+		return '<p class="ss_agent_address">' . $pickup_point->get_company() . '</br>' . $pickup_point->get_address_line1() . '</br>' . $pickup_point->get_postal_code() . ' ' . $pickup_point->get_city() . '</p>';
+	}
+
+	/**
+	 * Accept both the value object and the plain agent objects the API
+	 * lookup returns.
+	 *
+	 * @param Pickup_Point|object $pickup_point The pickup point.
+	 *
+	 * @return Pickup_Point
+	 */
+	protected function normalize( $pickup_point ): Pickup_Point {
+		if ( $pickup_point instanceof Pickup_Point ) {
+			return $pickup_point;
+		}
+
+		return Pickup_Point::from_object( (object) $pickup_point );
+	}
+}

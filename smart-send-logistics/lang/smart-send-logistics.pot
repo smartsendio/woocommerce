@@ -1,0 +1,1489 @@
+# Copyright (C) 2026 Smart Send ApS
+# This file is distributed under the same license as the Smart Send plugin.
+msgid ""
+msgstr ""
+"Project-Id-Version: Smart Send 9.0.0\n"
+"Report-Msgid-Bugs-To: https://wordpress.org/support/plugin/smart-send-logistics\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"POT-Creation-Date: 2026-09-19T14:57:42+00:00\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"X-Generator: WP-CLI 2.12.0\n"
+"X-Domain: smart-send-logistics\n"
+
+#. Plugin Name of the plugin
+#: smart-send-logistics.php
+#: admin/class-order-meta-box.php:91
+#: includes/shipping-method/class-method-settings.php:291
+#: includes/shipping-method/class-method.php:50
+msgid "Smart Send"
+msgstr ""
+
+#. Plugin URI of the plugin
+#: smart-send-logistics.php
+msgid "https://wordpress.org/plugins/smart-send-logistics/"
+msgstr ""
+
+#. Description of the plugin
+#: smart-send-logistics.php
+msgid "Shipping methods, pickup points and shipping labels for many carriers, like PostNord, GLS, DAO, Burd, Budbee and Bring, directly in WooCommerce."
+msgstr ""
+
+#. Author of the plugin
+#: smart-send-logistics.php
+msgid "Smart Send ApS"
+msgstr ""
+
+#. Author URI of the plugin
+#: smart-send-logistics.php
+msgid "https://www.smartsend.io"
+msgstr ""
+
+#: admin/class-fulfillment-rest-controller.php:173
+msgid "The Smart Send shipping method to resolve the agent number for (its carrier); defaults to the order's shipping method."
+msgstr ""
+
+#: admin/class-fulfillment-rest-controller.php:198
+msgid "Which label to create."
+msgstr ""
+
+#: admin/class-fulfillment-rest-controller.php:204
+msgid "Whether to also create the return label (outbound flow only); null follows the shipping method's auto-generate-return-label setting."
+msgstr ""
+
+#: admin/class-fulfillment-rest-controller.php:209
+msgid "The Smart Send return method to book the return label with when the order has none configured (outbound flow with with_return, e.g. an order placed without a Smart Send method); null follows the shipping method's configured return method."
+msgstr ""
+
+#: admin/class-fulfillment-rest-controller.php:214
+msgid "Must be true to book again when the order already has a shipment for any direction included in this request."
+msgstr ""
+
+#: admin/class-fulfillment-rest-controller.php:219
+msgid "The delivery details to book with; every field optional (keep the stored/derived value)."
+msgstr ""
+
+#: admin/class-fulfillment-rest-controller.php:224
+msgid "The Smart Send shipping method code (e.g. postnord_agent)."
+msgstr ""
+
+#: admin/class-fulfillment-rest-controller.php:228
+msgid "The pickup point: { agent_no } to resolve server-side, { clear: true } to remove the stored one, or a full pickup point."
+msgstr ""
+
+#: admin/class-fulfillment-rest-controller.php:240
+msgid "The parcel plan; an empty specs list is one parcel containing everything."
+msgstr ""
+
+#: admin/class-fulfillment-rest-controller.php:336
+#: admin/class-fulfillment-rest-controller.php:452
+msgid "The parcel plan must use order_item_id and quantity. Reset it and enter the allocation again."
+msgstr ""
+
+#: admin/class-fulfillment-rest-controller.php:366
+msgid "Sorry, you are not allowed to create shipping labels for orders."
+msgstr ""
+
+#: admin/class-fulfillment-rest-controller.php:374
+msgid "The order could not be found."
+msgstr ""
+
+#: admin/class-fulfillment-rest-controller.php:431
+#: build/order-fulfillment/index.js:11
+msgid "This order already has shipping and return labels. Booking again creates new shipments at Smart Send; the old ones are not cancelled."
+msgstr ""
+
+#: admin/class-fulfillment-rest-controller.php:434
+#: build/order-fulfillment/index.js:11
+msgid "This order already has a return label. Booking again creates a new shipment at Smart Send; the old one is not cancelled."
+msgstr ""
+
+#: admin/class-fulfillment-rest-controller.php:435
+#: build/order-fulfillment/index.js:11
+msgid "This order already has a shipping label. Booking again creates a new shipment at Smart Send; the old one is not cancelled."
+msgstr ""
+
+#: admin/class-fulfillment-rest-controller.php:479
+msgid "No return method is configured on the shipping method - set one under WooCommerce → Shipping → the zone method, or choose one for this label."
+msgstr ""
+
+#: admin/class-fulfillment-rest-controller.php:522
+msgid "A shipping method is needed to look a pickup point up by its agent number."
+msgstr ""
+
+#: admin/class-fulfillment-rest-controller.php:684
+#: build/order-fulfillment/index.js:11
+msgid "Smart Send is not connected. Enter your API token in the settings to create labels."
+msgstr ""
+
+#: admin/class-order-bulk-actions.php:129
+msgid "No orders selected, please select the orders to create labels for."
+msgstr ""
+
+#. translators: %s: URL of the WordPress.org page listing the plugin's previous versions.
+#: admin/class-order-bulk-actions.php:144
+#, php-format
+msgid "Bulk printing of multiple orders is not available in version 9.0.0. We are building a much better version, and it is coming soon. Please select a single order, or create the label from the order page. If you need the old bulk printing, you can <a href=\"%s\" target=\"_blank\">downgrade to version 8.x</a>."
+msgstr ""
+
+#. translators: %s: WooCommerce order id.
+#: admin/class-order-bulk-actions.php:165
+#: includes/fulfillment/class-fulfillment-service.php:472
+#, php-format
+msgid "Order #%s: The order could not be found"
+msgstr ""
+
+#. translators: 1: WooCommerce order number, 2: link to download the return label.
+#: admin/class-order-bulk-actions.php:190
+#, php-format
+msgid "Order #%1$s: Return label created by Smart Send: %2$s"
+msgstr ""
+
+#. translators: 1: WooCommerce order number, 2: link to download the shipping label.
+#: admin/class-order-bulk-actions.php:197
+#, php-format
+msgid "Order #%1$s: Shipping label created by Smart Send: %2$s"
+msgstr ""
+
+#. translators: 1: WooCommerce order number, 2: message.
+#: admin/class-order-bulk-actions.php:220
+#: admin/class-order-bulk-actions.php:235
+#, php-format
+msgid "Order #%1$s: %2$s"
+msgstr ""
+
+#. translators: %s: WooCommerce order number.
+#: admin/class-order-bulk-actions.php:249
+#, php-format
+msgid "Order #%s: The selected order did not include a Send Smart shipping method"
+msgstr ""
+
+#: admin/class-order-bulk-actions.php:276
+msgid "Smart Send - Generate Labels"
+msgstr ""
+
+#: admin/class-order-bulk-actions.php:277
+msgid "Smart Send - Generate Return Labels"
+msgstr ""
+
+#: admin/class-order-fulfillment-presenter.php:825
+#: includes/booking/class-order-reader.php:217
+msgid "Deleted"
+msgstr ""
+
+#. translators: %s: URL to the plugin's WordPress.org upgrade notice section.
+#: admin/class-plugins-screen-updates.php:98
+#, php-format
+msgid "This is a major version upgrade. In most cases it will work without any issues. If you have extended this plugin's functionality or used its filters/actions, please consult the <a href=\"%s\" target=\"_blank\">upgrade guide</a> before upgrading to make sure everything keeps working."
+msgstr ""
+
+#: admin/class-product.php:45
+msgid "Select country"
+msgstr ""
+
+#: admin/class-product.php:49
+msgid "Country of origin"
+msgstr ""
+
+#: admin/class-product.php:50
+msgid "ISO3166-alpha2 code of the country where the item was produced"
+msgstr ""
+
+#: admin/class-product.php:61
+msgid "Customs description"
+msgstr ""
+
+#: admin/class-product.php:64
+msgid "Example: T-shirt"
+msgstr ""
+
+#: admin/class-product.php:73
+msgid "Harmonized Tariff Schedule"
+msgstr ""
+
+#: admin/class-product.php:74
+msgid "Harmonized Tariff Schedule is a number assigned to every possible commodity that can be imported or exported from any country."
+msgstr ""
+
+#: admin/class-product.php:79
+msgid "Example: 12345678"
+msgstr ""
+
+#: includes/booking/class-shipment-builder.php:113
+msgid "No shipping method set"
+msgstr ""
+
+#: includes/booking/class-shipment-builder.php:180
+msgid "Review the parcel allocations before booking."
+msgstr ""
+
+#: includes/booking/class-shipment-builder.php:276
+msgid "Enter a parcel weight before booking because an allocated product no longer has a known weight."
+msgstr ""
+
+#: includes/class-plugin.php:412
+msgid "View WooCommerce settings"
+msgstr ""
+
+#: includes/class-plugin.php:415
+msgid "Settings"
+msgstr ""
+
+#: includes/class-plugin.php:433
+msgid "Configuration guide"
+msgstr ""
+
+#: includes/class-plugin.php:434
+msgid "Support"
+msgstr ""
+
+#. translators: %s: minimum required WooCommerce version.
+#: includes/class-plugin.php:471
+#, php-format
+msgid "Smart Send requires WooCommerce %s or newer to be installed and activated."
+msgstr ""
+
+#: includes/delivery-options/class-checkout-options.php:122
+msgid "Enter your shipping address to see available pickup points."
+msgstr ""
+
+#: includes/delivery-options/class-checkout-options.php:124
+msgid "Connect the Smart Send plugin to enable pickup points."
+msgstr ""
+
+#: includes/delivery-options/class-checkout-options.php:126
+msgid "The shop is not correctly connected with Smart Send."
+msgstr ""
+
+#: includes/delivery-options/class-checkout-options.php:128
+msgid "The shop does not have access to pickup points."
+msgstr ""
+
+#: includes/delivery-options/class-checkout-options.php:130
+msgid "We could not find available pickup points. Please check that the entered address is correct. Your order will be shipped to the closest possible pickup point."
+msgstr ""
+
+#: includes/delivery-options/class-checkout-options.php:132
+msgid "Shipping to closest pickup point"
+msgstr ""
+
+#: includes/delivery-options/class-pickup-point-formatter.php:68
+msgid "#Company, #Street"
+msgstr ""
+
+#: includes/delivery-options/class-pickup-point-formatter.php:69
+msgid "#Company, #Street, #Zipcode"
+msgstr ""
+
+#: includes/delivery-options/class-pickup-point-formatter.php:70
+msgid "#Company, #Street, #City"
+msgstr ""
+
+#: includes/delivery-options/class-pickup-point-formatter.php:71
+msgid "#Company, #Street, #Zipcode #City"
+msgstr ""
+
+#: includes/delivery-options/class-pickup-point-formatter.php:72
+msgid "#Company, #Zipcode"
+msgstr ""
+
+#: includes/delivery-options/class-pickup-point-formatter.php:73
+msgid "#Company, #Zipcode, #City"
+msgstr ""
+
+#: includes/delivery-options/class-pickup-point-formatter.php:74
+msgid "#Company, #City"
+msgstr ""
+
+#. translators: %s: distance in meters.
+#: includes/delivery-options/class-pickup-point-formatter.php:152
+#, php-format
+msgid "%sm"
+msgstr ""
+
+#. translators: %s: distance in kilometers.
+#: includes/delivery-options/class-pickup-point-formatter.php:155
+#, php-format
+msgid "%skm"
+msgstr ""
+
+#: includes/delivery-options/class-pickup-point-validator.php:283
+msgid "The pickup point field no longer matches this order. Reload the page and try again."
+msgstr ""
+
+#: includes/delivery-options/class-pickup-point-validator.php:300
+msgid "The agent number entered was not found."
+msgstr ""
+
+#. translators: %s: the pickup point agent number that was entered.
+#: includes/delivery-options/class-pickup-point-validator.php:400
+#: includes/delivery-options/exceptions/class-pickup-point-not-found-exception.php:56
+#, php-format
+msgid "The agent number entered, %s, was not found."
+msgstr ""
+
+#: includes/delivery-options/class-store-api.php:234
+msgid "Whether the chosen shipping rate is a Smart Send agent-type method."
+msgstr ""
+
+#: includes/delivery-options/class-store-api.php:239
+msgid "The pickup points closest to the customer shipping address, with pre-formatted labels."
+msgstr ""
+
+#: includes/delivery-options/class-store-api.php:246
+msgid "The pickup point agent number."
+msgstr ""
+
+#: includes/delivery-options/class-store-api.php:251
+msgid "The display label, formatted per the \"Dropdown display format\" setting."
+msgstr ""
+
+#: includes/delivery-options/class-store-api.php:259
+msgid "The pickup point section state: found, address_incomplete, not_connected, auth_failed, access_denied, none_found or lookup_failed. Null when the chosen rate is not a Smart Send agent-type method."
+msgstr ""
+
+#: includes/delivery-options/class-store-api.php:274
+msgid "The customer-facing text of the pickup point section state, translated server-side. Null when the selector renders instead of a message."
+msgstr ""
+
+#: includes/delivery-options/class-store-api.php:279
+msgid "Whether the lookup ran for the customer address and found no pickup points at all."
+msgstr ""
+
+#: includes/delivery-options/class-store-api.php:284
+msgid "The agent number of the pickup point currently selected in this session, if any."
+msgstr ""
+
+#: includes/delivery-options/class-store-api.php:295
+msgid "Whether the closest pickup point is pre-selected (the \"Select Default\" setting)."
+msgstr ""
+
+#: includes/delivery-options/class-store-api.php:311
+msgid "The agent number of the pickup point selected for the order."
+msgstr ""
+
+#: includes/delivery-options/class-store-api.php:374
+msgid "The shipping address or method changed. Please select a pickup point again."
+msgstr ""
+
+#: includes/delivery-options/class-store-api.php:538
+#: public/class-checkout.php:523
+#: build/pickup-point-block/frontend.js:1
+msgid "A pickup point must be selected."
+msgstr ""
+
+#: includes/delivery/class-method-resolver.php:97
+msgid "No return method set"
+msgstr ""
+
+#: includes/delivery/class-order-meta.php:252
+#: includes/delivery/class-order-meta.php:256
+msgid "This parcel plan uses an unsupported format. Reset it to one parcel and enter the allocation again."
+msgstr ""
+
+#: includes/delivery/class-order-meta.php:263
+msgid "The stored parcel allocation no longer matches the order. Reset it to one parcel and enter the allocation again."
+msgstr ""
+
+#: includes/delivery/class-parcel-plan.php:72
+msgid "The order contains an invalid or duplicated order-item identity or quantity."
+msgstr ""
+
+#: includes/delivery/class-parcel-plan.php:85
+msgid "Assign order items to every parcel when using more than one parcel."
+msgstr ""
+
+#: includes/delivery/class-parcel-plan.php:90
+msgid "A parcel references an order item that is no longer in the order."
+msgstr ""
+
+#: includes/delivery/class-parcel-plan.php:99
+msgid "Parcel quantities must allocate every ordered unit exactly once."
+msgstr ""
+
+#: includes/fulfillment/class-fulfillment-service.php:415
+msgid "The selected pickup point does not match the shipping carrier or country. Choose a pickup point again."
+msgstr ""
+
+#: includes/fulfillment/class-fulfillment-service.php:593
+msgid "The parcel plan is invalid. Reset it and allocate the current order items again."
+msgstr ""
+
+#. translators: %s: the reason the local copy could not be saved.
+#: includes/fulfillment/class-fulfillment-service.php:660
+#, php-format
+msgid "Label booked; the local copy could not be saved: %s"
+msgstr ""
+
+#: includes/fulfillment/class-fulfillment-service.php:903
+msgid "Tracking number"
+msgstr ""
+
+#: includes/fulfillment/class-fulfillment-service.php:959
+msgid "Return shipping label"
+msgstr ""
+
+#: includes/fulfillment/class-fulfillment-service.php:959
+msgid "Shipping label"
+msgstr ""
+
+#: includes/fulfillment/class-fulfillment-service.php:961
+msgid "Customs declaration"
+msgstr ""
+
+#: includes/fulfillment/class-fulfillment-service.php:963
+msgid "Commercial invoice"
+msgstr ""
+
+#: includes/fulfillment/class-fulfillment-service.php:965
+msgid "Packing list"
+msgstr ""
+
+#: includes/fulfillment/class-fulfillment-service.php:988
+msgid "Download return label"
+msgstr ""
+
+#: includes/fulfillment/class-fulfillment-service.php:988
+#: includes/fulfillment/class-fulfillment-service.php:990
+msgid "Download shipping label"
+msgstr ""
+
+#: includes/fulfillment/class-fulfillment-service.php:990
+msgid "Download return shipping label"
+msgstr ""
+
+#: includes/fulfillment/class-fulfillment-service.php:994
+msgid "Download customs declaration"
+msgstr ""
+
+#: includes/fulfillment/class-fulfillment-service.php:997
+msgid "Download commercial invoice"
+msgstr ""
+
+#: includes/fulfillment/class-fulfillment-service.php:1000
+msgid "Download packing list"
+msgstr ""
+
+#: includes/fulfillment/class-fulfillment-service.php:1003
+msgid "Download document"
+msgstr ""
+
+#: includes/fulfillment/class-fulfillment-service.php:1023
+msgid "QR code"
+msgstr ""
+
+#: includes/fulfillment/class-fulfillment-service.php:1025
+msgid "Label code"
+msgstr ""
+
+#: includes/fulfillment/class-fulfillment-service.php:1083
+msgid "Shipment id is empty"
+msgstr ""
+
+#: includes/fulfillment/class-fulfillment-service.php:1087
+msgid "Label data empty"
+msgstr ""
+
+#: includes/fulfillment/class-fulfillment-service.php:1100
+msgid "Label file cannot be saved"
+msgstr ""
+
+#. translators: 1: shipping method title, 2: shipping rate id, 3: the shipping-class reason the method is unavailable.
+#: includes/shipping-method/class-availability-reporter.php:65
+#, php-format
+msgid "Smart Send: Evaluated method \"%1$s\" (%2$s) as not available: %3$s"
+msgstr ""
+
+#: includes/shipping-method/class-availability-reporter.php:122
+msgid "not ALL products belong to one of the selected shipping classes."
+msgstr ""
+
+#: includes/shipping-method/class-availability-reporter.php:131
+msgid "no product belongs to one of the selected shipping classes."
+msgstr ""
+
+#: includes/shipping-method/class-availability-reporter.php:140
+msgid "at least one product belongs to one of the selected shipping classes."
+msgstr ""
+
+#: includes/shipping-method/class-availability-reporter.php:149
+msgid "ALL products belong to one of the selected shipping classes."
+msgstr ""
+
+#: includes/shipping-method/class-method-catalog.php:33
+#: includes/shipping-method/class-method-catalog.php:287
+msgid "- Select Method -"
+msgstr ""
+
+#: includes/shipping-method/class-method-catalog.php:36
+msgid "PostNord: Select pickup point (MyPack Collect)"
+msgstr ""
+
+#: includes/shipping-method/class-method-catalog.php:40
+msgid "PostNord: Closest pickup point (MyPack Collect)"
+msgstr ""
+
+#: includes/shipping-method/class-method-catalog.php:44
+msgid "PostNord: Private delivery to address (MyPack Home)"
+msgstr ""
+
+#: includes/shipping-method/class-method-catalog.php:48
+msgid "PostNord: Leave at door (Flexdelivery)"
+msgstr ""
+
+#: includes/shipping-method/class-method-catalog.php:52
+msgid "PostNord: Flexible home delivery (FlexChange)"
+msgstr ""
+
+#: includes/shipping-method/class-method-catalog.php:56
+msgid "PostNord: Private economy delivery to address (MyPack Home Economy)"
+msgstr ""
+
+#: includes/shipping-method/class-method-catalog.php:60
+msgid "PostNord: Private delivery to address Small (MyPack Home Small)"
+msgstr ""
+
+#: includes/shipping-method/class-method-catalog.php:64
+msgid "PostNord: Commercial delivery to address (Parcel)"
+msgstr ""
+
+#: includes/shipping-method/class-method-catalog.php:68
+msgid "PostNord: Valuable parcel"
+msgstr ""
+
+#: includes/shipping-method/class-method-catalog.php:72
+msgid "PostNord: Tracked Valuemail Large"
+msgstr ""
+
+#: includes/shipping-method/class-method-catalog.php:76
+msgid "PostNord: Tracked Valuemail Maxi"
+msgstr ""
+
+#: includes/shipping-method/class-method-catalog.php:80
+msgid "PostNord: Tracked Valuemail First Class"
+msgstr ""
+
+#: includes/shipping-method/class-method-catalog.php:84
+msgid "PostNord: Tracked Valuemail Economy"
+msgstr ""
+
+#: includes/shipping-method/class-method-catalog.php:88
+msgid "PostNord: Tracked Valuemail Eco Friendly"
+msgstr ""
+
+#: includes/shipping-method/class-method-catalog.php:92
+msgid "PostNord: Untracked Valuemail Large"
+msgstr ""
+
+#: includes/shipping-method/class-method-catalog.php:96
+msgid "PostNord: Untracked Valuemail Maxi"
+msgstr ""
+
+#: includes/shipping-method/class-method-catalog.php:100
+msgid "PostNord: Registred letter"
+msgstr ""
+
+#: includes/shipping-method/class-method-catalog.php:104
+msgid "PostNord: Tracked letter"
+msgstr ""
+
+#: includes/shipping-method/class-method-catalog.php:108
+msgid "PostNord: Tracked letter Large"
+msgstr ""
+
+#: includes/shipping-method/class-method-catalog.php:112
+msgid "PostNord: Untracked letter"
+msgstr ""
+
+#: includes/shipping-method/class-method-catalog.php:116
+msgid "PostNord: Express Letter"
+msgstr ""
+
+#: includes/shipping-method/class-method-catalog.php:120
+msgid "PostNord: Full size pallet"
+msgstr ""
+
+#: includes/shipping-method/class-method-catalog.php:124
+msgid "PostNord: Half size pallet"
+msgstr ""
+
+#: includes/shipping-method/class-method-catalog.php:128
+msgid "PostNord: Quarter size pallet"
+msgstr ""
+
+#: includes/shipping-method/class-method-catalog.php:132
+msgid "PostNord: Speciel size pallet"
+msgstr ""
+
+#: includes/shipping-method/class-method-catalog.php:139
+msgid "GLS: Select pickup point (ParcelShop)"
+msgstr ""
+
+#: includes/shipping-method/class-method-catalog.php:140
+msgid "GLS: Closest pickup point (ParcelShop)"
+msgstr ""
+
+#: includes/shipping-method/class-method-catalog.php:141
+msgid "GLS: Private delivery to address (PrivateDelivery)"
+msgstr ""
+
+#: includes/shipping-method/class-method-catalog.php:145
+msgid "GLS: Leave at door (DepositService)"
+msgstr ""
+
+#: includes/shipping-method/class-method-catalog.php:146
+msgid "GLS: Flexible home delivery (FlexDelivery)"
+msgstr ""
+
+#: includes/shipping-method/class-method-catalog.php:147
+msgid "GLS: Commercial delivery to address (BusinessParcel)"
+msgstr ""
+
+#: includes/shipping-method/class-method-catalog.php:154
+msgid "DAO: Select pickup point (ParcelShop)"
+msgstr ""
+
+#: includes/shipping-method/class-method-catalog.php:155
+msgid "DAO: Closest pickup point (ParcelShop)"
+msgstr ""
+
+#: includes/shipping-method/class-method-catalog.php:156
+msgid "DAO: Leave at door (Direct)"
+msgstr ""
+
+#: includes/shipping-method/class-method-catalog.php:157
+msgid "DAO: From pickup point to pickup point (Shop2Shop)"
+msgstr ""
+
+#: includes/shipping-method/class-method-catalog.php:158
+msgid "DAO: From pickup point to doorstep (ParcelShop to Direct)"
+msgstr ""
+
+#: includes/shipping-method/class-method-catalog.php:162
+msgid "Budbee: Home"
+msgstr ""
+
+#: includes/shipping-method/class-method-catalog.php:166
+msgid "Burd: Home Delivery"
+msgstr ""
+
+#: includes/shipping-method/class-method-catalog.php:170
+msgid "Bring: Select pickup point (PickUp Parcel / Serviceparcel)"
+msgstr ""
+
+#: includes/shipping-method/class-method-catalog.php:174
+msgid "Bring: Select pickup point, send as bulk (PickUp Parcel Bulk)"
+msgstr ""
+
+#: includes/shipping-method/class-method-catalog.php:178
+msgid "Bring: Closest pickup point (PickUp Parcel / Serviceparcel)"
+msgstr ""
+
+#: includes/shipping-method/class-method-catalog.php:182
+msgid "Bring: Closest pickup point, send as bulk (PickUp Parcel Bulk)"
+msgstr ""
+
+#: includes/shipping-method/class-method-catalog.php:186
+msgid "Bring: Private delivery to address (Home Delivery Parcel)"
+msgstr ""
+
+#: includes/shipping-method/class-method-catalog.php:190
+msgid "Bring: Commercial delivery to address (Business Parcel)"
+msgstr ""
+
+#: includes/shipping-method/class-method-catalog.php:194
+msgid "Bring: Commercial delivery to address, send as bulk (Business Parcel Bulk)"
+msgstr ""
+
+#: includes/shipping-method/class-method-catalog.php:198
+msgid "Bring: Commercial delivery of full size pallet (Business Pallet)"
+msgstr ""
+
+#: includes/shipping-method/class-method-catalog.php:202
+msgid "Bring: Commercial delivery of half size pallet (Business Pallet)"
+msgstr ""
+
+#: includes/shipping-method/class-method-catalog.php:206
+msgid "Bring: Commercial delivery of quarter size pallet (Business Pallet)"
+msgstr ""
+
+#: includes/shipping-method/class-method-catalog.php:210
+msgid "Bring: Express delivery before 9:00 (Express Nordic 09:00)"
+msgstr ""
+
+#: includes/shipping-method/class-method-catalog.php:214
+msgid "Bring: Express delivery before 9:00, send as bulk (Express Nordic 09:00 Bulk)"
+msgstr ""
+
+#: includes/shipping-method/class-method-catalog.php:222
+msgid "Bifrost Logistics: eTail Tracked"
+msgstr ""
+
+#: includes/shipping-method/class-method-catalog.php:226
+msgid "Bifrost Logistics: eTail Tracked large"
+msgstr ""
+
+#: includes/shipping-method/class-method-catalog.php:231
+msgid "Bifrost Logistics: eTail Gain small"
+msgstr ""
+
+#: includes/shipping-method/class-method-catalog.php:235
+msgid "Bifrost Logistics: eTail Gain large"
+msgstr ""
+
+#: includes/shipping-method/class-method-catalog.php:240
+msgid "Bifrost Logistics: Nordic Express Collect"
+msgstr ""
+
+#: includes/shipping-method/class-method-catalog.php:244
+msgid "Bifrost Logistics: Nordic Express Home"
+msgstr ""
+
+#: includes/shipping-method/class-method-catalog.php:290
+msgid "PostNord: Return from pickup point (Return Drop Off)"
+msgstr ""
+
+#: includes/shipping-method/class-method-catalog.php:294
+msgid "PostNord: Return from address (Return Pickup)"
+msgstr ""
+
+#: includes/shipping-method/class-method-catalog.php:301
+msgid "GLS: Return from pickup point (ShopReturn)"
+msgstr ""
+
+#: includes/shipping-method/class-method-catalog.php:308
+msgid "DAO: Return from pickup point (ParcelShop Return)"
+msgstr ""
+
+#: includes/shipping-method/class-method-catalog.php:315
+msgid "Bring: Return from pickup point (PickUp Parcel Return)"
+msgstr ""
+
+#: includes/shipping-method/class-method-catalog.php:319
+msgid "Bring: Return from address (Parcel Return)"
+msgstr ""
+
+#: includes/shipping-method/class-method-form-renderer.php:183
+msgid "Enter a cost (excl. tax) or sum, e.g. 10.00 * [qty]."
+msgstr ""
+
+#: includes/shipping-method/class-method-form-renderer.php:186
+msgid "Use [qty] for the number of items, <br/>[cost] for the total cost of items, and [fee percent='10' min_fee='20' max_fee=''] for percentage based fees."
+msgstr ""
+
+#: includes/shipping-method/class-method-form-renderer.php:193
+msgid "Cost based on weight"
+msgstr ""
+
+#: includes/shipping-method/class-method-form-renderer.php:199
+msgid "Minimum"
+msgstr ""
+
+#: includes/shipping-method/class-method-form-renderer.php:203
+msgid "Cart weight should be equal to or larger than this value for the shipping rate to be applicable"
+msgstr ""
+
+#: includes/shipping-method/class-method-form-renderer.php:210
+msgid "Maximum"
+msgstr ""
+
+#: includes/shipping-method/class-method-form-renderer.php:214
+msgid "Cart weight should be strictly less than this value for the shipping rate to be applicable"
+msgstr ""
+
+#: includes/shipping-method/class-method-form-renderer.php:221
+#: includes/shipping-method/class-method-settings.php:321
+msgid "Cost"
+msgstr ""
+
+#: includes/shipping-method/class-method-form-renderer.php:259
+msgid "+ Add shipping rate"
+msgstr ""
+
+#: includes/shipping-method/class-method-form-renderer.php:267
+msgid "Remove selected rate(s)"
+msgstr ""
+
+#: includes/shipping-method/class-method-form-renderer.php:278
+msgid "Enter the shipping cost excluding tax"
+msgstr ""
+
+#: includes/shipping-method/class-method-settings.php:149
+msgid "API Token"
+msgstr ""
+
+#. translators: %s: URL of the Smart Send website.
+#: includes/shipping-method/class-method-settings.php:154
+#, php-format
+msgid "Sign up for a Smart Send account <a href=\"%s\" target=\"_blank\">here</a>."
+msgstr ""
+
+#: includes/shipping-method/class-method-settings.php:163
+msgid "Debug Log"
+msgstr ""
+
+#: includes/shipping-method/class-method-settings.php:165
+msgid "Enable logging"
+msgstr ""
+
+#. translators: 1: opening link tag pointing at the log file, 2: closing link tag.
+#: includes/shipping-method/class-method-settings.php:169
+#, php-format
+msgid "A log file containing the communication to the Smart Send server will be maintained if this option is checked. This can be used in case of technical issues and can be found %1$shere%2$s."
+msgstr ""
+
+#: includes/shipping-method/class-method-settings.php:178
+msgid "Shipping Labels"
+msgstr ""
+
+#: includes/shipping-method/class-method-settings.php:180
+msgid "Settings for generating shipping labels."
+msgstr ""
+
+#: includes/shipping-method/class-method-settings.php:183
+msgid "Set order status after label print"
+msgstr ""
+
+#: includes/shipping-method/class-method-settings.php:189
+msgid "Do not change order status"
+msgstr ""
+
+#: includes/shipping-method/class-method-settings.php:194
+msgid "Shipping method used for WooCommerce method Free Shipping"
+msgstr ""
+
+#: includes/shipping-method/class-method-settings.php:200
+msgid "Selecting a shipping method will make it possible to make shipping labels for order places with WooCommerces native Free Shipping method."
+msgstr ""
+
+#: includes/shipping-method/class-method-settings.php:207
+msgid "Include order comment on label"
+msgstr ""
+
+#: includes/shipping-method/class-method-settings.php:213
+msgid "Save a copy of the PDF"
+msgstr ""
+
+#: includes/shipping-method/class-method-settings.php:216
+msgid "This will save a copy of the generated PDF label in the WordPress uploads-folder"
+msgstr ""
+
+#: includes/shipping-method/class-method-settings.php:223
+msgid "Pickup Points"
+msgstr ""
+
+#: includes/shipping-method/class-method-settings.php:225
+msgid "Settings for displaying pickup points during checkout."
+msgstr ""
+
+#: includes/shipping-method/class-method-settings.php:231
+msgid "Dropdown format"
+msgstr ""
+
+#: includes/shipping-method/class-method-settings.php:232
+msgid "How the pickup points are listed during checkout."
+msgstr ""
+
+#: includes/shipping-method/class-method-settings.php:240
+msgid "Select Default"
+msgstr ""
+
+#: includes/shipping-method/class-method-settings.php:241
+msgid "Enable Select Default"
+msgstr ""
+
+#: includes/shipping-method/class-method-settings.php:242
+msgid "This will automatically select the closest pickup point and let the customer change to a different pickup point. This means that the customer will not be forced to select a pickup point before completing the order."
+msgstr ""
+
+#: includes/shipping-method/class-method-settings.php:248
+msgid "Shipping methods"
+msgstr ""
+
+#: includes/shipping-method/class-method-settings.php:250
+msgid "Settings for shipping methods."
+msgstr ""
+
+#: includes/shipping-method/class-method-settings.php:253
+msgid "Sort shipping methods"
+msgstr ""
+
+#: includes/shipping-method/class-method-settings.php:255
+msgid "Enable automatic sorting by cost on checkout page"
+msgstr ""
+
+#: includes/shipping-method/class-method-settings.php:258
+msgid "Shipping methods will be sorted in ascending order, according to the cost, instead of by order of appearance in Shipping Zone table as per default"
+msgstr ""
+
+#: includes/shipping-method/class-method-settings.php:285
+msgid "Method Title"
+msgstr ""
+
+#: includes/shipping-method/class-method-settings.php:287
+msgid "This controls the title which the user sees during checkout."
+msgstr ""
+
+#: includes/shipping-method/class-method-settings.php:295
+msgid "Shipping Method"
+msgstr ""
+
+#: includes/shipping-method/class-method-settings.php:298
+msgid "This is the shipping method used when generating shipping labels."
+msgstr ""
+
+#: includes/shipping-method/class-method-settings.php:306
+msgid "Tax status"
+msgstr ""
+
+#: includes/shipping-method/class-method-settings.php:309
+msgid "Determines if the shipping cost is taxable. Remember to set a shipping tax in WooCommerce."
+msgstr ""
+
+#: includes/shipping-method/class-method-settings.php:316
+msgid "Taxable"
+msgstr ""
+
+#: includes/shipping-method/class-method-settings.php:317
+msgctxt "Tax status"
+msgid "None"
+msgstr ""
+
+#: includes/shipping-method/class-method-settings.php:323
+msgid "Configure the shipping method cost and free shipping."
+msgstr ""
+
+#: includes/shipping-method/class-method-settings.php:333
+msgid "Flat rate requires..."
+msgstr ""
+
+#: includes/shipping-method/class-method-settings.php:338
+msgid "Always disabled"
+msgstr ""
+
+#: includes/shipping-method/class-method-settings.php:339
+msgid "Always enabled"
+msgstr ""
+
+#: includes/shipping-method/class-method-settings.php:340
+msgid "A valid free shipping coupon"
+msgstr ""
+
+#: includes/shipping-method/class-method-settings.php:341
+msgid "A minimum order amount"
+msgstr ""
+
+#: includes/shipping-method/class-method-settings.php:342
+msgid "A minimum order amount OR a coupon"
+msgstr ""
+
+#: includes/shipping-method/class-method-settings.php:343
+msgid "A minimum order amount AND a coupon"
+msgstr ""
+
+#: includes/shipping-method/class-method-settings.php:347
+msgid "Flat fee cost"
+msgstr ""
+
+#: includes/shipping-method/class-method-settings.php:350
+msgid "Shipping method cost if rules apply. To apply free shipping the value must be \"0\"."
+msgstr ""
+
+#: includes/shipping-method/class-method-settings.php:358
+msgid "Minimum order amount"
+msgstr ""
+
+#: includes/shipping-method/class-method-settings.php:361
+msgid "Users will need to spend at least this amount (including VAT) to get free shipping (if enabled above)."
+msgstr ""
+
+#: includes/shipping-method/class-method-settings.php:369
+#: includes/shipping-method/class-method-settings.php:374
+msgid "Advanced Settings"
+msgstr ""
+
+#: includes/shipping-method/class-method-settings.php:371
+msgid "Configure the advanced settings."
+msgstr ""
+
+#: includes/shipping-method/class-method-settings.php:376
+#: includes/shipping-method/class-method-settings.php:470
+msgid "Enable"
+msgstr ""
+
+#: includes/shipping-method/class-method-settings.php:378
+msgid "Enable/disable advanced settings and to show/hide settings."
+msgstr ""
+
+#: includes/shipping-method/class-method-settings.php:385
+msgid "Display shipping method if..."
+msgstr ""
+
+#: includes/shipping-method/class-method-settings.php:388
+msgid "Select when to display the shipping method based on shipping class."
+msgstr ""
+
+#: includes/shipping-method/class-method-settings.php:394
+msgid "N/A"
+msgstr ""
+
+#: includes/shipping-method/class-method-settings.php:395
+msgid "ALL products belong to one of the shipping classes"
+msgstr ""
+
+#: includes/shipping-method/class-method-settings.php:399
+msgid "At least ONE product belongs to one of the shipping classes"
+msgstr ""
+
+#: includes/shipping-method/class-method-settings.php:403
+msgid "ALL products do NOT belong to one of the shipping classes"
+msgstr ""
+
+#: includes/shipping-method/class-method-settings.php:407
+msgid "At least ONE product does NOT belongs to one of the shipping classes"
+msgstr ""
+
+#: includes/shipping-method/class-method-settings.php:415
+msgid "Shipping classes"
+msgstr ""
+
+#: includes/shipping-method/class-method-settings.php:418
+msgid "Shipping classes used to display the shipping method."
+msgstr ""
+
+#: includes/shipping-method/class-method-settings.php:442
+msgid "Exclude User role"
+msgstr ""
+
+#: includes/shipping-method/class-method-settings.php:445
+msgid "Do NOT display shipping method for these user roles."
+msgstr ""
+
+#: includes/shipping-method/class-method-settings.php:450
+msgid "Return shipping"
+msgstr ""
+
+#: includes/shipping-method/class-method-settings.php:452
+msgid "Configure how to handle return shipping."
+msgstr ""
+
+#: includes/shipping-method/class-method-settings.php:456
+msgid "Return Shipping Method"
+msgstr ""
+
+#: includes/shipping-method/class-method-settings.php:459
+msgid "This is the shipping method used when generating a return shipping labels."
+msgstr ""
+
+#: includes/shipping-method/class-method-settings.php:468
+msgid "Auto Generate Return Label"
+msgstr ""
+
+#: includes/shipping-method/class-method-settings.php:472
+msgid "Should a return label automatically be generated whenever a normal shipping labels is generated."
+msgstr ""
+
+#: includes/shipping-method/class-method-settings.php:485
+msgid "\"Method Title\" cannot be empty"
+msgstr ""
+
+#: includes/shipping-method/class-method-settings.php:490
+msgid "Change the \"Method Title\" field to something human readable. This is what your customers see at checkout."
+msgstr ""
+
+#: includes/shipping-method/class-method-settings.php:504
+msgid "Select a \"Shipping Method\""
+msgstr ""
+
+#: includes/shipping-method/class-method.php:51
+msgid "Advanced shipping solution for PostNord, GLS and Bring."
+msgstr ""
+
+#. translators: 1: shipping rate label, 2: number of matched weight table rows, 3: list of matched rows, 4: shipping rate id, 5: last matched row.
+#: includes/shipping-method/class-method.php:360
+#, php-format
+msgid "Smart Send \"%1$s\": %2$d overlapping weight table rows matched (%3$s) - the rows share rate id %4$s, so only the LAST matching row (%5$s) is offered and the earlier matches were overwritten."
+msgstr ""
+
+#. translators: 1: shipping rate label, 2: shipping rate id, 3: package contents cost, 4: cart weight, 5: weight unit.
+#: includes/shipping-method/class-method.php:442
+#, php-format
+msgid "Smart Send: Evaluated method \"%1$s\" (%2$s) as not available (total=%3$s, weight=%4$s %5$s): the cart weight matched no weight table row."
+msgstr ""
+
+#. translators: 1: shipping rate label, 2: shipping rate id, 3: package contents cost, 4: cart weight, 5: weight unit, 6: flat fee cost.
+#: includes/shipping-method/class-method.php:460
+#, php-format
+msgid "Smart Send: Evaluated method \"%1$s\" (%2$s) as available (total=%3$s, weight=%4$s %5$s). Flat fee cost %6$s applied."
+msgstr ""
+
+#. translators: 1: shipping rate label, 2: shipping rate id, 3: package contents cost, 4: cart weight, 5: weight unit, 6: applied weight table row as "min-max unit", 7: rate cost.
+#: includes/shipping-method/class-method.php:476
+#, php-format
+msgid "Smart Send: Evaluated method \"%1$s\" (%2$s) as available (total=%3$s, weight=%4$s %5$s). Weight table row %6$s applied, cost %7$s."
+msgstr ""
+
+#. translators: 1: shipping method title, 2: shipping rate id, 3: customer role.
+#: includes/shipping-method/class-method.php:556
+#, php-format
+msgid "Smart Send: Evaluated method \"%1$s\" (%2$s) as not available: customer role \"%3$s\" is excluded."
+msgstr ""
+
+#: includes/shipping-method/class-test-connection.php:80
+msgid "Enter an API Token and save the settings to connect to Smart Send."
+msgstr ""
+
+#: includes/shipping-method/class-test-connection.php:94
+msgid "Connected to Smart Send"
+msgstr ""
+
+#: includes/shipping-method/class-test-connection.php:100
+msgid "The API Token is invalid. Enter a valid API Token and save the settings again."
+msgstr ""
+
+#: includes/shipping-method/class-test-connection.php:101
+msgid "Smart Send denied access. Check the team access and subscription in Smart Send."
+msgstr ""
+
+#: includes/shipping-method/class-test-connection.php:102
+msgid "No team is registered for this webshop in Smart Send. Register the webshop in Smart Send and save the settings again."
+msgstr ""
+
+#: includes/shipping-method/class-test-connection.php:106
+msgid "The connection to Smart Send could not be verified. Please try saving the settings again later."
+msgstr ""
+
+#: public/class-checkout.php:195
+#: build/pickup-point-block/frontend.js:1
+#: build/pickup-point-block/index.js:1
+msgid "- Select Pickup Point -"
+msgstr ""
+
+#. translators: %s: previously selected pickup point number.
+#: public/class-checkout.php:217
+#, php-format
+msgid "Previously selected pickup point (%s)"
+msgstr ""
+
+#. translators: %d: number of pickup points found.
+#: public/class-checkout.php:269
+#, php-format
+msgid "Found %d pickup point near the entered address."
+msgid_plural "Found %d pickup points near the entered address."
+msgstr[0] ""
+msgstr[1] ""
+
+#: public/class-checkout.php:274
+msgid "Waiting for the shipping address."
+msgstr ""
+
+#: public/class-checkout.php:277
+msgid "No API token configured (plugin not connected)."
+msgstr ""
+
+#. translators: %s: error message returned by the Smart Send API.
+#: public/class-checkout.php:281
+#, php-format
+msgid "Failed with an authentication error (HTTP 401): %s"
+msgstr ""
+
+#. translators: %s: error message returned by the Smart Send API.
+#: public/class-checkout.php:285
+#, php-format
+msgid "Failed with an authorization error (HTTP 403): %s"
+msgstr ""
+
+#: public/class-checkout.php:288
+msgid "No pickup points found near the entered address."
+msgstr ""
+
+#. translators: %s: transport error message.
+#: public/class-checkout.php:293
+#, php-format
+msgid "Failed with a transport error: %s"
+msgstr ""
+
+#. translators: %s: error message returned by the Smart Send API.
+#: public/class-checkout.php:296
+#, php-format
+msgid "Failed with an API error: %s"
+msgstr ""
+
+#. translators: 1: shipping rate label, 2: shipping rate id, 3: the pickup point lookup outcome sentence.
+#: public/class-checkout.php:304
+#, php-format
+msgid "Smart Send: Showing pickup point for \"%1$s\" (%2$s). %3$s"
+msgstr ""
+
+#: public/class-checkout.php:490
+msgid "The selected pickup point could not be verified for this shipping method and country. Please select a pickup point again."
+msgstr ""
+
+#: public/class-checkout.php:659
+#: public/class-checkout.php:663
+#: build/pickup-point-block/frontend.js:1
+#: build/pickup-point-block/index.js:1
+msgid "Pickup Point"
+msgstr ""
+
+#. translators: %s: the Smart Send API response id.
+#: build/order-fulfillment/index.js:2
+#, js-format
+msgid "Response ID: %s"
+msgstr ""
+
+#: build/order-fulfillment/index.js:2
+msgid "None"
+msgstr ""
+
+#: build/order-fulfillment/index.js:2
+msgid "Edit"
+msgstr ""
+
+#: build/order-fulfillment/index.js:2
+msgid "Shipping method used for booking of outgoing shipment"
+msgstr ""
+
+#: build/order-fulfillment/index.js:2
+msgid "Shipping method used for booking of return shipments"
+msgstr ""
+
+#: build/order-fulfillment/index.js:2
+msgid "Select a method…"
+msgstr ""
+
+#: build/order-fulfillment/index.js:2
+msgid "Shipping method"
+msgstr ""
+
+#: build/order-fulfillment/index.js:2
+msgid "Debug id:"
+msgstr ""
+
+#: build/order-fulfillment/index.js:2
+msgid "Return method"
+msgstr ""
+
+#: build/order-fulfillment/index.js:2
+#: build/pickup-point-block/frontend.js:1
+#: build/pickup-point-block/index.js:1
+msgid "Pickup point"
+msgstr ""
+
+#: build/order-fulfillment/index.js:2
+msgid "Agent number"
+msgstr ""
+
+#: build/order-fulfillment/index.js:2
+msgid "Look up"
+msgstr ""
+
+#: build/order-fulfillment/index.js:2
+msgid "Move items between boxes with the arrows. Weight is calculated from the items unless you enter one."
+msgstr ""
+
+#: build/order-fulfillment/index.js:2
+msgid "Reset to one parcel"
+msgstr ""
+
+#. translators: %d: number of parcels with at least one unknown weight.
+#: build/order-fulfillment/index.js:3
+#, js-format
+msgid "%d parcel · weight required"
+msgid_plural "%d parcels · weight required"
+msgstr[0] ""
+msgstr[1] ""
+
+#. translators: 1: number of parcels, 2: total weight in kg.
+#: build/order-fulfillment/index.js:4
+#, js-format
+msgid "%1$d parcel · %2$s kg"
+msgid_plural "%1$d parcels · %2$s kg"
+msgstr[0] ""
+msgstr[1] ""
+
+#: build/order-fulfillment/index.js:4
+msgid "Parcels"
+msgstr ""
+
+#: build/order-fulfillment/index.js:4
+msgid "Reset required"
+msgstr ""
+
+#: build/order-fulfillment/index.js:4
+msgid "Done"
+msgstr ""
+
+#. translators: %d: box number.
+#: build/order-fulfillment/index.js:5
+#, js-format
+msgid "Box %d"
+msgstr ""
+
+#: build/order-fulfillment/index.js:5
+msgid "Weight (kg)"
+msgstr ""
+
+#: build/order-fulfillment/index.js:5
+msgid "Enter weight"
+msgstr ""
+
+#. translators: %s: the product SKU.
+#: build/order-fulfillment/index.js:6
+#, js-format
+msgid "SKU: %s"
+msgstr ""
+
+#. translators: %d: the line's total number of units on the order.
+#: build/order-fulfillment/index.js:7
+#, js-format
+msgid "of %d"
+msgstr ""
+
+#: build/order-fulfillment/index.js:7
+msgid "Move one unit to the box above"
+msgstr ""
+
+#: build/order-fulfillment/index.js:7
+msgid "Cannot move down: this is the only unit in the last box and a box must not be empty"
+msgstr ""
+
+#: build/order-fulfillment/index.js:7
+msgid "Move one unit to the box below"
+msgstr ""
+
+#: build/order-fulfillment/index.js:7
+msgid "When booking an outgoing label, then we will automatically also book a return label"
+msgstr ""
+
+#: build/order-fulfillment/index.js:7
+msgid "Also create return label"
+msgstr ""
+
+#: build/order-fulfillment/index.js:7
+#: build/order-fulfillment/index.js:11
+msgid "Return shipment"
+msgstr ""
+
+#: build/order-fulfillment/index.js:7
+#: build/order-fulfillment/index.js:11
+msgid "Shipment"
+msgstr ""
+
+#: build/order-fulfillment/index.js:7
+msgid "Open"
+msgstr ""
+
+#: build/order-fulfillment/index.js:7
+msgid "No tracking number"
+msgstr ""
+
+#. translators: %s: document format, e.g. PDF.
+#: build/order-fulfillment/index.js:8
+#, js-format
+msgid "Download return label (%s)"
+msgstr ""
+
+#. translators: %s: document format, e.g. PDF.
+#: build/order-fulfillment/index.js:9
+#, js-format
+msgid "Download shipping label (%s)"
+msgstr ""
+
+#: build/order-fulfillment/index.js:9
+msgid "Document"
+msgstr ""
+
+#. translators: %s: expiry date/time.
+#: build/order-fulfillment/index.js:10
+#, js-format
+msgid "(until %s)"
+msgstr ""
+
+#. translators: %s: the WooCommerce order status the order was set to.
+#: build/order-fulfillment/index.js:11
+#, js-format
+msgid "Order status set to %s."
+msgstr ""
+
+#: build/order-fulfillment/index.js:11
+msgid "Booked shipments"
+msgstr ""
+
+#: build/order-fulfillment/index.js:11
+msgid "The saved parcel allocation no longer matches this order. Reset to one parcel before booking."
+msgstr ""
+
+#: build/order-fulfillment/index.js:11
+msgid "Select a return shipping method first"
+msgstr ""
+
+#: build/order-fulfillment/index.js:11
+msgid "Select a shipping method first"
+msgstr ""
+
+#: build/order-fulfillment/index.js:11
+msgid "The request failed. Please try again."
+msgstr ""
+
+#: build/order-fulfillment/index.js:11
+msgid "Creating label…"
+msgstr ""
+
+#: build/order-fulfillment/index.js:11
+msgid "Yes, create another"
+msgstr ""
+
+#: build/order-fulfillment/index.js:11
+msgid "Create return label"
+msgstr ""
+
+#: build/order-fulfillment/index.js:11
+msgid "Create shipping label"
+msgstr ""
+
+#: build/order-fulfillment/index.js:11
+msgid "Open settings"
+msgstr ""
+
+#: build/order-fulfillment/index.js:11
+msgid "Shipping method is not from the Smart Send plugin."
+msgstr ""
+
+#: build/order-fulfillment/index.js:11
+msgid "The pickup point could not be found."
+msgstr ""
+
+#: build/pickup-point-block/frontend.js:1
+#: build/pickup-point-block/index.js:1
+msgid "Select where you would like to pick up your order."
+msgstr ""
+
+#: build/pickup-point-block/frontend.js:1
+msgid "The pickup point could not be saved. Please select it again."
+msgstr ""
+
+#: build/pickup-point-block/frontend.js:1
+msgid "Please wait while pickup points are updated."
+msgstr ""
+
+#: build/pickup-point-block/index.js:1
+msgid "Optional text describing the pickup point selection."
+msgstr ""
+
+#: build/pickup-point-block/index.js:1
+msgid "Customers see the pickup points closest to their address when a pickup point shipping method is selected."
+msgstr ""
+
+#: build/pickup-point-block/block.json
+msgctxt "block title"
+msgid "Pickup Point"
+msgstr ""
+
+#: build/pickup-point-block/block.json
+msgctxt "block description"
+msgid "Lets the customer choose a pickup point for their delivery when a pickup point shipping method is selected."
+msgstr ""

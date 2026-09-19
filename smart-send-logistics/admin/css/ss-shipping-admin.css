@@ -1,0 +1,9 @@
+.ss-connection {
+	display: block;
+	margin-top: 5px !important;
+	margin-left: 0 !important;
+}
+
+#smart-send-logistics-update .dummy {
+	display: none;
+}

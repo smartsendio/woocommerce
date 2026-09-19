@@ -1,0 +1,77 @@
+name: Docs Screenshots
+
+# Manual only - this suite is not correctness testing (see tests/Docs and
+# CLAUDE.md "Testing"), so it never blocks a PR. Screenshots are uploaded as
+# a build artifact for a human to review and commit, not committed by CI.
+on:
+  workflow_dispatch:
+    inputs:
+      locale:
+        description: Screenshot language
+        type: choice
+        default: all
+        options: [all, en, da]
+      filter:
+        description: Optional Pest test-name filter (produces a partial review bundle)
+        type: string
+        required: false
+
+permissions:
+  contents: read
+
+jobs:
+  pest:
+    name: Generate Docs suite screenshots
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          coverage: none
+          tools: composer
+
+      - name: Cache Composer dependencies
+        uses: actions/cache@v4
+        with:
+          path: vendor
+          key: ${{ runner.os }}-composer-${{ hashFiles('composer.lock') }}
+          restore-keys: ${{ runner.os }}-composer-
+
+      - name: Install Composer dependencies
+        run: composer install --prefer-dist --no-progress
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Install Playwright
+        run: |
+          npm ci
+          npx playwright install --with-deps chromium
+
+      - name: Generate and validate a fresh review bundle
+        env:
+          SS_DOCS_HEADLESS: '1'
+          COMPOSER_PROCESS_TIMEOUT: '0'
+          DOCS_LOCALE: ${{ inputs.locale }}
+          DOCS_FILTER: ${{ inputs.filter }}
+          DOCS_OUTPUT: ${{ runner.temp }}/woocommerce-docs
+        run: |
+          args=(--locale "$DOCS_LOCALE" --output "$DOCS_OUTPUT")
+          if [[ -n "$DOCS_FILTER" ]]; then args+=(--filter "$DOCS_FILTER"); fi
+          composer test:docs -- "${args[@]}"
+
+      - name: Upload fresh review bundle (failed runs are marked incomplete)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: docs-screenshots-${{ github.run_id }}-${{ inputs.locale }}
+          path: ${{ runner.temp }}/woocommerce-docs
+          if-no-files-found: warn
+          include-hidden-files: true

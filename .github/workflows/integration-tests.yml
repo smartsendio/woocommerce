@@ -4,10 +4,11 @@ on:
   push:
     branches: [main, develop]
   pull_request:
+  workflow_dispatch:
 
 jobs:
   pest:
-    name: Pest integration tests (PHP ${{ matrix.php-version }} / WP ${{ matrix.wp-version }} / WC ${{ matrix.wc-version }})
+    name: Pest integration tests (PHP ${{ matrix.php-version }} / WP ${{ matrix.wp-version }} / WC ${{ matrix.wc-version }})${{ matrix.canary && ' [canary]' || '' }}
     runs-on: ubuntu-latest
     timeout-minutes: 10
     strategy:
@@ -21,9 +22,27 @@ jobs:
         # warning/notice/deprecation raised from smart-send-logistics/ into
         # a test failure, so each matrix leg also proves the plugin runs
         # warning-free on that PHP version.
-        php-version: ['8.3', '8.4']
+        #
+        # Every PHP version Pest supports runs against the latest WP/WC; the
+        # `floor` leg below runs the oldest supported WordPress + WooCommerce
+        # (readme.txt: WP 6.5+, WC 8.2+) on Pest's oldest PHP. Intermediate
+        # WP/WC versions are not tested - one `latest` and one `floor` leg
+        # is the goal.
+        php-version: ['8.3', '8.4', '8.5']
         wp-version: ['latest']
         wc-version: ['latest']
+        include:
+          # Latest patch release of each floor version; verify the zips
+          # exist on wordpress.org before bumping. Its first run caught
+          # #184 (WooCommerce 8.2 hands rate costs back as "49.00", which
+          # the plugin's debug trace now normalises).
+          - php-version: '8.3'
+            wp-version: '6.5.10'
+            wc-version: '8.2.5'
+    # Set `canary: true` on a matrix entry to let it report without failing
+    # the workflow - only with a comment naming the issue that makes it
+    # strict again.
+    continue-on-error: ${{ matrix.canary == true }}
 
     steps:
       - uses: actions/checkout@v4
@@ -50,7 +69,7 @@ jobs:
         # concurrency-related SQLite crashes seen with php-fpm do not apply.
         # No web server is needed either - WordPress is loaded in-process.
         run: |
-          bin/setup-local-dev.sh \
+          bin/setup-local-dev.sh --disposable \
             --path ./local-dev/wordpress \
             --url http://127.0.0.1:8181 \
             --wp-version "${{ matrix.wp-version }}" \

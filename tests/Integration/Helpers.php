@@ -58,6 +58,14 @@ function cleanup_created_objects(): void
     }
 
     $GLOBALS['ss_integration_cleanup_callbacks'] = [];
+
+    // Each test models an independent shopper. A validated choice now outlives
+    // the nearest-results list, so clearing that list alone is insufficient.
+    if (function_exists('WC') && WC()->session !== null) {
+        foreach (['ss_shipping_agents', 'ss_shipping_agents_context', 'ss_shipping_selected_pickup_point'] as $key) {
+            WC()->session->set($key, null);
+        }
+    }
 }
 
 /**
@@ -71,7 +79,7 @@ function with_ss_settings(array $overrides = []): array
     $original   = get_option($option_key);
 
     $settings = array_merge([
-        'demo'                            => 'yes',
+        'api_token'                       => 'integration-test-token',
         'ss_debug'                        => 'no',
         'include_order_comment'           => 'no',
         'save_shipping_labels_in_uploads' => 'no',
@@ -132,9 +140,10 @@ function mock_smart_send_api(?callable $responder = null): object
         }
 
         $capture->requests[] = [
-            'url'    => $url,
-            'method' => $args['method'] ?? null,
-            'body'   => $args['body'] ?? null,
+            'url'     => $url,
+            'method'  => $args['method'] ?? null,
+            'body'    => $args['body'] ?? null,
+            'timeout' => $args['timeout'] ?? null,
         ];
 
         return $responder($url, $args);
@@ -151,12 +160,20 @@ function mock_smart_send_api(?callable $responder = null): object
 
 /**
  * Build a wp_remote_request-shaped response array with a JSON body.
+ * Pass a Response-ID value via $response_id to simulate the API's
+ * response-tracing header.
  */
-function ss_api_response(int $status, array $body): array
+function ss_api_response(int $status, array $body, ?string $response_id = null): array
 {
+    $headers = ['content-type' => 'application/json'];
+
+    if ($response_id !== null) {
+        $headers['response-id'] = $response_id;
+    }
+
     return [
         'response' => ['code' => $status, 'message' => $status === 200 ? 'OK' : 'Error'],
-        'headers'  => ['content-type' => 'application/json'],
+        'headers'  => $headers,
         'body'     => json_encode($body),
         'cookies'  => [],
         'filename' => null,
@@ -187,27 +204,60 @@ function ss_api_shipment_data(array $overrides = []): array
 }
 
 /**
- * An error response body in the shape the Smart Send API produces.
+ * An error response body in the shape the Smart Send API produces. Only
+ * "message" and "errors" are read by the plugin (the response id travels
+ * in the Response-ID header - see ss_api_response()).
  */
 function ss_api_error_body(string $message = 'The given data was invalid.'): array
 {
     return [
-        'links'   => ['about' => 'https://app.smartsend.io/help/errors/ValidationException'],
-        'id'      => 'test-error-id',
-        'code'    => 'ValidationException',
         'message' => $message,
         'errors'  => ['receiver.postal_code' => ['The postal code is invalid.']],
     ];
 }
 
 /**
- * A pick-up point agent object as the plugin stores it in order meta.
+ * Store a pickup point selection on an order through the repository
+ * (\Smart_Send\Delivery\Order_Meta::write()), the way checkout does.
+ */
+function save_order_pickup_point(int $order_id, object $agent): void
+{
+    $details = new \Smart_Send\Delivery\Delivery_Details();
+    $details->set_pickup_point(\Smart_Send\Delivery\Pickup_Point::from_object($agent));
+
+    SS_SHIPPING_WC()->order_meta()->write($order_id, $details);
+}
+
+/** Store a canonical order-item parcel plan through the repository. */
+function save_order_parcels(int $order_id, array $plan): void
+{
+    $details = new \Smart_Send\Delivery\Delivery_Details();
+    $details->set_parcel_plan(\Smart_Send\Delivery\Parcel_Plan::from_array($plan));
+    SS_SHIPPING_WC()->order_meta()->write($order_id, $details);
+}
+
+/** Fixture convenience for orders with exactly one line for the given product. */
+function order_item_id_for_product(WC_Order $order, $product): int
+{
+    $product_id = $product instanceof WC_Product ? $product->get_id() : $product;
+    $matches = array_filter($order->get_items(), static function ($item) use ($product_id) {
+        return (int) ($item->get_variation_id() ?: $item->get_product_id()) === (int) $product_id;
+    });
+    if (count($matches) !== 1) {
+        throw new LogicException('Use the explicit order item ID when a fixture has duplicate product lines.');
+    }
+    return (int) reset($matches)->get_id();
+}
+
+/**
+ * A pickup point agent object as the plugin stores it in order meta.
  */
 function sample_agent(array $overrides = []): object
 {
     return (object) array_merge([
         'id'            => 7,
         'agent_no'      => '1234',
+        'carrier'       => 'postnord',
         'company'       => 'Corner Shop',
         'address_line1' => 'Main Street 1',
         'address_line2' => null,
@@ -252,7 +302,7 @@ function create_simple_product(array $props = []): WC_Product_Simple
     $product->save();
 
     // Per-product Smart Send customs meta (stored as plain post meta by
-    // SS_Shipping_WC_Product and read back by SS_Shipping_Shipment).
+    // \Smart_Send\Admin\Product and read back by \Smart_Send\Booking\Shipment).
     foreach (['hs_code' => '_ss_hs_code', 'customs_desc' => '_ss_customs_desc', 'country_of_origin' => '_ss_country_of_origin'] as $prop => $meta_key) {
         if (isset($props[$prop])) {
             update_post_meta($product->get_id(), $meta_key, $props[$prop]);
@@ -434,4 +484,44 @@ function create_order(array $args = []): WC_Order
     $order->save();
 
     return $order;
+}
+
+if (! function_exists('wc_st_add_tracking_number')) {
+    /**
+     * Stand-in for the optional WooCommerce Shipment Tracking plugin: records
+     * every tracking push the fulfillment workflow makes.
+     */
+    function wc_st_add_tracking_number($order_id, $tracking_number, $provider, $date_shipped, $tracking_url): void
+    {
+        $GLOBALS['ss_test_shipment_tracking_calls'][] = [$order_id, $tracking_number, $provider, $date_shipped, $tracking_url];
+    }
+}
+
+/**
+ * Reset the recorded Shipment Tracking pushes and return the log by reference.
+ */
+function &shipment_tracking_calls(): array
+{
+    $GLOBALS['ss_test_shipment_tracking_calls'] = [];
+
+    return $GLOBALS['ss_test_shipment_tracking_calls'];
+}
+
+/**
+ * The cost string the shipping method's debug bar summary and log trace
+ * interpolate for a calculated rate: WC_Shipping_Rate::get_cost() verbatim.
+ * WooCommerce formats it differently across the supported range ("49.00"
+ * on WooCommerce 8.2, "49" on current releases), so expectations build the
+ * trace text from the rate instead of a literal. The numeric value is
+ * pinned here so a wrong cost cannot hide behind the indirection.
+ */
+function ss_rate_cost_as_traced(WC_Shipping_Method $method, string $rate_id, float $expected): string
+{
+    expect($method->rates)->toHaveKey($rate_id);
+
+    $cost = $method->rates[$rate_id]->get_cost();
+
+    expect((float) $cost)->toBe($expected);
+
+    return (string) $cost;
 }

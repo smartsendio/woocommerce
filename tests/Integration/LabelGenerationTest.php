@@ -1,34 +1,46 @@
 <?php
 
 /*
- * Characterization tests for label generation in SS_Shipping_WC_Order with
+ * Characterization tests for label generation via \Smart_Send\Fulfillment\Fulfillment_Service with
  * the Smart Send API mocked through pre_http_request: the success path
  * (order meta, order note, status change), the API error path, auto return
  * labels, and the bulk order actions with the admin notices they produce.
  */
 
 /**
- * Invoke the protected create_label_for_single_order_maybe_return().
- * The only public entry points (the AJAX handler and the bulk handler) wrap
- * this method; the AJAX handler cannot run in-process because it ends with
- * wp_send_json() + wp_die().
+ * Fulfill an order and return the run's canonical array form
+ * (\Smart_Send\Fulfillment\Fulfillment_Result::to_array(), what the REST response's
+ * shipments[] carries). The two public entry points - the REST controller
+ * behind the order meta box (#182) and the bulk handler - wrap the
+ * fulfillment service the same way.
  */
 function create_labels_for(int $order_id, bool $return = false, bool $save_order_note = true): array
 {
-    $method = new ReflectionMethod(SS_Shipping_WC_Order::class, 'create_label_for_single_order_maybe_return');
+    $fulfillment = SS_SHIPPING_WC()->fulfillment();
 
-    return $method->invoke(SS_SHIPPING_WC()->get_ss_shipping_wc_order(), $order_id, $return, $save_order_note);
+    $result = $return
+        ? $fulfillment->fulfill_return($order_id, $save_order_note)
+        : $fulfillment->fulfill_outbound($order_id, $save_order_note);
+
+    return $result->to_array();
 }
 
 /**
- * Reset the bulk-action flash message option and restore it afterwards.
+ * Clear pending admin notices for the current user and leave a clean state
+ * (no pending transient, no marker query parameter) after the test.
  */
-function with_empty_flash_messages(): void
+function with_empty_flash_messages(): \Smart_Send\Support\Admin_Notices
 {
-    // Seed an empty bag for the current user: add_admin_flash_messages()
-    // reads $bags[$bag] without an isset() check and would emit an
-    // "Undefined array key" warning on a completely empty option.
-    with_option(SS_Shipping_WC_Order::ADMIN_FLASH_MESSAGE_OPTION_KEY, [get_current_user_id() => []]);
+    $notices = SS_SHIPPING_WC()->admin_notices();
+
+    $notices->clear();
+
+    remember_cleanup_callback(function () use ($notices): void {
+        $notices->clear();
+        unset($_GET[\Smart_Send\Support\Admin_Notices::QUERY_ARG]);
+    });
+
+    return $notices;
 }
 
 /**
@@ -49,8 +61,9 @@ beforeEach(function (): void {
     with_ss_settings();
 });
 
-it('registers the AJAX label generation handler', function () {
-    expect(has_action('wp_ajax_ss_shipping_generate_label'))->not->toBeFalse();
+it('registers no admin-ajax label handler: the order meta box books through the REST controller', function () {
+    expect(has_action('wp_ajax_ss_shipping_generate_label'))->toBeFalse()
+        ->and(class_exists('SS_Shipping_Label_Creator'))->toBeFalse();
 });
 
 it('creates a label, saves the shipment id and adds an order note on success', function () {
@@ -60,21 +73,21 @@ it('creates a label, saves the shipment id and adds an order note on success', f
     });
 
     $fired = [];
-    $listener = function ($order_id, $response) use (&$fired): void {
-        $fired[] = $order_id;
+    $listener = function (WC_Order $fulfilled_order, \Smart_Send\Fulfillment\Fulfillment_Result $result) use (&$fired): void {
+        $fired[] = $fulfilled_order->get_id();
     };
-    add_action('smart_send_shipping_label_created', $listener, 10, 2);
+    add_action('smart_send_order_fulfilled', $listener, 10, 2);
     remember_cleanup_callback(function () use ($listener): void {
-        remove_action('smart_send_shipping_label_created', $listener, 10);
+        remove_action('smart_send_order_fulfilled', $listener, 10);
     });
 
     $response = create_labels_for($order->get_id());
 
     expect($response)->toHaveCount(1)
-        ->and($response[0])->toHaveKey('success')
-        ->and($response[0]['success']->shipment_id)->toBe('shipment-abc')
-        ->and($response[0]['success']->woocommerce['label_url'])->toBe('https://api.example.test/labels/label.pdf')
-        ->and($response[0]['success']->woocommerce['return'])->toBeFalse()
+        ->and($response[0]['status'])->toBe('fulfilled')
+        ->and($response[0]['direction'])->toBe('outbound')
+        ->and($response[0]['shipment']['shipment_id'])->toBe('shipment-abc')
+        ->and($response[0]['shipment']['documents'][0]['url'])->toBe('https://api.example.test/labels/label.pdf')
         ->and($capture->requests)->toHaveCount(1)
         ->and($fired)->toBe([$order->get_id()]);
 
@@ -90,6 +103,43 @@ it('creates a label, saves the shipment id and adds an order note on success', f
         ->toContain('https://tracking.example.test/TRACK-1234');
 });
 
+it('persists submitted delivery overrides through the repository once the booking succeeded', function () {
+    // The REST controller hands the submitted parcel plan into the flow as
+    // partial delivery details (#182); the fulfillment service books with
+    // them and persists them in the frozen meta format after the booking
+    // succeeded (persist-after-success - a failed booking writes nothing,
+    // see FulfillmentServiceTest).
+    $product_a = create_simple_product(['name' => 'Override Box One', 'price' => 100, 'weight' => 1]);
+    $product_b = create_simple_product(['name' => 'Override Box Two', 'price' => 50, 'weight' => 2]);
+    $order     = create_order([
+        'products'        => [$product_a, $product_b],
+        'shipping_method' => 'postnord_agent',
+        'shipping_total'  => '39',
+    ]);
+
+    $rows = ['specs' => [
+        ['reference' => '1', 'items' => [['order_item_id' => order_item_id_for_product($order, $product_a), 'quantity' => 1, 'name' => 'Override Box One']]],
+        ['reference' => '2', 'items' => [['order_item_id' => order_item_id_for_product($order, $product_b), 'quantity' => 1, 'name' => 'Override Box Two']]],
+    ]];
+    $overrides = new \Smart_Send\Delivery\Delivery_Details();
+    $overrides->set_parcel_plan(\Smart_Send\Delivery\Parcel_Plan::from_array($rows));
+
+    $capture = mock_smart_send_api();
+
+    $result = SS_SHIPPING_WC()->fulfillment()->fulfill_outbound($order->get_id(), false, $overrides);
+
+    expect($result->is_successful())->toBeTrue();
+
+    // The booking used the submitted plan...
+    $payload = json_decode(end($capture->requests)['body'], true);
+    expect($payload['parcels'])->toHaveCount(2)
+        ->and($payload['parcels'][0]['items'][0]['name'])->toBe('Override Box One')
+        ->and($payload['parcels'][1]['items'][0]['name'])->toBe('Override Box Two');
+
+    // ...and the split was persisted in the canonical order-item plan shape.
+    expect(wc_get_order($order->get_id())->get_meta('ss_shipping_order_parcels', true))->toEqual($overrides->get_parcel_plan()->to_array());
+});
+
 it('updates the order status after label generation when configured', function () {
     with_ss_settings(['order_status' => 'wc-completed']);
 
@@ -98,24 +148,26 @@ it('updates the order status after label generation when configured', function (
 
     $response = create_labels_for($order->get_id());
 
-    expect($response[0])->toHaveKey('success')
+    expect($response[0]['status'])->toBe('fulfilled')
+        ->and($response[0]['steps']['order_status'])->toBe('wc-completed')
         ->and(wc_get_order($order->get_id())->get_status())->toBe('completed');
 });
 
 it('returns the formatted API error message when the API rejects the shipment', function () {
     $order = create_labelable_order();
     mock_smart_send_api(function () {
-        return ss_api_response(422, ss_api_error_body('The given data was invalid.'));
+        return ss_api_response(422, ss_api_error_body('The given data was invalid.'), 'test-response-id');
     });
 
     $response = create_labels_for($order->get_id());
 
     expect($response)->toHaveCount(1)
-        ->and($response[0])->toHaveKey('error')
-        ->and($response[0]['error'])->toContain('The given data was invalid.')
-        ->toContain('Read more here')
-        ->toContain('Unique ID: test-error-id')
-        ->toContain('The postal code is invalid.');
+        ->and($response[0]['status'])->toBe('failed')
+        ->and($response[0]['error']['message'])->toBe('The given data was invalid.')
+        ->and($response[0]['error']['response_id'])->toBe('test-response-id')
+        ->and($response[0]['error']['html'])->toContain('The given data was invalid.')
+        ->toContain('The postal code is invalid.')
+        ->toContain('Response ID: test-response-id');
 
     expect(wc_get_order($order->get_id())->get_meta('_ss_shipping_label_id', true))->toBe('');
 });
@@ -127,17 +179,18 @@ it('auto-generates the return label after a successful normal label', function (
     $response = create_labels_for($order->get_id());
 
     expect($response)->toHaveCount(2)
-        ->and($response[0])->toHaveKey('success')
-        ->and($response[0]['success']->woocommerce['return'])->toBeFalse()
-        ->and($response[1])->toHaveKey('success')
-        ->and($response[1]['success']->woocommerce['return'])->toBeTrue()
+        ->and($response[0]['status'])->toBe('fulfilled')
+        ->and($response[0]['direction'])->toBe('outbound')
+        ->and($response[1]['status'])->toBe('fulfilled')
+        ->and($response[1]['direction'])->toBe('return')
+        ->and($response[1]['shipment']['is_return'])->toBeTrue()
         ->and($capture->requests)->toHaveCount(2);
 
     // The second request books the configured return method.
     $return_payload = json_decode($capture->requests[1]['body'], true);
     expect($return_payload['shipping_carrier'])->toBe('postnord')
         ->and($return_payload['shipping_method'])->toBe('returndropoff')
-        // Return shipments never include a pick-up point agent.
+        // Return shipments never include a pickup point agent.
         ->and($return_payload['agent'])->toBeNull();
 
     $fresh = wc_get_order($order->get_id());
@@ -152,8 +205,9 @@ it('creates only a return label when explicitly requested', function () {
     $response = create_labels_for($order->get_id(), true);
 
     expect($response)->toHaveCount(1)
-        ->and($response[0])->toHaveKey('success')
-        ->and($response[0]['success']->woocommerce['return'])->toBeTrue();
+        ->and($response[0]['status'])->toBe('fulfilled')
+        ->and($response[0]['direction'])->toBe('return')
+        ->and($response[0]['shipment']['is_return'])->toBeTrue();
 
     $fresh = wc_get_order($order->get_id());
     expect($fresh->get_meta('_ss_shipping_return_label_id', true))->not->toBe('')
@@ -163,67 +217,55 @@ it('creates only a return label when explicitly requested', function () {
     expect(implode("\n", wp_list_pluck($notes, 'content')))->toContain('Return shipping label');
 });
 
-it('generates labels for two orders via the bulk action and flashes a combined-pdf notice', function () {
-    with_empty_flash_messages();
+it('generates a label for a single order via the bulk action and flashes a success notice', function () {
+    $notices = with_empty_flash_messages();
 
-    $order_a = create_labelable_order();
-    $order_b = create_labelable_order();
+    $order = create_labelable_order();
+    mock_smart_send_api();
 
-    mock_smart_send_api(function ($url) {
-        if (strpos($url, 'shipments/labels/combine') !== false) {
-            return ss_api_response(200, ['data' => [
-                'pdf' => ['link' => 'https://api.example.test/labels/combined.pdf', 'base_64_encoded' => base64_encode('%PDF-combo')],
-            ]]);
-        }
-
-        return ss_api_response(200, ['data' => ss_api_shipment_data()]);
-    });
-
-    $handler  = SS_SHIPPING_WC()->get_ss_shipping_wc_order();
+    $handler  = SS_SHIPPING_WC()->bulk_actions();
     $sendback = $handler->handle_bulk_order_actions('/wp-admin/edit.php', 'ss_shipping_label_bulk', [
-        $order_a->get_id(),
-        $order_b->get_id(),
+        $order->get_id(),
     ]);
 
-    expect($sendback)->toBe('/wp-admin/edit.php');
+    // The redirect URL is marked so the next request looks up the notices.
+    expect($sendback)->toBe('/wp-admin/edit.php?ss_shipping_notices=1');
 
-    // The flash messages are stored per user id until rendered.
-    $bags = get_option(SS_Shipping_WC_Order::ADMIN_FLASH_MESSAGE_OPTION_KEY);
-    $messages = $bags[get_current_user_id()];
+    // The notices are stored in a per-user transient until rendered.
+    $messages = $notices->get_pending();
     expect($messages)->toHaveCount(1)
         ->and($messages[0]['type'])->toBe('success')
-        ->and($messages[0]['message'])->toContain('Shipping labels created by Smart Send for 2 orders')
-        ->toContain('https://api.example.test/labels/combined.pdf')
-        ->toContain('Download combined pdf');
+        ->and($messages[0]['message'])->toContain('Order #' . $order->get_order_number())
+        ->toContain('Shipping label created by Smart Send')
+        ->toContain('https://api.example.test/labels/label.pdf');
 
-    // render_admin_messages() prints the notices and clears the bag. The
-    // screen helpers are admin-only, so load them on demand.
-    if (!function_exists('convert_to_screen')) {
-        require_once ABSPATH . 'wp-admin/includes/class-wp-screen.php';
-        require_once ABSPATH . 'wp-admin/includes/screen.php';
-        require_once ABSPATH . 'wp-admin/includes/template.php';
-    }
+    expect(wc_get_order($order->get_id())->get_meta('_ss_shipping_label_id', true))->not->toBe('');
+
+    // maybe_render() prints the notices and clears the transient when the
+    // marker query parameter is present.
+    $_GET[\Smart_Send\Support\Admin_Notices::QUERY_ARG] = '1';
     ob_start();
-    $handler->render_admin_messages(convert_to_screen('edit-shop_order'));
+    $notices->maybe_render();
     $output = ob_get_clean();
 
     expect($output)->toContain('notice-success')
-        ->toContain('Download combined pdf');
-    expect(get_option(SS_Shipping_WC_Order::ADMIN_FLASH_MESSAGE_OPTION_KEY)[get_current_user_id()])->toBe([]);
+        ->toContain('Shipping label created by Smart Send');
+    expect($notices->get_pending())->toBe([])
+        ->and(get_transient(\Smart_Send\Support\Admin_Notices::TRANSIENT_PREFIX . get_current_user_id()))->toBeFalse();
 });
 
 it('flashes an error for bulk label generation on an order without a Smart Send method', function () {
-    with_empty_flash_messages();
+    $notices = with_empty_flash_messages();
 
     $product = create_simple_product(['price' => 100, 'weight' => 1]);
     $order   = create_order(['products' => [$product]]);
 
     mock_smart_send_api();
 
-    SS_SHIPPING_WC()->get_ss_shipping_wc_order()
+    SS_SHIPPING_WC()->bulk_actions()
         ->handle_bulk_order_actions('/wp-admin/edit.php', 'ss_shipping_label_bulk', [$order->get_id()]);
 
-    $messages = get_option(SS_Shipping_WC_Order::ADMIN_FLASH_MESSAGE_OPTION_KEY)[get_current_user_id()];
+    $messages = $notices->get_pending();
     expect($messages)->toHaveCount(1)
         ->and($messages[0]['type'])->toBe('error')
         // (sic) "Send Smart" typo is current v8 behaviour.
@@ -231,47 +273,153 @@ it('flashes an error for bulk label generation on an order without a Smart Send 
 });
 
 it('flashes the API error per order when bulk label generation fails', function () {
-    with_empty_flash_messages();
+    $notices = with_empty_flash_messages();
 
     $order = create_labelable_order();
     mock_smart_send_api(function () {
         return ss_api_response(422, ss_api_error_body('The given data was invalid.'));
     });
 
-    SS_SHIPPING_WC()->get_ss_shipping_wc_order()
+    SS_SHIPPING_WC()->bulk_actions()
         ->handle_bulk_order_actions('/wp-admin/edit.php', 'ss_shipping_label_bulk', [$order->get_id()]);
 
-    $messages = get_option(SS_Shipping_WC_Order::ADMIN_FLASH_MESSAGE_OPTION_KEY)[get_current_user_id()];
+    $messages = $notices->get_pending();
     expect($messages)->toHaveCount(1)
         ->and($messages[0]['type'])->toBe('error')
         ->and($messages[0]['message'])->toContain('Order #' . $order->get_order_number())
         ->toContain('The given data was invalid.');
 });
 
-it('rejects bulk label generation for more than five orders', function () {
-    with_empty_flash_messages();
+/*
+ * The 9.0 single-order limit (#173), exercised through the Orders screen
+ * hook WordPress fires - legacy (edit-shop_order) and HPOS
+ * (woocommerce_page_wc-orders) - for both Smart Send bulk actions.
+ */
 
+dataset('bulk_orders_screens', [
+    'legacy' => 'edit-shop_order',
+    'HPOS'   => 'woocommerce_page_wc-orders',
+]);
+
+dataset('bulk_label_actions', [
+    'outbound' => ['ss_shipping_label_bulk', 'Shipping label created by Smart Send', '_ss_shipping_label_id'],
+    'return'   => ['ss_shipping_return_bulk', 'Return label created by Smart Send', '_ss_shipping_return_label_id'],
+]);
+
+/**
+ * Fire an Orders screen's handle_bulk_actions filter the way WordPress does
+ * after "Apply". The component only registers the screen matching the store's
+ * HPOS setting, so the other screen's hook is wired here for the duration of
+ * the test - with the same callback and arguments register_hooks() uses
+ * (pinned per HPOS branch by BulkActionsHookRegistrationTest.php). The HPOS
+ * option itself is not toggled: WooCommerce refuses to switch order storage
+ * while test orders are out of sync.
+ */
+function run_bulk_action_on_screen(string $screen_id, string $action, array $order_ids, string $sendback = '/wp-admin/edit.php'): string
+{
+    $hook     = 'handle_bulk_actions-' . $screen_id;
+    $callback = [SS_SHIPPING_WC()->bulk_actions(), 'handle_bulk_order_actions'];
+
+    if (false === has_filter($hook, $callback)) {
+        add_filter($hook, $callback, 10, 3);
+        remember_cleanup_callback(function () use ($hook, $callback): void {
+            remove_filter($hook, $callback, 10);
+        });
+    }
+
+    return apply_filters($hook, $sendback, $action, $order_ids);
+}
+
+it('books a single selected order through the bulk action on the Orders screen', function (string $screen_id, string $action, string $message, string $meta_key) {
+    $notices = with_empty_flash_messages();
+
+    $order   = create_labelable_order();
     $capture = mock_smart_send_api();
 
-    SS_SHIPPING_WC()->get_ss_shipping_wc_order()
-        ->handle_bulk_order_actions('/wp-admin/edit.php', 'ss_shipping_label_bulk', [1, 2, 3, 4, 5, 6]);
+    $sendback = run_bulk_action_on_screen($screen_id, $action, [$order->get_id()]);
 
-    $messages = get_option(SS_Shipping_WC_Order::ADMIN_FLASH_MESSAGE_OPTION_KEY)[get_current_user_id()];
+    expect($sendback)->toBe('/wp-admin/edit.php?ss_shipping_notices=1')
+        ->and($capture->requests)->not->toBe([]);
+
+    $messages = $notices->get_pending();
+    expect($messages)->toHaveCount(1)
+        ->and($messages[0]['type'])->toBe('success')
+        ->and($messages[0]['message'])->toContain('Order #' . $order->get_order_number())
+        ->toContain($message);
+
+    expect(wc_get_order($order->get_id())->get_meta($meta_key, true))->not->toBe('');
+})->with('bulk_orders_screens')->with('bulk_label_actions');
+
+it('books nothing and explains the single-order limit when more than one order is selected', function (string $screen_id, string $action) {
+    $notices = with_empty_flash_messages();
+
+    $order_a = create_labelable_order();
+    $order_b = create_labelable_order();
+    $capture = mock_smart_send_api();
+
+    $sendback = run_bulk_action_on_screen($screen_id, $action, [$order_a->get_id(), $order_b->get_id()]);
+
+    expect($sendback)->toBe('/wp-admin/edit.php?ss_shipping_notices=1');
+
+    $messages = $notices->get_pending();
     expect($messages)->toHaveCount(1)
         ->and($messages[0]['type'])->toBe('error')
-        ->and($messages[0]['message'])->toContain('not possible to create labels for more than 5 orders')
+        ->and($messages[0]['message'])->toBe(
+            'Bulk printing of multiple orders is not available in version 9.0.0. We are building a much better version, and it is coming soon. Please select a single order, or create the label from the order page. If you need the old bulk printing, you can <a href="https://wordpress.org/plugins/smart-send-logistics/advanced/" target="_blank">downgrade to version 8.x</a>.'
+        )
         ->and($capture->requests)->toBe([]);
-});
 
-it('ignores bulk actions that are not Smart Send actions', function () {
-    with_empty_flash_messages();
+    foreach ([$order_a, $order_b] as $order) {
+        $fresh = wc_get_order($order->get_id());
+        expect($fresh->get_meta('_ss_shipping_label_id', true))->toBe('')
+            ->and($fresh->get_meta('_ss_shipping_return_label_id', true))->toBe('');
+    }
 
-    $result = SS_SHIPPING_WC()->get_ss_shipping_wc_order()
-        ->handle_bulk_order_actions('/wp-admin/edit.php', 'mark_processing', [1]);
+    // The link survives the notice renderer's wp_kses_post().
+    $_GET[\Smart_Send\Support\Admin_Notices::QUERY_ARG] = '1';
+    ob_start();
+    $notices->maybe_render();
+    expect(ob_get_clean())->toContain('notice-error')
+        ->toContain('<a href="https://wordpress.org/plugins/smart-send-logistics/advanced/" target="_blank">downgrade to version 8.x</a>');
+})->with('bulk_orders_screens')->with(['ss_shipping_label_bulk', 'ss_shipping_return_bulk']);
 
-    // v8 oddity: for foreign actions the handler returns null instead of
-    // passing $sendback through.
-    expect($result)->toBeNull()
-        ->and(get_option(SS_Shipping_WC_Order::ADMIN_FLASH_MESSAGE_OPTION_KEY))
-        ->toBe([get_current_user_id() => []]);
-});
+it('preserves other bulk action redirects throughout the Orders screen filter chain', function (string $screen_id, string $action) {
+    $notices = with_empty_flash_messages();
+    $order = create_labelable_order();
+    $capture = mock_smart_send_api();
+    $hook = 'handle_bulk_actions-' . $screen_id;
+    $seen = [];
+
+    // A previous plugin has already handled its action and added a result to
+    // the redirect. A subsequent typed filter must still receive a string.
+    $before = function (string $sendback, string $received_action, array $items) use (&$seen): string {
+        $seen['before'] = [$sendback, $received_action, $items];
+        return add_query_arg('other_plugin_result', 'complete', $sendback);
+    };
+    $after = function (string $sendback, string $received_action, array $items) use (&$seen): string {
+        $seen['after'] = [$sendback, $received_action, $items];
+        return add_query_arg('following_plugin', 'complete', $sendback);
+    };
+    add_filter($hook, $before, 5, 3);
+    add_filter($hook, $after, 15, 3);
+    remember_cleanup_callback(function () use ($hook, $before, $after): void {
+        remove_filter($hook, $before, 5);
+        remove_filter($hook, $after, 15);
+    });
+
+    $original = '/wp-admin/edit.php?post_type=shop_order&paged=2#orders';
+    $incoming = '/wp-admin/edit.php?post_type=shop_order&paged=2&other_plugin_result=complete#orders';
+    $order_ids = [$order->get_id()];
+
+    $result = run_bulk_action_on_screen($screen_id, $action, $order_ids, $original);
+
+    expect($seen['before'])->toBe([$original, $action, $order_ids])
+        ->and($seen['after'])->toBe([$incoming, $action, $order_ids])
+        ->and($result)->toBe('/wp-admin/edit.php?post_type=shop_order&paged=2&other_plugin_result=complete&following_plugin=complete#orders')
+        ->and($capture->requests)->toBe([])
+        ->and($notices->get_pending())->toBe([]);
+
+    $fresh = wc_get_order($order->get_id());
+    expect($fresh->get_meta('_ss_shipping_label_id', true))->toBe('')
+        ->and($fresh->get_meta('_ss_shipping_return_label_id', true))->toBe('');
+})->with('bulk_orders_screens')->with(['mark_processing', 'other_plugin_export']);

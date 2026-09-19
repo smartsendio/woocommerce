@@ -4,7 +4,7 @@
  * Regression test for issue #58: since WordPress 6.7, any translation call
  * (__(), esc_html__(), ...) for the smart-send-logistics domain that runs
  * before the init action triggers a _doing_it_wrong notice for
- * _load_textdomain_just_in_time. The plugin bootstrap (the SS_Shipping_WC
+ * _load_textdomain_just_in_time. The plugin bootstrap (the \Smart_Send\Plugin
  * constructor, executed when the plugin file is loaded — long before init)
  * must therefore not evaluate any translated string.
  *
@@ -57,7 +57,7 @@ it('does not trigger a too-early textdomain notice during plugin bootstrap', fun
         // Re-run the plugin bootstrap. Before the fix this evaluated
         // translated strings in the constructor / define_constants() and
         // fired the notice; after the fix it must not translate anything.
-        new SS_Shipping_WC();
+        new \Smart_Send\Plugin();
     } finally {
         remove_action('doing_it_wrong_run', $capture);
         remove_filter('doing_it_wrong_trigger_error', '__return_false');
